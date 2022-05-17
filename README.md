@@ -1,6 +1,6 @@
 # ⚡️💾 Web Performance Snippets
 
-A curated list of snippets to get Web Performance metrics
+A curated list of snippets to get Web Performance metrics to use in the browser console
 
 ## Core Web Vitals
 
