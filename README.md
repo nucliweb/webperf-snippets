@@ -84,9 +84,9 @@ try {
 List all the `<scripts>` in the DOM and show a table to see if are loaded `async` and/or `defer`
 
 ```js
-let scripts = document.querySelectorAll('script[src]');
+const scripts = document.querySelectorAll('script[src]');
 
-let scriptsLoading = [...scripts].map(obj => {
+const scriptsLoading = [...scripts].map(obj => {
  let newObj = {};
  newObj = {
      "src": obj.src,
@@ -103,7 +103,7 @@ console.table(scriptsLoading);
 Check is the page has resources hints
 
 ```js
-dconst rels = ['preload', 'prefetch', 'preconnect', 'dns-prefetch', 'preconnect dns-prefetch', 'prerender', 'modulepreload']
+const rels = ['preload', 'prefetch', 'preconnect', 'dns-prefetch', 'preconnect dns-prefetch', 'prerender', 'modulepreload']
 
 rels.forEach(element => {
   const linkElements = document.querySelectorAll(`link[rel="${element}"]`)
