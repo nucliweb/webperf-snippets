@@ -113,3 +113,26 @@ rels.forEach(element => {
 });
 
 ```
+
+### Find Above The Fold Lazy Loaded Images
+
+List all images that have `loading="lazy"` above the fold
+
+```js
+function findATFLazyLoadedImages() {
+  const lazy = document.querySelectorAll('[loading="lazy"]');
+  let flag = false;
+  lazy.forEach((tag) => {
+    const position = parseInt(tag.getBoundingClientRect().top);
+    if (position < window.innerHeight && position !== 0) {
+      console.log(tag, position);
+      flag = true;
+    }
+  });
+
+  return flag;
+}
+
+console.log(findATFLazyLoadedImages());
+
+```
