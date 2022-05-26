@@ -136,3 +136,43 @@ function findATFLazyLoadedImages() {
 console.log(findATFLazyLoadedImages());
 
 ```
+
+### Image Info
+
+List all image resources and sort by (`name, transferSize, encodedBodySize, decodedBodySize, initiatorType`)
+
+[More Info](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming])
+
+```js
+function getImgs(sortBy) {
+  const imgs = [];
+
+  const resourceListEntries = performance.getEntriesByType("resource");
+  resourceListEntries.forEach(
+    ({
+      name,
+      transferSize,
+      encodedBodySize,
+      decodedBodySize,
+      initiatorType,
+    }) => {
+      if (initiatorType == "img") {
+        imgs.push({
+          name,
+          transferSize,
+          decodedBodySize,
+          encodedBodySize,
+        });
+      }
+    }
+  );
+
+  const imgList = imgs.sort((a, b) => {
+    return b[sortBy] - a[sortBy];
+  });
+
+  return imgList
+}
+console.table(getImgs('encodedBodySize'))
+
+```
