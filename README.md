@@ -173,6 +173,6 @@ function getImgs(sortBy) {
 
   return imgList
 }
-console.log(getImgs('encodedBodySize'))
+console.table(getImgs('encodedBodySize'))
 
 ```
