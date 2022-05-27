@@ -198,9 +198,8 @@ function getScriptInfo() {
     if (value) {
       if (resource.initiatorType === "script") {
         const { host } = new URL(resource.name);
-        const windowHost = location.host;
         // check if resource url host matches location.host = first party script
-        if (host == windowHost) {
+        if (host === location.host) {
           const json = resource.toJSON();
           first.push({ ...json, type: "First Party" });
         } else {
@@ -218,13 +217,16 @@ function getScriptInfo() {
   };
 }
 
+const { firstParty, thirdParty } = getScriptInfo();
+
 console.groupCollapsed("FIRST PARTY SCRIPTS");
-console.table(getScriptInfo().firstParty);
+console.table(firstParty);
 console.groupEnd();
 console.groupCollapsed("THIRD PARTY SCRIPTS");
 console.group();
-console.table(getScriptInfo().thirdParty);
+console.table(thirdParty);
 console.groupEnd();
+
 
 
 ```
