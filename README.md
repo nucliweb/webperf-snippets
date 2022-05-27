@@ -176,3 +176,71 @@ function getImgs(sortBy) {
 console.table(getImgs('encodedBodySize'))
 
 ```
+
+### First And Third Party Script Info
+
+List all scripts using PerformanceResourceTiming API and separating them by first and third party
+
+[More Info](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming)
+
+[Info On CORS](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors)
+
+```js
+// ex: katespade.com - list firsty party subdomains in HOSTS array
+const HOSTS = ["assets.katespade.com"];
+
+function getScriptInfo() {
+  const resourceListEntries = performance.getEntriesByType("resource");
+  // set for first party scripts
+  const first = [];
+  // set for third party scripts
+  const third = [];
+
+  resourceListEntries.forEach((resource) => {
+    // check for initiator type
+    const value = "initiatorType" in resource;
+    if (value) {
+      if (resource.initiatorType === "script") {
+        const { host } = new URL(resource.name);
+        // check if resource url host matches location.host = first party script
+        if (host === location.host || HOSTS.includes(host)) {
+          const json = resource.toJSON();
+          first.push({ ...json, type: "First Party" });
+        } else {
+          // add to third party script
+          const json = resource.toJSON();
+          third.push({ ...json, type: "Third Party" });
+        }
+      }
+    }
+  });
+
+  return {
+    ...(first.length && { firstParty: first }),
+    ...(third.length && { thirdParty: third }),
+  };
+}
+
+const { firstParty, thirdParty } = getScriptInfo();
+
+console.groupCollapsed("FIRST PARTY SCRIPTS");
+console.table(firstParty);
+console.groupEnd();
+console.groupCollapsed("THIRD PARTY SCRIPTS");
+console.table(thirdParty);
+console.groupEnd();
+
+/*
+Choose which properties to display
+https://developer.mozilla.org/en-US/docs/Web/API/console/table
+
+console.groupCollapsed("FIRST PARTY SCRIPTS");
+console.table(firstParty, ["name", "nextHopProtocol"]);
+console.groupEnd();
+console.groupCollapsed("THIRD PARTY SCRIPTS", ["name", "nextHopProtocol"]);
+console.group();
+console.table(thirdParty);
+console.groupEnd();
+*/
+
+```
