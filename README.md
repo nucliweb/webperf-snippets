@@ -186,6 +186,9 @@ List all scripts using PerformanceResourceTiming API and separating them by firs
 [Info On CORS](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors)
 
 ```js
+// ex: katespade.com - list firsty party subdomains in HOSTS array
+const HOSTS = ["assets.katespade.com"];
+
 function getScriptInfo() {
   const resourceListEntries = performance.getEntriesByType("resource");
   // set for first party scripts
@@ -200,7 +203,7 @@ function getScriptInfo() {
       if (resource.initiatorType === "script") {
         const { host } = new URL(resource.name);
         // check if resource url host matches location.host = first party script
-        if (host === location.host) {
+        if (host === location.host || HOSTS.includes(host)) {
           const json = resource.toJSON();
           first.push({ ...json, type: "First Party" });
         } else {
@@ -226,8 +229,6 @@ console.groupEnd();
 console.groupCollapsed("THIRD PARTY SCRIPTS");
 console.table(thirdParty);
 console.groupEnd();
-
-
 
 /*
 Choose which properties to display
