@@ -224,8 +224,22 @@ console.groupCollapsed("FIRST PARTY SCRIPTS");
 console.table(firstParty);
 console.groupEnd();
 console.groupCollapsed("THIRD PARTY SCRIPTS");
+console.table(thirdParty);
+console.groupEnd();
+
+
+
+/*
+Choose which properties to display
+https://developer.mozilla.org/en-US/docs/Web/API/console/table
+
+console.groupCollapsed("FIRST PARTY SCRIPTS");
+console.table(firstParty, ["name", "nextHopProtocol"]);
+console.groupEnd();
+console.groupCollapsed("THIRD PARTY SCRIPTS", ["name", "nextHopProtocol"]);
 console.group();
 console.table(thirdParty);
 console.groupEnd();
+*/
 
 ```
