@@ -182,6 +182,7 @@ console.table(getImgs('encodedBodySize'))
 List all scripts using PerformanceResourceTiming API and separating them by first and third party
 
 [More Info](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming)
+
 [Info On CORS](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors)
 
 ```js
@@ -226,7 +227,5 @@ console.groupCollapsed("THIRD PARTY SCRIPTS");
 console.group();
 console.table(thirdParty);
 console.groupEnd();
-
-
 
 ```
