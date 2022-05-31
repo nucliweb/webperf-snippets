@@ -10,23 +10,25 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 /**
  * PerformanceObserver
  */
-const po = new PerformanceObserver(list => {
+const po = new PerformanceObserver((list) => {
   let entries = list.getEntries();
 
   entries = dedupe(entries, "startTime");
-  
+
   /**
    * Print all entries of LCP
    */
   entries.forEach((item, i) => {
     console.dir(item);
-    console.log(`${i+1} current LCP item : ${item.element}: ${item.startTime}`);
+    console.log(
+      `${i + 1} current LCP item : ${item.element}: ${item.startTime}`
+    );
     /**
      * Highlight LCP elements on the page
      */
-    item.element ? item.element.style = "border: 5px dotted blue;" : '';
-  })
-  
+    item.element ? (item.element.style = "border: 5px dotted blue;") : "";
+  });
+
   /**
    * LCP is the lastEntry in getEntries Array
    */
@@ -41,10 +43,10 @@ const po = new PerformanceObserver(list => {
  * Start observing for largest-contentful-paint
  * buffered true getEntries prior to this script execution
  */
-po.observe({ type: 'largest-contentful-paint', buffered: true })
+po.observe({ type: "largest-contentful-paint", buffered: true });
 
-function dedupe(arr, key){
-  return [...new Map(arr.map(item => [item[key], item])).values()]
+function dedupe(arr, key) {
+  return [...new Map(arr.map((item) => [item[key], item])).values()];
 }
 ```
 
@@ -53,26 +55,25 @@ function dedupe(arr, key){
 ```js
 try {
   let cumulativeLayoutShiftScore = 0;
-  const observer = new PerformanceObserver(list => {
-    for(const entry of list.getEntries()){
-      if(!entry.hadRecentInput){
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      if (!entry.hadRecentInput) {
         cumulativeLayoutShiftScore += entry.value;
       }
     }
   });
 
-  observer.observe({type: 'layout-shift', buffered: true});
+  observer.observe({ type: "layout-shift", buffered: true });
 
-  document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'hidden'){
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
       observer.takeRecords();
       observer.disconnect();
-      
+
       console.log(`CLS: ${cumulativeLayoutShiftScore}`);
     }
-  })
-
-} catch(e) {
+  });
+} catch (e) {
   console.log(`Browser doesn't support this API`);
 }
 ```
@@ -84,16 +85,16 @@ try {
 List all the `<scripts>` in the DOM and show a table to see if are loaded `async` and/or `defer`
 
 ```js
-const scripts = document.querySelectorAll('script[src]');
+const scripts = document.querySelectorAll("script[src]");
 
-const scriptsLoading = [...scripts].map(obj => {
- let newObj = {};
- newObj = {
-     "src": obj.src,
-     "async": obj.async,
-     "defer": obj.defer
- }
- return newObj;
+const scriptsLoading = [...scripts].map((obj) => {
+  let newObj = {};
+  newObj = {
+    src: obj.src,
+    async: obj.async,
+    defer: obj.defer,
+  };
+  return newObj;
 });
 console.table(scriptsLoading);
 ```
@@ -103,15 +104,22 @@ console.table(scriptsLoading);
 Check is the page has resources hints
 
 ```js
-const rels = ['preload', 'prefetch', 'preconnect', 'dns-prefetch', 'preconnect dns-prefetch', 'prerender', 'modulepreload']
+const rels = [
+  "preload",
+  "prefetch",
+  "preconnect",
+  "dns-prefetch",
+  "preconnect dns-prefetch",
+  "prerender",
+  "modulepreload",
+];
 
-rels.forEach(element => {
-  const linkElements = document.querySelectorAll(`link[rel="${element}"]`)
-  const dot = linkElements.length > 0 ? '🟩' : '🟥'
-  console.log(`${dot} ${element}`)
-  linkElements.forEach(el => console.log(el))
+rels.forEach((element) => {
+  const linkElements = document.querySelectorAll(`link[rel="${element}"]`);
+  const dot = linkElements.length > 0 ? "🟩" : "🟥";
+  console.log(`${dot} ${element}`);
+  linkElements.forEach((el) => console.log(el));
 });
-
 ```
 
 ### Find Above The Fold Lazy Loaded Images
@@ -134,7 +142,6 @@ function findATFLazyLoadedImages() {
 }
 
 console.log(findATFLazyLoadedImages());
-
 ```
 
 ### Image Info
@@ -171,10 +178,9 @@ function getImgs(sortBy) {
     return b[sortBy] - a[sortBy];
   });
 
-  return imgList
+  return imgList;
 }
-console.table(getImgs('encodedBodySize'))
-
+console.table(getImgs("encodedBodySize"));
 ```
 
 ### First And Third Party Script Info
@@ -241,19 +247,25 @@ console.groupCollapsed("THIRD PARTY SCRIPTS", ["name", "nextHopProtocol"]);
 console.table(thirdParty);
 console.groupEnd();
 */
-
 ```
 
 ### First And Third Party Script Timings
 
-*This relies on the above script*
+<small>_This relies on the above script_</small>
 
-*Run First And Third Party Script Info in the console first, then run this*
+_Run First And Third Party Script Info in the console first, then run this_
 
 [Calculate Load Times - MDN](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#timing_resource_loading_phases)
 
+<details><summary><a href='https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors' target="_blank">Info on CORS (why some values are 0)</a></summary>
 
-[Info On CORS](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors) - Explanation as to why some values are 0
+<p>
+
+> Note: The properties which are returned as 0 by default when loading a resource from a domain other than the one of the web page itself: redirectStart, redirectEnd, domainLookupStart, domainLookupEnd, connectStart, connectEnd, secureConnectionStart, requestStart, and responseStart.
+
+</p>
+</details>
+<br>
 
 ```js
 function createUniqueLists(firstParty, thirdParty) {
@@ -311,7 +323,6 @@ function calculateTimings(party, type) {
   return timings;
 }
 
-
 // Available Options
 const timingOptions = [
   "DNS_TIME",
@@ -339,6 +350,4 @@ timingOptions.forEach((timing) => {
 // choose your battle - arg1 is string either "first" or "third", arg2 is string timing option listed above.
 
 console.table(calculateTimings("first", "REQ_START_UNTIL_RES_END"));
-
 ```
- 
