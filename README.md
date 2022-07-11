@@ -4,7 +4,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 
 ## Core Web Vitals
 
-### Largest Contenful Paint (LCP)
+### Largest Contentful Paint (LCP)
 
 ```js
 /**
