@@ -221,10 +221,20 @@ function getScriptInfo() {
     }
   });
 
-  return {
-    ...(first.length && { firstParty: first }),
-    ...(third.length && { thirdParty: third }),
+  const scripts = {
+    firstParty: [{ name: "no data" }],
+    thirdParty: [{ name: "no data" }],
   };
+
+  if (first.length) {
+    scripts.firstParty = first;
+  }
+
+  if (third.length) {
+    scripts.thirdParty = third;
+  }
+
+  return scripts;
 }
 
 const { firstParty, thirdParty } = getScriptInfo();
@@ -279,14 +289,17 @@ function createUniqueLists(firstParty, thirdParty) {
 
   const firstPartyList = getUniqueListBy(firstParty, ["name"]);
   const thirdPartyList = getUniqueListBy(thirdParty, ["name"]);
-
+  
   return { firstPartyList, thirdPartyList };
+
 }
 
 const { firstPartyList, thirdPartyList } = createUniqueLists(
   firstParty,
   thirdParty
 );
+
+
 
 function calculateTimings(party, type) {
   const partyChoice = party === "first" ? firstParty : thirdParty;
