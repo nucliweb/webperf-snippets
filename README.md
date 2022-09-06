@@ -395,7 +395,7 @@ try {
 To find more specific information about layout shifts, you can use [PerformanceObserver](https://developer.mozilla.org/docs/Web/API/PerformanceObserver) and register to observe entries of type `layout-shift`:
 
 ```js
-function genHex() {
+function genColor() {
   let n = (Math.random() * 0xfffff * 1000000).toString(16);
   return "#" + n.slice(0, 6);
 }
@@ -414,7 +414,7 @@ function findShifts(threshold) {
   return new PerformanceObserver((list) => {
     list.getEntries().forEach((entry) => {
       if (entry.value > threshold && !entry.hasRecentInput) {
-        const color = gencolor();
+        const color = genColor();
         shifts.push(entry);
         console.log(shifts);
 
@@ -434,4 +434,5 @@ function findShifts(threshold) {
 }
 
 findShifts(0.05).observe({ entryTypes: ["layout-shift"] });
+
 ```
