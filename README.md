@@ -413,7 +413,7 @@ const shifts = [];
 function findShifts(threshold) {
   return new PerformanceObserver((list) => {
     list.getEntries().forEach((entry) => {
-      if (entry.value > threshold && !entry.hasRecentInput) {
+      if (entry.value > threshold && !entry.hadRecentInput) {
         const color = genColor();
         shifts.push(entry);
         console.log(shifts);
@@ -434,5 +434,4 @@ function findShifts(threshold) {
 }
 
 findShifts(0.05).observe({ entryTypes: ["layout-shift"] });
-
 ```
