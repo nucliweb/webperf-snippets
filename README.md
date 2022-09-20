@@ -394,7 +394,7 @@ try {
 
 Print al the CLS metrics when load the page and the user interactive with the page:
 
-```
+```js
 new PerformanceObserver(entryList => {
     console.log(entryList.getEntries());
 }).observe({ type: "layout-shift", buffered: true });
