@@ -148,7 +148,7 @@ console.log(findATFLazyLoadedImages());
 
 List all image resources and sort by (`name, transferSize, encodedBodySize, decodedBodySize, initiatorType`)
 
-[More Info](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming])
+[More Info](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming)
 
 ```js
 function getImgs(sortBy) {
