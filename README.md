@@ -85,7 +85,7 @@ try {
 List all the `<scripts>` in the DOM and show a table to see if are loaded `async` and/or `defer`
 
 ```js
-const scripts = document.querySelectorAll("script[src]");
+const scripts = document.querySelectorAll('script[src]');
 
 const scriptsLoading = [...scripts].map((obj) => {
   let newObj = {};
@@ -93,6 +93,7 @@ const scriptsLoading = [...scripts].map((obj) => {
     src: obj.src,
     async: obj.async,
     defer: obj.defer,
+    'render blocking': obj.async || obj.defer ? '' : '🟥'
   };
   return newObj;
 });
