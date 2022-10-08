@@ -87,7 +87,7 @@ Measure the time to first byte, from the document
 ```js
 new PerformanceObserver((entryList) => {
   const [pageNav] = entryList.getEntriesByType('navigation')
-  console.log(`TTFB: ${pageNav.responseStart}`)
+  console.log(`TTFB (ms): ${pageNav.responseStart}`)
 }).observe({
   type: 'navigation',
   buffered: true
