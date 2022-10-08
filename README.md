@@ -80,6 +80,45 @@ try {
 
 ## Loading
 
+### Time To First Byte
+
+Measure the time to first byte, from the document
+
+```js
+new PerformanceObserver((entryList) => {
+  const [pageNav] = entryList.getEntriesByType('navigation')
+  console.log(`TTFB: ${pageNav.responseStart}`)
+}).observe({
+  type: 'navigation',
+  buffered: true
+})
+```
+
+Measure the time to first byte of all the resources loaded
+
+```js
+new PerformanceObserver((entryList) => {
+  const entries = entryList.getEntries();
+  const resourcesLoaded = [...entries].map((entry) => {
+    let obj= {};
+    // Some resources may have a responseStart value of 0, due
+    // to the resource being cached, or a cross-origin resource
+    // being served without a Timing-Allow-Origin header set.
+    if (entry.responseStart > 0) {
+      obj = {
+        'TTFB (ms)': entry.responseStart,
+        Resource: entry.name
+      }
+    }
+    return obj
+  })
+  console.table(resourcesLoaded)
+}).observe({
+  type: 'resource',
+  buffered: true
+})
+```
+
 ### Scripts Loading
 
 List all the `<scripts>` in the DOM and show a table to see if are loaded `async` and/or `defer`
