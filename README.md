@@ -168,17 +168,15 @@ List all images that have `loading="lazy"` above the fold
 
 ```js
 function findATFLazyLoadedImages() {
-  const lazy = document.querySelectorAll('[loading="lazy"]');
-  let flag = false;
+  const lazy = document.querySelectorAll('[loading="lazy"], [data-src]');
+  let lazyImages = [];
   lazy.forEach((tag) => {
     const position = parseInt(tag.getBoundingClientRect().top);
     if (position < window.innerHeight && position !== 0) {
-      console.log(tag, position);
-      flag = true;
+      lazyImages = [...lazyImages, tag];
     }
   });
-
-  return flag;
+  return lazyImages.length > 0 ? lazyImages : false;
 }
 
 console.log(findATFLazyLoadedImages());
