@@ -80,12 +80,51 @@ try {
 
 ## Loading
 
+### Time To First Byte
+
+Measure the time to first byte, from the document
+
+```js
+new PerformanceObserver((entryList) => {
+  const [pageNav] = entryList.getEntriesByType('navigation')
+  console.log(`TTFB (ms): ${pageNav.responseStart}`)
+}).observe({
+  type: 'navigation',
+  buffered: true
+})
+```
+
+Measure the time to first byte of all the resources loaded
+
+```js
+new PerformanceObserver((entryList) => {
+  const entries = entryList.getEntries();
+  const resourcesLoaded = [...entries].map((entry) => {
+    let obj= {};
+    // Some resources may have a responseStart value of 0, due
+    // to the resource being cached, or a cross-origin resource
+    // being served without a Timing-Allow-Origin header set.
+    if (entry.responseStart > 0) {
+      obj = {
+        'TTFB (ms)': entry.responseStart,
+        Resource: entry.name
+      }
+    }
+    return obj
+  })
+  console.table(resourcesLoaded)
+}).observe({
+  type: 'resource',
+  buffered: true
+})
+```
+
 ### Scripts Loading
 
 List all the `<scripts>` in the DOM and show a table to see if are loaded `async` and/or `defer`
 
 ```js
-const scripts = document.querySelectorAll("script[src]");
+const scripts = document.querySelectorAll('script[src]');
 
 const scriptsLoading = [...scripts].map((obj) => {
   let newObj = {};
@@ -93,6 +132,7 @@ const scriptsLoading = [...scripts].map((obj) => {
     src: obj.src,
     async: obj.async,
     defer: obj.defer,
+    'render blocking': obj.async || obj.defer ? '' : '🟥'
   };
   return newObj;
 });
@@ -148,7 +188,7 @@ console.log(findATFLazyLoadedImages());
 
 List all image resources and sort by (`name, transferSize, encodedBodySize, decodedBodySize, initiatorType`)
 
-[More Info](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming])
+[More Info](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming)
 
 ```js
 function getImgs(sortBy) {
@@ -434,4 +474,13 @@ function findShifts(threshold) {
 }
 
 findShifts(0.05).observe({ entryTypes: ["layout-shift"] });
+```
+
+
+Print al the CLS metrics when load the page and the user interactive with the page:
+
+```js
+new PerformanceObserver(entryList => {
+    console.log(entryList.getEntries());
+}).observe({ type: "layout-shift", buffered: true });
 ```
