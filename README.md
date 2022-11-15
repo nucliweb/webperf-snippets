@@ -164,7 +164,7 @@ rels.forEach((element) => {
 
 ### Find Above The Fold Lazy Loaded Images
 
-List all images that have `loading="lazy"` above the fold
+List all images that have `loading="lazy"` or `[data-src]` _(lazy loading via JS)_ above the fold
 
 ```js
 function findATFLazyLoadedImages() {
