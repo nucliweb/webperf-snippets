@@ -164,7 +164,7 @@ rels.forEach((element) => {
 
 ### Check IF An Element Is In The Viewport & Exists On The DOM
 
-Can define a selector and check if it is in the viewport or not. This was useful for finding elements that weren't part of a component library but rather custom compoents that could cause issues.
+Can define a selector and check if it is in the viewport or not. This was useful for finding elements that weren't part of a component library but rather custom components that could cause issues. For example, most custom components broke our CLS features on our sites and we used this to find them quickly.
 
 ```js
 
