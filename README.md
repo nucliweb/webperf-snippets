@@ -162,6 +162,40 @@ rels.forEach((element) => {
 });
 ```
 
+### Check IF An Element Is In The Viewport & Exists On The DOM
+
+Can define a selector and check if it is in the viewport or not. This was useful for finding elements that weren't part of a component library but rather custom compoents that could cause issues.
+
+```js
+
+// takes an element using document.querySelector
+function isInViewport(element) {
+  const rect = element.getBoundingClientRect();
+  return (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <=
+      (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  );
+}
+// random class name taken from limitedrungames.com
+const lookForThisAboveTheFold = document.querySelectorAll('[class*=slick]');
+
+// will style all class names with a border
+// above the fold is red
+// below is blue
+lookForThisAboveTheFold.forEach((node) => {
+  console.log(node.className, isInViewport(node));
+  if (isInViewport(node)) {
+    node.style = "border: 2px dotted red;";
+  } else {
+    node.style = "border: 2px dotted blue";
+  }
+});
+
+```
+
 ### Find Above The Fold Lazy Loaded Images
 
 List all images that have `loading="lazy"` or `[data-src]` _(lazy loading via JS)_ above the fold
