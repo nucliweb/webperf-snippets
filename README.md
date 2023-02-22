@@ -182,6 +182,29 @@ function findATFLazyLoadedImages() {
 console.log(findATFLazyLoadedImages());
 ```
 
+### Find non Lazy Loaded Images outside of the viewport
+
+List all images that don't have `loading="lazy"` or `[data-src]` _(lazy loading via JS)_ and are not in the viewport when the page loads. This script will help you find candidates for lazy loading.
+
+```js
+// Execute it after the page has loaded without any user interaction (Scroll, click, etc)
+function findImgCanidatesForLazyLoading() {
+  let notLazyImages = document.querySelectorAll('img:not([data-src]):not([loading="lazy"])');
+  return Array.from(notLazyImages).filter(tag => !isInViewport(tag));
+}
+
+function isInViewport(tag) {
+  let rect = tag.getBoundingClientRect();
+  return (rect.bottom >= 0 &&
+    rect.right >= 0 &&
+    rect.top <= (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.left <= (window.innerWidth || document.documentElement.clientWidth)
+  )
+}
+
+console.log("Consider lazyloading the following images: ", findImgCanidatesForLazyLoading());
+```
+
 ### Image Info
 
 List all image resources and sort by (`name, transferSize, encodedBodySize, decodedBodySize, initiatorType`)
