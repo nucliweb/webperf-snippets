@@ -244,6 +244,40 @@ function getImgs(sortBy) {
 console.table(getImgs("encodedBodySize"));
 ```
 
+### Fonts Preloaded, Loaded, and Used Avobe The Fold
+
+List all the fonts preloaded via resources hints, all the fonts loaded via CSS, and all the fonts used in the viewport avobe the fold.
+
+```js
+const linkElements = document.querySelectorAll(`link[rel="preload"]`);
+const arrayLinks = Array.from(linkElements)
+const preloadedFonts = arrayLinks.filter(link => link.as ==="font")
+
+console.log('Fonts Preloaded via Resources Hints')
+preloadedFonts.forEach(font => console.log(`▸ ${font.href}`))
+console.log('')
+
+const loadedFonts = [...new Set(Array.from(document.fonts.values()).map(font => font).filter(font => font.status === 'loaded').map(font => `${font.family} - ${font.weight}`))]
+
+console.log('Fonts and Weights Loaded in the Document')
+loadedFonts.forEach(font => console.log(`▸ ${font}`))
+console.log('')
+
+const aboveFoldElements = Array.from(document.querySelectorAll('body > *:not(script):not(style)')).filter(el => {
+  const rect = el.getBoundingClientRect();
+  return (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  );
+});
+const usedFonts = Array.from(new Set([...aboveFoldElements].map(e => `${getComputedStyle(e).fontFamily} - ${getComputedStyle(e).fontWeight}`)));
+
+console.log('Fonts and Weights Used Avobe the Fold')
+usedFonts.forEach(font => console.log(`▸ ${font}`))
+```
+
 ### First And Third Party Script Info
 
 List all scripts using PerformanceResourceTiming API and separating them by first and third party
