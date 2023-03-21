@@ -246,7 +246,7 @@ console.table(getImgs("encodedBodySize"));
 
 ### Fonts Preloaded, Loaded, and Used Avobe The Fold
 
-List all the fonts preloaded via resources hints, all the fonts loaded via CSS, and all the fonts used in the viewport avobe the fold.
+List all the fonts preloaded via resources hints, all the fonts loaded via CSS, and all the fonts used in the viewport above the fold.
 
 ```js
 const linkElements = document.querySelectorAll(`link[rel="preload"]`);
