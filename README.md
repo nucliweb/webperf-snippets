@@ -263,16 +263,18 @@ console.log('Fonts and Weights Loaded in the Document')
 loadedFonts.forEach(font => console.log(`▸ ${font}`))
 console.log('')
 
-const aboveFoldElements = Array.from(document.querySelectorAll('body > *:not(script):not(style)')).filter(el => {
-  const rect = el.getBoundingClientRect();
-  return (
-    rect.top >= 0 &&
-    rect.left >= 0 &&
-    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-  );
-});
-const usedFonts = Array.from(new Set([...aboveFoldElements].map(e => `${getComputedStyle(e).fontFamily} - ${getComputedStyle(e).fontWeight}`)));
+const childrenSlector = 'body * > *:not(script):not(style):not(link):not(source)'
+const aboveFoldElements = Array.from(document.querySelectorAll(childrenSlector)).filter(elm => {
+  const rect = elm.getBoundingClientRect();
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    )
+  })
+
+const usedFonts = Array.from(new Set([...aboveFoldElements].map(e => `${getComputedStyle(e).fontFamily} | ${getComputedStyle(e).fontWeight} | ${getComputedStyle(e).fontStyle}`)));
 
 console.log('Fonts and Weights Used Avobe the Fold')
 usedFonts.forEach(font => console.log(`▸ ${font}`))
