@@ -2,6 +2,24 @@
 
 A curated list of snippets to get Web Performance metrics to use in the browser console
 
+- [⚡️💾 Web Performance Snippets](#️-web-performance-snippets)
+  - [Core Web Vitals](#core-web-vitals)
+    - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
+    - [Cumulative Layout Shift](#cumulative-layout-shift)
+  - [Loading](#loading)
+    - [Time To First Byte](#time-to-first-byte)
+    - [Scripts Loading](#scripts-loading)
+    - [Resources hints](#resources-hints)
+    - [Find Above The Fold Lazy Loaded Images](#find-above-the-fold-lazy-loaded-images)
+    - [Find non Lazy Loaded Images outside of the viewport](#find-non-lazy-loaded-images-outside-of-the-viewport)
+    - [Image Info](#image-info)
+    - [Fonts Preloaded, Loaded, and Used Avobe The Fold](#fonts-preloaded-loaded-and-used-avobe-the-fold)
+    - [First And Third Party Script Info](#first-and-third-party-script-info)
+    - [First And Third Party Script Timings](#first-and-third-party-script-timings)
+  - [Interaction](#interaction)
+    - [Long Task](#long-task)
+    - [Layout Shifts](#layout-shifts)
+
 ## Core Web Vitals
 
 ### Largest Contentful Paint (LCP)
