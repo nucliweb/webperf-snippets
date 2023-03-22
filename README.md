@@ -13,7 +13,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [Find Above The Fold Lazy Loaded Images](#find-above-the-fold-lazy-loaded-images)
     - [Find non Lazy Loaded Images outside of the viewport](#find-non-lazy-loaded-images-outside-of-the-viewport)
     - [Image Info](#image-info)
-    - [Fonts Preloaded, Loaded, and Used Avobe The Fold](#fonts-preloaded-loaded-and-used-avobe-the-fold)
+    - [Fonts Preloaded, Loaded, and Used Above The Fold](#fonts-preloaded-loaded-and-used-above-the-fold)
     - [First And Third Party Script Info](#first-and-third-party-script-info)
     - [First And Third Party Script Timings](#first-and-third-party-script-timings)
   - [Interaction](#interaction)
@@ -262,7 +262,7 @@ function getImgs(sortBy) {
 console.table(getImgs("encodedBodySize"));
 ```
 
-### Fonts Preloaded, Loaded, and Used Avobe The Fold
+### Fonts Preloaded, Loaded, and Used Above The Fold
 
 List all the fonts preloaded via resources hints, all the fonts loaded via CSS, and all the fonts used in the viewport above the fold.
 
@@ -294,7 +294,7 @@ const aboveFoldElements = Array.from(document.querySelectorAll(childrenSlector))
 
 const usedFonts = Array.from(new Set([...aboveFoldElements].map(e => `${getComputedStyle(e).fontFamily} | ${getComputedStyle(e).fontWeight} | ${getComputedStyle(e).fontStyle}`)));
 
-console.log('Fonts and Weights Used Avobe the Fold')
+console.log('Fonts and Weights Used Above the Fold')
 usedFonts.forEach(font => console.log(`▸ ${font}`))
 ```
 
