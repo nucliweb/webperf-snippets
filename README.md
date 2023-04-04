@@ -275,7 +275,7 @@ console.log('Fonts Preloaded via Resources Hints')
 preloadedFonts.forEach(font => console.log(`▸ ${font.href}`))
 console.log('')
 
-const loadedFonts = [...new Set(Array.from(document.fonts.values()).map(font => font).filter(font => font.status === 'loaded').map(font => `${font.family} - ${font.weight}`))]
+const loadedFonts = [...new Set(Array.from(document.fonts.values()).map(font => font).filter(font => font.status === 'loaded').map(font => `${font.family} - ${font.weight} - ${font.style}`))]
 
 console.log('Fonts and Weights Loaded in the Document')
 loadedFonts.forEach(font => console.log(`▸ ${font}`))
