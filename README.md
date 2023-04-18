@@ -5,6 +5,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 - [⚡️💾 Web Performance Snippets](#️-web-performance-snippets)
   - [Core Web Vitals](#core-web-vitals)
     - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
+    - [Quick BPP (image entropy) check](#quick-bpp-image-entropy-check)
     - [Cumulative Layout Shift](#cumulative-layout-shift)
   - [Loading](#loading)
     - [Time To First Byte](#time-to-first-byte)
@@ -68,6 +69,29 @@ function dedupe(arr, key) {
 }
 ```
 
+### Quick BPP (image entropy) check
+
+This snippet is based on and with the permission [Stoyan Stefanov](https://twitter.com/stoyanstefanov), read his post [here](https://www.phpied.com/quick-bpp-image-entropy-check/).
+
+With the script you can get a list of the BPP of all(1) images loaded on the site.
+
+> (1) the images with source "data:image" and third-party images are ignored.
+
+```js
+console.table(
+  [...document.images]
+    .filter(
+      (img) => img.currentSrc != "" && !img.currentSrc.includes("data:image")
+    )
+    .map((img) => [
+      img.currentSrc,
+      (performance.getEntriesByName(img.currentSrc)[0].encodedBodySize * 8) /
+        (img.width * img.height),
+    ])
+    .filter((img) => img[1] !== 0)
+);
+```
+
 ### Cumulative Layout Shift
 
 ```js
@@ -104,12 +128,12 @@ Measure the time to first byte, from the document
 
 ```js
 new PerformanceObserver((entryList) => {
-  const [pageNav] = entryList.getEntriesByType('navigation')
-  console.log(`TTFB (ms): ${pageNav.responseStart}`)
+  const [pageNav] = entryList.getEntriesByType("navigation");
+  console.log(`TTFB (ms): ${pageNav.responseStart}`);
 }).observe({
-  type: 'navigation',
-  buffered: true
-})
+  type: "navigation",
+  buffered: true,
+});
 ```
 
 Measure the time to first byte of all the resources loaded
@@ -118,23 +142,23 @@ Measure the time to first byte of all the resources loaded
 new PerformanceObserver((entryList) => {
   const entries = entryList.getEntries();
   const resourcesLoaded = [...entries].map((entry) => {
-    let obj= {};
+    let obj = {};
     // Some resources may have a responseStart value of 0, due
     // to the resource being cached, or a cross-origin resource
     // being served without a Timing-Allow-Origin header set.
     if (entry.responseStart > 0) {
       obj = {
-        'TTFB (ms)': entry.responseStart,
-        Resource: entry.name
-      }
+        "TTFB (ms)": entry.responseStart,
+        Resource: entry.name,
+      };
     }
-    return obj
-  })
-  console.table(resourcesLoaded)
+    return obj;
+  });
+  console.table(resourcesLoaded);
 }).observe({
-  type: 'resource',
-  buffered: true
-})
+  type: "resource",
+  buffered: true,
+});
 ```
 
 ### Scripts Loading
@@ -142,7 +166,7 @@ new PerformanceObserver((entryList) => {
 List all the `<scripts>` in the DOM and show a table to see if are loaded `async` and/or `defer`
 
 ```js
-const scripts = document.querySelectorAll('script[src]');
+const scripts = document.querySelectorAll("script[src]");
 
 const scriptsLoading = [...scripts].map((obj) => {
   let newObj = {};
@@ -150,7 +174,7 @@ const scriptsLoading = [...scripts].map((obj) => {
     src: obj.src,
     async: obj.async,
     defer: obj.defer,
-    'render blocking': obj.async || obj.defer ? '' : '🟥'
+    "render blocking": obj.async || obj.defer ? "" : "🟥",
   };
   return newObj;
 });
@@ -207,20 +231,26 @@ List all images that don't have `loading="lazy"` or `[data-src]` _(lazy loading 
 ```js
 // Execute it after the page has loaded without any user interaction (Scroll, click, etc)
 function findImgCanidatesForLazyLoading() {
-  let notLazyImages = document.querySelectorAll('img:not([data-src]):not([loading="lazy"])');
-  return Array.from(notLazyImages).filter(tag => !isInViewport(tag));
+  let notLazyImages = document.querySelectorAll(
+    'img:not([data-src]):not([loading="lazy"])'
+  );
+  return Array.from(notLazyImages).filter((tag) => !isInViewport(tag));
 }
 
 function isInViewport(tag) {
   let rect = tag.getBoundingClientRect();
-  return (rect.bottom >= 0 &&
+  return (
+    rect.bottom >= 0 &&
     rect.right >= 0 &&
     rect.top <= (window.innerHeight || document.documentElement.clientHeight) &&
     rect.left <= (window.innerWidth || document.documentElement.clientWidth)
-  )
+  );
 }
 
-console.log("Consider lazyloading the following images: ", findImgCanidatesForLazyLoading());
+console.log(
+  "Consider lazyloading the following images: ",
+  findImgCanidatesForLazyLoading()
+);
 ```
 
 ### Image Info
@@ -268,34 +298,54 @@ List all the fonts preloaded via resources hints, all the fonts loaded via CSS, 
 
 ```js
 const linkElements = document.querySelectorAll(`link[rel="preload"]`);
-const arrayLinks = Array.from(linkElements)
-const preloadedFonts = arrayLinks.filter(link => link.as ==="font")
+const arrayLinks = Array.from(linkElements);
+const preloadedFonts = arrayLinks.filter((link) => link.as === "font");
 
-console.log('Fonts Preloaded via Resources Hints')
-preloadedFonts.forEach(font => console.log(`▸ ${font.href}`))
-console.log('')
+console.log("Fonts Preloaded via Resources Hints");
+preloadedFonts.forEach((font) => console.log(`▸ ${font.href}`));
+console.log("");
 
-const loadedFonts = [...new Set(Array.from(document.fonts.values()).map(font => font).filter(font => font.status === 'loaded').map(font => `${font.family} - ${font.weight} - ${font.style}`))]
+const loadedFonts = [
+  ...new Set(
+    Array.from(document.fonts.values())
+      .map((font) => font)
+      .filter((font) => font.status === "loaded")
+      .map((font) => `${font.family} - ${font.weight} - ${font.style}`)
+  ),
+];
 
-console.log('Fonts and Weights Loaded in the Document')
-loadedFonts.forEach(font => console.log(`▸ ${font}`))
-console.log('')
+console.log("Fonts and Weights Loaded in the Document");
+loadedFonts.forEach((font) => console.log(`▸ ${font}`));
+console.log("");
 
-const childrenSlector = 'body * > *:not(script):not(style):not(link):not(source)'
-const aboveFoldElements = Array.from(document.querySelectorAll(childrenSlector)).filter(elm => {
+const childrenSlector =
+  "body * > *:not(script):not(style):not(link):not(source)";
+const aboveFoldElements = Array.from(
+  document.querySelectorAll(childrenSlector)
+).filter((elm) => {
   const rect = elm.getBoundingClientRect();
-    return (
-      rect.top >= 0 &&
-      rect.left >= 0 &&
-      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  return (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <=
+      (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  );
+});
+
+const usedFonts = Array.from(
+  new Set(
+    [...aboveFoldElements].map(
+      (e) =>
+        `${getComputedStyle(e).fontFamily} | ${
+          getComputedStyle(e).fontWeight
+        } | ${getComputedStyle(e).fontStyle}`
     )
-  })
+  )
+);
 
-const usedFonts = Array.from(new Set([...aboveFoldElements].map(e => `${getComputedStyle(e).fontFamily} | ${getComputedStyle(e).fontWeight} | ${getComputedStyle(e).fontStyle}`)));
-
-console.log('Fonts and Weights Used Above the Fold')
-usedFonts.forEach(font => console.log(`▸ ${font}`))
+console.log("Fonts and Weights Used Above the Fold");
+usedFonts.forEach((font) => console.log(`▸ ${font}`));
 ```
 
 ### First And Third Party Script Info
@@ -384,8 +434,6 @@ _Run First And Third Party Script Info in the console first, then run this_
 
 <details><summary><a href='https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors' target="_blank">Info on CORS (why some values are 0)</a></summary>
 
-
-
 <p>
 
 > Note: The properties which are returned as 0 by default when loading a resource from a domain other than the one of the web page itself: redirectStart, redirectEnd, domainLookupStart, domainLookupEnd, connectStart, connectEnd, secureConnectionStart, requestStart, and responseStart.
@@ -404,17 +452,14 @@ function createUniqueLists(firstParty, thirdParty) {
 
   const firstPartyList = getUniqueListBy(firstParty, ["name"]);
   const thirdPartyList = getUniqueListBy(thirdParty, ["name"]);
-  
-  return { firstPartyList, thirdPartyList };
 
+  return { firstPartyList, thirdPartyList };
 }
 
 const { firstPartyList, thirdPartyList } = createUniqueLists(
   firstParty,
   thirdParty
 );
-
-
 
 function calculateTimings(party, type) {
   const partyChoice = party === "first" ? firstParty : thirdParty;
@@ -483,6 +528,7 @@ timingOptions.forEach((timing) => {
 
 console.table(calculateTimings("first", "REQ_START_UNTIL_RES_END"));
 ```
+
 ## Interaction
 
 ### Long Task
@@ -499,9 +545,9 @@ try {
     }
   });
   // Start listening for `longtask` entries to be dispatched.
-  po.observe({type: 'longtask', buffered: true});
+  po.observe({ type: "longtask", buffered: true });
 } catch (e) {
-  console.log(`The browser doesn't support this API`)
+  console.log(`The browser doesn't support this API`);
 }
 ```
 
@@ -551,11 +597,10 @@ function findShifts(threshold) {
 findShifts(0.05).observe({ entryTypes: ["layout-shift"] });
 ```
 
-
 Print al the CLS metrics when load the page and the user interactive with the page:
 
 ```js
-new PerformanceObserver(entryList => {
-    console.log(entryList.getEntries());
+new PerformanceObserver((entryList) => {
+  console.log(entryList.getEntries());
 }).observe({ type: "layout-shift", buffered: true });
 ```
