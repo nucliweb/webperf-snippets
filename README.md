@@ -71,6 +71,8 @@ function dedupe(arr, key) {
 
 ### Quick BPP (image entropy) check
 
+Context: [Largest Contentful Paint change in Chrome 112 to ignore low-entropy images](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/speed/metrics_changelog/2023_04_lcp.md)
+
 This snippet is based on and with the permission [Stoyan Stefanov](https://twitter.com/stoyanstefanov), read his post [here](https://www.phpied.com/quick-bpp-image-entropy-check/).
 
 With the script you can get a list of the BPP of all(1) images loaded on the site.
