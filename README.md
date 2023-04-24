@@ -260,6 +260,8 @@ console.log(
 
 List all resources that are blocking rendering.
 
+> It's currently Chromium only
+
 ```js
 function findRenderBlockingResources() {
   return window.performance.getEntriesByType('resource')
