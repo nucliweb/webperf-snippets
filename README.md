@@ -266,10 +266,10 @@ List all resources that are blocking rendering.
 function findRenderBlockingResources() {
   return window.performance.getEntriesByType('resource')
     .filter(({renderBlockingStatus}) =>
-        renderBlockingStatus === 'blocking');
+        renderBlockingStatus === 'blocking')
+    .map(({startTime, duration, responseEnd, name, initiatorType}) => [startTime, duration, responseEnd, name, initiatorType]);
 }
-
-console.log(findRenderBlockingResources());
+console.table(findRenderBlockingResources());
 ```
 
 ### Image Info
