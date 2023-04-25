@@ -13,6 +13,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [Resources hints](#resources-hints)
     - [Find Above The Fold Lazy Loaded Images](#find-above-the-fold-lazy-loaded-images)
     - [Find non Lazy Loaded Images outside of the viewport](#find-non-lazy-loaded-images-outside-of-the-viewport)
+    - [Find render-blocking resources](#find-render-blocking-resources)
     - [Image Info](#image-info)
     - [Fonts Preloaded, Loaded, and Used Above The Fold](#fonts-preloaded-loaded-and-used-above-the-fold)
     - [First And Third Party Script Info](#first-and-third-party-script-info)
@@ -253,6 +254,22 @@ console.log(
   "Consider lazyloading the following images: ",
   findImgCanidatesForLazyLoading()
 );
+```
+
+### Find render-blocking resources
+
+List all resources that are blocking rendering.
+
+> It's currently Chromium only
+
+```js
+function findRenderBlockingResources() {
+  return window.performance.getEntriesByType('resource')
+    .filter(({renderBlockingStatus}) =>
+        renderBlockingStatus === 'blocking')
+    .map(({startTime, duration, responseEnd, name, initiatorType}) => [startTime, duration, responseEnd, name, initiatorType]);
+}
+console.table(findRenderBlockingResources());
 ```
 
 ### Image Info
