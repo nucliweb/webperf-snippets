@@ -263,13 +263,21 @@ List all resources that are blocking rendering.
 > It's currently Chromium only
 
 ```js
+function RenderBlocking({startTime, duration, responseEnd, name, initiatorType}) {
+  this.startTime = startTime
+  this.duration = duration
+  this.responseEnd = responseEnd
+  this.name = name
+  this.initiatorType = initiatorType
+}
+
 function findRenderBlockingResources() {
   return window.performance.getEntriesByType('resource')
-    .filter(({renderBlockingStatus}) =>
-        renderBlockingStatus === 'blocking')
-    .map(({startTime, duration, responseEnd, name, initiatorType}) => [startTime, duration, responseEnd, name, initiatorType]);
+    .filter(({renderBlockingStatus}) => renderBlockingStatus === 'blocking')
+    .map(({startTime, duration, responseEnd, name, initiatorType}) => new RenderBlocking({startTime, duration, responseEnd, name, initiatorType}));
 }
-console.table(findRenderBlockingResources());
+
+console.table(findRenderBlockingResources())
 ```
 
 ### Image Info
