@@ -119,7 +119,7 @@ try {
     }
   });
 } catch (e) {
-  console.log(`Browser doesn't support this API`);
+  console.error(`Browser doesn't support this API`);
 }
 ```
 
@@ -574,7 +574,7 @@ try {
   // Start listening for `longtask` entries to be dispatched.
   po.observe({ type: "longtask", buffered: true });
 } catch (e) {
-  console.log(`The browser doesn't support this API`);
+  console.error(`The browser doesn't support this API`);
 }
 ```
 
