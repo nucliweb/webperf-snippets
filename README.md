@@ -18,7 +18,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [Fonts Preloaded, Loaded, and Used Above The Fold](#fonts-preloaded-loaded-and-used-above-the-fold)
     - [First And Third-Party Script Info](#first-and-third-party-script-info)
     - [First And Third-Party Script Timings](#first-and-third-party-script-timings)
-    - [Get your <head> in order](#get-your-head-in-order)
+    - [Get your `<head>` in order](#get-your-head-in-order)
   - [Interaction](#interaction)
     - [Long Task](#long-task)
     - [Layout Shifts](#layout-shifts)
@@ -556,7 +556,7 @@ timingOptions.forEach((timing) => {
 
 console.table(calculateTimings("first", "REQ_START_UNTIL_RES_END"));
 ```
-### Get your <head> in order
+### Get your `<head>` in order
 
 How you order elements in the <head> can have an effect on the (perceived) performance of the page.
 
