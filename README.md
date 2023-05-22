@@ -562,7 +562,7 @@ How you order elements in the <head> can have an effect on the (perceived) perfo
 
 Use [capo.js](https://github.com/rviscomi/capo.js) the [Rick Viscomi](https://github.com/rviscomi) script
 
-#### web.dev
+#### e.g. web.dev
 
 <img width="842" alt="image" src="https://github.com/rviscomi/capo.js/assets/1120896/fe6bb67c-697a-4fdf-aa28-52429239fcf5">
 
