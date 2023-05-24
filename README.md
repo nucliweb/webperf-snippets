@@ -17,9 +17,11 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [Find render-blocking resources](#find-render-blocking-resources)
     - [Image Info](#image-info)
     - [Fonts Preloaded, Loaded, and Used Above The Fold](#fonts-preloaded-loaded-and-used-above-the-fold)
-    - [First And Third-Party Script Info](#first-and-third-party-script-info)
-    - [First And Third-Party Script Timings](#first-and-third-party-script-timings)
+    - [First And Third Party Script Info](#first-and-third-party-script-info)
+    - [First And Third Party Script Timings](#first-and-third-party-script-timings)
+    - [Inline Script Info and Size](#inline-script-info-and-size)
     - [Get your `<head>` in order](#get-your-head-in-order)
+      - [e.g. web.dev](#eg-webdev)
   - [Interaction](#interaction)
     - [Long Task](#long-task)
     - [Layout Shifts](#layout-shifts)
@@ -627,6 +629,29 @@ timingOptions.forEach((timing) => {
 
 console.table(calculateTimings("first", "REQ_START_UNTIL_RES_END"));
 ```
+### Inline Script Info and Size
+
+Find all inline scripts on the page and list the scripts and count. Find the total byte size of all the inline scripts in the console.
+
+```javascript
+
+function findInlineScripts() {
+    const inlineScripts = document.querySelectorAll(["script:not([async]):not([defer]):not([src])"])
+    console.log(inlineScripts)
+    console.log(`COUNT: ${inlineScripts.length}`)
+    let totalByteSize = 0
+    for (const script of [...inlineScripts]) {
+      const html = script.innerHTML
+      const size = new Blob([html]).size
+      totalByteSize += size
+    }
+  console.log((totalByteSize / 1000) + " kb")
+}
+
+findInlineScripts()
+
+```
+
 ### Get your `<head>` in order
 
 How you order elements in the <head> can have an effect on the (perceived) performance of the page.
