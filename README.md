@@ -20,6 +20,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [First And Third Party Script Info](#first-and-third-party-script-info)
     - [First And Third Party Script Timings](#first-and-third-party-script-timings)
     - [Inline Script Info and Size](#inline-script-info-and-size)
+    - [Inline Script Info and Size Including ```__NEXT_DATA__```](#inline-script-info-and-size-including-__next_data__)
     - [Get your `<head>` in order](#get-your-head-in-order)
       - [e.g. web.dev](#eg-webdev)
   - [Interaction](#interaction)
@@ -640,15 +641,73 @@ function findInlineScripts() {
     console.log(inlineScripts)
     console.log(`COUNT: ${inlineScripts.length}`)
     let totalByteSize = 0
+    let NEXT_DATA_SIZE = 0
     for (const script of [...inlineScripts]) {
       const html = script.innerHTML
       const size = new Blob([html]).size
+      if (script.id === "__NEXT_DATA__") {
+        NEXT_DATA_SIZE += size
+      }
+     
       totalByteSize += size
+
+      return {
+        totalByteSize: (totalByteSize / 1000) + " kb",
+        NEXT_DATA_SIZE: NEXT_DATA_SIZE === 0 ? (NEXT_DATA_SIZE / 1000) : 0
+      }
     }
-  console.log((totalByteSize / 1000) + " kb")
 }
 
-findInlineScripts()
+console.log(findInlineScripts())
+
+```
+
+### Inline Script Info and Size Including ```__NEXT_DATA__```
+
+Find all inline scripts and their total size separately from ```__NEXT_DATA__``` serialized JSON inline Script
+
+```javascript
+
+function findInlineScriptsWithNextData() {
+  const inlineScripts = document.querySelectorAll([
+    "script:not([async]):not([defer]):not([src])"
+  ]);
+  console.log(inlineScripts);
+  console.log(`COUNT: ${inlineScripts.length}`);
+
+  const byteSize = {
+    NEXT_DATA_SIZE: 0,
+    OTHER_SIZE: 0
+  };
+
+  function getSize(script) {
+    const html = script.innerHTML;
+    return new Blob([html]).size;
+  }
+
+  function convertToKb(bytes) {
+    return bytes / 1000;
+  }
+
+  for (const script of [...inlineScripts]) {
+    if (script.id == "__NEXT_DATA__") {
+      byteSize.NEXT_DATA_SIZE += getSize(script);
+    } else {
+      byteSize.OTHER_SIZE += getSize(script);
+    }
+  }
+
+  return {
+    NEXT_DATA_SIZE: convertToKb(byteSize.NEXT_DATA_SIZE) + " kb",
+    OTHER_SIZE: convertToKb(byteSize.OTHER_SIZE) + " kb",
+    totalByteSize:
+      convertToKb(byteSize.NEXT_DATA_SIZE) +
+      convertToKb(byteSize.OTHER_SIZE) +
+      " kb"
+  };
+}
+
+console.log(findInlineScriptsWithNextData());
 
 ```
 
