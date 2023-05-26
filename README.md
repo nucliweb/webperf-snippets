@@ -8,7 +8,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
     - [Quick BPP (image entropy) check](#quick-bpp-image-entropy-check)
     - [Cumulative Layout Shift (CLS)](#cumulative-layout-shift-cls)
-    - [Interaction to Next Paint (INP) and interactions](#interaction-to-next-paint-inp-and-interactions)
+    - [Interactions](#interactions)
   - [Loading](#loading)
     - [Time To First Byte](#time-to-first-byte)
     - [Scripts Loading](#scripts-loading)
@@ -199,13 +199,13 @@ try {
 }
 ```
 
-### Interaction to Next Paint (INP) and Interactions
+### Interactions
 
-This script it's part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and allows you to track both INP and all interactions as you click around the page.
+This script it's part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and allows you to track all interactions as you click around the page to help improve INP.
+
+<img width="2076" alt="Interaction tracking in console log" src="https://github.com/nucliweb/webperf-snippets/assets/10931297/66d3818c-b4b6-486f-a9d2-7e12c297db1e">
 
 ```js
-// This is basically the same as the Core Web Vitals extension does: https://web.dev/debug-cwvs-with-web-vitals-extension/
-
 const valueToRating = (score) => score <= 200 ? 'good' : score <= 500 ? 'needs-improvement' : 'poor';
 
 const COLOR_GOOD = '#0CCE6A';
@@ -234,7 +234,7 @@ const observer = new PerformanceObserver((list) => {
 
     const formattedValue = `${value.toFixed(0)} ms`;
     console.groupCollapsed(
-      `INP Snippet %c${formattedValue} (${rating})`,
+      `Interaction tracking snippet %c${formattedValue} (${rating})`,
       `color: ${RATING_COLORS[rating] || 'inherit'}`
     );
     console.log('Interaction target:', entry.target);
