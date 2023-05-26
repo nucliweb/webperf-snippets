@@ -716,24 +716,15 @@ function findInlineScripts() {
     console.log(inlineScripts)
     console.log(`COUNT: ${inlineScripts.length}`)
     let totalByteSize = 0
-    let NEXT_DATA_SIZE = 0
     for (const script of [...inlineScripts]) {
       const html = script.innerHTML
       const size = new Blob([html]).size
-      if (script.id === "__NEXT_DATA__") {
-        NEXT_DATA_SIZE += size
-      }
-     
       totalByteSize += size
-
-      return {
-        totalByteSize: (totalByteSize / 1000) + " kb",
-        NEXT_DATA_SIZE: NEXT_DATA_SIZE === 0 ? (NEXT_DATA_SIZE / 1000) : 0
-      }
     }
+  console.log((totalByteSize / 1000) + " kb")
 }
 
-console.log(findInlineScripts())
+findInlineScripts()
 
 ```
 
