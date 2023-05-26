@@ -7,7 +7,8 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
     - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
     - [Quick BPP (image entropy) check](#quick-bpp-image-entropy-check)
-    - [Cumulative Layout Shift](#cumulative-layout-shift)
+    - [Cumulative Layout Shift (CLS)](#cumulative-layout-shift-cls)
+    - [Interaction to Next Paint (INP) and interactions](#interaction-to-next-paint-inp-and-interactions)
   - [Loading](#loading)
     - [Time To First Byte](#time-to-first-byte)
     - [Scripts Loading](#scripts-loading)
@@ -170,7 +171,7 @@ console.table(
 );
 ```
 
-### Cumulative Layout Shift
+### Cumulative Layout Shift (CLS)
 
 ```js
 try {
@@ -196,6 +197,80 @@ try {
 } catch (e) {
   console.error(`Browser doesn't support this API`);
 }
+```
+
+### Interaction to Next Paint (INP) and Interactions
+
+This script it's part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and allows you to track both INP and all interactions as you click around the page.
+
+```js
+// This is basically the same as the Core Web Vitals extension does: https://web.dev/debug-cwvs-with-web-vitals-extension/
+
+const valueToRating = (score) => score <= 200 ? 'good' : score <= 500 ? 'needs-improvement' : 'poor';
+
+const COLOR_GOOD = '#0CCE6A';
+const COLOR_NEEDS_IMPROVEMENT = '#FFA400';
+const COLOR_POOR = '#FF4E42';
+const RATING_COLORS = {
+  'good': COLOR_GOOD,
+  'needs-improvement': COLOR_NEEDS_IMPROVEMENT,
+  'poor': COLOR_POOR
+};
+
+const observer = new PerformanceObserver((list) => {
+  const interactions = {};
+
+  for (const entry of list.getEntries().filter((entry) => entry.interactionId)) {
+    interactions[entry.interactionId] = interactions[entry.interactionId] || [];
+    interactions[entry.interactionId].push(entry);
+  }
+
+  // Will report as a single interaction even if parts are in separate frames.
+  // Consider splitting by animation frame.
+  for (const interaction of Object.values(interactions)) {
+    const entry = interaction.reduce((prev, curr) => prev.duration >= curr.duration ? prev : curr);
+    const value = entry.duration;
+    const rating = valueToRating(value);
+
+    const formattedValue = `${value.toFixed(0)} ms`;
+    console.groupCollapsed(
+      `INP Snippet %c${formattedValue} (${rating})`,
+      `color: ${RATING_COLORS[rating] || 'inherit'}`
+    );
+    console.log('Interaction target:', entry.target);
+
+    for (let entry of interaction) {
+      console.log(`Interaction event type: %c${entry.name}`, 'font-family: monospace');
+
+      // RenderTime is an estimate, because duration is rounded, and may get rounded down.
+      // In rare cases it can be less than processingEnd and that breaks performance.measure().
+      // Lets make sure its at least 4ms in those cases so you can just barely see it.
+      const adjustedPresentationTime = Math.max(entry.processingEnd + 4, entry.startTime + entry.duration);
+
+      console.table([{
+        subPartString: 'Input delay',
+        'Time (ms)': Math.round(entry.processingStart - entry.startTime, 0),
+      },
+      {
+        subPartString: 'Processing time',
+        'Time (ms)': Math.round(entry.processingEnd - entry.processingStart, 0),
+      },
+      {
+        subPartString: 'Presentation delay',
+        'Time (ms)': Math.round(adjustedPresentationTime - entry.processingEnd, 0),
+      }]);
+    }
+
+    console.groupEnd();
+
+  }
+});
+
+observer.observe({
+  type: 'event',
+  durationThreshold: 0, // 16 minimum by spec
+  buffered: true
+});
 ```
 
 ## Loading
