@@ -203,7 +203,7 @@ try {
 
 This script it's part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and allows you to track all interactions as you click around the page to help improve INP.
 
-<img width="2076" alt="Interaction tracking in console log" src="https://github.com/nucliweb/webperf-snippets/assets/10931297/66d3818c-b4b6-486f-a9d2-7e12c297db1e">
+<img width="1040" alt="Interaction tracking in console log" src="https://github.com/nucliweb/webperf-snippets/assets/10931297/857f1cf1-ce18-4074-b707-7c910ff12d7c">
 
 ```js
 const valueToRating = (score) => score <= 200 ? 'good' : score <= 500 ? 'needs-improvement' : 'poor';
