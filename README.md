@@ -1,5 +1,9 @@
 # ⚡️💾 Web Performance Snippets
 
+<center>
+    ![WebPerf-Snippets](https://github.com/nucliweb/webperf-snippets/assets/1307927/f47f3049-34f5-407c-896a-d26a30ddf344)
+</center>
+
 A curated list of snippets to get Web Performance metrics to use in the browser console
 
 - [⚡️💾 Web Performance Snippets](#️-web-performance-snippets)
