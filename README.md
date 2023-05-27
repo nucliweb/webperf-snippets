@@ -2,7 +2,7 @@
     <img src="https://github.com/nucliweb/webperf-snippets/assets/1307927/f47f3049-34f5-407c-896a-d26a30ddf344" alt"WebPerf Snippets">
 </div>
 
-A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on Chrome DevTools.
+A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on [Chrome DevTools](https://developer.chrome.com/docs/devtools/).
 
 ![Chrome DevTools](https://github.com/nucliweb/webperf-snippets/assets/1307927/0d7bb9c8-5f21-47c6-90c5-2707a430dacb)
 
