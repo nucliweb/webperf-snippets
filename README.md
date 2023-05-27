@@ -8,6 +8,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 
 <details>
     <summary>Table of Contents</summary>
+
   - [Core Web Vitals](#core-web-vitals)
     - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
     - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
