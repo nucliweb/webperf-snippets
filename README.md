@@ -22,13 +22,13 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [First And Third Party Script Info](#first-and-third-party-script-info)
     - [First And Third Party Script Timings](#first-and-third-party-script-timings)
     - [Inline Script Info and Size](#inline-script-info-and-size)
-    - [Inline Script Info and Size Including ```__NEXT_DATA__```](#inline-script-info-and-size-including-__next_data__)
+    - [Inline Script Info and Size Including `__NEXT_DATA__`](#inline-script-info-and-size-including-__next_data__)
     - [Get your `<head>` in order](#get-your-head-in-order)
       - [e.g. web.dev](#eg-webdev)
   - [Interaction](#interaction)
-    - [Interactions](#interactions)
     - [Long Task](#long-task)
     - [Layout Shifts](#layout-shifts)
+    - [Interactions](#interactions)
 
 ## Core Web Vitals
 
