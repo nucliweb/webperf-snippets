@@ -14,7 +14,6 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
     - [Quick BPP (image entropy) check](#quick-bpp-image-entropy-check)
     - [Cumulative Layout Shift (CLS)](#cumulative-layout-shift-cls)
-    - [Interactions](#interactions)
   - [Loading](#loading)
     - [Time To First Byte](#time-to-first-byte)
     - [Scripts Loading](#scripts-loading)
