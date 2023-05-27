@@ -39,6 +39,8 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 
 ### Largest Contentful Paint (LCP)
 
+List the Largest Contentful Paint in the console and add a blue dotted line in the LCP element.
+
 ```js
 /**
  * PerformanceObserver
