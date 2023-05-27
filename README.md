@@ -1,9 +1,13 @@
-<div>
+<div style="margin-bottom: 1ch">
     <img src="https://github.com/nucliweb/webperf-snippets/assets/1307927/f47f3049-34f5-407c-896a-d26a30ddf344" alt"WebPerf Snippets">
 </div>
 
-A curated list of snippets to get Web Performance metrics to use in the browser console
+A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on Chrome DevTools.
 
+![Chrome DevTools](https://github.com/nucliweb/webperf-snippets/assets/1307927/0d7bb9c8-5f21-47c6-90c5-2707a430dacb)
+
+<details>
+    <summary>Table of Contents</summary>
   - [Core Web Vitals](#core-web-vitals)
     - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
     - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
@@ -29,6 +33,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
     - [Long Task](#long-task)
     - [Layout Shifts](#layout-shifts)
     - [Interactions](#interactions)
+</details>
 
 ## Core Web Vitals
 
