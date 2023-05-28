@@ -729,18 +729,18 @@ function findAllInlineCSS() {
   for (const css of [...inlineCSS]) {
     const html = css.innerHTML;
     const size = new Blob([html]).size;
-    css.byteSize = convertToKb(size) + " kb";
+    css.byteSizeInKb = convertToKb(size)
     totalByteSize += size;
   }
   // customize table here, can right click on header in console to sort table
   console.table(inlineCSS, [
     "baseURI",
     "parentElement",
-    "byteSize",
+    "byteSizeInKb",
     "innerHTML"
   ]);
   
-  console.log(convertToKb(totalByteSize) + " kb");
+console.log(`Total size: ${convertToKb(totalByteSize)} kB`);
 }
 
 findAllInlineCSS()
