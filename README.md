@@ -9,30 +9,31 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 <details>
     <summary>Table of Contents</summary>
 
-  - [Core Web Vitals](#core-web-vitals)
-    - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
-    - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
-    - [Quick BPP (image entropy) check](#quick-bpp-image-entropy-check)
-    - [Cumulative Layout Shift (CLS)](#cumulative-layout-shift-cls)
-  - [Loading](#loading)
-    - [Time To First Byte](#time-to-first-byte)
-    - [Scripts Loading](#scripts-loading)
-    - [Resources hints](#resources-hints)
-    - [Find Above The Fold Lazy Loaded Images](#find-above-the-fold-lazy-loaded-images)
-    - [Find non Lazy Loaded Images outside of the viewport](#find-non-lazy-loaded-images-outside-of-the-viewport)
-    - [Find render-blocking resources](#find-render-blocking-resources)
-    - [Image Info](#image-info)
-    - [Fonts Preloaded, Loaded, and Used Above The Fold](#fonts-preloaded-loaded-and-used-above-the-fold)
-    - [First And Third Party Script Info](#first-and-third-party-script-info)
-    - [First And Third Party Script Timings](#first-and-third-party-script-timings)
-    - [Inline Script Info and Size](#inline-script-info-and-size)
-    - [Inline Script Info and Size Including `__NEXT_DATA__`](#inline-script-info-and-size-including-__next_data__)
-    - [Get your `<head>` in order](#get-your-head-in-order)
-      - [e.g. web.dev](#eg-webdev)
-  - [Interaction](#interaction)
-    - [Long Task](#long-task)
-    - [Layout Shifts](#layout-shifts)
-    - [Interactions](#interactions)
+- [Core Web Vitals](#core-web-vitals)
+  - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
+  - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
+  - [Quick BPP (image entropy) check](#quick-bpp-image-entropy-check)
+  - [Cumulative Layout Shift (CLS)](#cumulative-layout-shift-cls)
+- [Loading](#loading)
+  - [Time To First Byte](#time-to-first-byte)
+  - [Scripts Loading](#scripts-loading)
+  - [Resources hints](#resources-hints)
+  - [Find Above The Fold Lazy Loaded Images](#find-above-the-fold-lazy-loaded-images)
+  - [Find non Lazy Loaded Images outside of the viewport](#find-non-lazy-loaded-images-outside-of-the-viewport)
+  - [Find render-blocking resources](#find-render-blocking-resources)
+  - [Image Info](#image-info)
+  - [Fonts Preloaded, Loaded, and Used Above The Fold](#fonts-preloaded-loaded-and-used-above-the-fold)
+  - [First And Third Party Script Info](#first-and-third-party-script-info)
+  - [First And Third Party Script Timings](#first-and-third-party-script-timings)
+  - [Inline Script Info and Size](#inline-script-info-and-size)
+  - [Inline Script Info and Size Including ```__NEXT_DATA__```](#inline-script-info-and-size-including-__next_data__)
+  - [Inline CSS Info and Size](#inline-css-info-and-size)
+  - [Get your `<head>` in order](#get-your-head-in-order)
+    - [e.g. web.dev](#eg-webdev)
+- [Interaction](#interaction)
+  - [Long Task](#long-task)
+  - [Layout Shifts](#layout-shifts)
+  - [Interactions](#interactions)
 </details>
 
 ## Core Web Vitals
@@ -710,6 +711,40 @@ function findInlineScriptsWithNextData() {
 }
 
 console.log(findInlineScriptsWithNextData());
+
+```
+
+### Inline CSS Info and Size
+
+Find all inline style tags and list them in a table with individual and total byte size. Customize the table below.
+
+```javascript
+
+// Wait for the page to fully load
+
+function findAllInlineCSS() {
+  const convertToKb = (bytes) => bytes / 1000;
+  const inlineCSS = document.querySelectorAll("style");
+  let totalByteSize = 0;
+  for (const css of [...inlineCSS]) {
+    const html = css.innerHTML;
+    const size = new Blob([html]).size;
+    css.byteSize = convertToKb(size) + " kb";
+    totalByteSize += size;
+  }
+  // customize table here, can right click on header in console to sort table
+  console.table(inlineCSS, [
+    "baseURI",
+    "parentElement",
+    "byteSize",
+    "innerHTML"
+  ]);
+  
+  console.log(convertToKb(totalByteSize) + " kb");
+}
+
+findAllInlineCSS()
+
 
 ```
 
