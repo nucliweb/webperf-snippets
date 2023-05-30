@@ -556,7 +556,9 @@ _Run First And Third Party Script Info in the console first, then run this_
 </details>
 <br>
 
-[More Info on TAO header - Akamai Developer Resources](https://developer.akamai.com/blog/2018/06/13/how-add-timing-allow-origin-headers-improve-site-performance-measurement)
+[Akamai Tech Docs - Timing-Allow-Origin](https://techdocs.akamai.com/mpulse/docs/use-metrics#the-resource-timing-api)
+[MDN - Timing-Allow-Origin Header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin)
+[More Info on TAO header by Nic Jansma](https://nicj.net/resourcetiming-visibility-third-party-scripts-ads-and-page-weight/)
 
 ```js
 function createUniqueLists(firstParty, thirdParty) {
