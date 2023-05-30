@@ -2,3 +2,4 @@
 beta
 node_modules
 .next
+.vercel
