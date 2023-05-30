@@ -1,0 +1,10 @@
+{
+  "index": {
+    "type": "page",
+    "title": "Introduction",
+    "display": "hidden",
+    "theme": {
+      "layout": "raw"
+    }
+  },
+}

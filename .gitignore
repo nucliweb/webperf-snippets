@@ -1,2 +1,4 @@
 .DS_Store
 beta
+node_modules
+.next
