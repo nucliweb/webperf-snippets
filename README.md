@@ -6,6 +6,24 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 
 ![Chrome DevTools](https://github.com/nucliweb/webperf-snippets/assets/1307927/0d7bb9c8-5f21-47c6-90c5-2707a430dacb)
 
+## Add snippet to Chrome DevTools
+
+You can use the webperf-snippets as a Snippet in the Chrome DevTools Sources tab.
+
+1. Copy any of the WebPerf Snippets
+2. [Open Chrome DevTools](https://developer.chrome.com/docs/devtools/open/)
+3. Select the Sources tab
+4. Select the Snippets sub tab
+5. Click New snippet button, e.g. [LCP](https://github.com/nucliweb/webperf-snippets#largest-contentful-paint-lcp)
+6. Write the snippet name, LCP
+7. Paste the copied code at the right area
+8. Run the snippet
+
+## Video
+
+https://github.com/nucliweb/webperf-snippets/assets/1307927/2987a2ca-3eef-4b73-8f6b-7b1e06b50040
+
+
 <details>
     <summary>Table of Contents</summary>
 
@@ -556,7 +574,9 @@ _Run First And Third Party Script Info in the console first, then run this_
 </details>
 <br>
 
-[More Info on TAO header - Akamai Developer Resources](https://developer.akamai.com/blog/2018/06/13/how-add-timing-allow-origin-headers-improve-site-performance-measurement)
+[Akamai Tech Docs - Timing-Allow-Origin](https://techdocs.akamai.com/mpulse/docs/use-metrics#the-resource-timing-api)
+[MDN - Timing-Allow-Origin Header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin)
+[More Info on TAO header by Nic Jansma](https://nicj.net/resourcetiming-visibility-third-party-scripts-ads-and-page-weight/)
 
 ```js
 function createUniqueLists(firstParty, thirdParty) {
