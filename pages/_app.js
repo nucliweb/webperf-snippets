@@ -1,6 +1,6 @@
 import { Analytics } from '@vercel/analytics/react';
  
-function MyApp({ Component, pageProps }) {
+function WebPerfSnippets({ Component, pageProps }) {
   return (
     <>
       <Component {...pageProps} />
@@ -9,4 +9,4 @@ function MyApp({ Component, pageProps }) {
   );
 }
  
-export default MyApp;
+export default WebPerfSnippets;
