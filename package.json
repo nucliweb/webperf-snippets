@@ -16,6 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "next": "^13.4.4",
+    "next-cloudinary": "^4.12.0"
     "nextra": "^2.6.2",
     "nextra-theme-docs": "^2.6.2",
     "react": "^18.2.0",
