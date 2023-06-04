@@ -5,8 +5,14 @@ export default {
   head: (
     <>
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta property="og:title" content="WebPerf Snippets" />
-      <meta property="og:description" content="A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on Chrome DevTools by Joan León" />
+      <meta name="author" content="Joan Leon"/>
+      <meta property="og:url" content="https://webperf-snippets.nucliweb.net/"/>
+      <meta property="og:type" content="website"/>
+      <meta property="og:locale" content="en_US"/>
+      <meta property="og:image:width" content="1200"/>
+      <meta property="og:image:height" content="675"/>
+      <meta property="og:title" content="Web Performance Snippets"/>
+      <meta property="og:description" content=""/>
       <meta property="og:image" content="https://res.cloudinary.com/nucliweb/image/upload/c_scale,dpr_auto,f_auto,q_auto,w_1200/v1685886151/webperf-snippets/webperf-snippets-og-image.png" />
       <meta name="twitter:card" content="summary_large_image"/>
       <meta name="twitter:site" content="@nucliweb"/>
