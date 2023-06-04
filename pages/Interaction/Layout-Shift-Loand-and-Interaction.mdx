@@ -1,0 +1,12 @@
+# Layout Shift Loading and Interacion 
+
+Print al the CLS metrics when load the page and the user interactive with the page:
+
+#### Snippet
+
+```js copy
+new PerformanceObserver((entryList) => {
+  console.log(entryList.getEntries());
+}).observe({ type: "layout-shift", buffered: true });
+```
+

@@ -5,19 +5,16 @@ import { CldVideoPlayer } from 'next-cloudinary';
 
 A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on [Chrome DevTools](https://developer.chrome.com/docs/devtools/).
 
-<picture>
-  <img 
-    sizes="(min-width: 600px) 100vw, 600px,
-           (min-width: 1200px) 100vw, 1200px"
-    srcset="
-      https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_600/v1685735993/webperf-snippets/DevTools-Snippets.png 600px,
-      https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_1200/v1685735993/webperf-snippets/DevTools-Snippets.png 1200px"
-    src="https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_320/v1685735993/webperf-snippets/DevTools-Snippets.png"
+<picture style={{marginTop: '20px', display: 'block'}}>
+  <img
+    style={{aspectRatio: 342/214}}
+    sizes="85vw"
+    srcset="https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_600/v1685735993/webperf-snippets/DevTools-Snippets.png 600w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_1200/v1685735993/webperf-snippets/DevTools-Snippets.png 1200w"
+    src="https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_342/v1685735993/webperf-snippets/DevTools-Snippets.png"
     loading="eager"
     decoding="sync"
-    height="300"
-    width="200"
-    alt="Chrome DevTools">
+    alt="Chrome DevTools"/>
 </picture>
 
 ## Who to use
@@ -43,13 +40,14 @@ You can use the webperf-snippets as a Snippet in the Chrome DevTools Sources tab
 7. Paste the copied code at the right area
 8. Run the snippet
 
-## Video
+### Video
 
-<CldVideoPlayer
-  width="1920"
-  height="1080"
-  src="webperf-snippets/devtools-new-snippet"
-/>
-
+<div style={{marginTop: '20px', display: 'block'}}>
+  <CldVideoPlayer
+    width="1920"
+    height="1080"
+    src="webperf-snippets/devtools-new-snippet"
+      />
+</div>
 
 

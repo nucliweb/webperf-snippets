@@ -1,0 +1,10 @@
+{
+  "index": {
+    "title": "Introduction",
+    "type": "page"
+  },
+  "about": {
+    "title": "About",
+    "type": "page"
+  }
+}

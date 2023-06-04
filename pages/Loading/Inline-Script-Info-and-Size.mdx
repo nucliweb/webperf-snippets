@@ -1,0 +1,25 @@
+# Inline Script Info and Size
+
+Find all inline scripts on the page and list the scripts and count. Find the total byte size of all the inline scripts in the console.
+
+#### Snippet
+
+```js copy
+
+function findInlineScripts() {
+    const inlineScripts = document.querySelectorAll(["script:not([async]):not([defer]):not([src])"])
+    console.log(inlineScripts)
+    console.log(`COUNT: ${inlineScripts.length}`)
+    let totalByteSize = 0
+    for (const script of [...inlineScripts]) {
+      const html = script.innerHTML
+      const size = new Blob([html]).size
+      totalByteSize += size
+    }
+  console.log((totalByteSize / 1000) + " kb")
+}
+
+findInlineScripts()
+
+```
+

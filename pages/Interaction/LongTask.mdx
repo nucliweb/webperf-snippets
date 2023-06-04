@@ -1,0 +1,19 @@
+# Long Task
+
+To determine when long tasks happen, you can use [PerformanceObserver](https://developer.mozilla.org/docs/Web/API/PerformanceObserver) and register to observe entries of type `longtask`:
+
+#### Snippet
+
+```js copy
+try {
+  const po = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      console.table(entry.toJSON());
+    }
+  });
+  po.observe({ type: "longtask", buffered: true });
+} catch (e) {
+  console.error(`The browser doesn't support this API`);
+}
+```
+

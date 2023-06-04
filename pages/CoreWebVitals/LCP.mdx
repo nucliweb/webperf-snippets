@@ -6,7 +6,9 @@ The next scripts show information about the [LCP](https://web.dev/lcp) metric.
 
 ## Get the LCP element
 
-List the Largest Contentful Paint in the console and add a blue dotted line in the LCP element.
+List the Largest Contentful Paint in the console and add a green dotted line in the LCP element.
+
+#### Snippet
 
 ```js copy
 const po = new PerformanceObserver((list) => {
@@ -19,7 +21,7 @@ const po = new PerformanceObserver((list) => {
     console.log(
       `${i + 1} current LCP item : ${item.element}: ${item.startTime}`
     );
-    item.element ? (item.element.style = "border: 5px dotted blue;") : "";
+    item.element ? (item.element.style = "border: 5px dotted lime;") : "";
   });
 
   const lastEntry = entries[entries.length - 1];
