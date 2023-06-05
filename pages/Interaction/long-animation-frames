@@ -1,0 +1,47 @@
+# Long Animation Frames
+
+To determine when long animation frames (LoAF) happen, you can use [PerformanceObserver](https://developer.mozilla.org/docs/Web/API/PerformanceObserver) and register to observe entries of type `long-animation-frame`. This snippet from [@noamr](https://github.com/noamr) provides additional informations computed from the LoAF raw data.
+
+#### Snippet
+
+```js copy
+(function() {
+    'use strict';
+
+    window.processAndFilterEntries = function(entries){
+        function floorObject(o) {
+            return Object.fromEntries(Array.from(Object.entries(o)).map(([key, value]) =>
+                                                                        [key, typeof value === "number" ? Math.floor(value) :
+                                                                         value]))
+        }
+
+        function processEntry(entry) {
+            const startTime = entry.startTime;
+            const endTime = entry.startTime + entry.duration;
+            const delay = entry.desiredRenderStart ? Math.max(0, entry.startTime - entry.desiredRenderStart) : 0;
+            const deferredDuration = Math.max(0, entry.desiredRenderStart - entry.startTime);
+            const renderDuration = entry.styleAndLayoutStart - entry.renderStart;
+            const workDuration = entry.renderStart ? entry.renderStart - entry.startTime : entry.duration;
+            const styleAndLayoutDuration = entry.styleAndLayoutStart ? endTime - entry.styleAndLayoutStart : 0;
+            const effectiveBlockingTime = Math.min(entry.duration, endTime - entry.desiredRenderStart)
+            const scripts = entry.scripts.map(script => {
+                const delay = script.startTime - script.desiredExecutionStart;
+                const scriptEnd = script.startTime + script.duration;
+                const compileDuration = script.executionStart - script.startTime;
+                const execDuration = scriptEnd - script.executionStart;
+                return floorObject({delay, compileDuration, execDuration, ...script.toJSON()});
+            })
+            return floorObject({startTime, delay, deferredDuration, renderDuration, workDuration, styleAndLayoutDuration, effectiveBlockingTime, ...entry.toJSON(), scripts});
+        }
+
+        return entries.map(processEntry).filter(e => e.effectiveBlockingTime >= 50);
+    }
+
+    try {
+        const observer = new PerformanceObserver(e => window.processAndFilterEntries(e.getEntries()).forEach(e => console.log(e)));
+        observer.observe({type: "long-animation-frame", buffered:true});
+    } catch (e) {
+        console.error(`The browser doesn't support this API`);
+    }
+})();
+```
