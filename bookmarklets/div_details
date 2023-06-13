@@ -1,4 +1,0 @@
-Name = Div Details
-
-URL = 
-javascript:(function()%7Blet divs%3D document.querySelectorAll('*')%3B%0Alet divsLoading%3D %5B...divs%5D.map(obj %3D> %7B%0A let newObj %3D %7B%7D%3B%0A newObj %3D %7B%0A     "id"%3A obj.id%2C%0A     "class"%3A obj.className%2C%0A     "rel"%3Aobj.rel%0A %7D%0A return newObj%3B%0A%7D)%3B%0Aconsole.table(divsLoading)%3B%7D)()%3B

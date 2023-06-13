@@ -1,5 +1,0 @@
-Name = Async and Defer Scripts
-
-URL =
-javascript:(function()%7Blet scriptad %3D document.querySelectorAll('script')%3B%0Alet scriptsLoading %3D %5B...scriptad%5D.map(obj %3D> %7B%0A let newObj %3D %7B%7D%3B%0A newObj %3D %7B%0A     "src"%3A obj.src%2C%0A     "async"%3A obj.async%2C%0A     "defer"%3A obj.defer%0A %7D%0A return newObj%3B%0A%7D)%3B%0Aconsole.table(scriptsLoading)%3B%7D)()%3B
-
