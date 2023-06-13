@@ -1,31 +1,64 @@
-# ⚡️💾 Web Performance Snippets
+<div style="margin-bottom: 1ch">
+    <img src="https://github.com/nucliweb/webperf-snippets/assets/1307927/f47f3049-34f5-407c-896a-d26a30ddf344" alt"WebPerf Snippets">
+</div>
 
-A curated list of snippets to get Web Performance metrics to use in the browser console
+A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on [Chrome DevTools](https://developer.chrome.com/docs/devtools/).
 
-- [⚡️💾 Web Performance Snippets](#️-web-performance-snippets)
-  - [Core Web Vitals](#core-web-vitals)
-    - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
-    - [Quick BPP (image entropy) check](#quick-bpp-image-entropy-check)
-    - [Cumulative Layout Shift](#cumulative-layout-shift)
-  - [Loading](#loading)
-    - [Time To First Byte](#time-to-first-byte)
-    - [Scripts Loading](#scripts-loading)
-    - [Resources hints](#resources-hints)
-    - [Find Above The Fold Lazy Loaded Images](#find-above-the-fold-lazy-loaded-images)
-    - [Find non Lazy Loaded Images outside of the viewport](#find-non-lazy-loaded-images-outside-of-the-viewport)
-    - [Find render-blocking resources](#find-render-blocking-resources)
-    - [Image Info](#image-info)
-    - [Fonts Preloaded, Loaded, and Used Above The Fold](#fonts-preloaded-loaded-and-used-above-the-fold)
-    - [First And Third-Party Script Info](#first-and-third-party-script-info)
-    - [First And Third-Party Script Timings](#first-and-third-party-script-timings)
-    - [Get your `<head>` in order](#get-your-head-in-order)
-  - [Interaction](#interaction)
-    - [Long Task](#long-task)
-    - [Layout Shifts](#layout-shifts)
+![Chrome DevTools](https://github.com/nucliweb/webperf-snippets/assets/1307927/0d7bb9c8-5f21-47c6-90c5-2707a430dacb)
+
+## Add snippet to Chrome DevTools
+
+You can use the webperf-snippets as a Snippet in the Chrome DevTools Sources tab.
+
+1. Copy any of the WebPerf Snippets
+2. [Open Chrome DevTools](https://developer.chrome.com/docs/devtools/open/)
+3. Select the Sources tab
+4. Select the Snippets sub tab
+5. Click New snippet button, e.g. [LCP](https://github.com/nucliweb/webperf-snippets#largest-contentful-paint-lcp)
+6. Write the snippet name, LCP
+7. Paste the copied code at the right area
+8. Run the snippet
+
+## Video
+
+https://github.com/nucliweb/webperf-snippets/assets/1307927/2987a2ca-3eef-4b73-8f6b-7b1e06b50040
+
+
+<details>
+    <summary>Table of Contents</summary>
+
+- [Core Web Vitals](#core-web-vitals)
+  - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
+  - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
+  - [Quick BPP (image entropy) check](#quick-bpp-image-entropy-check)
+  - [Cumulative Layout Shift (CLS)](#cumulative-layout-shift-cls)
+- [Loading](#loading)
+  - [Time To First Byte](#time-to-first-byte)
+  - [Scripts Loading](#scripts-loading)
+  - [Resources hints](#resources-hints)
+  - [Find Above The Fold Lazy Loaded Images](#find-above-the-fold-lazy-loaded-images)
+  - [Find non Lazy Loaded Images outside of the viewport](#find-non-lazy-loaded-images-outside-of-the-viewport)
+  - [Find render-blocking resources](#find-render-blocking-resources)
+  - [Image Info](#image-info)
+  - [Fonts Preloaded, Loaded, and Used Above The Fold](#fonts-preloaded-loaded-and-used-above-the-fold)
+  - [First And Third Party Script Info](#first-and-third-party-script-info)
+  - [First And Third Party Script Timings](#first-and-third-party-script-timings)
+  - [Inline Script Info and Size](#inline-script-info-and-size)
+  - [Inline Script Info and Size Including ```__NEXT_DATA__```](#inline-script-info-and-size-including-__next_data__)
+  - [Inline CSS Info and Size](#inline-css-info-and-size)
+  - [Get your `<head>` in order](#get-your-head-in-order)
+    - [e.g. web.dev](#eg-webdev)
+- [Interaction](#interaction)
+  - [Long Task](#long-task)
+  - [Layout Shifts](#layout-shifts)
+  - [Interactions](#interactions)
+</details>
 
 ## Core Web Vitals
 
 ### Largest Contentful Paint (LCP)
+
+List the Largest Contentful Paint in the console and add a blue dotted line in the LCP element.
 
 ```js
 /**
@@ -70,6 +103,76 @@ function dedupe(arr, key) {
   return [...new Map(arr.map((item) => [item[key], item])).values()];
 }
 ```
+###  Largest Contentful Paint Sub-Parts (LCP)
+
+This script it's part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and appear on the [Optimize Largest Contentful Paint](https://web.dev/i18n/en/optimize-lcp/) post.
+
+<img width="1019" alt="Largest Contentful Paint Sub-Parts" src="https://github.com/nucliweb/webperf-snippets/assets/1307927/43383791-14b3-42a1-aef1-dcd1c6124735">
+
+```js
+const LCP_SUB_PARTS = [
+  'Time to first byte',
+  'Resource load delay',
+  'Resource load time',
+  'Element render delay',
+];
+
+new PerformanceObserver((list) => {
+  const lcpEntry = list.getEntries().at(-1);
+  const navEntry = performance.getEntriesByType('navigation')[0];
+  const lcpResEntry = performance
+    .getEntriesByType('resource')
+    .filter((e) => e.name === lcpEntry.url)[0];
+
+  const ttfb = navEntry.responseStart;
+  const lcpRequestStart = Math.max(
+    ttfb,
+    lcpResEntry ? lcpResEntry.requestStart || lcpResEntry.startTime : 0
+  );
+  const lcpResponseEnd = Math.max(
+    lcpRequestStart,
+    lcpResEntry ? lcpResEntry.responseEnd : 0
+  );
+  const lcpRenderTime = Math.max(
+    lcpResponseEnd,
+    lcpEntry ? lcpEntry.startTime : 0
+  );
+
+  LCP_SUB_PARTS.forEach((part) => performance.clearMeasures(part));
+
+  const lcpSubPartMeasures = [
+    performance.measure(LCP_SUB_PARTS[0], {
+      start: 0,
+      end: ttfb,
+    }),
+    performance.measure(LCP_SUB_PARTS[1], {
+      start: ttfb,
+      end: lcpRequestStart,
+    }),
+    performance.measure(LCP_SUB_PARTS[2], {
+      start: lcpRequestStart,
+      end: lcpResponseEnd,
+    }),
+    performance.measure(LCP_SUB_PARTS[3], {
+      start: lcpResponseEnd,
+      end: lcpRenderTime,
+    }),
+  ];
+
+  // Log helpful debug information to the console.
+  console.log('LCP value: ', lcpRenderTime);
+  console.log('LCP element: ', lcpEntry.element, lcpEntry?.url);
+  console.table(
+    lcpSubPartMeasures.map((measure) => ({
+      'LCP sub-part': measure.name,
+      'Time (ms)': measure.duration,
+      '% of LCP': `${
+        Math.round((1000 * measure.duration) / lcpRenderTime) / 10
+      }%`,
+    }))
+  );
+}).observe({type: 'largest-contentful-paint', buffered: true});
+```
 
 ### Quick BPP (image entropy) check
 
@@ -96,7 +199,7 @@ console.table(
 );
 ```
 
-### Cumulative Layout Shift
+### Cumulative Layout Shift (CLS)
 
 ```js
 try {
@@ -123,6 +226,7 @@ try {
   console.error(`Browser doesn't support this API`);
 }
 ```
+
 
 ## Loading
 
@@ -470,7 +574,9 @@ _Run First And Third Party Script Info in the console first, then run this_
 </details>
 <br>
 
-[More Info on TAO header - Akamai Developer Resources](https://developer.akamai.com/blog/2018/06/13/how-add-timing-allow-origin-headers-improve-site-performance-measurement)
+- [Akamai Tech Docs - Timing-Allow-Origin](https://techdocs.akamai.com/mpulse/docs/use-metrics#the-resource-timing-api)
+- [MDN - Timing-Allow-Origin Header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin)
+- [More Info on TAO header by Nic Jansma](https://nicj.net/resourcetiming-visibility-third-party-scripts-ads-and-page-weight/)
 
 ```js
 function createUniqueLists(firstParty, thirdParty) {
@@ -556,6 +662,112 @@ timingOptions.forEach((timing) => {
 
 console.table(calculateTimings("first", "REQ_START_UNTIL_RES_END"));
 ```
+### Inline Script Info and Size
+
+Find all inline scripts on the page and list the scripts and count. Find the total byte size of all the inline scripts in the console.
+
+```javascript
+
+function findInlineScripts() {
+    const inlineScripts = document.querySelectorAll(["script:not([async]):not([defer]):not([src])"])
+    console.log(inlineScripts)
+    console.log(`COUNT: ${inlineScripts.length}`)
+    let totalByteSize = 0
+    for (const script of [...inlineScripts]) {
+      const html = script.innerHTML
+      const size = new Blob([html]).size
+      totalByteSize += size
+    }
+  console.log((totalByteSize / 1000) + " kb")
+}
+
+findInlineScripts()
+
+```
+
+### Inline Script Info and Size Including ```__NEXT_DATA__```
+
+Find all inline scripts and their total size separately from ```__NEXT_DATA__``` serialized JSON inline Script
+
+```javascript
+
+function findInlineScriptsWithNextData() {
+  const inlineScripts = document.querySelectorAll([
+    "script:not([async]):not([defer]):not([src])"
+  ]);
+  console.log(inlineScripts);
+  console.log(`COUNT: ${inlineScripts.length}`);
+
+  const byteSize = {
+    NEXT_DATA_SIZE: 0,
+    OTHER_SIZE: 0
+  };
+
+  function getSize(script) {
+    const html = script.innerHTML;
+    return new Blob([html]).size;
+  }
+
+  function convertToKb(bytes) {
+    return bytes / 1000;
+  }
+
+  for (const script of [...inlineScripts]) {
+    if (script.id == "__NEXT_DATA__") {
+      byteSize.NEXT_DATA_SIZE += getSize(script);
+    } else {
+      byteSize.OTHER_SIZE += getSize(script);
+    }
+  }
+
+  return {
+    NEXT_DATA_SIZE: convertToKb(byteSize.NEXT_DATA_SIZE) + " kb",
+    OTHER_SIZE: convertToKb(byteSize.OTHER_SIZE) + " kb",
+    totalByteSize:
+      convertToKb(byteSize.NEXT_DATA_SIZE) +
+      convertToKb(byteSize.OTHER_SIZE) +
+      " kb"
+  };
+}
+
+console.log(findInlineScriptsWithNextData());
+
+```
+
+### Inline CSS Info and Size
+
+Find all inline style tags and list them in a table with individual and total byte size. Customize the table below.
+
+```javascript
+
+// Wait for the page to fully load
+
+function findAllInlineCSS() {
+  const convertToKb = (bytes) => bytes / 1000;
+  const inlineCSS = document.querySelectorAll("style");
+  let totalByteSize = 0;
+  for (const css of [...inlineCSS]) {
+    const html = css.innerHTML;
+    const size = new Blob([html]).size;
+    css.byteSizeInKb = convertToKb(size)
+    totalByteSize += size;
+  }
+  // customize table here, can right click on header in console to sort table
+  console.table(inlineCSS, [
+    "baseURI",
+    "parentElement",
+    "byteSizeInKb",
+    "innerHTML"
+  ]);
+  
+console.log(`Total size: ${convertToKb(totalByteSize)} kB`);
+}
+
+findAllInlineCSS()
+
+
+```
+
 ### Get your `<head>` in order
 
 How you order elements in the <head> can have an effect on the (perceived) performance of the page.
@@ -641,3 +853,77 @@ new PerformanceObserver((entryList) => {
   console.log(entryList.getEntries());
 }).observe({ type: "layout-shift", buffered: true });
 ```
+### Interactions
+
+This script it's part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and allows you to track all interactions as you click around the page to help improve INP.
+
+<img width="1040" alt="Interaction tracking in console log" src="https://github.com/nucliweb/webperf-snippets/assets/10931297/857f1cf1-ce18-4074-b707-7c910ff12d7c">
+
+```js
+const valueToRating = (score) => score <= 200 ? 'good' : score <= 500 ? 'needs-improvement' : 'poor';
+
+const COLOR_GOOD = '#0CCE6A';
+const COLOR_NEEDS_IMPROVEMENT = '#FFA400';
+const COLOR_POOR = '#FF4E42';
+const RATING_COLORS = {
+  'good': COLOR_GOOD,
+  'needs-improvement': COLOR_NEEDS_IMPROVEMENT,
+  'poor': COLOR_POOR
+};
+
+const observer = new PerformanceObserver((list) => {
+  const interactions = {};
+
+  for (const entry of list.getEntries().filter((entry) => entry.interactionId)) {
+    interactions[entry.interactionId] = interactions[entry.interactionId] || [];
+    interactions[entry.interactionId].push(entry);
+  }
+
+  // Will report as a single interaction even if parts are in separate frames.
+  // Consider splitting by animation frame.
+  for (const interaction of Object.values(interactions)) {
+    const entry = interaction.reduce((prev, curr) => prev.duration >= curr.duration ? prev : curr);
+    const value = entry.duration;
+    const rating = valueToRating(value);
+
+    const formattedValue = `${value.toFixed(0)} ms`;
+    console.groupCollapsed(
+      `Interaction tracking snippet %c${formattedValue} (${rating})`,
+      `color: ${RATING_COLORS[rating] || 'inherit'}`
+    );
+    console.log('Interaction target:', entry.target);
+
+    for (let entry of interaction) {
+      console.log(`Interaction event type: %c${entry.name}`, 'font-family: monospace');
+
+      // RenderTime is an estimate, because duration is rounded, and may get rounded down.
+      // In rare cases it can be less than processingEnd and that breaks performance.measure().
+      // Lets make sure its at least 4ms in those cases so you can just barely see it.
+      const adjustedPresentationTime = Math.max(entry.processingEnd + 4, entry.startTime + entry.duration);
+
+      console.table([{
+        subPartString: 'Input delay',
+        'Time (ms)': Math.round(entry.processingStart - entry.startTime, 0),
+      },
+      {
+        subPartString: 'Processing time',
+        'Time (ms)': Math.round(entry.processingEnd - entry.processingStart, 0),
+      },
+      {
+        subPartString: 'Presentation delay',
+        'Time (ms)': Math.round(adjustedPresentationTime - entry.processingEnd, 0),
+      }]);
+    }
+
+    console.groupEnd();
+
+  }
+});
+
+observer.observe({
+  type: 'event',
+  durationThreshold: 0, // 16 minimum by spec
+  buffered: true
+});
+```
+
