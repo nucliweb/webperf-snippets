@@ -1,0 +1,121 @@
+[
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/main-f04d2ba8d6d10df28f0c.js",
+    "type": "js",
+    "usedBytes": 11090,
+    "totalBytes": 18716,
+    "percentUsed": "59.25%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/webpack-043d462a2489e9b744af.js",
+    "type": "js",
+    "usedBytes": 2130,
+    "totalBytes": 2764,
+    "percentUsed": "77.06%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/framework.3105c3e333ee10fd9558.js",
+    "type": "js",
+    "usedBytes": 65950,
+    "totalBytes": 131700,
+    "percentUsed": "50.08%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/commons.8ca21498c39840d414a1.js",
+    "type": "js",
+    "usedBytes": 7754,
+    "totalBytes": 16051,
+    "percentUsed": "48.31%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/0d288225208d73e1f877dbf65ca76adff7531419.2269dae1674407555de5.js",
+    "type": "js",
+    "usedBytes": 9095,
+    "totalBytes": 30055,
+    "percentUsed": "30.26%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/8c52e4d567ef73d93debadbd2130006a9e67d3f0.12ae102c8f8b88d67e8d.js",
+    "type": "js",
+    "usedBytes": 492906,
+    "totalBytes": 862987,
+    "percentUsed": "57.12%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/f7c95c01170517062a85e548f4cd10fbe7597688.fb4551af1dfc79f2c612.js",
+    "type": "js",
+    "usedBytes": 40210,
+    "totalBytes": 111312,
+    "percentUsed": "36.12%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/abfd686d689795e7244d470ea819b420a9fb2297.438ab6fea39ef32f7c5b.js",
+    "type": "js",
+    "usedBytes": 37089,
+    "totalBytes": 109586,
+    "percentUsed": "33.84%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/71323d6417cda298d979460934481ff57cd9e9c2.6233edb6e0d618742594.js",
+    "type": "js",
+    "usedBytes": 41693,
+    "totalBytes": 87173,
+    "percentUsed": "47.83%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/pages/_app-e5b6636826943a7929b9.js",
+    "type": "js",
+    "usedBytes": 108240,
+    "totalBytes": 182641,
+    "percentUsed": "59.26%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/48a985984e04fb31d0461012ba618ec597d9f939.a626e9e42636a61515e3.js",
+    "type": "js",
+    "usedBytes": 4611,
+    "totalBytes": 9768,
+    "percentUsed": "47.21%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/1f743d3a55298df8d5bcbda2e60eb43895ab7d04.9f38432cd821ae19b464.js",
+    "type": "js",
+    "usedBytes": 137792,
+    "totalBytes": 637322,
+    "percentUsed": "21.62%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/1a7962b1236f51d9f3e14cb920514b724988ce2e.cb62e5d9a535ca0706e8.js",
+    "type": "js",
+    "usedBytes": 23427,
+    "totalBytes": 100713,
+    "percentUsed": "23.26%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/9f529c15a9f44e963413931e2a1bfbcb1fb118da.f7d867cc6c8ab3b49b9c.js",
+    "type": "js",
+    "usedBytes": 31724,
+    "totalBytes": 73198,
+    "percentUsed": "43.34%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/pages/shop/%5B...slug%5D-dc29f960ae8db11494d1.js",
+    "type": "js",
+    "usedBytes": 6720,
+    "totalBytes": 18951,
+    "percentUsed": "35.46%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/25.92100b0711412452c915.js",
+    "type": "js",
+    "usedBytes": 2423,
+    "totalBytes": 18252,
+    "percentUsed": "13.28%"
+  },
+  {
+    "url": "https://mw-production1.coach.com/_next/static/chunks/28.3f37c1831aef2047c240.js",
+    "type": "js",
+    "usedBytes": 3039,
+    "totalBytes": 7129,
+    "percentUsed": "42.63%"
+  }
+]
