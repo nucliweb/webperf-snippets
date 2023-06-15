@@ -1,5 +1,7 @@
 # Long Animation Frames
 
+_This snippet requires the **#enable-experimental-web-platform-features** flag to be activated in `chrome://flags`. Please note that you will need to restart your browser._ 
+
 To determine when long animation frames (LoAF) happen, you can use [PerformanceObserver](https://developer.mozilla.org/docs/Web/API/PerformanceObserver) and register to observe entries of type `long-animation-frame`. This snippet from [@noamr](https://github.com/noamr) provides additional informations computed from the LoAF raw data.
 
 #### Snippet
