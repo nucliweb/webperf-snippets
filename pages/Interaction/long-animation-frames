@@ -7,43 +7,68 @@ To determine when long animation frames (LoAF) happen, you can use [PerformanceO
 #### Snippet
 
 ```js copy
-(function() {
-    'use strict';
-
-    window.processAndFilterEntries = function(entries){
+(function init() {
+    function processAndFilterLoAFs(entries) {
         function floorObject(o) {
-            return Object.fromEntries(Array.from(Object.entries(o)).map(([key, value]) =>
-                                                                        [key, typeof value === "number" ? Math.floor(value) :
-                                                                         value]))
+        return Object.fromEntries(Array.from(Object.entries(o)).map(([key, value]) =>
+            [key, typeof value === "number" ? Math.floor(value) :
+            value]))
         }
 
         function processEntry(entry) {
-            const startTime = entry.startTime;
-            const endTime = entry.startTime + entry.duration;
-            const delay = entry.desiredRenderStart ? Math.max(0, entry.startTime - entry.desiredRenderStart) : 0;
-            const deferredDuration = Math.max(0, entry.desiredRenderStart - entry.startTime);
-            const renderDuration = entry.styleAndLayoutStart - entry.renderStart;
-            const workDuration = entry.renderStart ? entry.renderStart - entry.startTime : entry.duration;
-            const styleAndLayoutDuration = entry.styleAndLayoutStart ? endTime - entry.styleAndLayoutStart : 0;
-            const effectiveBlockingTime = Math.min(entry.duration, endTime - entry.desiredRenderStart)
-            const scripts = entry.scripts.map(script => {
-                const delay = script.startTime - script.desiredExecutionStart;
-                const scriptEnd = script.startTime + script.duration;
-                const compileDuration = script.executionStart - script.startTime;
-                const execDuration = scriptEnd - script.executionStart;
-                return floorObject({delay, compileDuration, execDuration, ...script.toJSON()});
-            })
-            return floorObject({startTime, delay, deferredDuration, renderDuration, workDuration, styleAndLayoutDuration, effectiveBlockingTime, ...entry.toJSON(), scripts});
+        const startTime = entry.startTime;
+        const endTime = entry.startTime + entry.duration;
+        const delay = entry.desiredRenderStart ? Math.max(0, entry.startTime - entry.desiredRenderStart) : 0;
+        const deferredDuration = Math.max(0, entry.desiredRenderStart - entry.startTime);
+        const renderDuration = entry.styleAndLayoutStart - entry.renderStart;
+        const workDuration = entry.renderStart ? entry.renderStart - entry.startTime : entry.duration;
+        const totalForcedStyleAndLayoutDuration = entry.scripts.reduce((sum, script) => sum + script.forcedStyleAndLayoutDuration, 0);
+        const styleAndLayoutDuration = entry.styleAndLayoutStart ? endTime - entry.styleAndLayoutStart : 0;
+        const scripts = entry.scripts.map(script => {
+            const delay = script.startTime - script.desiredExecutionStart;
+            const scriptEnd = script.startTime + script.duration;
+            const compileDuration = script.executionStart - script.startTime;
+            const execDuration = scriptEnd - script.executionStart;
+            return floorObject({delay, compileDuration, execDuration, ...script.toJSON()});
+        })
+        return floorObject({startTime, delay, deferredDuration, renderDuration, workDuration, styleAndLayoutDuration, totalForcedStyleAndLayoutDuration, ...entry.toJSON(), scripts});
         }
 
-        return entries.map(processEntry).filter(e => e.effectiveBlockingTime >= 50);
+        return entries.map(processEntry);
     }
 
-    try {
-        const observer = new PerformanceObserver(e => window.processAndFilterEntries(e.getEntries()).forEach(e => console.log(e)));
-        observer.observe({type: "long-animation-frame", buffered:true});
-    } catch (e) {
-        console.error(`The browser doesn't support this API`);
+    function analyze() {
+        return loafs.map(loaf => (
+            {
+                blockingDuration: loaf.blockingDuration,
+                loaf,
+                scripts: loaf.scripts, events: events.filter(e => overlap(e, loaf))
+            })).filter(l => (l.blockingDuration && l.events.length));
+            }
+
+
+
+    let loafs = [];
+    let events = [];
+    function processLoAFs(entries) {
+        loafs = [...loafs, ...processAndFilterLoAFs(entries.getEntries())];
+        console.log(analyze());
     }
-})();
+
+    function processEvents(entries) {
+        events = [...events, ...entries.getEntries()];
+        console.log(analyze());
+    }
+    new PerformanceObserver(processLoAFs).observe(
+        {type: "long-animation-frame", buffered:true});
+    new PerformanceObserver(processEvents).observe(
+        {type: "event", buffered:true});
+
+    function overlap(e1, e2) {
+        return e1.startTime < (e2.startTime + e2.duration) &&
+            e2.startTime < (e1.startTime + e1.duration)
+    }
+    window.whynp = analyze;
+    }
+)()
 ```
