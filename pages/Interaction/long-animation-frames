@@ -1,0 +1,74 @@
+# Long Animation Frames
+
+_This snippet requires specific features that are either available in Chrome 115+ for origins that are part of [the LoAF Origin Trial](https://developer.chrome.com/origintrials/#/view_trial/3935020174414970881) or require that you enable the **#enable-experimental-web-platform-features** flag in `chrome://flags` (please note that you will need to restart your browser)._ 
+
+To determine when long animation frames (LoAF) happen, you can use [PerformanceObserver](https://developer.mozilla.org/docs/Web/API/PerformanceObserver) and register to observe entries of type `long-animation-frame`. This snippet from [@noamr](https://github.com/noamr) provides additional informations computed from the LoAF raw data.
+
+#### Snippet
+
+```js copy
+(function init() {
+    function processAndFilterLoAFs(entries) {
+        function floorObject(o) {
+        return Object.fromEntries(Array.from(Object.entries(o)).map(([key, value]) =>
+            [key, typeof value === "number" ? Math.floor(value) :
+            value]))
+        }
+
+        function processEntry(entry) {
+        const startTime = entry.startTime;
+        const endTime = entry.startTime + entry.duration;
+        const delay = entry.desiredRenderStart ? Math.max(0, entry.startTime - entry.desiredRenderStart) : 0;
+        const deferredDuration = Math.max(0, entry.desiredRenderStart - entry.startTime);
+        const renderDuration = entry.styleAndLayoutStart - entry.renderStart;
+        const workDuration = entry.renderStart ? entry.renderStart - entry.startTime : entry.duration;
+        const totalForcedStyleAndLayoutDuration = entry.scripts.reduce((sum, script) => sum + script.forcedStyleAndLayoutDuration, 0);
+        const styleAndLayoutDuration = entry.styleAndLayoutStart ? endTime - entry.styleAndLayoutStart : 0;
+        const scripts = entry.scripts.map(script => {
+            const delay = script.startTime - script.desiredExecutionStart;
+            const scriptEnd = script.startTime + script.duration;
+            const compileDuration = script.executionStart - script.startTime;
+            const execDuration = scriptEnd - script.executionStart;
+            return floorObject({delay, compileDuration, execDuration, ...script.toJSON()});
+        })
+        return floorObject({startTime, delay, deferredDuration, renderDuration, workDuration, styleAndLayoutDuration, totalForcedStyleAndLayoutDuration, ...entry.toJSON(), scripts});
+        }
+
+        return entries.map(processEntry);
+    }
+
+    function analyze() {
+        return loafs.map(loaf => (
+            {
+                blockingDuration: loaf.blockingDuration,
+                loaf,
+                scripts: loaf.scripts, events: events.filter(e => overlap(e, loaf))
+            })).filter(l => (l.blockingDuration && l.events.length));
+            }
+
+
+
+    let loafs = [];
+    let events = [];
+    function processLoAFs(entries) {
+        loafs = [...loafs, ...processAndFilterLoAFs(entries.getEntries())];
+        console.log(analyze());
+    }
+
+    function processEvents(entries) {
+        events = [...events, ...entries.getEntries()];
+        console.log(analyze());
+    }
+    new PerformanceObserver(processLoAFs).observe(
+        {type: "long-animation-frame", buffered:true});
+    new PerformanceObserver(processEvents).observe(
+        {type: "event", buffered:true});
+
+    function overlap(e1, e2) {
+        return e1.startTime < (e2.startTime + e2.duration) &&
+            e2.startTime < (e1.startTime + e1.duration)
+    }
+    window.whynp = analyze;
+    }
+)()
+```
