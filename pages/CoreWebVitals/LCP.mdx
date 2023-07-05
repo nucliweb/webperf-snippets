@@ -1,0 +1,36 @@
+# Largest Contentful Paint (LCP)
+
+The next scripts show information about the [LCP](https://web.dev/lcp) metric.
+
+> You can use it in the browser console or as snippet in the Chrome DevTools Source tab, take a look to the [Introduction](/introduction/) section. 
+
+## Get the LCP element
+
+List the Largest Contentful Paint in the console and add a green dotted line in the LCP element.
+
+#### Snippet
+
+```js copy
+const po = new PerformanceObserver((list) => {
+  let entries = list.getEntries();
+
+  entries = dedupe(entries, "startTime");
+
+  entries.forEach((item, i) => {
+    console.dir(item);
+    console.log(
+      `${i + 1} current LCP item : ${item.element}: ${item.startTime}`
+    );
+    item.element ? (item.element.style = "border: 5px dotted lime;") : "";
+  });
+
+  const lastEntry = entries[entries.length - 1];
+  console.log(`LCP is: ${lastEntry.startTime}`);
+});
+
+po.observe({ type: "largest-contentful-paint", buffered: true });
+
+function dedupe(arr, key) {
+  return [...new Map(arr.map((item) => [item[key], item])).values()];
+}
+```

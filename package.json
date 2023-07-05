@@ -1,0 +1,28 @@
+{
+  "name": "webperf-snippets",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Web Performance Snippets",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx next build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "webperf",
+    "performance",
+    "perftools",
+    "snippets"
+  ],
+  "author": "Joan Leon | @nucliweb",
+  "license": "MIT",
+  "dependencies": {
+    "@vercel/analytics": "^1.0.1",
+    "next": "^13.4.4",
+    "next-cloudinary": "^4.12.0",
+    "nextra": "^2.6.2",
+    "nextra-theme-docs": "^2.6.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

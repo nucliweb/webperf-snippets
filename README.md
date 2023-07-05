@@ -8,6 +8,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 
 ## Add snippet to Chrome DevTools
 
+
 You can use the webperf-snippets as a Snippet in the Chrome DevTools Sources tab.
 
 1. Copy any of the WebPerf Snippets
@@ -44,7 +45,7 @@ https://github.com/nucliweb/webperf-snippets/assets/1307927/2987a2ca-3eef-4b73-8
   - [First And Third Party Script Info](#first-and-third-party-script-info)
   - [First And Third Party Script Timings](#first-and-third-party-script-timings)
   - [Inline Script Info and Size](#inline-script-info-and-size)
-  - [Inline Script Info and Size Including ```__NEXT_DATA__```](#inline-script-info-and-size-including-__next_data__)
+  - [Inline Script Info and Size Including `__NEXT_DATA__`](#inline-script-info-and-size-including-__next_data__)
   - [Inline CSS Info and Size](#inline-css-info-and-size)
   - [Get your `<head>` in order](#get-your-head-in-order)
     - [e.g. web.dev](#eg-webdev)
@@ -291,7 +292,7 @@ console.table(scriptsLoading);
 
 ### Resources hints
 
-Check is the page has resources hints
+Check if the page has resources hints
 
 ```js
 const rels = [
@@ -662,6 +663,7 @@ timingOptions.forEach((timing) => {
 
 console.table(calculateTimings("first", "REQ_START_UNTIL_RES_END"));
 ```
+
 ### Inline Script Info and Size
 
 Find all inline scripts on the page and list the scripts and count. Find the total byte size of all the inline scripts in the console.

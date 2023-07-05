@@ -1,0 +1,43 @@
+# Time To First Byte
+
+## Measure the time to first byte, from the document
+
+#### Snippet
+
+```js copy
+new PerformanceObserver((entryList) => {
+  const [pageNav] = entryList.getEntriesByType("navigation");
+  console.log(`TTFB (ms): ${pageNav.responseStart}`);
+}).observe({
+  type: "navigation",
+  buffered: true,
+});
+```
+
+## Measure the time to first byte of all the resources loaded
+
+#### Snippet
+
+```js copy
+new PerformanceObserver((entryList) => {
+  const entries = entryList.getEntries();
+  const resourcesLoaded = [...entries].map((entry) => {
+    let obj = {};
+    // Some resources may have a responseStart value of 0, due
+    // to the resource being cached, or a cross-origin resource
+    // being served without a Timing-Allow-Origin header set.
+    if (entry.responseStart > 0) {
+      obj = {
+        "TTFB (ms)": entry.responseStart,
+        Resource: entry.name,
+      };
+    }
+    return obj;
+  });
+  console.table(resourcesLoaded);
+}).observe({
+  type: "resource",
+  buffered: true,
+});
+```
+
