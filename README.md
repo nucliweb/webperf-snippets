@@ -8,6 +8,7 @@ A curated list of snippets to get Web Performance metrics to use in the browser 
 
 ## Add snippet to Chrome DevTools
 
+
 You can use the webperf-snippets as a Snippet in the Chrome DevTools Sources tab.
 
 1. Copy any of the WebPerf Snippets
