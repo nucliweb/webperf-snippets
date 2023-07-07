@@ -1,3 +1,5 @@
+[![Star History Chart](https://api.star-history.com/svg?repos=nucliweb/webperf-snippets&type=Date)](https://star-history.com/#nucliweb/webperf-snippets&Date)
+
 <div style="margin-bottom: 1ch">
     <img src="https://github.com/nucliweb/webperf-snippets/assets/1307927/f47f3049-34f5-407c-896a-d26a30ddf344" alt"WebPerf Snippets">
 </div>
