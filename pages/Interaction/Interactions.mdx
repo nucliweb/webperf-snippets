@@ -20,7 +20,7 @@ const RATING_COLORS = {
 const observer = new PerformanceObserver((list) => {
   const interactions = {};
 
-  for (const entry of list.getEntries().filter((entry) => entry.interactionId)) {
+  for (const entry of list.getEntries().filter((entry) => !entry.interactionId)) {
     interactions[entry.interactionId] = interactions[entry.interactionId] || [];
     interactions[entry.interactionId].push(entry);
   }
