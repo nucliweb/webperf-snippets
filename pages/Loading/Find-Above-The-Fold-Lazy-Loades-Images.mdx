@@ -5,6 +5,8 @@ List all images that have `loading="lazy"` or `[data-src]` _(lazy loading via JS
 #### Snippet
 
 ```js copy
+// List all lazily loaded images above the fold
+// https://webperf-snippets.nucliweb.net
 function findATFLazyLoadedImages() {
   const lazy = document.querySelectorAll('[loading="lazy"], [data-src]');
   let lazyImages = [];
@@ -14,7 +16,7 @@ function findATFLazyLoadedImages() {
       lazyImages = [...lazyImages, tag];
     }
   });
-  return lazyImages.length > 0 ? lazyImages : false;
+  return lazyImages.length > 0 ? lazyImages : "Good job, the site does not have any lazily loaded images.";
 }
 
 console.log(findATFLazyLoadedImages());
