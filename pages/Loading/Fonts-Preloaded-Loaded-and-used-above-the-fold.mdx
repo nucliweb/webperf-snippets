@@ -9,7 +9,7 @@ const linkElements = document.querySelectorAll(`link[rel="preload"]`);
 const arrayLinks = Array.from(linkElements);
 const preloadedFonts = arrayLinks.filter((link) => link.as === "font");
 
-console.log("Fonts Preloaded via Resources Hints");
+console.log("%cFonts Preloaded via Resources Hints", "font-weight: bold; font-size: 1.2em");
 preloadedFonts.forEach((font) => console.log(`▸ ${font.href}`));
 console.log("");
 
@@ -22,7 +22,7 @@ const loadedFonts = [
   ),
 ];
 
-console.log("Fonts and Weights Loaded in the Document");
+console.log("%cFonts and Weights Loaded in the Document", "font-weight: bold; font-size: 1.2em");
 loadedFonts.forEach((font) => console.log(`▸ ${font}`));
 console.log("");
 
@@ -52,7 +52,7 @@ const usedFonts = Array.from(
   )
 );
 
-console.log("Fonts and Weights Used Above the Fold");
+console.log("%cFonts and Weights Used Above the Fold", "font-weight: bold; font-size: 1.2em");
 usedFonts.forEach((font) => console.log(`▸ ${font}`));
 ```
 
