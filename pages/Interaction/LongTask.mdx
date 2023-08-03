@@ -10,10 +10,10 @@ To determine when long tasks happen, you can use [PerformanceObserver](https://d
 try {
   const po = new PerformanceObserver((list) => {
     const numLongTasks = list.getEntries().length
-    console.log(`%cNum. Long Tasks: ${numLongTasks}`,'color: #FF4E42; font-weight: bold')
     for (const entry of list.getEntries()) {
       console.table(entry.toJSON());
     }
+    console.log(`%cNum. Long Tasks: ${numLongTasks}`,'color: #FF4E42; font-weight: bold')
   });
   po.observe({ type: "longtask", buffered: true });
 } catch (e) {
