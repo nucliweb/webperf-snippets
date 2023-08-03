@@ -5,6 +5,8 @@
 #### Snippet
 
 ```js copy
+// Measure the time to first byte of all the resources loaded
+// https://webperf-snippets.nucliweb.net
 new PerformanceObserver((entryList) => {
   const [pageNav] = entryList.getEntriesByType("navigation");
   console.log(`TTFB (ms): ${pageNav.responseStart}`);
@@ -19,6 +21,8 @@ new PerformanceObserver((entryList) => {
 #### Snippet
 
 ```js copy
+// Measure the time to first byte of all the resources loaded
+// https://webperf-snippets.nucliweb.net
 new PerformanceObserver((entryList) => {
   const entries = entryList.getEntries();
   const resourcesLoaded = [...entries].map((entry) => {
@@ -26,14 +30,17 @@ new PerformanceObserver((entryList) => {
     // Some resources may have a responseStart value of 0, due
     // to the resource being cached, or a cross-origin resource
     // being served without a Timing-Allow-Origin header set.
+    
     if (entry.responseStart > 0) {
       obj = {
-        "TTFB (ms)": entry.responseStart,
+        "TTFB (ms)": +entry.responseStart.toFixed(2),
         Resource: entry.name,
       };
     }
-    return obj;
-  });
+    return Object.keys(obj).length > 0 ? obj : undefined;
+  })
+  .filter((item) => item !== undefined);
+
   console.table(resourcesLoaded);
 }).observe({
   type: "resource",

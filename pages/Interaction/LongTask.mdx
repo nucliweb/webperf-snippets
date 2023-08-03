@@ -5,8 +5,12 @@ To determine when long tasks happen, you can use [PerformanceObserver](https://d
 #### Snippet
 
 ```js copy
+// Count and list all the Long Tasks 
+// https://webperf-snippets.nucliweb.net
 try {
   const po = new PerformanceObserver((list) => {
+    const numLongTasks = list.getEntries().length
+    console.log(`%cNum. Long Tasks: ${numLongTasks}`,'color: #FF4E42; font-weight: bold')
     for (const entry of list.getEntries()) {
       console.table(entry.toJSON());
     }
