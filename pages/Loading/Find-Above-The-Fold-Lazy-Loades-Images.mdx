@@ -16,7 +16,7 @@ function findATFLazyLoadedImages() {
       lazyImages = [...lazyImages, tag];
     }
   });
-  return lazyImages.length > 0 ? lazyImages : "Good job, the site does not have any lazily loaded images.";
+  return lazyImages.length > 0 ? lazyImages : "Good job, the site does not have any lazily loaded images in the viewport.";
 }
 
 console.log(findATFLazyLoadedImages());
