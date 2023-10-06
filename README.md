@@ -30,6 +30,8 @@ https://github.com/nucliweb/webperf-snippets/assets/1307927/2987a2ca-3eef-4b73-8
 <details>
     <summary>Table of Contents</summary>
 
+- [Add snippet to Chrome DevTools](#add-snippet-to-chrome-devtools)
+- [Video](#video)
 - [Core Web Vitals](#core-web-vitals)
   - [Largest Contentful Paint (LCP)](#largest-contentful-paint-lcp)
   - [Largest Contentful Paint Sub-Parts (LCP)](#largest-contentful-paint-sub-parts-lcp)
@@ -47,7 +49,7 @@ https://github.com/nucliweb/webperf-snippets/assets/1307927/2987a2ca-3eef-4b73-8
   - [First And Third Party Script Info](#first-and-third-party-script-info)
   - [First And Third Party Script Timings](#first-and-third-party-script-timings)
   - [Inline Script Info and Size](#inline-script-info-and-size)
-  - [Inline Script Info and Size Including `__NEXT_DATA__`](#inline-script-info-and-size-including-__next_data__)
+  - [Inline Script Info and Size Including ```__NEXT_DATA__```](#inline-script-info-and-size-including-__next_data__)
   - [Inline CSS Info and Size](#inline-css-info-and-size)
   - [Get your `<head>` in order](#get-your-head-in-order)
     - [e.g. web.dev](#eg-webdev)
@@ -340,11 +342,14 @@ console.log(findATFLazyLoadedImages());
 List all images that don't have `loading="lazy"` or `[data-src]` _(lazy loading via JS)_ and are not in the viewport when the page loads. This script will help you find candidates for lazy loading.
 
 ```js
+
 // Execute it after the page has loaded without any user interaction (Scroll, click, etc)
-function findImgCanidatesForLazyLoading() {
+function findImgCandidatesForLazyLoading() {
   let notLazyImages = document.querySelectorAll(
     'img:not([data-src]):not([loading="lazy"])'
   );
+
+  
   return Array.from(notLazyImages).filter((tag) => !isInViewport(tag));
 }
 
@@ -358,10 +363,10 @@ function isInViewport(tag) {
   );
 }
 
-console.log(
-  "Consider lazyloading the following images: ",
-  findImgCanidatesForLazyLoading()
-);
+// easier to view important data using console.table. use array to define what to show in console output.
+
+console.table(findImgCandidatesForLazyLoadingidatesForLazyLoading(), ["src", "alt", "loading", "fetchPriority", "decoding"])
+
 ```
 
 ### Find render-blocking resources
