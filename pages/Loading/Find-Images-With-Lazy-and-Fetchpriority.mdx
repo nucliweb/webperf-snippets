@@ -1,0 +1,33 @@
+#  Find Images With Loading Lazy and Fetchpriority
+
+List all images that have `loading="lazy"` and `fetchpriority=high`.
+
+> In reality you probably wouldn't really want `loading=lazy` and `fetchpriority=high` at the same time. That would mean don't load it initially, but when you start to load it, load it with high priority. Which is kind of contradictory! - [Barry Pollard](https://twitter.com/tunetheweb/status/1714750391890444582) 
+
+### Attribution
+
+This snippet code it's based in the [script](https://twitter.com/csswizardry/status/1714697877245632832) shared by [Harry Roberts](https://csswizardry.com/).
+
+#### Snippet
+
+```js copy
+const MESSAGES = {
+    good: `The current rendered code, don't have elements with loading="lazy" fetchpriority="high"`,
+    bad: "In reality you probably wouldnt really want `loading=lazy` and `fetchpriority=high` at the same time. That would mean don't load it initially, but when you start to load it, load it with high priority. Which is kind of contradictory!"
+}
+const elementsLazyFetchpriority = document.querySelectorAll("[loading=lazy][fetchpriority=high]")
+const numLazyFetchpriority = elementsLazyFetchpriority.length
+const hasLazyFetchpriority = numLazyFetchpriority > 0
+
+
+if (hasLazyFetchpriority) {
+    console.log(`%c The page has ${numLazyFetchpriority} image(s) with loading="lazy" fetchpriority="high"`, 'background: #222; color: lightcoral; padding: 0.5ch; font-size: 1.28em')
+    elementsLazyFetchpriority.forEach((el) => console.log(el))
+    
+    console.log(`%c ${MESSAGES.bad}`, 'background: #222; color: lightcoral; padding: 0.5ch; margin-top: 1em')
+} else {
+    console.log(`%c ${MESSAGES.good}`, 'background: #222; color: lightgreen; padding: 0.5ch')
+}
+
+
+```
