@@ -1,37 +1,37 @@
 ###  Largest Contentful Paint Sub-Parts (LCP)
 
-This script it's part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and appear on the [Optimize Largest Contentful Paint](https://web.dev/i18n/en/optimize-lcp/) post.
+This script is part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and appear on the [Optimize Largest Contentful Paint](https://web.dev/i18n/en/optimize-lcp/) post.
 
 
-#### Snippet 
+#### Snippet
 
 ```js copy
 const LCP_SUB_PARTS = [
-  'Time to first byte',
-  'Resource load delay',
-  'Resource load time',
-  'Element render delay',
+  "Time to first byte",
+  "Resource load delay",
+  "Resource load time",
+  "Element render delay",
 ];
 
 new PerformanceObserver((list) => {
   const lcpEntry = list.getEntries().at(-1);
-  const navEntry = performance.getEntriesByType('navigation')[0];
+  const navEntry = performance.getEntriesByType("navigation")[0];
   const lcpResEntry = performance
-    .getEntriesByType('resource')
+    .getEntriesByType("resource")
     .filter((e) => e.name === lcpEntry.url)[0];
 
   const ttfb = navEntry.responseStart;
   const lcpRequestStart = Math.max(
     ttfb,
-    lcpResEntry ? lcpResEntry.requestStart || lcpResEntry.startTime : 0
+    lcpResEntry ? lcpResEntry.requestStart || lcpResEntry.startTime : 0,
   );
   const lcpResponseEnd = Math.max(
     lcpRequestStart,
-    lcpResEntry ? lcpResEntry.responseEnd : 0
+    lcpResEntry ? lcpResEntry.responseEnd : 0,
   );
   const lcpRenderTime = Math.max(
     lcpResponseEnd,
-    lcpEntry ? lcpEntry.startTime : 0
+    lcpEntry ? lcpEntry.startTime : 0,
   );
 
   LCP_SUB_PARTS.forEach((part) => performance.clearMeasures(part));
@@ -56,18 +56,16 @@ new PerformanceObserver((list) => {
   ];
 
   // Log helpful debug information to the console.
-  console.log('LCP value: ', lcpRenderTime);
-  console.log('LCP element: ', lcpEntry.element, lcpEntry?.url);
+  console.log("LCP value: ", lcpRenderTime);
+  console.log("LCP element: ", lcpEntry.element, lcpEntry?.url);
   console.table(
     lcpSubPartMeasures.map((measure) => ({
-      'LCP sub-part': measure.name,
-      'Time (ms)': measure.duration,
-      '% of LCP': `${
+      "LCP sub-part": measure.name,
+      "Time (ms)": measure.duration,
+      "% of LCP": `${
         Math.round((1000 * measure.duration) / lcpRenderTime) / 10
       }%`,
-    }))
+    })),
   );
-}).observe({type: 'largest-contentful-paint', buffered: true});
+}).observe({ type: "largest-contentful-paint", buffered: true });
 ```
-
-
