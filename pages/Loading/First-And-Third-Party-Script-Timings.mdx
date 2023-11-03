@@ -39,7 +39,7 @@ function createUniqueLists(firstParty, thirdParty) {
 
 const { firstPartyList, thirdPartyList } = createUniqueLists(
   firstParty,
-  thirdParty
+  thirdParty,
 );
 
 function calculateTimings(party, type) {
@@ -109,4 +109,3 @@ timingOptions.forEach((timing) => {
 
 console.table(calculateTimings("first", "REQ_START_UNTIL_RES_END"));
 ```
-

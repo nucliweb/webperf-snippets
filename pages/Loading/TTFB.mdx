@@ -25,21 +25,22 @@ new PerformanceObserver((entryList) => {
 // https://webperf-snippets.nucliweb.net
 new PerformanceObserver((entryList) => {
   const entries = entryList.getEntries();
-  const resourcesLoaded = [...entries].map((entry) => {
-    let obj = {};
-    // Some resources may have a responseStart value of 0, due
-    // to the resource being cached, or a cross-origin resource
-    // being served without a Timing-Allow-Origin header set.
-    
-    if (entry.responseStart > 0) {
-      obj = {
-        "TTFB (ms)": +entry.responseStart.toFixed(2),
-        Resource: entry.name,
-      };
-    }
-    return Object.keys(obj).length > 0 ? obj : undefined;
-  })
-  .filter((item) => item !== undefined);
+  const resourcesLoaded = [...entries]
+    .map((entry) => {
+      let obj = {};
+      // Some resources may have a responseStart value of 0, due
+      // to the resource being cached, or a cross-origin resource
+      // being served without a Timing-Allow-Origin header set.
+
+      if (entry.responseStart > 0) {
+        obj = {
+          "TTFB (ms)": +entry.responseStart.toFixed(2),
+          Resource: entry.name,
+        };
+      }
+      return Object.keys(obj).length > 0 ? obj : undefined;
+    })
+    .filter((item) => item !== undefined);
 
   console.table(resourcesLoaded);
 }).observe({
@@ -47,4 +48,3 @@ new PerformanceObserver((entryList) => {
   buffered: true,
 });
 ```
-

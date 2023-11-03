@@ -5,7 +5,6 @@ Find all inline style tags and list them in a table with individual and total by
 #### Snippet
 
 ```js copy
-
 // Wait for the page to fully load
 
 function findAllInlineCSS() {
@@ -15,7 +14,7 @@ function findAllInlineCSS() {
   for (const css of [...inlineCSS]) {
     const html = css.innerHTML;
     const size = new Blob([html]).size;
-    css.byteSizeInKb = convertToKb(size)
+    css.byteSizeInKb = convertToKb(size);
     totalByteSize += size;
   }
   // customize table here, can right click on header in console to sort table
@@ -23,12 +22,11 @@ function findAllInlineCSS() {
     "baseURI",
     "parentElement",
     "byteSizeInKb",
-    "innerHTML"
+    "innerHTML",
   ]);
-  
-console.log(`Total size: ${convertToKb(totalByteSize)} kB`);
+
+  console.log(`Total size: ${convertToKb(totalByteSize)} kB`);
 }
 
-findAllInlineCSS()
+findAllInlineCSS();
 ```
-

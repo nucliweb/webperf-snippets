@@ -8,7 +8,7 @@ List all images that don't have `loading="lazy"` or `[data-src]` _(lazy loading 
 // Execute it after the page has loaded without any user interaction (Scroll, click, etc)
 function findImgCanidatesForLazyLoading() {
   let notLazyImages = document.querySelectorAll(
-    'img:not([data-src]):not([loading="lazy"])'
+    'img:not([data-src]):not([loading="lazy"])',
   );
   return Array.from(notLazyImages).filter((tag) => !isInViewport(tag));
 }
@@ -25,7 +25,6 @@ function isInViewport(tag) {
 
 console.log(
   "Consider lazyloading the following images: ",
-  findImgCanidatesForLazyLoading()
+  findImgCanidatesForLazyLoading(),
 );
 ```
-

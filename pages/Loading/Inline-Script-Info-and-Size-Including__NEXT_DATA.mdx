@@ -5,17 +5,16 @@ Find all inline scripts and their total size separately from `__NEXT_DATA__` ser
 #### Snippet
 
 ```js copy
-
 function findInlineScriptsWithNextData() {
   const inlineScripts = document.querySelectorAll([
-    "script:not([async]):not([defer]):not([src])"
+    "script:not([async]):not([defer]):not([src])",
   ]);
   console.log(inlineScripts);
   console.log(`COUNT: ${inlineScripts.length}`);
 
   const byteSize = {
     NEXT_DATA_SIZE: 0,
-    OTHER_SIZE: 0
+    OTHER_SIZE: 0,
   };
 
   function getSize(script) {
@@ -41,10 +40,9 @@ function findInlineScriptsWithNextData() {
     totalByteSize:
       convertToKb(byteSize.NEXT_DATA_SIZE) +
       convertToKb(byteSize.OTHER_SIZE) +
-      " kb"
+      " kb",
   };
 }
 
 console.log(findInlineScriptsWithNextData());
 ```
-
