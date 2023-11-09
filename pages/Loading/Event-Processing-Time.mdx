@@ -1,0 +1,41 @@
+# Event Processing Time 
+
+Find the process time it took for events to finish.
+
+### Snippet
+
+```js copy
+const events = new Map([
+  ["connectTime", { start: "connectStart", end: "connectEnd" }],
+  ["domainLookupTime", { start: "domainLookupStart", end: "domainLookupEnd" }],
+  [
+    "DOMContentLoaded",
+    { start: "domContentLoadedEventStart", end: "domContentLoadedEventEnd" }
+  ],
+
+  ["onload", { start: "loadEventStart", end: "loadEventEnd" }]
+]);
+
+const observer = new PerformanceObserver((list) => {
+  const displayTimes = [];
+  list.getEntries().forEach((entry) => {
+    console.log(entry);
+    for (const [key, value] of events) {
+      const endValue = entry[value.end];
+      const startValue = entry[value.start];
+
+      const eventTime = endValue - startValue;
+
+      displayTimes.push({
+        url: entry.name,
+        event: key,
+        processingTime: `${eventTime.toFixed(2)} ms`
+      });
+    }
+  });
+
+  console.table(displayTimes);
+});
+
+observer.observe({ type: "navigation", buffered: true });
+```
