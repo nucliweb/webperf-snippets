@@ -13,7 +13,8 @@ const scriptsLoading = [...scripts].map((obj) => {
     src: obj.src,
     async: obj.async,
     defer: obj.defer,
-    "render blocking": obj.async || obj.defer ? "" : "🟥",
+    module: obj.type === 'module',
+    "render blocking": obj.async || obj.defer || obj.type === 'module' ? "" : "🟥",
   };
   return newObj;
 });
