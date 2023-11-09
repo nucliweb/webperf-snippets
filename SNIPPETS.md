@@ -795,7 +795,7 @@ Find the process time it took for events to finish.
 
 ```javascript
 
-// list events of to calculate processing time
+// list events to calculate processing time
 
 const events = new Map([
   ["connectTime", { start: "connectStart", end: "connectEnd" }],
