@@ -53,6 +53,7 @@ https://github.com/nucliweb/webperf-snippets/assets/1307927/2987a2ca-3eef-4b73-8
   - [Inline CSS Info and Size](#inline-css-info-and-size)
   - [Get your `<head>` in order](#get-your-head-in-order)
     - [e.g. web.dev](#eg-webdev)
+  - [Event Processing Time](#event-processing-time)
 - [Interaction](#interaction)
   - [Long Task](#long-task)
   - [Layout Shifts](#layout-shifts)
@@ -786,6 +787,52 @@ Use [capo.js](https://github.com/rviscomi/capo.js) the [Rick Viscomi](https://gi
 #### e.g. web.dev
 
 <img width="842" alt="image" src="https://github.com/rviscomi/capo.js/assets/1120896/fe6bb67c-697a-4fdf-aa28-52429239fcf5">
+
+
+### Event Processing Time
+
+Find the process time it took for events to finish.
+
+```javascript
+
+// list events of to calculate processing time
+
+const events = new Map([
+  ["connectTime", { start: "connectStart", end: "connectEnd" }],
+  ["domainLookupTime", { start: "domainLookupStart", end: "domainLookupEnd" }],
+  [
+    "DOMContentLoaded",
+    { start: "domContentLoadedEventStart", end: "domContentLoadedEventEnd" }
+  ],
+
+  ["onload", { start: "loadEventStart", end: "loadEventEnd" }]
+]);
+
+const observer = new PerformanceObserver((list) => {
+  const displayTimes = [];
+  list.getEntries().forEach((entry) => {
+    console.log(entry);
+    for (const [key, value] of events) {
+      const endValue = entry[value.end];
+      const startValue = entry[value.start];
+
+      const eventTime = endValue - startValue;
+
+      displayTimes.push({
+        url: entry.name,
+        event: key,
+        processingTime: `${eventTime.toFixed(2)} ms`
+      });
+    }
+  });
+
+  console.table(displayTimes);
+});
+
+observer.observe({ type: "navigation", buffered: true });
+
+```
+
 
 ## Interaction
 
