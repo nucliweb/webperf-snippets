@@ -23,7 +23,7 @@ const observer = new PerformanceObserver((list) => {
 
   for (const entry of list
     .getEntries()
-    .filter((entry) => !entry.interactionId)) {
+    .filter((entry) => entry.interactionId)) {
     interactions[entry.interactionId] = interactions[entry.interactionId] || [];
     interactions[entry.interactionId].push(entry);
   }
