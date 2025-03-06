@@ -86,7 +86,7 @@ const po = new PerformanceObserver((list) => {
     /**
      * Highlight LCP elements on the page
      */
-    item.element ? (item.element.style = "border: 5px dotted blue;") : "";
+    item.element ? (item.element.style = "outline: 5px solid blue; outline-offset: -5px;") : "";
   });
 
   /**
@@ -871,7 +871,7 @@ const shifts = [];
 
 // threshold ex: 0.05
 // Layout Shifts will be grouped by color.
-// All nodes attributed to the shift will have a border with the corresponding color
+// All nodes attributed to the shift will have an outline with the corresponding color
 // Shift value will be added above parent node.
 // Will have all details related to that shift in dropdown
 // Useful for single page applications and finding shifts after initial load
@@ -892,7 +892,7 @@ function findShifts(threshold) {
         valueNode.style = `color: ${color};`;
         entry.sources.forEach((source) => {
           source.node.parentNode.insertBefore(valueNode, source.node);
-          source.node.style = `border: 2px ${color} solid`;
+          source.node.style = `outline: 2px ${color} solid; outline-offset: -2px`;
         });
       }
     });
