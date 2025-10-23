@@ -1,10 +1,12 @@
 {
   "name": "webperf-snippets",
+  "type": "module",
   "private": true,
   "version": "1.0.0",
   "description": "Web Performance Snippets",
   "scripts": {
     "build": "npx next build",
+    "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -16,14 +18,15 @@
   "author": "Joan Leon | @nucliweb",
   "license": "MIT",
   "dependencies": {
-    "next": "^13.4.19",
-    "next-cloudinary": "^4.18.0",
-    "nextra": "^2.11.0",
-    "nextra-theme-docs": "^2.11.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "next": "^16.0.0",
+    "next-cloudinary": "^6.16.2",
+    "nextra": "^4.6.0",
+    "nextra-theme-docs": "^4.6.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "pagefind": "^1.4.0",
     "vercel": "^32.4.1"
   }
 }

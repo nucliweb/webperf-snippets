@@ -1,0 +1,24 @@
+### Largest Contentful Paint, Quick BPP (image entropy) check
+
+Context: [Largest Contentful Paint change in Chrome 112 to ignore low-entropy images](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/speed/metrics_changelog/2023_04_lcp.md)
+
+This snippet is based on and with the permission of [Stoyan Stefanov](https://twitter.com/stoyanstefanov), read his post [here](https://www.phpied.com/quick-bpp-image-entropy-check/).
+
+With the script you can get a list of the BPP of all(1) images loaded on the site.
+
+> (1) the images with source "data:image" and third-party images are ignored.
+
+#### Snippet
+
+```js copy
+console.table(
+  [...document.images]
+    .filter((img) => img.currentSrc != "" && !img.currentSrc.includes("data:image"))
+    .map((img) => [
+      img.currentSrc,
+      (performance.getEntriesByName(img.currentSrc)[0]?.encodedBodySize * 8) /
+        (img.width * img.height),
+    ])
+    .filter((img) => img[1] !== 0),
+);
+```

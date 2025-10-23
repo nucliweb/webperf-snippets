@@ -1,0 +1,113 @@
+---
+title: First And Third Party Script Timings
+description: Calculate load times for first and third party scripts using the Resource Timing API.
+---
+
+# First And Third Party Script Timings
+
+<small>_This relies on the above script_</small>
+
+_Run First And Third Party Script Info in the console first, then run this_
+
+[Calculate Load Times - MDN](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#timing_resource_loading_phases)
+
+<details>
+  <summary>
+    <a href='https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors' target="_blank">
+      Info on CORS (why some values are 0)
+    </a>
+  </summary>
+<p>
+
+> Note: The properties which are returned as 0 by default when loading a resource from a domain other than the one of the web page itself: redirectStart, redirectEnd, domainLookupStart, domainLookupEnd, connectStart, connectEnd, secureConnectionStart, requestStart, and responseStart.
+
+</p>
+</details>
+
+- [Akamai Tech Docs - Timing-Allow-Origin](https://techdocs.akamai.com/mpulse/docs/use-metrics#the-resource-timing-api)
+- [MDN - Timing-Allow-Origin Header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin)
+- [More Info on TAO header by Nic Jansma](https://nicj.net/resourcetiming-visibility-third-party-scripts-ads-and-page-weight/)
+
+### Snippet
+
+```js copy
+function createUniqueLists(firstParty, thirdParty) {
+  function getUniqueListBy(arr, key) {
+    return [...new Map(arr.map((item) => [item[key], item])).values()];
+  }
+
+  const firstPartyList = getUniqueListBy(firstParty, ["name"]);
+  const thirdPartyList = getUniqueListBy(thirdParty, ["name"]);
+
+  return { firstPartyList, thirdPartyList };
+}
+
+const { firstPartyList, thirdPartyList } = createUniqueLists(firstParty, thirdParty);
+
+function calculateTimings(party, type) {
+  const partyChoice = party === "first" ? firstParty : thirdParty;
+
+  const timingChoices = {
+    DNS_TIME: ["domainLookupEnd", "domainLookupStart"],
+    TCP_HANDSHAKE: ["connectEnd", "connectStart"],
+    RESPONSE_TIME: ["responseEnd", "responseStart"],
+    SECURE_CONNECTION_TIME: ["connectEnd", "secureConnectionStart", 0],
+    FETCH_UNTIL_RESPONSE: ["responseEnd", "fetchStart", 0],
+    REQ_START_UNTIL_RES_END: ["responseEnd", "requestStart", 0],
+    START_UNTIL_RES_END: ["responseEnd", "startTime", 0],
+    REDIRECT_TIME: ["redirectEnd", "redirectStart"],
+  };
+
+  function handleChoices(timingEnd, timingStart, num) {
+    if (!num) {
+      return timingEnd - timingStart;
+    }
+
+    if (timingStart > 0) {
+      return timingEnd - timingStart;
+    }
+
+    return 0;
+  }
+
+  const timings = partyChoice.map((script) => {
+    const [timingEnd, timingStart, num] = timingChoices[type];
+    const endValue = script[timingEnd];
+    const startValue = script[timingStart];
+    return {
+      name: script.name,
+      [type]: handleChoices(endValue, startValue, num),
+    };
+  });
+
+  return timings;
+}
+
+// Available Options
+const timingOptions = [
+  "DNS_TIME",
+  "TCP_HANDSHAKE",
+  "RESPONSE_TIME",
+  "SECURE_CONNECTION_TIME",
+  "FETCH_UNTIL_RESPONSE",
+  "REQ_START_UNTIL_RES_END",
+  "START_UNTIL_RES_END",
+  "REDIRECT_TIME",
+];
+
+// run em all!
+// https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#timing_resource_loading_phases
+
+timingOptions.forEach((timing) => {
+  console.groupCollapsed(`FIRST PARTY: ${timing}`);
+  console.table(calculateTimings("first", timing));
+  console.groupEnd();
+  console.groupCollapsed(`THIRD PARTY: ${timing}`);
+  console.table(calculateTimings("third", timing));
+  console.groupEnd();
+});
+
+// choose your battle - arg1 is string either "first" or "third", arg2 is string timing option listed above.
+
+console.table(calculateTimings("first", "REQ_START_UNTIL_RES_END"));
+```

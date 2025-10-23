@@ -1,0 +1,107 @@
+# Time To First Byte
+
+Time to First Byte (TTFB) is a measurement used as an indication of the responsiveness of a webserver or other network resource.
+TTFB measures the duration from the user or client making an HTTP request to the first byte of the page being received by the client's browser.
+
+## Measure the time to first byte, from the server
+
+#### Snippet
+
+```js copy
+// Measure the time to first byte of all the resources loaded
+// https://webperf-snippets.nucliweb.net
+new PerformanceObserver((entryList) => {
+  const [pageNav] = entryList.getEntriesByType("navigation");
+  console.log(`TTFB (ms): ${pageNav.responseStart}`);
+}).observe({
+  type: "navigation",
+  buffered: true,
+});
+```
+
+## Mesure the TTFB sub-parts
+
+This snippet is part of [pagespeed](https://github.com/corewebvitals/pagespeed) by [Arjen Karel](https://www.linkedin.com/in/arjenkarel/)
+
+#### Snippet
+
+```js copy
+(() => {
+  const formatTime = (time) => {
+    //round by 2 decimals, use Math.round() for integer
+    return Math.round(time * 100) / 100;
+  };
+
+  new PerformanceObserver((entryList) => {
+    const [pageNav] = entryList.getEntriesByType("navigation");
+
+    // timing start times are relative
+    const activationStart = pageNav.activationStart || 0;
+    const waitEnd = Math.max((pageNav.workerStart || pageNav.fetchStart) - activationStart, 0);
+    const dnsStart = Math.max(pageNav.domainLookupStart - activationStart, 0);
+    const tcpStart = Math.max(pageNav.connectStart - activationStart, 0);
+    const sslStart = Math.max(pageNav.secureConnectionStart - activationStart, 0);
+    const tcpEnd = Math.max(pageNav.connectEnd - activationStart, 0);
+    const responseStart = Math.max(pageNav.responseStart - activationStart, 0);
+
+    // attribution based on https://www.w3.org/TR/navigation-timing-2/#processing-model
+    // use associative array to log the results more readable
+    let attributionArray = [];
+    attributionArray["Redirect and Waiting duration"] = { "time in ms": formatTime(waitEnd) };
+    attributionArray["Worker and Cache duration"] = {
+      "time in ms": formatTime(dnsStart - waitEnd),
+    };
+    attributionArray["DNS duration"] = { "time in ms": formatTime(tcpStart - dnsStart) };
+    attributionArray["TCP duration"] = { "time in ms": formatTime(sslStart - tcpStart) };
+    attributionArray["SSL duration"] = { "time in ms": formatTime(tcpEnd - sslStart) };
+    attributionArray["Request duration"] = { "time in ms": formatTime(responseStart - tcpEnd) };
+    attributionArray["Total TTFB"] = { "time in ms": formatTime(responseStart) };
+
+    // log the results
+    console.log(
+      "%cTime to First Byte (" + formatTime(responseStart - activationStart) + "ms)",
+      "color: blue; font-weight: bold;",
+    );
+    console.table(attributionArray);
+
+    console.log("%cOrigininal navigation entry", "color: blue; font-weight: bold;");
+    console.log(pageNav);
+  }).observe({
+    type: "navigation",
+    buffered: true,
+  });
+})();
+```
+
+## Measure the time to first byte of all the resources loaded
+
+#### Snippet
+
+```js copy
+// Measure the time to first byte of all the resources loaded
+// https://webperf-snippets.nucliweb.net
+new PerformanceObserver((entryList) => {
+  const entries = entryList.getEntries();
+  const resourcesLoaded = [...entries]
+    .map((entry) => {
+      let obj = {};
+      // Some resources may have a responseStart value of 0, due
+      // to the resource being cached, or a cross-origin resource
+      // being served without a Timing-Allow-Origin header set.
+
+      if (entry.responseStart > 0) {
+        obj = {
+          "TTFB (ms)": +entry.responseStart.toFixed(2),
+          Resource: entry.name,
+        };
+      }
+      return Object.keys(obj).length > 0 ? obj : undefined;
+    })
+    .filter((item) => item !== undefined);
+
+  console.table(resourcesLoaded);
+}).observe({
+  type: "resource",
+  buffered: true,
+});
+```

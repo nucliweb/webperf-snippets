@@ -1,0 +1,25 @@
+---
+title: "Long Tasks"
+description: "This script will output all long tasks in the console and the number of long tasks."
+---
+
+# Long Tasks
+
+This script will output all long tasks in the console and the number of long tasks.
+
+#### Snippet
+
+```js copy
+try {
+  const po = new PerformanceObserver((list) => {
+    const numLongTasks = list.getEntries().length;
+    for (const entry of list.getEntries()) {
+      console.table(entry.toJSON());
+    }
+    console.log(`%cNum. Long Tasks: ${numLongTasks}`, "color: #FF4E42; font-weight: bold");
+  });
+  po.observe({ type: "longtask", buffered: true });
+} catch (e) {
+  console.error(`The browser doesn't support this API`);
+}
+```

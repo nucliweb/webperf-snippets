@@ -1,0 +1,422 @@
+---
+title: "LoAF Helpers: Advanced Debugging in DevTools"
+description: "Advanced debugging helpers for Long Animation Frames (LoAF) in Chrome DevTools."
+---
+
+# LoAF Helpers: Advanced Debugging in DevTools
+
+While the [basic Long Animation Frames (LoAF)](/Interaction/Long-Animation-Frames) snippet is great for capturing raw data, we often need more powerful tools to analyze and debug directly in the console without manual data processing.
+
+This snippet installs a loafHelpers object on window, providing a suite of utility functions to filter, analyze, and export captured LoAF information in a much more convenient and efficient way.
+
+#### Key Features
+
+- Instant Summaries: Get an overview of the number of long frames, their durations, and severity.
+- Culprit Identification: Quickly find the slowest scripts and those that are most significantly blocking rendering.
+- Dynamic Filtering: Filter captured frames by minimum or maximum duration.
+- Data Export: Download the data in JSON or CSV format for later analysis or sharing.
+
+#### How to Use
+
+1. Copy the entire snippet code.
+2. Paste it into the Chrome DevTools Console. For recurring use, it's highly recommended to save it as a "Snippet" in the "Sources" panel.
+3. Once executed, the functions will be available through the global loafHelpers object.
+
+#### Usage Examples
+
+```
+// Show a summary of all captured long frames
+loafHelpers.summary();
+
+// Show the 5 slowest scripts that have contributed to LoAFs
+loafHelpers.topScripts(5);
+
+// Filter and display in a table the frames with a duration longer than 150ms
+loafHelpers.filter({ minDuration: 150 });
+
+// Find frames in which a script containing "analytics" has participated
+loafHelpers.findByURL('analytics');
+
+// Export all captured data to a JSON file
+loafHelpers.exportJSON();
+```
+
+#### Snippet
+
+```js copy
+/**
+ * LoAF Helpers - WebPerf Snippet
+ *
+ * Long Animation Frames API debugging helpers for Chrome DevTools
+ *
+ * Usage:
+ *   1. Copy this entire code
+ *   2. Paste in Chrome DevTools Console (or save as Snippet in Sources panel)
+ *   3. Use window.loafHelpers.* functions
+ *
+ * Available functions:
+ *   - loafHelpers.summary()           Show overview of captured frames
+ *   - loafHelpers.topScripts(n)       Show top N slowest scripts
+ *   - loafHelpers.filter(options)     Filter frames by duration
+ *   - loafHelpers.findByURL(search)   Find frames by script URL
+ *   - loafHelpers.exportJSON()        Download data as JSON
+ *   - loafHelpers.exportCSV()         Download data as CSV
+ *   - loafHelpers.getRawData()        Get raw captured data
+ *   - loafHelpers.clear()             Clear captured data
+ *
+ * Examples:
+ *   loafHelpers.summary()
+ *   loafHelpers.topScripts(5)
+ *   loafHelpers.filter({ minDuration: 200 })
+ *   loafHelpers.findByURL('analytics')
+ *   loafHelpers.exportJSON()
+ *
+ * @author Joan León
+ * @url https://webperf-snippets.nucliweb.net
+ */
+
+(function () {
+  "use strict";
+
+  // Check browser support
+  if (
+    !("PerformanceObserver" in window) ||
+    !PerformanceObserver.supportedEntryTypes.includes("long-animation-frame")
+  ) {
+    console.warn("⚠️ Long Animation Frames API not supported in this browser");
+    console.warn("   Chrome 116+ required");
+    return;
+  }
+
+  // Storage for captured frames
+  const capturedFrames = [];
+
+  // Start observing
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      // Serialize frame data
+      const frameData = {
+        startTime: entry.startTime,
+        duration: entry.duration,
+        renderStart: entry.renderStart,
+        styleAndLayoutStart: entry.styleAndLayoutStart,
+        firstUIEventTimestamp: entry.firstUIEventTimestamp,
+        blockingDuration: entry.blockingDuration,
+        scripts: entry.scripts.map((s) => ({
+          sourceURL: s.sourceURL || "",
+          sourceFunctionName: s.sourceFunctionName || "(anonymous)",
+          duration: s.duration,
+          forcedStyleAndLayoutDuration: s.forcedStyleAndLayoutDuration,
+          invoker: s.invoker || "",
+        })),
+      };
+
+      capturedFrames.push(frameData);
+    }
+  });
+
+  try {
+    observer.observe({
+      type: "long-animation-frame",
+      buffered: true,
+    });
+  } catch (e) {
+    console.error("Failed to start LoAF observer:", e);
+    return;
+  }
+
+  // Helper functions
+  window.loafHelpers = {
+    /**
+     * Show summary of all captured frames
+     */
+    summary() {
+      if (capturedFrames.length === 0) {
+        console.log("ℹ️ No frames captured yet. Interact with the page to generate long frames.");
+        return;
+      }
+
+      const totalTime = capturedFrames.reduce((sum, f) => sum + f.duration, 0);
+      const avgDuration = totalTime / capturedFrames.length;
+      const maxDuration = Math.max(...capturedFrames.map((f) => f.duration));
+
+      const severity = {
+        critical: capturedFrames.filter((f) => f.duration > 200).length,
+        high: capturedFrames.filter((f) => f.duration > 150 && f.duration <= 200).length,
+        medium: capturedFrames.filter((f) => f.duration > 100 && f.duration <= 150).length,
+        low: capturedFrames.filter((f) => f.duration <= 100).length,
+      };
+
+      console.group("📊 LOAF SUMMARY");
+      console.log("Total frames:", capturedFrames.length);
+      console.log("Total blocking time:", totalTime.toFixed(2) + "ms");
+      console.log("Average duration:", avgDuration.toFixed(2) + "ms");
+      console.log("Max duration:", maxDuration.toFixed(2) + "ms");
+      console.log("");
+      console.log("By severity:");
+      console.log("  🔴 Critical (>200ms):", severity.critical);
+      console.log("  🟠 High (150-200ms):", severity.high);
+      console.log("  🟡 Medium (100-150ms):", severity.medium);
+      console.log("  🟢 Low (<100ms):", severity.low);
+      console.groupEnd();
+    },
+
+    /**
+     * Show top N slowest scripts
+     * @param {number} n - Number of scripts to show (default: 10)
+     */
+    topScripts(n = 10) {
+      if (capturedFrames.length === 0) {
+        console.log("ℹ️ No frames captured yet.");
+        return;
+      }
+
+      const allScripts = capturedFrames.flatMap((f) => f.scripts);
+
+      if (allScripts.length === 0) {
+        console.log("ℹ️ No scripts found in captured frames.");
+        return;
+      }
+
+      const sorted = allScripts.sort((a, b) => b.duration - a.duration).slice(0, n);
+
+      console.log(`📋 Top ${Math.min(n, sorted.length)} slowest scripts:`);
+      console.table(
+        sorted.map((s) => {
+          let path = s.sourceURL;
+          try {
+            path = new URL(s.sourceURL || location.href).pathname;
+          } catch (e) {
+            // Ignore error, use original sourceURL
+          }
+          return {
+            URL: path,
+            Function: s.sourceFunctionName,
+            Duration: s.duration.toFixed(2) + "ms",
+            "Forced Layout": s.forcedStyleAndLayoutDuration.toFixed(2) + "ms",
+          };
+        }),
+      );
+    },
+
+    /**
+     * Filter frames by criteria
+     * @param {Object} options - Filter options
+     * @param {number} options.minDuration - Minimum duration in ms
+     * @param {number} options.maxDuration - Maximum duration in ms
+     */
+    filter(options = {}) {
+      if (capturedFrames.length === 0) {
+        console.log("ℹ️ No frames captured yet.");
+        return [];
+      }
+
+      let filtered = capturedFrames;
+
+      if (options.minDuration) {
+        filtered = filtered.filter((f) => f.duration >= options.minDuration);
+      }
+
+      if (options.maxDuration) {
+        filtered = filtered.filter((f) => f.duration <= options.maxDuration);
+      }
+
+      console.log(`🔍 Filtered: ${filtered.length} of ${capturedFrames.length} frames`);
+
+      if (filtered.length > 0) {
+        console.table(
+          filtered.map((f) => ({
+            Start: f.startTime.toFixed(2) + "ms",
+            Duration: f.duration.toFixed(2) + "ms",
+            Scripts: f.scripts.length,
+            Blocking: f.blockingDuration.toFixed(2) + "ms",
+          })),
+        );
+      }
+
+      return filtered;
+    },
+
+    /**
+     * Find frames containing scripts that match a URL pattern
+     * @param {string} search - URL pattern to search for
+     */
+    findByURL(search) {
+      if (capturedFrames.length === 0) {
+        console.log("ℹ️ No frames captured yet.");
+        return [];
+      }
+
+      const matches = capturedFrames.filter((f) =>
+        f.scripts.some((s) => s.sourceURL.includes(search)),
+      );
+
+      console.log(`🔎 Found ${matches.length} frames with scripts matching "${search}"`);
+
+      if (matches.length > 0) {
+        console.table(
+          matches.map((f) => {
+            const matchingScript = f.scripts.find((s) => s.sourceURL.includes(search));
+            return {
+              "Frame Start": f.startTime.toFixed(2) + "ms",
+              "Frame Duration": f.duration.toFixed(2) + "ms",
+              "Script URL": matchingScript.sourceURL,
+              "Script Duration": matchingScript.duration.toFixed(2) + "ms",
+            };
+          }),
+        );
+      }
+
+      return matches;
+    },
+
+    /**
+     * Export captured data as JSON file
+     */
+    exportJSON() {
+      if (capturedFrames.length === 0) {
+        console.log("ℹ️ No frames to export.");
+        return;
+      }
+
+      const data = JSON.stringify(capturedFrames, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `loaf-data-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      console.log("✅ JSON exported:", capturedFrames.length, "frames");
+    },
+
+    /**
+     * Export captured data as CSV file
+     */
+    exportCSV() {
+      if (capturedFrames.length === 0) {
+        console.log("ℹ️ No frames to export.");
+        return;
+      }
+
+      const rows = [
+        [
+          "Frame Start",
+          "Duration",
+          "Blocking",
+          "Scripts",
+          "Script URL",
+          "Function",
+          "Script Duration",
+          "Forced Layout",
+        ],
+      ];
+
+      capturedFrames.forEach((f) => {
+        f.scripts.forEach((s) => {
+          rows.push([
+            f.startTime.toFixed(2),
+            f.duration.toFixed(2),
+            f.blockingDuration.toFixed(2),
+            f.scripts.length,
+            s.sourceURL,
+            s.sourceFunctionName,
+            s.duration.toFixed(2),
+            s.forcedStyleAndLayoutDuration.toFixed(2),
+          ]);
+        });
+      });
+
+      const csv = rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `loaf-data-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      console.log("✅ CSV exported:", capturedFrames.length, "frames");
+    },
+
+    /**
+     * Get raw captured data
+     * @returns {Array} Array of captured frame objects
+     */
+    getRawData() {
+      return capturedFrames;
+    },
+
+    /**
+     * Clear all captured data
+     */
+    clear() {
+      capturedFrames.length = 0;
+      console.log("✅ Captured data cleared");
+    },
+
+    /**
+     * Show help
+     */
+    help() {
+      console.log(
+        "%c LoAF Helpers - Available Commands ",
+        "background: #1a73e8; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;",
+      );
+      console.log("");
+
+      const cmdStyle = "font-weight: bold; color: #1a73e8;";
+      const exampleStyle = "color: #888888; font-family: monospace;";
+
+      const logCommand = (cmd, desc, example) => {
+        console.log(`%c${cmd}`, cmdStyle);
+        console.log(`  ${desc}`);
+        console.log(`  %cExample: ${example}`, exampleStyle);
+        console.log("");
+      };
+
+      logCommand("summary()", "Show overview of all captured frames", "loafHelpers.summary()");
+      logCommand(
+        "topScripts(n)",
+        "Show top N slowest scripts (default: 10)",
+        "loafHelpers.topScripts(5)",
+      );
+      logCommand(
+        "filter(options)",
+        "Filter frames by duration",
+        "loafHelpers.filter({ minDuration: 200 })",
+      );
+      logCommand(
+        "findByURL(search)",
+        "Find frames by script URL",
+        'loafHelpers.findByURL("analytics")',
+      );
+      logCommand("exportJSON()", "Download captured data as JSON", "loafHelpers.exportJSON()");
+      logCommand("exportCSV()", "Download captured data as CSV", "loafHelpers.exportCSV()");
+      logCommand("getRawData()", "Get raw captured data array", "loafHelpers.getRawData()");
+      logCommand("clear()", "Clear all captured data", "loafHelpers.clear()");
+    },
+  };
+
+  // Initial message
+  console.log(
+    "%c✅ LoAF Helpers Loaded ",
+    "background: #CACACA; color: #242424; padding: 2px 4px; border-radius: 4px;",
+  );
+  console.log("");
+  console.log(
+    "📚 Type %cloafHelpers.help()%c for available commands",
+    "font-weight: bold; color: #1a73e8",
+    "",
+  );
+  console.log("🚀 Quick start: %cloafHelpers.summary()%c", "font-weight: bold; color: #1a73e8", "");
+  console.log("");
+  console.log("Observing long animation frames (>50ms)...");
+  console.log("");
+  console.log(
+    "%cLoAF WebPerf Snippet",
+    "background: #4caf50; color: white; padding: 2px 4px; border-radius: 4px; font-weight: bold;",
+    "| https://webperf-snippets.nucliweb.net",
+  );
+})();
+```

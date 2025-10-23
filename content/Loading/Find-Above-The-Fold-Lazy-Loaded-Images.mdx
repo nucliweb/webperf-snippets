@@ -1,0 +1,33 @@
+# Find Above The Fold Lazy Loaded Images
+
+List all images that have `loading="lazy"` or `[data-src]` _(lazy loading via JS)_ above the fold and off canvas.
+
+#### Snippet
+
+```js copy
+// List all lazily loaded images above the fold
+// https://webperf-snippets.nucliweb.net
+function findAboveTheFoldLazyLoadedImages() {
+  const lazy = document.querySelectorAll('[loading="lazy"]');
+  let lazyImages = [];
+
+  lazy.forEach((tag) => {
+    const { x, y } = tag.getBoundingClientRect();
+    const position = parseInt(tag.getBoundingClientRect().top);
+
+    if (x < window.innerWidth && y < window.innerHeight && x !== 0 && y !== 0) {
+      lazyImages = [...lazyImages, tag];
+      console.log(tag);
+    }
+  });
+
+  if (lazyImages.length === 0) {
+    console.log(
+      `%c Good job, the site does not have any lazily loaded images in the viewport.`,
+      "background: #222; color: lightgreen; padding: 0.5ch",
+    );
+  }
+}
+
+findAboveTheFoldLazyLoadedImages();
+```

@@ -1,0 +1,88 @@
+### Largest Contentful Paint Sub-Parts (LCP)
+
+This script is part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and appear on the [Optimize Largest Contentful Paint](https://web.dev/articles/optimize-lcp) post.
+
+#### Snippet
+
+```js copy
+const LCP_SUB_PARTS = [
+  "Time to first byte",
+  "Resource load delay",
+  "Resource load time",
+  "Element render delay",
+];
+
+new PerformanceObserver((list) => {
+  const lcpEntry = list.getEntries().at(-1);
+  const navEntry = getNavigationEntry();
+  const lcpResEntry = performance
+    .getEntriesByType("resource")
+    .filter((e) => e.name === lcpEntry.url)[0];
+
+  const activationStart = getActivationStart();
+
+  const ttfb = Math.max(0, navEntry.responseStart - activationStart);
+  const lcpRequestStart = Math.max(
+    ttfb,
+    // Prefer `requestStart` (if TOA is set), otherwise use `startTime`.
+    lcpResEntry ? (lcpResEntry.requestStart || lcpResEntry.startTime) - activationStart : 0,
+  );
+  const lcpResponseEnd = Math.max(
+    lcpRequestStart,
+    lcpResEntry ? lcpResEntry.responseEnd - activationStart : 0,
+  );
+  const lcpRenderTime = Math.max(lcpResponseEnd, lcpEntry.startTime - activationStart);
+
+  LCP_SUB_PARTS.forEach((part) => performance.clearMeasures(part));
+
+  const lcpSubPartMeasures = [
+    performance.measure(LCP_SUB_PARTS[0], {
+      start: 0,
+      end: ttfb,
+    }),
+    performance.measure(LCP_SUB_PARTS[1], {
+      start: ttfb,
+      end: lcpRequestStart,
+    }),
+    performance.measure(LCP_SUB_PARTS[2], {
+      start: lcpRequestStart,
+      end: lcpResponseEnd,
+    }),
+    performance.measure(LCP_SUB_PARTS[3], {
+      start: lcpResponseEnd,
+      end: lcpRenderTime,
+    }),
+  ];
+
+  // Log helpful debug information to the console.
+  console.log("LCP value: ", lcpRenderTime);
+  console.log("LCP element: ", lcpEntry.element, lcpEntry?.url);
+  console.table(
+    lcpSubPartMeasures.map((measure) => ({
+      "LCP sub-part": measure.name,
+      "Time (ms)": measure.duration,
+      "% of LCP": `${Math.round((1000 * measure.duration) / lcpRenderTime || 0) / 10}%`,
+    })),
+  );
+}).observe({ type: "largest-contentful-paint", buffered: true });
+
+function getActivationStart() {
+  const navEntry = getNavigationEntry();
+  return (navEntry && navEntry.activationStart) || 0;
+}
+
+function getNavigationEntry() {
+  const navigationEntry =
+    self.performance &&
+    performance.getEntriesByType &&
+    performance.getEntriesByType("navigation")[0];
+
+  if (
+    navigationEntry &&
+    navigationEntry.responseStart > 0 &&
+    navigationEntry.responseStart < performance.now()
+  ) {
+    return navigationEntry;
+  }
+}
+```

@@ -1,0 +1,27 @@
+### Inline CSS Info and Size
+
+Find all inline style tags and list them in a table with individual and total byte size. Customize the table below.
+
+#### Snippet
+
+```js copy
+// Wait for the page to fully load
+
+function findAllInlineCSS() {
+  const convertToKb = (bytes) => bytes / 1000;
+  const inlineCSS = document.querySelectorAll("style");
+  let totalByteSize = 0;
+  for (const css of [...inlineCSS]) {
+    const html = css.innerHTML;
+    const size = new Blob([html]).size;
+    css.byteSizeInKb = convertToKb(size);
+    totalByteSize += size;
+  }
+  // customize table here, can right click on header in console to sort table
+  console.table(inlineCSS, ["baseURI", "parentElement", "byteSizeInKb", "innerHTML"]);
+
+  console.log(`Total size: ${convertToKb(totalByteSize)} kB`);
+}
+
+findAllInlineCSS();
+```

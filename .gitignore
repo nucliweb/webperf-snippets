@@ -1,6 +1,7 @@
 .env
 .DS_Store
 beta
-node_modules
-.next
+node_modules/
+.next/
+_pagefind/
 .vercel
