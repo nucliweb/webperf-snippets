@@ -5,7 +5,10 @@
   "version": "1.0.0",
   "description": "Web Performance Snippets",
   "scripts": {
-    "build": "npx next build",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
     "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
