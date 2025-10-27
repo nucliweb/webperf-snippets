@@ -54,6 +54,7 @@ loafHelpers.exportJSON();
  *   - loafHelpers.topScripts(n)       Show top N slowest scripts
  *   - loafHelpers.filter(options)     Filter frames by duration
  *   - loafHelpers.findByURL(search)   Find frames by script URL
+ *   - loafHelpers.percentiles(pcts)   Calculate percentiles for RUM reporting
  *   - loafHelpers.exportJSON()        Download data as JSON
  *   - loafHelpers.exportCSV()         Download data as CSV
  *   - loafHelpers.getRawData()        Get raw captured data
@@ -64,6 +65,7 @@ loafHelpers.exportJSON();
  *   loafHelpers.topScripts(5)
  *   loafHelpers.filter({ minDuration: 200 })
  *   loafHelpers.findByURL('analytics')
+ *   loafHelpers.percentiles()
  *   loafHelpers.exportJSON()
  *
  * @author Joan León
@@ -335,6 +337,49 @@ loafHelpers.exportJSON();
     },
 
     /**
+     * Calculate percentiles of frame durations
+     * Useful for RUM reporting - send percentiles instead of all frames
+     * @param {Array<number>} pcts - Percentiles to calculate (default: [50, 75, 95, 99])
+     * @returns {Object} Percentile values
+     */
+    percentiles(pcts = [50, 75, 95, 99]) {
+      if (capturedFrames.length === 0) {
+        console.log("ℹ️ No frames captured yet.");
+        return {};
+      }
+
+      // Extract and sort durations
+      const durations = capturedFrames.map((f) => f.duration).sort((a, b) => a - b);
+
+      const result = {};
+
+      // Calculate percentiles using nearest rank method
+      pcts.forEach((p) => {
+        const index = Math.ceil((p / 100) * durations.length) - 1;
+        const safeIndex = Math.max(0, Math.min(index, durations.length - 1));
+        result[`p${p}`] = durations[safeIndex];
+      });
+
+      // Display formatted output
+      console.group("📊 FRAME DURATION PERCENTILES");
+      console.log("Total frames analyzed:", capturedFrames.length);
+      console.log("");
+
+      Object.entries(result).forEach(([key, value]) => {
+        // Severity indicators
+        const severity = value > 200 ? "🔴" : value > 150 ? "🟠" : value > 100 ? "🟡" : "🟢";
+        const label = key.toUpperCase();
+        console.log(`  ${severity} ${label}: ${value.toFixed(2)}ms`);
+      });
+
+      console.log("");
+      console.log("💡 Tip: Use percentiles for RUM reporting instead of sending all frames");
+      console.groupEnd();
+
+      return result;
+    },
+
+    /**
      * Get raw captured data
      * @returns {Array} Array of captured frame objects
      */
@@ -386,6 +431,11 @@ loafHelpers.exportJSON();
         "Find frames by script URL",
         'loafHelpers.findByURL("analytics")',
       );
+      logCommand(
+        "percentiles(pcts)",
+        "Calculate percentiles for RUM reporting (default: [50, 75, 95, 99])",
+        "loafHelpers.percentiles()",
+      );
       logCommand("exportJSON()", "Download captured data as JSON", "loafHelpers.exportJSON()");
       logCommand("exportCSV()", "Download captured data as CSV", "loafHelpers.exportCSV()");
       logCommand("getRawData()", "Get raw captured data array", "loafHelpers.getRawData()");
@@ -394,6 +444,314 @@ loafHelpers.exportJSON();
   };
 
   // Initial message
+  console.log(
+    "%c✅ LoAF Helpers Loaded ",
+    "background: #CACACA; color: #242424; padding: 2px 4px; border-radius: 4px;",
+  );
+  console.log("");
+  console.log(
+    "📚 Type %cloafHelpers.help()%c for available commands",
+    "font-weight: bold; color: #1a73e8",
+    "",
+  );
+  console.log("🚀 Quick start: %cloafHelpers.summary()%c", "font-weight: bold; color: #1a73e8", "");
+  console.log("");
+  console.log("Observing long animation frames (>50ms)...");
+  console.log("");
+  console.log(
+    "%cLoAF WebPerf Snippet",
+    "background: #4caf50; color: white; padding: 2px 4px; border-radius: 4px; font-weight: bold;",
+    "| https://webperf-snippets.nucliweb.net",
+  );
+})();
+```
+
+#### Snippet (minified version)
+
+```js copy
+/**
+ * LoAF Helpers - WebPerf Snippet
+ *
+ * Long Animation Frames API debugging helpers for Chrome DevTools
+ *
+ * Usage:
+ *   1. Copy this entire code
+ *   2. Paste in Chrome DevTools Console (or save as Snippet in Sources panel)
+ *   3. Use window.loafHelpers.* functions
+ *
+ * Available functions:
+ *   - loafHelpers.summary()           Show overview of captured frames
+ *   - loafHelpers.topScripts(n)       Show top N slowest scripts
+ *   - loafHelpers.filter(options)     Filter frames by duration
+ *   - loafHelpers.findByURL(search)   Find frames by script URL
+ *   - loafHelpers.percentiles(pcts)   Calculate percentiles for RUM reporting
+ *   - loafHelpers.exportJSON()        Download data as JSON
+ *   - loafHelpers.exportCSV()         Download data as CSV
+ *   - loafHelpers.getRawData()        Get raw captured data
+ *   - loafHelpers.clear()             Clear captured data
+ *
+ * Examples:
+ *   loafHelpers.summary()
+ *   loafHelpers.topScripts(5)
+ *   loafHelpers.filter({ minDuration: 200 })
+ *   loafHelpers.findByURL('analytics')
+ *   loafHelpers.percentiles()
+ *   loafHelpers.exportJSON()
+ *
+ * @author Joan León
+ * @url https://webperf-snippets.nucliweb.net
+ */
+
+(function () {
+  "use strict";
+  if (
+    !("PerformanceObserver" in window) ||
+    !PerformanceObserver.supportedEntryTypes.includes("long-animation-frame")
+  ) {
+    console.warn("⚠️ Long Animation Frames API not supported in this browser");
+    console.warn("   Chrome 116+ required");
+    return;
+  }
+  const e = [];
+  const t = new PerformanceObserver((n) => {
+    for (const r of n.getEntries()) {
+      const o = {
+        startTime: r.startTime,
+        duration: r.duration,
+        renderStart: r.renderStart,
+        styleAndLayoutStart: r.styleAndLayoutStart,
+        firstUIEventTimestamp: r.firstUIEventTimestamp,
+        blockingDuration: r.blockingDuration,
+        scripts: r.scripts.map((s) => ({
+          sourceURL: s.sourceURL || "",
+          sourceFunctionName: s.sourceFunctionName || "(anonymous)",
+          duration: s.duration,
+          forcedStyleAndLayoutDuration: s.forcedStyleAndLayoutDuration,
+          invoker: s.invoker || "",
+        })),
+      };
+      e.push(o);
+    }
+  });
+  try {
+    t.observe({ type: "long-animation-frame", buffered: !0 });
+  } catch (n) {
+    console.error("Failed to start LoAF observer:", n);
+    return;
+  }
+  window.loafHelpers = {
+    summary() {
+      if (e.length === 0) {
+        console.log("ℹ️ No frames captured yet. Interact with the page to generate long frames.");
+        return;
+      }
+      const n = e.reduce((r, o) => r + o.duration, 0);
+      const r = n / e.length;
+      const o = Math.max(...e.map((s) => s.duration));
+      const s = {
+        critical: e.filter((a) => a.duration > 200).length,
+        high: e.filter((a) => a.duration > 150 && a.duration <= 200).length,
+        medium: e.filter((a) => a.duration > 100 && a.duration <= 150).length,
+        low: e.filter((a) => a.duration <= 100).length,
+      };
+      console.group("📊 LOAF SUMMARY");
+      console.log("Total frames:", e.length);
+      console.log("Total blocking time:", n.toFixed(2) + "ms");
+      console.log("Average duration:", r.toFixed(2) + "ms");
+      console.log("Max duration:", o.toFixed(2) + "ms");
+      console.log("");
+      console.log("By severity:");
+      console.log("  🔴 Critical (>200ms):", s.critical);
+      console.log("  🟠 High (150-200ms):", s.high);
+      console.log("  🟡 Medium (100-150ms):", s.medium);
+      console.log("  🟢 Low (<100ms):", s.low);
+      console.groupEnd();
+    },
+    topScripts(n = 10) {
+      if (e.length === 0) {
+        console.log("ℹ️ No frames captured yet.");
+        return;
+      }
+      const r = e.flatMap((o) => o.scripts);
+      if (r.length === 0) {
+        console.log("ℹ️ No scripts found in captured frames.");
+        return;
+      }
+      const o = r.sort((s, a) => a.duration - s.duration).slice(0, n);
+      console.log(`📋 Top ${Math.min(n, o.length)} slowest scripts:`);
+      console.table(
+        o.map((s) => {
+          let a = s.sourceURL;
+          try {
+            a = new URL(s.sourceURL || location.href).pathname;
+          } catch {}
+          return {
+            URL: a,
+            Function: s.sourceFunctionName,
+            Duration: s.duration.toFixed(2) + "ms",
+            "Forced Layout": s.forcedStyleAndLayoutDuration.toFixed(2) + "ms",
+          };
+        }),
+      );
+    },
+    filter(n = {}) {
+      if (e.length === 0) {
+        console.log("ℹ️ No frames captured yet.");
+        return [];
+      }
+      let r = e;
+      if (n.minDuration) r = r.filter((o) => o.duration >= n.minDuration);
+      if (n.maxDuration) r = r.filter((o) => o.duration <= n.maxDuration);
+      console.log(`🔍 Filtered: ${r.length} of ${e.length} frames`);
+      if (r.length > 0)
+        console.table(
+          r.map((o) => ({
+            Start: o.startTime.toFixed(2) + "ms",
+            Duration: o.duration.toFixed(2) + "ms",
+            Scripts: o.scripts.length,
+            Blocking: o.blockingDuration.toFixed(2) + "ms",
+          })),
+        );
+      return r;
+    },
+    findByURL(n) {
+      if (e.length === 0) {
+        console.log("ℹ️ No frames captured yet.");
+        return [];
+      }
+      const r = e.filter((o) => o.scripts.some((s) => s.sourceURL.includes(n)));
+      console.log(`🔎 Found ${r.length} frames with scripts matching "${n}"`);
+      if (r.length > 0)
+        console.table(
+          r.map((o) => {
+            const s = o.scripts.find((a) => a.sourceURL.includes(n));
+            return {
+              "Frame Start": o.startTime.toFixed(2) + "ms",
+              "Frame Duration": o.duration.toFixed(2) + "ms",
+              "Script URL": s.sourceURL,
+              "Script Duration": s.duration.toFixed(2) + "ms",
+            };
+          }),
+        );
+      return r;
+    },
+    exportJSON() {
+      if (e.length === 0) {
+        console.log("ℹ️ No frames to export.");
+        return;
+      }
+      const n = JSON.stringify(e, null, 2),
+        r = new Blob([n], { type: "application/json" }),
+        o = URL.createObjectURL(r),
+        s = document.createElement("a");
+      s.href = o;
+      s.download = `loaf-data-${Date.now()}.json`;
+      s.click();
+      URL.revokeObjectURL(o);
+      console.log("✅ JSON exported:", e.length, "frames");
+    },
+    exportCSV() {
+      if (e.length === 0) {
+        console.log("ℹ️ No frames to export.");
+        return;
+      }
+      const n = [
+        [
+          "Frame Start",
+          "Duration",
+          "Blocking",
+          "Scripts",
+          "Script URL",
+          "Function",
+          "Script Duration",
+          "Forced Layout",
+        ],
+      ];
+      e.forEach((r) => {
+        r.scripts.forEach((o) => {
+          n.push([
+            r.startTime.toFixed(2),
+            r.duration.toFixed(2),
+            r.blockingDuration.toFixed(2),
+            r.scripts.length,
+            o.sourceURL,
+            o.sourceFunctionName,
+            o.duration.toFixed(2),
+            o.forcedStyleAndLayoutDuration.toFixed(2),
+          ]);
+        });
+      });
+      const r = n.map((o) => o.map((s) => `"${s}"`).join(",")).join("\n"),
+        o = new Blob([r], { type: "text/csv" }),
+        s = URL.createObjectURL(o),
+        a = document.createElement("a");
+      a.href = s;
+      a.download = `loaf-data-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(s);
+      console.log("✅ CSV exported:", e.length, "frames");
+    },
+    percentiles(n = [50, 75, 95, 99]) {
+      if (e.length === 0) {
+        console.log("ℹ️ No frames captured yet.");
+        return {};
+      }
+      const r = e.map((o) => o.duration).sort((o, s) => o - s),
+        o = {};
+      n.forEach((s) => {
+        const a = Math.ceil((s / 100) * r.length) - 1,
+          c = Math.max(0, Math.min(a, r.length - 1));
+        o[`p${s}`] = r[c];
+      });
+      console.group("📊 FRAME DURATION PERCENTILES");
+      console.log("Total frames analyzed:", e.length);
+      console.log("");
+      Object.entries(o).forEach(([s, a]) => {
+        const c = a > 200 ? "🔴" : a > 150 ? "🟠" : a > 100 ? "🟡" : "🟢",
+          i = s.toUpperCase();
+        console.log(`  ${c} ${i}: ${a.toFixed(2)}ms`);
+      });
+      console.log("");
+      console.log("💡 Tip: Use percentiles for RUM reporting instead of sending all frames");
+      console.groupEnd();
+      return o;
+    },
+    getRawData() {
+      return e;
+    },
+    clear() {
+      e.length = 0;
+      console.log("✅ Captured data cleared");
+    },
+    help() {
+      console.log(
+        "%c LoAF Helpers - Available Commands ",
+        "background: #1a73e8; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;",
+      );
+      console.log("");
+      const n = "font-weight: bold; color: #1a73e8;",
+        r = "color: #888888; font-family: monospace;",
+        o = (s, a, c) => {
+          console.log(`%c${s}`, n);
+          console.log(`  ${a}`);
+          console.log(`  %cExample: ${c}`, r);
+          console.log("");
+        };
+      o("summary()", "Show overview of all captured frames", "loafHelpers.summary()");
+      o("topScripts(n)", "Show top N slowest scripts (default: 10)", "loafHelpers.topScripts(5)");
+      o("filter(options)", "Filter frames by duration", "loafHelpers.filter({ minDuration: 200 })");
+      o("findByURL(search)", "Find frames by script URL", 'loafHelpers.findByURL("analytics")');
+      o(
+        "percentiles(pcts)",
+        "Calculate percentiles for RUM reporting (default: [50, 75, 95, 99])",
+        "loafHelpers.percentiles()",
+      );
+      o("exportJSON()", "Download captured data as JSON", "loafHelpers.exportJSON()");
+      o("exportCSV()", "Download captured data as CSV", "loafHelpers.exportCSV()");
+      o("getRawData()", "Get raw captured data array", "loafHelpers.getRawData()");
+      o("clear()", "Clear all captured data", "loafHelpers.clear()");
+    },
+  };
   console.log(
     "%c✅ LoAF Helpers Loaded ",
     "background: #CACACA; color: #242424; padding: 2px 4px; border-radius: 4px;",
