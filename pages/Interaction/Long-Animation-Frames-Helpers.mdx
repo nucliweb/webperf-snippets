@@ -9,6 +9,7 @@ This snippet installs a loafHelpers object on window, providing a suite of utili
 - Instant Summaries: Get an overview of the number of long frames, their durations, and severity.
 - Culprit Identification: Quickly find the slowest scripts and those that are most significantly blocking rendering.
 - Dynamic Filtering: Filter captured frames by minimum or maximum duration.
+- Percentile Analysis: Calculate percentiles (P50, P75, P95, P99) for RUM reporting and performance monitoring.
 - Data Export: Download the data in JSON or CSV format for later analysis or sharing.
 
 #### How to Use
@@ -31,6 +32,9 @@ loafHelpers.filter({ minDuration: 150 });
 
 // Find frames in which a script containing "analytics" has participated
 loafHelpers.findByURL('analytics');
+
+// Calculate percentiles for RUM reporting (default: P50, P75, P95, P99)
+loafHelpers.percentiles();
 
 // Export all captured data to a JSON file
 loafHelpers.exportJSON();
@@ -773,3 +777,61 @@ loafHelpers.exportJSON();
   );
 })();
 ```
+
+## Percentiles Analysis
+
+The `percentiles()` function is particularly valuable for Real User Monitoring (RUM) and performance analysis, as it provides statistical insights into your Long Animation Frame performance without requiring you to send all frame data.
+
+### Why Use Percentiles?
+
+Instead of looking at individual frame durations, percentiles give you a statistical overview:
+
+- **P50 (Median)**: Half of your frames are faster than this value
+- **P75**: 75% of frames are faster than this value
+- **P95**: 95% of frames are faster than this value
+- **P99**: 99% of frames are faster than this value
+
+Higher percentiles (P95, P99) help identify performance outliers that affect user experience.
+
+### Usage Examples
+
+```js copy
+// Calculate default percentiles (P50, P75, P95, P99)
+loafHelpers.percentiles();
+
+// Calculate custom percentiles
+loafHelpers.percentiles([50, 90, 95, 99]);
+
+// Calculate specific percentiles for reporting
+const metrics = loafHelpers.percentiles([75, 95]);
+// Returns: { p75: 120.5, p95: 245.8 }
+```
+
+### Understanding the Output
+
+The function displays color-coded results in the console:
+
+- 🟢 **Green**: ≤100ms (Good performance)
+- 🟡 **Yellow**: 101-150ms (Needs improvement)
+- 🟠 **Orange**: 151-200ms (Poor performance)
+- 🔴 **Red**: >200ms (Critical performance issues)
+
+### Integration with RUM
+
+For production monitoring, use percentiles instead of sending all frame data:
+
+```js copy
+// Collect percentiles for your analytics
+const performanceMetrics = loafHelpers.percentiles([50, 75, 95, 99]);
+
+// Send to your analytics service
+analytics.track("loaf_performance", {
+  frames_analyzed: loafHelpers.getRawData().length,
+  p50_duration: performanceMetrics.p50,
+  p75_duration: performanceMetrics.p75,
+  p95_duration: performanceMetrics.p95,
+  p99_duration: performanceMetrics.p99,
+});
+```
+
+This approach significantly reduces data transmission while maintaining valuable performance insights.

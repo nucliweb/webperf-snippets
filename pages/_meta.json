@@ -5,5 +5,11 @@
   },
   "CoreWebVitals": {
     "title": "Core Web Vitals"
+  },
+  "Loading": {
+    "title": "Loading"
+  },
+  "Interaction": {
+    "title": "Interaction"
   }
 }
