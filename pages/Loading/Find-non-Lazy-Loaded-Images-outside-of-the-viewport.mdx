@@ -45,7 +45,7 @@ function formatBytes(bytes) {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
-async function findImgCanidatesForLazyLoading() {
+async function findImgCandidatesForLazyLoading() {
   let notLazyImages = document.querySelectorAll('img:not([data-src]):not([loading="lazy"])');
   const notLazyImagesOutOfViewport = Array.from(notLazyImages).filter((tag) => !isInViewport(tag));
 
@@ -102,5 +102,5 @@ async function findImgCanidatesForLazyLoading() {
   notLazyImagesOutOfViewport.forEach((img) => console.log(img));
 }
 
-findImgCanidatesForLazyLoading();
+findImgCandidatesForLazyLoading();
 ```
