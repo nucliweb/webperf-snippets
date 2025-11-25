@@ -1,24 +1,87 @@
 # Resource hints
 
-Check if the page has resource hints
+Audits resource hints on the page: detects preload, prefetch, preconnect, dns-prefetch, prerender, and modulepreload. Reports their attributes and flags malformed or invalid rel values.
 
 #### Snippet
 
 ```js copy
-const rels = [
+const resourceHints = [
   "preload",
   "prefetch",
   "preconnect",
   "dns-prefetch",
-  "preconnect dns-prefetch",
   "prerender",
   "modulepreload",
 ];
 
-rels.forEach((element) => {
-  const linkElements = document.querySelectorAll(`link[rel="${element}"]`);
-  const dot = linkElements.length > 0 ? "🟩" : "🟥";
-  console.log(`${dot} ${element}`);
-  linkElements.forEach((el) => console.log(el));
+console.group("🔍 Resource Hints Analysis");
+
+// Check valid resource hints
+resourceHints.forEach((rel) => {
+  const links = document.querySelectorAll(`link[rel="${rel}"]`);
+  const status = links.length > 0 ? "🟩" : "🟥";
+
+  console.log(`${status} ${rel} (${links.length})`);
+
+  if (links.length > 0) {
+    links.forEach((link) => {
+      const info = {
+        href: link.href,
+        ...(link.as && { as: link.as }),
+        ...(link.crossOrigin && { crossorigin: link.crossOrigin }),
+        ...(link.fetchPriority && { fetchpriority: link.fetchPriority }),
+      };
+
+      console.log("  ", info);
+    });
+  }
 });
+
+// Detect invalid or malformed resource hints
+console.groupCollapsed("⚠️ Invalid or Malformed Resource Hints");
+
+const allLinks = document.querySelectorAll("link[rel]");
+const invalidHints = [];
+
+allLinks.forEach((link) => {
+  const rel = link.getAttribute("rel");
+
+  // Detect multiple values in rel attribute (common mistake)
+  if (rel.includes(" ")) {
+    invalidHints.push({
+      element: link,
+      rel: rel,
+      issue: "Multiple values in rel attribute (should be separate <link> elements)",
+      href: link.href,
+    });
+  }
+  // Detect non-standard values
+  else if (
+    !resourceHints.includes(rel) &&
+    !["stylesheet", "icon", "manifest", "canonical", "alternate"].includes(rel)
+  ) {
+    const couldBe = resourceHints.find((valid) => rel.includes(valid));
+    invalidHints.push({
+      element: link,
+      rel: rel,
+      issue: couldBe ? `Unknown rel value (did you mean "${couldBe}"?)` : "Unknown rel value",
+      href: link.href,
+    });
+  }
+});
+
+if (invalidHints.length > 0) {
+  console.warn(`Found ${invalidHints.length} problematic resource hint(s):`);
+  invalidHints.forEach((item) => {
+    console.warn(`❌ rel="${item.rel}"`);
+    console.warn(`   Issue: ${item.issue}`);
+    console.warn(`   href: ${item.href}`);
+    console.log("   Element:", item.element);
+  });
+} else {
+  console.log("✅ No invalid resource hints detected");
+}
+
+console.groupEnd(); // Close Invalid or Malformed Resource Hints
+console.groupEnd(); // Close Resource Hints Analysis
 ```
