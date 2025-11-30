@@ -2,7 +2,7 @@
 
 Analyze all `@media` rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files, with byte size estimates for potential mobile savings.
 
-#### Snippet
+### Snippet
 
 ```js copy
 // Analyze CSS @media rules for viewports bigger than a specified breakpoint
@@ -214,7 +214,7 @@ analyzeCSSMediaQueries();
 // analyzeCSSMediaQueries(480);   // for small tablets
 ```
 
-#### Understanding the Results
+### Understanding the Results
 
 The snippet analyzes and groups results by:
 
@@ -246,7 +246,7 @@ The snippet analyzes and groups results by:
 - **properties**: Number of CSS properties
 - **bytesFormatted**: Size of the CSS in bytes (KB/MB)
 
-#### Customizing the Breakpoint
+### Customizing the Breakpoint
 
 By default, the snippet uses **768px** as the mobile breakpoint, but you can customize it:
 
@@ -261,7 +261,7 @@ analyzeCSSMediaQueries(480);
 analyzeCSSMediaQueries(1440);
 ```
 
-#### Breakpoint Detection
+### Breakpoint Detection
 
 The snippet considers a media query "bigger than the breakpoint" when:
 
@@ -269,7 +269,7 @@ The snippet considers a media query "bigger than the breakpoint" when:
 - Excludes `max-width` only queries (typically for smaller viewports)
 - Automatically converts em/rem units (assuming 16px base font size)
 
-#### Solutions & Optimization Strategies
+### Solutions & Optimization Strategies
 
 Understanding how much CSS is dedicated to larger viewports helps identify optimization opportunities:
 
@@ -310,7 +310,7 @@ Understanding how much CSS is dedicated to larger viewports helps identify optim
 - Compare this against your total CSS size to understand the optimization opportunity
 - Even 20-50 KB savings can improve mobile performance significantly
 
-#### Further Reading
+### Further Reading
 
 For an in-depth understanding of CSS and network performance optimization strategies, check out this excellent article:
 
@@ -323,6 +323,6 @@ This article covers:
 - Using media queries to conditionally load CSS
 - Measuring and improving CSS performance
 
-#### Note
+### Note
 
-Cross-origin stylesheets cannot be accessed due to CORS restrictions. The snippet will warn about these and skip them.
+_Cross-origin stylesheets cannot be accessed due to CORS restrictions. The snippet will warn about these and skip them._
