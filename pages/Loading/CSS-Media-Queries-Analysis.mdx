@@ -1,6 +1,6 @@
 ### CSS Media Queries Analysis
 
-Analyze all `@media` rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files.
+Analyze all `@media` rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files, with byte size estimates for potential mobile savings.
 
 #### Snippet
 
@@ -16,6 +16,8 @@ function analyzeCSSMediaQueries(minWidth = 768) {
   let inlineTotalProperties = 0;
   let filesTotalClasses = 0;
   let filesTotalProperties = 0;
+  let inlineTotalBytes = 0;
+  let filesTotalBytes = 0;
 
   // Helper to check if media query targets bigger than specified breakpoint
   function isBiggerThanBreakpoint(mediaText) {
@@ -41,7 +43,7 @@ function analyzeCSSMediaQueries(minWidth = 768) {
     return false;
   }
 
-  // Helper to count classes in CSS text
+  // Helper to count classes and properties in CSS text
   function countClassesAndProperties(cssText) {
     const classMatches = cssText.match(/\.[a-zA-Z0-9_-]+/g) || [];
     const propertyMatches = cssText.match(/[a-z-]+\s*:/g) || [];
@@ -50,6 +52,20 @@ function analyzeCSSMediaQueries(minWidth = 768) {
       classes: classMatches.length,
       properties: propertyMatches.length,
     };
+  }
+
+  // Helper to calculate byte size
+  function getByteSize(text) {
+    return new Blob([text]).size;
+  }
+
+  // Helper to format bytes
+  function formatBytes(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
   // Iterate through all stylesheets
@@ -69,23 +85,27 @@ function analyzeCSSMediaQueries(minWidth = 768) {
           if (isBiggerThanBreakpoint(mediaText)) {
             const cssText = rule.cssText;
             const counts = countClassesAndProperties(cssText);
+            const byteSize = getByteSize(cssText);
 
             const mediaQueryData = {
               source: source,
               mediaQuery: mediaText,
               classes: counts.classes,
               properties: counts.properties,
-              cssTextLength: cssText.length,
+              bytes: byteSize,
+              bytesFormatted: formatBytes(byteSize),
             };
 
             if (isInline) {
               inlineMediaQueries.push(mediaQueryData);
               inlineTotalClasses += counts.classes;
               inlineTotalProperties += counts.properties;
+              inlineTotalBytes += byteSize;
             } else {
               fileMediaQueries.push(mediaQueryData);
               filesTotalClasses += counts.classes;
               filesTotalProperties += counts.properties;
+              filesTotalBytes += byteSize;
             }
           }
         }
@@ -95,6 +115,8 @@ function analyzeCSSMediaQueries(minWidth = 768) {
     }
   });
 
+  const totalBytes = inlineTotalBytes + filesTotalBytes;
+
   // Display results
   console.group(`📊 CSS Media Queries Analysis (min-width > ${minWidth}px)`);
   console.log(`Total @media rules found: ${inlineMediaQueries.length + fileMediaQueries.length}`);
@@ -102,18 +124,32 @@ function analyzeCSSMediaQueries(minWidth = 768) {
   console.log(`Total properties: ${inlineTotalProperties + filesTotalProperties}`);
   console.groupEnd();
 
+  // Mobile Savings Estimate
+  console.group("💾 POTENTIAL MOBILE SAVINGS");
+  console.log(
+    `%cEstimated CSS bytes that mobile doesn't need: ${formatBytes(totalBytes)}`,
+    "font-weight: bold; color: #22c55e; font-size: 14px;",
+  );
+  console.log(`  └─ From inline CSS: ${formatBytes(inlineTotalBytes)}`);
+  console.log(`  └─ From external files: ${formatBytes(filesTotalBytes)}`);
+  console.log("");
+  console.log("💡 By splitting these styles into separate files with media queries,");
+  console.log("   mobile users won't need to download, parse, or process this CSS.");
+  console.groupEnd();
+
   // Inline CSS Results
   console.group("🔷 INLINE CSS (<style> tags)");
   console.log(`Media queries: ${inlineMediaQueries.length}`);
   console.log(`Classes: ${inlineTotalClasses}`);
   console.log(`Properties: ${inlineTotalProperties}`);
+  console.log(`Total size: ${formatBytes(inlineTotalBytes)}`);
   if (inlineMediaQueries.length > 0) {
     // console.table(inlineMediaQueries, [
     //   "source",
     //   "mediaQuery",
     //   "classes",
     //   "properties",
-    //   "cssTextLength",
+    //   "bytesFormatted",
     // ]);
   } else {
     console.log(`No inline media queries found for viewports > ${minWidth}px.`);
@@ -125,13 +161,14 @@ function analyzeCSSMediaQueries(minWidth = 768) {
   console.log(`Media queries: ${fileMediaQueries.length}`);
   console.log(`Classes: ${filesTotalClasses}`);
   console.log(`Properties: ${filesTotalProperties}`);
+  console.log(`Total size: ${formatBytes(filesTotalBytes)}`);
   if (fileMediaQueries.length > 0) {
     // console.table(fileMediaQueries, [
     //   "source",
     //   "mediaQuery",
     //   "classes",
     //   "properties",
-    //   "cssTextLength",
+    //   "bytesFormatted",
     // ]);
   } else {
     console.log(`No external file media queries found for viewports > ${minWidth}px.`);
@@ -144,16 +181,22 @@ function analyzeCSSMediaQueries(minWidth = 768) {
         mediaQueries: inlineMediaQueries.length + fileMediaQueries.length,
         classes: inlineTotalClasses + filesTotalClasses,
         properties: inlineTotalProperties + filesTotalProperties,
+        bytes: totalBytes,
+        bytesFormatted: formatBytes(totalBytes),
       },
       inline: {
         mediaQueries: inlineMediaQueries.length,
         classes: inlineTotalClasses,
         properties: inlineTotalProperties,
+        bytes: inlineTotalBytes,
+        bytesFormatted: formatBytes(inlineTotalBytes),
       },
       files: {
         mediaQueries: fileMediaQueries.length,
         classes: filesTotalClasses,
         properties: filesTotalProperties,
+        bytes: filesTotalBytes,
+        bytesFormatted: formatBytes(filesTotalBytes),
       },
     },
     details: {
@@ -175,17 +218,25 @@ analyzeCSSMediaQueries();
 
 The snippet analyzes and groups results by:
 
+**Potential Mobile Savings:**
+
+- **Estimated bytes** that mobile devices don't need to download/process
+- Breakdown by inline CSS vs external files
+- This represents CSS that could be eliminated from mobile experience by splitting files
+
 **Inline CSS (`<style>` tags):**
 
 - Number of @media rules targeting viewports larger than the specified breakpoint
 - Total CSS class selectors in inline media queries
 - Total CSS properties in inline media queries
+- Total byte size of inline media queries
 
 **External Files (`.css` files):**
 
 - Number of @media rules targeting viewports larger than the specified breakpoint
 - Total CSS class selectors in external file media queries
 - Total CSS properties in external file media queries
+- Total byte size of external file media queries
 
 **Each media query includes:**
 
@@ -193,7 +244,7 @@ The snippet analyzes and groups results by:
 - **mediaQuery**: The media query condition (e.g., `min-width: 1024px`)
 - **classes**: Number of CSS class selectors
 - **properties**: Number of CSS properties
-- **cssTextLength**: Size of the CSS text in characters
+- **bytesFormatted**: Size of the CSS in bytes (KB/MB)
 
 #### Customizing the Breakpoint
 
@@ -252,6 +303,12 @@ Understanding how much CSS is dedicated to larger viewports helps identify optim
 - If desktop media queries contain excessive classes/properties
 - Use tools like PurgeCSS or UnCSS to remove unused selectors
 - Reduces overall CSS bundle size
+
+**6. Measure the Impact**
+
+- The "Potential Mobile Savings" metric shows exactly how many bytes mobile users could save
+- Compare this against your total CSS size to understand the optimization opportunity
+- Even 20-50 KB savings can improve mobile performance significantly
 
 #### Further Reading
 
