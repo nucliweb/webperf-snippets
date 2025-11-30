@@ -1,0 +1,271 @@
+### CSS Media Queries Analysis
+
+Analyze all `@media` rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files.
+
+#### Snippet
+
+```js copy
+// Analyze CSS @media rules for viewports bigger than a specified breakpoint
+// Default minWidth = 768 (px), but you can customize it
+
+function analyzeCSSMediaQueries(minWidth = 768) {
+  const stylesheets = [...document.styleSheets];
+  const inlineMediaQueries = [];
+  const fileMediaQueries = [];
+  let inlineTotalClasses = 0;
+  let inlineTotalProperties = 0;
+  let filesTotalClasses = 0;
+  let filesTotalProperties = 0;
+
+  // Helper to check if media query targets bigger than specified breakpoint
+  function isBiggerThanBreakpoint(mediaText) {
+    if (!mediaText) return false;
+
+    // Check for min-width greater than specified breakpoint
+    const minWidthMatch = mediaText.match(/min-width:\s*(\d+)(px|em|rem)/i);
+    if (minWidthMatch) {
+      const value = parseInt(minWidthMatch[1]);
+      const unit = minWidthMatch[2].toLowerCase();
+
+      if (unit === "px" && value > minWidth) return true;
+      if (unit === "em" && value > minWidth / 16) return true; // Convert to em
+      if (unit === "rem" && value > minWidth / 16) return true; // Convert to rem
+    }
+
+    // Check for max-width to exclude (mobile-only queries)
+    const maxWidthMatch = mediaText.match(/max-width:\s*(\d+)(px|em|rem)/i);
+    if (maxWidthMatch && !minWidthMatch) {
+      return false; // max-width only queries are for smaller viewports
+    }
+
+    return false;
+  }
+
+  // Helper to count classes in CSS text
+  function countClassesAndProperties(cssText) {
+    const classMatches = cssText.match(/\.[a-zA-Z0-9_-]+/g) || [];
+    const propertyMatches = cssText.match(/[a-z-]+\s*:/g) || [];
+
+    return {
+      classes: classMatches.length,
+      properties: propertyMatches.length,
+    };
+  }
+
+  // Iterate through all stylesheets
+  stylesheets.forEach((sheet, sheetIndex) => {
+    try {
+      const rules = sheet.cssRules || sheet.rules;
+      if (!rules) return;
+
+      const isInline = !sheet.href;
+      const source = sheet.href || `<style> tag #${sheetIndex}`;
+
+      [...rules].forEach((rule) => {
+        // Check if it's a media rule
+        if (rule.type === CSSRule.MEDIA_RULE) {
+          const mediaText = rule.media.mediaText;
+
+          if (isBiggerThanBreakpoint(mediaText)) {
+            const cssText = rule.cssText;
+            const counts = countClassesAndProperties(cssText);
+
+            const mediaQueryData = {
+              source: source,
+              mediaQuery: mediaText,
+              classes: counts.classes,
+              properties: counts.properties,
+              cssTextLength: cssText.length,
+            };
+
+            if (isInline) {
+              inlineMediaQueries.push(mediaQueryData);
+              inlineTotalClasses += counts.classes;
+              inlineTotalProperties += counts.properties;
+            } else {
+              fileMediaQueries.push(mediaQueryData);
+              filesTotalClasses += counts.classes;
+              filesTotalProperties += counts.properties;
+            }
+          }
+        }
+      });
+    } catch (e) {
+      console.warn(`Cannot access stylesheet ${sheetIndex}:`, e.message);
+    }
+  });
+
+  // Display results
+  console.group(`📊 CSS Media Queries Analysis (min-width > ${minWidth}px)`);
+  console.log(`Total @media rules found: ${inlineMediaQueries.length + fileMediaQueries.length}`);
+  console.log(`Total classes: ${inlineTotalClasses + filesTotalClasses}`);
+  console.log(`Total properties: ${inlineTotalProperties + filesTotalProperties}`);
+  console.groupEnd();
+
+  // Inline CSS Results
+  console.group("🔷 INLINE CSS (<style> tags)");
+  console.log(`Media queries: ${inlineMediaQueries.length}`);
+  console.log(`Classes: ${inlineTotalClasses}`);
+  console.log(`Properties: ${inlineTotalProperties}`);
+  if (inlineMediaQueries.length > 0) {
+    console.table(inlineMediaQueries, [
+      "source",
+      "mediaQuery",
+      "classes",
+      "properties",
+      "cssTextLength",
+    ]);
+  } else {
+    console.log(`No inline media queries found for viewports > ${minWidth}px.`);
+  }
+  console.groupEnd();
+
+  // External Files Results
+  console.group("📁 EXTERNAL FILES (.css files)");
+  console.log(`Media queries: ${fileMediaQueries.length}`);
+  console.log(`Classes: ${filesTotalClasses}`);
+  console.log(`Properties: ${filesTotalProperties}`);
+  if (fileMediaQueries.length > 0) {
+    console.table(fileMediaQueries, [
+      "source",
+      "mediaQuery",
+      "classes",
+      "properties",
+      "cssTextLength",
+    ]);
+  } else {
+    console.log(`No external file media queries found for viewports > ${minWidth}px.`);
+  }
+  console.groupEnd();
+
+  return {
+    summary: {
+      total: {
+        mediaQueries: inlineMediaQueries.length + fileMediaQueries.length,
+        classes: inlineTotalClasses + filesTotalClasses,
+        properties: inlineTotalProperties + filesTotalProperties,
+      },
+      inline: {
+        mediaQueries: inlineMediaQueries.length,
+        classes: inlineTotalClasses,
+        properties: inlineTotalProperties,
+      },
+      files: {
+        mediaQueries: fileMediaQueries.length,
+        classes: filesTotalClasses,
+        properties: filesTotalProperties,
+      },
+    },
+    details: {
+      inline: inlineMediaQueries,
+      files: fileMediaQueries,
+    },
+  };
+}
+
+// Run with default breakpoint (768px)
+analyzeCSSMediaQueries();
+
+// Or customize the breakpoint:
+// analyzeCSSMediaQueries(1024);  // for desktop
+// analyzeCSSMediaQueries(480);   // for small tablets
+```
+
+#### Understanding the Results
+
+The snippet analyzes and groups results by:
+
+**Inline CSS (`<style>` tags):**
+
+- Number of @media rules targeting viewports larger than the specified breakpoint
+- Total CSS class selectors in inline media queries
+- Total CSS properties in inline media queries
+
+**External Files (`.css` files):**
+
+- Number of @media rules targeting viewports larger than the specified breakpoint
+- Total CSS class selectors in external file media queries
+- Total CSS properties in external file media queries
+
+**Each media query includes:**
+
+- **source**: Stylesheet URL or inline style tag identifier
+- **mediaQuery**: The media query condition (e.g., `min-width: 1024px`)
+- **classes**: Number of CSS class selectors
+- **properties**: Number of CSS properties
+- **cssTextLength**: Size of the CSS text in characters
+
+#### Customizing the Breakpoint
+
+By default, the snippet uses **768px** as the mobile breakpoint, but you can customize it:
+
+```js copy
+// Analyze media queries bigger than 1024px (desktop)
+analyzeCSSMediaQueries(1024);
+
+// Analyze media queries bigger than 480px (small tablets)
+analyzeCSSMediaQueries(480);
+
+// Analyze media queries bigger than 1440px (large desktop)
+analyzeCSSMediaQueries(1440);
+```
+
+#### Breakpoint Detection
+
+The snippet considers a media query "bigger than the breakpoint" when:
+
+- `min-width` is greater than the specified value (in px, em, or rem)
+- Excludes `max-width` only queries (typically for smaller viewports)
+- Automatically converts em/rem units (assuming 16px base font size)
+
+#### Solutions & Optimization Strategies
+
+Understanding how much CSS is dedicated to larger viewports helps identify optimization opportunities:
+
+**1. Split CSS by Media Query**
+
+- Separate mobile and desktop CSS into different files
+- Load desktop CSS with a media query: `<link media="(min-width: 768px)" href="desktop.css">`
+- Reduces initial CSS parse time on mobile devices
+- Reduces style recalculation work (browser doesn't need to process desktop styles)
+
+**2. Inline Critical Above-the-Fold CSS**
+
+- Move critical mobile CSS inline in `<style>` tags
+- Defer non-critical and desktop CSS loading
+- Improves First Contentful Paint (FCP) and Largest Contentful Paint (LCP) on mobile
+
+**3. Use CSS-in-JS or CSS Modules**
+
+- Modern bundlers can split CSS by route/component
+- Only load CSS when needed (code splitting)
+- Reduces unused CSS on initial load
+
+**4. Consider Mobile-First Approach**
+
+- Write base styles for mobile without media queries
+- Use `min-width` media queries for progressive enhancement
+- Reduces CSS overhead on mobile devices
+
+**5. Audit and Remove Unused Desktop CSS**
+
+- If desktop media queries contain excessive classes/properties
+- Use tools like PurgeCSS or UnCSS to remove unused selectors
+- Reduces overall CSS bundle size
+
+#### Further Reading
+
+For an in-depth understanding of CSS and network performance optimization strategies, check out this excellent article:
+
+📖 [CSS and Network Performance](https://csswizardry.com/2018/11/css-and-network-performance/) by [Harry Roberts](https://bsky.app/profile/csswizardry.com) (CSS Wizardry)
+
+This article covers:
+
+- How CSS blocks rendering and impacts performance
+- Strategies for optimizing CSS delivery
+- Using media queries to conditionally load CSS
+- Measuring and improving CSS performance
+
+#### Note
+
+Cross-origin stylesheets cannot be accessed due to CORS restrictions. The snippet will warn about these and skip them.
