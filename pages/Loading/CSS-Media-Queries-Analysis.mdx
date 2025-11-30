@@ -108,13 +108,13 @@ function analyzeCSSMediaQueries(minWidth = 768) {
   console.log(`Classes: ${inlineTotalClasses}`);
   console.log(`Properties: ${inlineTotalProperties}`);
   if (inlineMediaQueries.length > 0) {
-    console.table(inlineMediaQueries, [
-      "source",
-      "mediaQuery",
-      "classes",
-      "properties",
-      "cssTextLength",
-    ]);
+    // console.table(inlineMediaQueries, [
+    //   "source",
+    //   "mediaQuery",
+    //   "classes",
+    //   "properties",
+    //   "cssTextLength",
+    // ]);
   } else {
     console.log(`No inline media queries found for viewports > ${minWidth}px.`);
   }
@@ -126,13 +126,13 @@ function analyzeCSSMediaQueries(minWidth = 768) {
   console.log(`Classes: ${filesTotalClasses}`);
   console.log(`Properties: ${filesTotalProperties}`);
   if (fileMediaQueries.length > 0) {
-    console.table(fileMediaQueries, [
-      "source",
-      "mediaQuery",
-      "classes",
-      "properties",
-      "cssTextLength",
-    ]);
+    // console.table(fileMediaQueries, [
+    //   "source",
+    //   "mediaQuery",
+    //   "classes",
+    //   "properties",
+    //   "cssTextLength",
+    // ]);
   } else {
     console.log(`No external file media queries found for viewports > ${minWidth}px.`);
   }
