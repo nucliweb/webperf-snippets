@@ -1,12 +1,16 @@
 # Find non Lazy Loaded Images outside of the viewport
 
-List all images that don't have `loading="lazy"` or `[data-src]` _(lazy loading via JS)_ and are not in the viewport when the page loads. This script will help you find candidates for lazy loading by showing:
+Identifies images that are loaded eagerly but not visible in the initial viewport, representing wasted bandwidth and parsing time that delays page interactivity. The snippet analyzes all `<img>` elements to find optimization opportunities for lazy loading.
 
-- Total number of images without lazy loading
-- Total file size of all images
-- Individual image details: URL, resolution (naturalWidth x naturalHeight), and file size
+Images outside the viewport that load immediately:
+- **Waste bandwidth** by downloading resources users may never see
+- **Block the main thread** during decoding and rendering
+- **Delay LCP and TTI** by competing for network and CPU resources
+- **Increase memory usage** unnecessarily
 
-#### Snippet
+This script detects images without `loading="lazy"` or `[data-src]` attributes that are positioned outside the initial viewport, providing actionable data to optimize loading performance.
+
+### Snippet
 
 ```js copy
 // Execute it after the page has loaded without any user interaction (Scroll, click, etc)
@@ -20,21 +24,24 @@ function isInViewport(tag) {
   );
 }
 
-async function getImageSize(imgElement) {
+function getImageSize(imgElement) {
   const src = imgElement.currentSrc || imgElement.src;
 
   if (!src || src.startsWith("data:")) {
     return 0;
   }
 
-  try {
-    const response = await fetch(src, { method: "HEAD" });
-    const contentLength = response.headers.get("content-length");
-    return contentLength ? parseInt(contentLength, 10) : 0;
-  } catch (error) {
-    console.warn(`Could not fetch size for: ${src}`, error);
-    return 0;
+  // Try to get size from Performance API (more reliable)
+  const perfEntries = performance.getEntriesByType("resource");
+  const imgEntry = perfEntries.find((entry) => entry.name === src);
+
+  if (imgEntry) {
+    // transferSize includes headers, encodedBodySize is the actual compressed size
+    // decodedBodySize is the uncompressed size
+    return imgEntry.transferSize || imgEntry.encodedBodySize || 0;
   }
+
+  return 0;
 }
 
 function formatBytes(bytes) {
@@ -45,7 +52,7 @@ function formatBytes(bytes) {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
-async function findImgCandidatesForLazyLoading() {
+function findImgCandidatesForLazyLoading() {
   let notLazyImages = document.querySelectorAll('img:not([data-src]):not([loading="lazy"])');
   const notLazyImagesOutOfViewport = Array.from(notLazyImages).filter((tag) => !isInViewport(tag));
 
@@ -63,16 +70,17 @@ async function findImgCandidatesForLazyLoading() {
   );
 
   // Collect information from images
-  const imagePromises = notLazyImagesOutOfViewport.map(async (img) => {
+  const imagesData = notLazyImagesOutOfViewport.map((img) => {
     const src = img.currentSrc || img.src;
-    const size = await getImageSize(img);
+    const size = getImageSize(img);
     const width = img.naturalWidth;
     const height = img.naturalHeight;
     return { element: img, src, size, width, height };
   });
 
-  const imagesData = await Promise.all(imagePromises);
   const totalSize = imagesData.reduce((sum, img) => sum + img.size, 0);
+  const imagesWithSize = imagesData.filter((img) => img.size > 0).length;
+  const imagesWithoutSize = imagesData.length - imagesWithSize;
 
   // Mostrar resumen
   console.log(
@@ -81,6 +89,11 @@ async function findImgCandidatesForLazyLoading() {
   );
   console.log(`   • Total images: ${notLazyImagesOutOfViewport.length}`);
   console.log(`   • Total size: ${formatBytes(totalSize)}`);
+  if (imagesWithoutSize > 0) {
+    console.log(
+      `   ⚠️ ${imagesWithoutSize} image(s) not found in Performance API (size unknown)`,
+    );
+  }
 
   // Display list of URLs with sizes and resolution
   console.log(
@@ -104,3 +117,149 @@ async function findImgCandidatesForLazyLoading() {
 
 findImgCandidatesForLazyLoading();
 ```
+
+### Understanding the Results
+
+The snippet provides different outputs depending on what it finds:
+
+#### ✅ Success Case: All Images Optimized
+
+If all images outside the viewport already use lazy loading:
+
+```
+✅ Good job, the site has all the images out of the viewport with lazyloading.
+```
+
+This means your page is already optimized and no action is needed.
+
+#### ⚠️ Optimization Opportunities Found
+
+When images without lazy loading are detected outside the viewport, you'll see:
+
+**Summary Section:**
+
+- **Total images**: Number of images without lazy loading that are outside the viewport
+- **Total size**: Combined file size of all non-lazy-loaded images (obtained from Performance API)
+- **Warning** (if applicable): Number of images not found in Performance API (usually recently added images or those loaded after measurement)
+
+**Image URLs Section:**
+
+Each image is listed with:
+- **Index number**: For easy reference
+- **URL**: Full image source URL (from `currentSrc` or `src` attribute)
+- **Resolution**: Natural dimensions in `width x height` format
+- **Size**: File size in human-readable format (Bytes, KB, MB)
+  - Shows "size unknown" if image data is not in Performance API
+
+**Image Elements Section:**
+
+Direct references to the DOM elements for inspection in DevTools. Click any element to:
+- Inspect it in the Elements panel
+- See its computed styles
+- View its position in the DOM tree
+
+### How Size Detection Works
+
+The script uses the **Performance Resource Timing API** to get accurate file sizes:
+
+1. **`transferSize`**: Actual bytes transferred over the network (includes headers)
+2. **`encodedBodySize`**: Compressed response body size (fallback if transferSize unavailable)
+
+**Why this is more reliable than fetch:**
+- ✅ No CORS issues (data is already available in the browser)
+- ✅ No additional network requests needed
+- ✅ Reflects actual transfer size, including compression
+- ✅ Works with all image sources (same-origin and cross-origin)
+
+**Note**: Images must be loaded before running the script for size detection to work. Execute it after page load is complete.
+
+### What to Do With This Information
+
+When the script identifies non-lazy-loaded images:
+
+**1. Add Native Lazy Loading**
+
+For modern browsers, simply add the `loading` attribute:
+
+```html
+<img src="image.jpg" alt="Description" loading="lazy">
+```
+
+**2. Use JavaScript Lazy Loading Libraries**
+
+For older browser support, use libraries like:
+- [lazysizes](https://github.com/aFarkas/lazysizes)
+- [vanilla-lazyload](https://github.com/verlok/vanilla-lazyload)
+- [lozad.js](https://github.com/ApoorvSaxena/lozad.js)
+
+These typically use `data-src` instead of `src`:
+
+```html
+<img data-src="image.jpg" alt="Description" class="lazyload">
+```
+
+**3. Prioritize by Impact**
+
+Focus on images with:
+- **Largest file sizes** (biggest bandwidth savings)
+- **Lowest position on page** (least likely to be seen immediately)
+- **High resolution** (more CPU-intensive to decode)
+
+**4. Measure Performance Impact**
+
+Before and after implementing lazy loading:
+- Check **Largest Contentful Paint (LCP)** - should improve if LCP wasn't an above-fold image
+- Monitor **Time to Interactive (TTI)** - should decrease with less initial image loading
+- Measure **Total Blocking Time (TBT)** - should reduce with fewer images to decode
+- Track **Network usage** - compare total bytes transferred on initial load
+
+### Best Practices
+
+**When to use lazy loading:**
+- ✅ Images below the fold (outside initial viewport)
+- ✅ Images in long articles or infinite scroll
+- ✅ Images in carousels (except the first visible slide)
+- ✅ Images in tabs/accordions (hidden content)
+
+**When NOT to use lazy loading:**
+- ❌ The LCP (Largest Contentful Paint) element
+- ❌ Above-the-fold hero images
+- ❌ Small images that are part of initial UI (<10KB)
+- ❌ Images critical for First Contentful Paint
+
+**Important Considerations:**
+
+1. **LCP Images**: Never lazy-load your LCP image. This will delay it and hurt Core Web Vitals.
+2. **Layout Shift**: Always specify `width` and `height` attributes to prevent CLS when images load.
+3. **Loading attribute browser support**: `loading="lazy"` has [excellent browser support](https://caniuse.com/loading-lazy-attr) (96%+ globally as of 2024).
+4. **SEO**: Search engines can crawl lazy-loaded images, but ensure proper alt text and semantic markup.
+
+### Example Output Interpretation
+
+```
+⚠️ Found 55 images without lazy loading
+
+📊 Summary:
+   • Total images: 55
+   • Total size: 2.35 MB
+
+📋 Image URLs:
+   1. https://example.com/hero-carousel-slide-2.jpg (1920x1080, 245.67 KB)
+   2. https://example.com/product-gallery-3.jpg (800x600, 89.45 KB)
+   ...
+```
+
+**What this tells you:**
+- 55 images are loading eagerly but aren't visible initially
+- You're wasting **2.35 MB** of bandwidth on initial page load
+- These images compete for network/CPU resources with critical content
+- Adding `loading="lazy"` to these images would save mobile users significant data
+- On slow connections, this could improve TTI by several seconds
+
+### Further Reading
+
+For comprehensive guides on image optimization and lazy loading:
+
+📖 [Browser-level image lazy-loading for the web](https://web.dev/browser-level-image-lazy-loading/) - Chrome Developers
+📖 [Lazy loading images](https://web.dev/lazy-loading-images/) - web.dev
+📖 [The Complete Guide to Lazy Loading Images](https://css-tricks.com/the-complete-guide-to-lazy-loading-images/) - CSS-Tricks
