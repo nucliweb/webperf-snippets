@@ -187,21 +187,7 @@ For modern browsers, simply add the `loading` attribute:
 <img src="image.jpg" alt="Description" loading="lazy" />
 ```
 
-**2. Use JavaScript Lazy Loading Libraries**
-
-For older browser support, use libraries like:
-
-- [lazysizes](https://github.com/aFarkas/lazysizes)
-- [vanilla-lazyload](https://github.com/verlok/vanilla-lazyload)
-- [lozad.js](https://github.com/ApoorvSaxena/lozad.js)
-
-These typically use `data-src` instead of `src`:
-
-```html
-<img data-src="image.jpg" alt="Description" class="lazyload" />
-```
-
-**3. Prioritize by Impact**
+**2. Prioritize by Impact**
 
 Focus on images with:
 
@@ -209,12 +195,11 @@ Focus on images with:
 - **Lowest position on page** (least likely to be seen immediately)
 - **High resolution** (more CPU-intensive to decode)
 
-**4. Measure Performance Impact**
+**3. Measure Performance Impact**
 
 Before and after implementing lazy loading:
 
 - Check **Largest Contentful Paint (LCP)** - should improve if LCP wasn't an above-fold image
-- Monitor **Time to Interactive (TTI)** - should decrease with less initial image loading
 - Measure **Total Blocking Time (TBT)** - should reduce with fewer images to decode
 - Track **Network usage** - compare total bytes transferred on initial load
 
