@@ -1,49 +1,54 @@
-# Content Visibility 
+# Content Visibility
 
-This snippet will output all the elements that have a content-visibility applied to them.
+Detect and analyze all elements using `content-visibility: auto` on a page. This CSS property is a powerful rendering optimization that allows browsers to skip layout and painting work for offscreen content, significantly improving initial page load performance.
+
+This page provides two complementary analysis functions:
+
+1. **`detectContentVisibility()`** - Finds all elements with `content-visibility: auto` and provides inspection tools
+2. **`analyzeContentVisibilityOpportunities()`** - Identifies elements that could benefit from `content-visibility: auto` based on their position and size
 
 ### Attribution
 
-This snippet code it's based in the [script](https://github.com/corewebvitals/pagespeed/blob/main/code/inp/detect-content-visibility-auto.js) by [Arjen Karel](https://www.linkedin.com/posts/arjenkarel_corewebvitals-activity-7183071762769686529-owtr)
+This snippet code is based on the [script](https://github.com/corewebvitals/pagespeed/blob/main/code/inp/detect-content-visibility-auto.js) by [Arjen Karel](https://www.linkedin.com/posts/arjenkarel_corewebvitals-activity-7183071762769686529-owtr)
 
 ### Snippet
 
 ```js copy
-(() => {
+// Detect elements with content-visibility: auto and analyze optimization opportunities
 
+function detectContentVisibility() {
   // Create an object to store the results
-  let ret = {
-    autoTable: [],
-    autoNodeArray: []
+  const results = {
+    autoElements: [],
+    hiddenElements: [],
+    visibleElements: [],
+    nodeArray: [],
   };
-
 
   // Get the name of the node
   function getName(node) {
     const name = node.nodeName;
-    return node.nodeType === 1
-      ? name.toLowerCase()
-      : name.toUpperCase().replace(/^#/, '');
+    return node.nodeType === 1 ? name.toLowerCase() : name.toUpperCase().replace(/^#/, "");
   }
 
-  // Get the selector
-  const getSelector = (node) => {
-    let sel = '';
+  // Get the selector for an element
+  function getSelector(node) {
+    let sel = "";
 
     try {
       while (node && node.nodeType !== 9) {
         const el = node;
         const part = el.id
-          ? '#' + el.id
+          ? "#" + el.id
           : getName(el) +
-          (el.classList &&
+            (el.classList &&
             el.classList.value &&
             el.classList.value.trim() &&
             el.classList.value.trim().length
-            ? '.' + el.classList.value.trim().replace(/\s+/g, '.')
-            : '');
-        if (sel.length + part.length > (100) - 1) return sel || part;
-        sel = sel ? part + '>' + sel : part;
+              ? "." + el.classList.value.trim().replace(/\s+/g, ".")
+              : "");
+        if (sel.length + part.length > 100 - 1) return sel || part;
+        sel = sel ? part + ">" + sel : part;
         if (el.id) break;
         node = el.parentNode;
       }
@@ -51,37 +56,456 @@ This snippet code it's based in the [script](https://github.com/corewebvitals/pa
       // Do nothing...
     }
     return sel;
-  };
+  }
 
-  const getNodesWithContentVisibility = (node) => {
-    // Get the computed style
-    let cs = window.getComputedStyle(node);
-    let cv = cs['content-visibility'];
+  // Check if element is in viewport
+  function isInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return (
+      rect.top < window.innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < window.innerWidth &&
+      rect.right > 0
+    );
+  }
 
-    // If we find content-visibility: auto, add it to the table
-    if (cv && cv === 'auto') {
-      ret.autoTable.push({ selector: getSelector(node), ContentVisibility: cs['content-visibility'] });
-      ret.autoNodeArray.push(node);
+  // Get element dimensions and position
+  function getElementInfo(node) {
+    const rect = node.getBoundingClientRect();
+    const cs = window.getComputedStyle(node);
+
+    return {
+      selector: getSelector(node),
+      contentVisibility: cs["content-visibility"],
+      containIntrinsicSize: cs["contain-intrinsic-size"] || "not set",
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+      top: Math.round(rect.top + window.scrollY),
+      inViewport: isInViewport(node),
+    };
+  }
+
+  // Recursively find all elements with content-visibility
+  function findContentVisibilityElements(node) {
+    const cs = window.getComputedStyle(node);
+    const cv = cs["content-visibility"];
+
+    if (cv && cv !== "visible") {
+      const info = getElementInfo(node);
+
+      if (cv === "auto") {
+        results.autoElements.push(info);
+        results.nodeArray.push(node);
+      } else if (cv === "hidden") {
+        results.hiddenElements.push(info);
+      }
     }
 
-    // Recursively call this function for each child node
     for (let i = 0; i < node.children.length; i++) {
-      getNodesWithContentVisibility(node.children[i]);
+      findContentVisibilityElements(node.children[i]);
     }
   }
 
-  // find all content-visibility: auto
-  getNodesWithContentVisibility(document.body);
+  // Run the detection
+  findContentVisibilityElements(document.body);
 
-  // Display the results in the console
-  if (ret.autoTable.length === 0) {
-    console.log('%cNo content-visibility: auto found. Consider applying content-visibility: auto to offscreen content (the footer perhaps?)', 'color: orange; font-weight: bold;');
+  // Display results
+  console.group("🔍 Content-Visibility Detection");
+
+  if (results.autoElements.length === 0 && results.hiddenElements.length === 0) {
+    console.log("%cNo content-visibility usage found.", "color: orange; font-weight: bold;");
+    console.log("");
+    console.log("💡 Consider applying content-visibility: auto to:");
+    console.log("   • Footer sections");
+    console.log("   • Below-the-fold content");
+    console.log("   • Long lists or card grids");
+    console.log("   • Tab content that is not initially visible");
+    console.log("   • Accordion/collapsible content");
   } else {
-    console.log('%cContent-visibility: auto selectors', 'color: green; font-weight: bold;');
-    console.table(ret.autoTable);
+    // Auto elements
+    if (results.autoElements.length > 0) {
+      console.group("✅ content-visibility: auto");
+      console.log(`Found ${results.autoElements.length} element(s)`);
+      console.table(results.autoElements);
+      console.groupEnd();
+    }
 
-    console.log('%cNodeList for you to inspect (harder to read but more info)', 'color: green; font-weight: bold;');
-    console.log(ret.autoNodeArray);
+    // Hidden elements
+    if (results.hiddenElements.length > 0) {
+      console.group("🔒 content-visibility: hidden");
+      console.log(`Found ${results.hiddenElements.length} element(s)`);
+      console.table(results.hiddenElements);
+      console.groupEnd();
+    }
+
+    // Check for missing contain-intrinsic-size
+    const missingIntrinsicSize = results.autoElements.filter(
+      (el) => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none",
+    );
+
+    if (missingIntrinsicSize.length > 0) {
+      console.group("⚠️ Missing contain-intrinsic-size");
+      console.log(
+        "%cThese elements lack contain-intrinsic-size, which may cause layout shifts:",
+        "color: #f59e0b; font-weight: bold",
+      );
+      console.table(
+        missingIntrinsicSize.map((el) => ({
+          selector: el.selector,
+          height: el.height + "px",
+        })),
+      );
+      console.log("");
+      console.log("💡 Add contain-intrinsic-size to prevent CLS:");
+      console.log("   contain-intrinsic-size: auto 500px;");
+      console.groupEnd();
+    }
+
+    // Nodes for inspection
+    console.group("🔎 Elements for inspection");
+    console.log("Click to expand and inspect in Elements panel:");
+    results.nodeArray.forEach((node, i) => {
+      console.log(`${i + 1}. `, node);
+    });
+    console.groupEnd();
   }
-})()
+
+  console.groupEnd();
+
+  return results;
+}
+
+// Analyze opportunities for content-visibility optimization
+function analyzeContentVisibilityOpportunities() {
+  const viewportHeight = window.innerHeight;
+  const opportunities = [];
+
+  // Elements that are good candidates for content-visibility: auto
+  const candidateSelectors = [
+    "footer",
+    "aside",
+    '[class*="footer"]',
+    '[class*="sidebar"]',
+    '[class*="comments"]',
+    '[class*="related"]',
+    '[class*="recommendations"]',
+    "article:not(:first-of-type)",
+    ".card",
+    '[class*="card"]',
+    "section",
+    '[role="tabpanel"]',
+    '[class*="accordion"]',
+    '[class*="collapse"]',
+  ];
+
+  // Find large offscreen elements
+  function analyzeLargeElements() {
+    const allElements = document.querySelectorAll("section, article, div, aside, footer, main > *");
+
+    allElements.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      const cs = window.getComputedStyle(el);
+      const cv = cs["content-visibility"];
+
+      // Skip if already using content-visibility
+      if (cv && cv !== "visible") return;
+
+      // Skip small elements
+      if (rect.height < 200) return;
+
+      // Check if element is below the fold
+      const isOffscreen = rect.top > viewportHeight * 1.5;
+
+      if (isOffscreen && rect.height > 0) {
+        const childCount = el.querySelectorAll("*").length;
+
+        opportunities.push({
+          selector: getSelector(el),
+          height: Math.round(rect.height) + "px",
+          distanceFromViewport: Math.round(rect.top - viewportHeight) + "px",
+          childElements: childCount,
+          estimatedSavings: estimateRenderSavings(el, childCount),
+        });
+      }
+    });
+  }
+
+  function getSelector(node) {
+    let sel = "";
+    try {
+      while (node && node.nodeType !== 9) {
+        const el = node;
+        const name = el.nodeName.toLowerCase();
+        const part = el.id
+          ? "#" + el.id
+          : name +
+            (el.classList && el.classList.value && el.classList.value.trim()
+              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
+              : "");
+        if (sel.length + part.length > 80) return sel || part;
+        sel = sel ? part + ">" + sel : part;
+        if (el.id) break;
+        node = el.parentNode;
+      }
+    } catch (err) {}
+    return sel;
+  }
+
+  function estimateRenderSavings(element, childCount) {
+    // Rough estimation based on child count and element size
+    // Each element costs approximately 0.1-0.5ms to render
+    const baseMs = childCount * 0.2;
+
+    if (baseMs < 5) return "Low (~" + baseMs.toFixed(1) + "ms)";
+    if (baseMs < 20) return "Medium (~" + baseMs.toFixed(1) + "ms)";
+    return "High (~" + baseMs.toFixed(1) + "ms)";
+  }
+
+  analyzeLargeElements();
+
+  // Sort by estimated impact
+  opportunities.sort((a, b) => {
+    const aChildren = parseInt(a.childElements);
+    const bChildren = parseInt(b.childElements);
+    return bChildren - aChildren;
+  });
+
+  // Display results
+  console.group("💡 Content-Visibility Opportunities");
+
+  if (opportunities.length === 0) {
+    console.log("%c✅ No major opportunities found.", "color: #22c55e; font-weight: bold");
+    console.log("Most large elements are either in the viewport or already optimized.");
+  } else {
+    console.log(
+      `Found ${opportunities.length} element(s) that could benefit from content-visibility: auto`,
+    );
+    console.log("");
+    console.table(opportunities.slice(0, 15)); // Show top 15
+
+    if (opportunities.length > 15) {
+      console.log(`... and ${opportunities.length - 15} more elements`);
+    }
+
+    console.log("");
+    console.group("📝 Implementation Example");
+    console.log("Add this CSS to optimize rendering:");
+    console.log("");
+    console.log(
+      "%c/* Optimize offscreen content */\n" +
+        ".your-selector {\n" +
+        "  content-visibility: auto;\n" +
+        "  contain-intrinsic-size: auto 500px; /* Adjust height estimate */\n" +
+        "}",
+      "font-family: monospace; background: #1e1e1e; color: #9cdcfe; padding: 10px; border-radius: 4px;",
+    );
+    console.groupEnd();
+  }
+
+  console.groupEnd();
+
+  return {
+    opportunities,
+    totalElements: opportunities.length,
+    highImpact: opportunities.filter((o) => o.estimatedSavings.startsWith("High")).length,
+  };
+}
+
+// Run detection
+detectContentVisibility();
+
+// Uncomment to also find optimization opportunities:
+// analyzeContentVisibilityOpportunities();
 ```
+
+### Understanding the Results
+
+#### `detectContentVisibility()` Results
+
+This function scans the entire DOM for elements using `content-visibility` and provides:
+
+**Auto Elements (`content-visibility: auto`):**
+
+- **selector**: CSS selector path to the element
+- **contentVisibility**: The current value (`auto`)
+- **containIntrinsicSize**: The placeholder size for layout calculations
+- **width/height**: Current dimensions of the element
+- **top**: Distance from the top of the document
+- **inViewport**: Whether the element is currently visible
+
+**Hidden Elements (`content-visibility: hidden`):**
+
+- Elements completely hidden from rendering
+- Useful for off-canvas menus, modals, or pre-rendered content
+
+**Warnings:**
+
+- Missing `contain-intrinsic-size` warnings help prevent Cumulative Layout Shift (CLS)
+- Suggests appropriate height values based on current element dimensions
+
+#### `analyzeContentVisibilityOpportunities()` Results
+
+This function identifies elements that would benefit from `content-visibility: auto`:
+
+- **selector**: Element identifier
+- **height**: Current height (important for `contain-intrinsic-size`)
+- **distanceFromViewport**: How far below the fold the element is
+- **childElements**: Number of descendant elements (more = higher impact)
+- **estimatedSavings**: Rough estimate of render time saved (Low/Medium/High)
+
+### How content-visibility Works
+
+The `content-visibility` CSS property controls whether an element renders its contents:
+
+| Value     | Behavior                                                                             |
+| --------- | ------------------------------------------------------------------------------------ |
+| `visible` | Default. Content always rendered.                                                    |
+| `auto`    | Content rendered when near viewport. Browser skips rendering for offscreen elements. |
+| `hidden`  | Content never rendered (like `display: none` but preserves element state).           |
+
+When using `content-visibility: auto`:
+
+1. **Initial Load**: Offscreen elements are not rendered
+2. **Scroll**: Elements render as they approach the viewport
+3. **Memory**: Rendered content may be discarded when scrolling away
+
+### Important: contain-intrinsic-size
+
+Always pair `content-visibility: auto` with `contain-intrinsic-size` to prevent layout shifts:
+
+```css copy
+.offscreen-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+```
+
+**Understanding the value:**
+
+The `contain-intrinsic-size` property tells the browser what size to use for the element before its content is rendered. This is critical because without it, offscreen elements would have zero height, causing massive layout shifts when they render.
+
+- **`auto`**: Tells the browser to remember the actual rendered size after the first render. On subsequent navigations or when scrolling back, it uses the cached size instead of the placeholder.
+- **`500px`** (or any height value): **The estimated height of your content**. This should approximate the actual rendered height of the element.
+
+**How to choose the right height value:**
+
+1. **Measure the actual element**: Use DevTools to inspect the element's rendered height, or use the `analyzeContentVisibilityOpportunities()` function which reports element heights
+2. **Use an average**: For dynamic content (like comments or cards), use an average expected height
+3. **Err on the side of larger**: A slightly larger estimate is better than too small, it reduces the chance of noticeable layout shifts
+4. **It doesn't need to be exact**: The browser will adjust once content renders, this is just a placeholder to reserve space
+
+**Example values by content type:**
+
+| Content Type         | Typical Height |
+| -------------------- | -------------- |
+| Footer               | 200-400px      |
+| Comments section     | 600-1000px     |
+| Product card         | 300-450px      |
+| Blog article section | 400-800px      |
+| Sidebar widget       | 200-350px      |
+
+### Performance Impact
+
+**Potential Benefits:**
+
+- **Faster Initial Render**: Browser skips layout/paint for offscreen content
+- **Reduced Main Thread Work**: Less JavaScript style recalculation
+- **Lower Memory Usage**: Offscreen content not in render tree
+- **Improved INP**: Less work during scrolling interactions
+
+**Typical Savings:**
+
+| Scenario                              | Estimated Improvement |
+| ------------------------------------- | --------------------- |
+| Long blog post with comments          | 100-300ms render time |
+| E-commerce product grid (50+ items)   | 200-500ms render time |
+| Documentation page with many sections | 150-400ms render time |
+| Social feed with infinite scroll      | 300-800ms render time |
+
+### Best Practices
+
+**Good Candidates for `content-visibility: auto`:**
+
+- Footer sections
+- Below-the-fold content sections
+- Long lists or card grids
+- Comments sections
+- Related content / recommendations
+- Tab panels (non-active)
+- Accordion/collapsible content
+- Infinite scroll items
+
+**Avoid Using On:**
+
+- Above-the-fold content (defeats the purpose)
+- Elements with animations that need immediate rendering
+- Content that affects layout calculations above it
+- Very small elements (overhead not worth it)
+
+### Browser Support
+
+`content-visibility` is supported in:
+
+- Chrome 85+
+- Edge 85+
+- Opera 71+
+- Chrome for Android 85+
+
+Not yet supported in Firefox and Safari (as of 2024), but these browsers simply ignore the property, so it's safe to use as a progressive enhancement.
+
+### Implementation Examples
+
+**Basic Usage:**
+
+```css copy
+/* Apply to sections below the fold */
+.content-section:not(:first-child) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
+```
+
+**Footer Optimization:**
+
+```css copy
+footer {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+}
+```
+
+**Card Grid Optimization:**
+
+```css copy
+/* Skip rendering for cards far from viewport */
+.product-card:nth-child(n + 5) {
+  content-visibility: auto;
+  contain-intrinsic-size: 280px 350px;
+}
+```
+
+**Comments Section:**
+
+```css copy
+.comments-container {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+```
+
+### Further Reading
+
+For an in-depth understanding of `content-visibility` and rendering optimization:
+
+- [content-visibility: the new CSS property that boosts your rendering performance](https://web.dev/articles/content-visibility) | web.dev
+- [CSS Containment](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment) | MDN Web Docs
+- [content-visibility on MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/content-visibility) | Complete reference
+- [Improve Largest Contentful Paint with content-visibility](https://web.dev/articles/optimize-lcp#optimize_when_resources_are_loaded) | web.dev
+
+**Real-world Example:**
+
+- [Add content-visibility to NoteButton component](https://github.com/nucliweb/react-workshop-fwdays-mar24/pull/2) | A practical PR showing before/after DevTools screenshots of layout and layers improvements when applying `content-visibility` to a React component
+
+### Note
+
+_This snippet analyzes computed styles, so it will detect `content-visibility` applied through any method (inline styles, stylesheets, or JavaScript). The analysis runs synchronously and may take a moment on pages with many elements._
