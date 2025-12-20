@@ -1,0 +1,5 @@
+/* Limit code block height to avoid long scrolling */
+pre code {
+  max-height: 300px;
+  overflow-y: auto;
+}

@@ -1,4 +1,5 @@
 import Script from "next/script";
+import "../styles/globals.css";
 
 function WebPerfSnippets({ Component, pageProps }) {
   return (
