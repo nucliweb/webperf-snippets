@@ -5,7 +5,7 @@ Detect and analyze all elements using `content-visibility: auto` on a page. This
 This page provides two complementary analysis functions:
 
 1. **`detectContentVisibility()`** - Finds all elements with `content-visibility: auto` and provides inspection tools
-2. **`analyzeContentVisibilityOpportunities()`** - Identifies elements that could benefit from `content-visibility: auto` based on their position and size
+2. **`analyzeContentVisibilityOpportunities(options)`** - Walks the DOM to find offscreen elements that could benefit from `content-visibility: auto`, with configurable thresholds for distance, height, and child count
 
 ### Attribution
 
@@ -176,59 +176,16 @@ function detectContentVisibility() {
 }
 
 // Analyze opportunities for content-visibility optimization
-function analyzeContentVisibilityOpportunities() {
+// Options:
+//   - threshold: distance from viewport bottom to consider "offscreen" (default: 0)
+//   - minHeight: minimum element height in px (default: 100)
+//   - minChildren: minimum child elements to be considered (default: 5)
+function analyzeContentVisibilityOpportunities(options = {}) {
+  const { threshold = 0, minHeight = 100, minChildren = 5 } = options;
+
   const viewportHeight = window.innerHeight;
   const opportunities = [];
-
-  // Elements that are good candidates for content-visibility: auto
-  const candidateSelectors = [
-    "footer",
-    "aside",
-    '[class*="footer"]',
-    '[class*="sidebar"]',
-    '[class*="comments"]',
-    '[class*="related"]',
-    '[class*="recommendations"]',
-    "article:not(:first-of-type)",
-    ".card",
-    '[class*="card"]',
-    "section",
-    '[role="tabpanel"]',
-    '[class*="accordion"]',
-    '[class*="collapse"]',
-  ];
-
-  // Find large offscreen elements
-  function analyzeLargeElements() {
-    const allElements = document.querySelectorAll("section, article, div, aside, footer, main > *");
-
-    allElements.forEach((el) => {
-      const rect = el.getBoundingClientRect();
-      const cs = window.getComputedStyle(el);
-      const cv = cs["content-visibility"];
-
-      // Skip if already using content-visibility
-      if (cv && cv !== "visible") return;
-
-      // Skip small elements
-      if (rect.height < 200) return;
-
-      // Check if element is below the fold
-      const isOffscreen = rect.top > viewportHeight * 1.5;
-
-      if (isOffscreen && rect.height > 0) {
-        const childCount = el.querySelectorAll("*").length;
-
-        opportunities.push({
-          selector: getSelector(el),
-          height: Math.round(rect.height) + "px",
-          distanceFromViewport: Math.round(rect.top - viewportHeight) + "px",
-          childElements: childCount,
-          estimatedSavings: estimateRenderSavings(el, childCount),
-        });
-      }
-    });
-  }
+  const processedElements = new Set();
 
   function getSelector(node) {
     let sel = "";
@@ -251,41 +208,99 @@ function analyzeContentVisibilityOpportunities() {
     return sel;
   }
 
-  function estimateRenderSavings(element, childCount) {
-    // Rough estimation based on child count and element size
-    // Each element costs approximately 0.1-0.5ms to render
+  function estimateRenderSavings(childCount) {
     const baseMs = childCount * 0.2;
-
     if (baseMs < 5) return "Low (~" + baseMs.toFixed(1) + "ms)";
     if (baseMs < 20) return "Medium (~" + baseMs.toFixed(1) + "ms)";
     return "High (~" + baseMs.toFixed(1) + "ms)";
   }
 
-  analyzeLargeElements();
+  function isAncestorProcessed(el) {
+    let parent = el.parentElement;
+    while (parent) {
+      if (processedElements.has(parent)) return true;
+      parent = parent.parentElement;
+    }
+    return false;
+  }
 
-  // Sort by estimated impact
-  opportunities.sort((a, b) => {
-    const aChildren = parseInt(a.childElements);
-    const bChildren = parseInt(b.childElements);
-    return bChildren - aChildren;
-  });
+  function analyzeElement(el) {
+    // Skip already processed or descendant of processed
+    if (processedElements.has(el) || isAncestorProcessed(el)) return;
+
+    const rect = el.getBoundingClientRect();
+    const cs = window.getComputedStyle(el);
+
+    // Skip if already using content-visibility
+    if (cs["content-visibility"] && cs["content-visibility"] !== "visible") return;
+
+    // Skip elements not meeting size criteria
+    if (rect.height < minHeight || rect.width === 0) return;
+
+    // Check if element is below the viewport + threshold
+    const distanceFromViewport = rect.top - viewportHeight;
+    if (distanceFromViewport < threshold) return;
+
+    const childCount = el.querySelectorAll("*").length;
+
+    // Skip elements with too few children
+    if (childCount < minChildren) return;
+
+    processedElements.add(el);
+
+    opportunities.push({
+      selector: getSelector(el),
+      height: Math.round(rect.height) + "px",
+      distanceFromViewport: Math.round(distanceFromViewport) + "px",
+      childElements: childCount,
+      estimatedSavings: estimateRenderSavings(childCount),
+      element: el,
+    });
+  }
+
+  // Walk all elements in the DOM
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, null, false);
+
+  while (walker.nextNode()) {
+    analyzeElement(walker.currentNode);
+  }
+
+  // Sort by child count (highest impact first)
+  opportunities.sort((a, b) => b.childElements - a.childElements);
 
   // Display results
   console.group("💡 Content-Visibility Opportunities");
+  console.log(
+    `%cSettings: threshold=${threshold}px, minHeight=${minHeight}px, minChildren=${minChildren}`,
+    "color: #888;",
+  );
+  console.log("");
 
   if (opportunities.length === 0) {
-    console.log("%c✅ No major opportunities found.", "color: #22c55e; font-weight: bold");
-    console.log("Most large elements are either in the viewport or already optimized.");
+    console.log("%c✅ No opportunities found with current settings.", "color: #22c55e; font-weight: bold");
+    console.log("Try adjusting: analyzeContentVisibilityOpportunities({ threshold: -200, minHeight: 50, minChildren: 3 })");
   } else {
     console.log(
-      `Found ${opportunities.length} element(s) that could benefit from content-visibility: auto`,
+      `%cFound ${opportunities.length} element(s) that could benefit from content-visibility: auto`,
+      "font-weight: bold;",
     );
     console.log("");
-    console.table(opportunities.slice(0, 15)); // Show top 15
 
-    if (opportunities.length > 15) {
-      console.log(`... and ${opportunities.length - 15} more elements`);
+    // Show table without element reference
+    const tableData = opportunities.slice(0, 20).map(({ element, ...rest }) => rest);
+    console.table(tableData);
+
+    if (opportunities.length > 20) {
+      console.log(`... and ${opportunities.length - 20} more elements`);
     }
+
+    // Log elements for inspection
+    console.log("");
+    console.group("🔎 Elements for inspection");
+    opportunities.slice(0, 10).forEach((opp, i) => {
+      console.log(`${i + 1}. `, opp.element);
+    });
+    console.groupEnd();
 
     console.log("");
     console.group("📝 Implementation Example");
@@ -295,7 +310,7 @@ function analyzeContentVisibilityOpportunities() {
       "%c/* Optimize offscreen content */\n" +
         ".your-selector {\n" +
         "  content-visibility: auto;\n" +
-        "  contain-intrinsic-size: auto 500px; /* Adjust height estimate */\n" +
+        "  contain-intrinsic-size: auto 500px; /* Use actual height */\n" +
         "}",
       "font-family: monospace; background: #1e1e1e; color: #9cdcfe; padding: 10px; border-radius: 4px;",
     );
@@ -305,9 +320,10 @@ function analyzeContentVisibilityOpportunities() {
   console.groupEnd();
 
   return {
-    opportunities,
+    opportunities: opportunities.map(({ element, ...rest }) => rest),
     totalElements: opportunities.length,
     highImpact: opportunities.filter((o) => o.estimatedSavings.startsWith("High")).length,
+    elements: opportunities.map((o) => o.element),
   };
 }
 
@@ -346,15 +362,43 @@ This function scans the entire DOM for elements using `content-visibility` and p
 - Missing `contain-intrinsic-size` warnings help prevent Cumulative Layout Shift (CLS)
 - Suggests appropriate height values based on current element dimensions
 
-#### `analyzeContentVisibilityOpportunities()` Results
+#### `analyzeContentVisibilityOpportunities(options)` Results
 
-This function identifies elements that would benefit from `content-visibility: auto`:
+This function walks the entire DOM to find elements below the viewport that would benefit from `content-visibility: auto`.
+
+**Options (all optional):**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `threshold` | `0` | Distance in px from viewport bottom. Use negative values (e.g., `-200`) to include elements closer to the fold |
+| `minHeight` | `100` | Minimum element height in px to be considered |
+| `minChildren` | `5` | Minimum number of child elements (filters out simple containers) |
+
+**Examples:**
+
+```js copy
+// Default settings
+analyzeContentVisibilityOpportunities()
+
+// More aggressive - find elements closer to viewport
+analyzeContentVisibilityOpportunities({ threshold: -200 })
+
+// Find smaller elements with fewer children
+analyzeContentVisibilityOpportunities({ minHeight: 50, minChildren: 3 })
+
+// Combine options
+analyzeContentVisibilityOpportunities({ threshold: -100, minHeight: 80, minChildren: 10 })
+```
+
+**Output fields:**
 
 - **selector**: Element identifier
-- **height**: Current height (important for `contain-intrinsic-size`)
-- **distanceFromViewport**: How far below the fold the element is
+- **height**: Current height (use this for `contain-intrinsic-size`)
+- **distanceFromViewport**: How far below the viewport the element is
 - **childElements**: Number of descendant elements (more = higher impact)
 - **estimatedSavings**: Rough estimate of render time saved (Low/Medium/High)
+
+**Note:** The function automatically filters out nested elements - if a parent container is selected, its children won't appear separately in the results.
 
 ### How content-visibility Works
 
