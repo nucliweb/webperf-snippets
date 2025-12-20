@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://webperf-snippets.nucliweb.net/sitemap.xml

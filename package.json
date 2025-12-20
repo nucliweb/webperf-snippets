@@ -5,6 +5,7 @@
   "description": "Web Performance Snippets",
   "scripts": {
     "build": "npx next build",
+    "postbuild": "next-sitemap",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -18,6 +19,7 @@
   "dependencies": {
     "next": "^13.4.19",
     "next-cloudinary": "^4.18.0",
+    "next-sitemap": "^4.2.3",
     "nextra": "^2.11.0",
     "nextra-theme-docs": "^2.11.0",
     "react": "^18.2.0",
