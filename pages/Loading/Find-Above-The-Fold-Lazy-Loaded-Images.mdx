@@ -1,33 +1,807 @@
 # Find Above The Fold Lazy Loaded Images
 
-List all images that have `loading="lazy"` or `[data-src]` _(lazy loading via JS)_ above the fold and off canvas.
+Detect and analyze images with lazy loading that are incorrectly placed above the fold (in the viewport). Lazy loading above-the-fold images is a common performance anti-pattern that can significantly harm your Largest Contentful Paint (LCP) score.
 
-#### Snippet
+This page provides two complementary analysis functions:
+
+1. **`findAboveTheFoldLazyLoadedImages()`** - Detects images with `loading="lazy"` or `[data-src]` in the viewport, identifies LCP candidates, and provides detailed performance metrics
+2. **`analyzeLazyLoadingOpportunities(options)`** - Finds images below the fold that should have lazy loading but don't, including images in hidden containers (tabs, modals, carousels)
+
+### Snippet
 
 ```js copy
-// List all lazily loaded images above the fold
+// Detect lazy loaded images above the fold and analyze lazy loading opportunities
 // https://webperf-snippets.nucliweb.net
-function findAboveTheFoldLazyLoadedImages() {
-  const lazy = document.querySelectorAll('[loading="lazy"]');
-  let lazyImages = [];
-  
-  lazy.forEach((tag) => {
-    const {x, y} = tag.getBoundingClientRect();
-    const position = parseInt(tag.getBoundingClientRect().top);
 
-    if(x < window.innerWidth && y < window.innerHeight && x !== 0 && y !== 0) {
-      lazyImages = [...lazyImages, tag];
-      console.log(tag);
-    }
-  });
+(function() {
+  // ============================================
+  // Shared Helpers
+  // ============================================
 
-  if( lazyImages.length === 0 ) {
-    console.log(
-      `%c Good job, the site does not have any lazily loaded images in the viewport.`,
-      "background: #222; color: lightgreen; padding: 0.5ch",
+  function getSelector(node) {
+    let sel = "";
+    try {
+      while (node && node.nodeType !== 9) {
+        const el = node;
+        const name = el.nodeName.toLowerCase();
+        const part = el.id
+          ? "#" + el.id
+          : name +
+            (el.classList && el.classList.value && el.classList.value.trim()
+              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
+              : "");
+        if (sel.length + part.length > 80) return sel || part;
+        sel = sel ? part + ">" + sel : part;
+        if (el.id) break;
+        node = el.parentNode;
+      }
+    } catch (err) {}
+    return sel;
+  }
+
+  function isInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return (
+      rect.top < window.innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < window.innerWidth &&
+      rect.right > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
     );
   }
-}
 
-findAboveTheFoldLazyLoadedImages();
+  function getDistanceFromViewportEdge(element) {
+    const rect = element.getBoundingClientRect();
+    const distances = [
+      rect.top,
+      window.innerHeight - rect.bottom,
+      rect.left,
+      window.innerWidth - rect.right
+    ];
+    return Math.min(...distances.map(d => Math.abs(d)));
+  }
+
+  function getFileSize(src) {
+    if (!src) return null;
+    try {
+      const entries = performance.getEntriesByType("resource");
+      const entry = entries.find(e => e.name === src || e.name.includes(src.split("/").pop()));
+      if (entry && entry.transferSize) {
+        return (entry.transferSize / 1024).toFixed(1) + " KB";
+      }
+    } catch (err) {}
+    return null;
+  }
+
+  function getLazyType(element) {
+    const hasLoadingLazy = element.getAttribute("loading") === "lazy";
+    const hasDataSrc = element.hasAttribute("data-src") || element.hasAttribute("data-lazy");
+
+    if (hasLoadingLazy && hasDataSrc) return "both";
+    if (hasLoadingLazy) return "loading-lazy";
+    if (hasDataSrc) return "data-src";
+    return null;
+  }
+
+  function isInHiddenContainer(element) {
+    let parent = element.parentElement;
+    const hiddenSelectors = [
+      '[hidden]',
+      '[aria-hidden="true"]',
+      '.modal:not(.show)',
+      '.tab-pane:not(.active)',
+      '[role="tabpanel"]:not([aria-selected="true"])',
+      '.accordion-collapse:not(.show)',
+      '.carousel-item:not(.active)',
+      '.swiper-slide:not(.swiper-slide-active)',
+      '[style*="display: none"]',
+      '[style*="visibility: hidden"]'
+    ];
+
+    while (parent && parent !== document.body) {
+      const cs = window.getComputedStyle(parent);
+      if (cs.display === "none" || cs.visibility === "hidden") {
+        return { hidden: true, reason: "CSS hidden", container: getSelector(parent) };
+      }
+      for (const selector of hiddenSelectors) {
+        if (parent.matches(selector)) {
+          return { hidden: true, reason: selector, container: getSelector(parent) };
+        }
+      }
+      parent = parent.parentElement;
+    }
+    return { hidden: false };
+  }
+
+  function getElementInfo(img) {
+    const rect = img.getBoundingClientRect();
+    const area = rect.width * rect.height;
+
+    return {
+      selector: getSelector(img),
+      lazyType: getLazyType(img),
+      dimensions: `${Math.round(rect.width)}×${Math.round(rect.height)}`,
+      position: {
+        top: Math.round(rect.top + window.scrollY),
+        left: Math.round(rect.left + window.scrollX)
+      },
+      distanceFromEdge: Math.round(getDistanceFromViewportEdge(img)) + "px",
+      src: img.currentSrc || img.src || img.getAttribute("data-src") || "",
+      srcset: img.srcset || null,
+      sizes: img.sizes || null,
+      alt: img.alt || "(no alt)",
+      fetchPriority: img.fetchPriority || "auto",
+      fileSize: getFileSize(img.currentSrc || img.src),
+      area: area,
+      element: img
+    };
+  }
+
+  // ============================================
+  // Main Detection Function
+  // ============================================
+
+  function findAboveTheFoldLazyLoadedImages() {
+    const results = {
+      lazyImages: [],
+      lcpCandidate: null,
+      nodeArray: [],
+      summary: {
+        total: 0,
+        withLoadingLazy: 0,
+        withDataSrc: 0,
+        lcpAffected: false
+      }
+    };
+
+    // Find all images with lazy loading
+    const lazySelectors = '[loading="lazy"], [data-src], [data-lazy]';
+    const lazyElements = document.querySelectorAll(`img${lazySelectors}, picture source${lazySelectors}`);
+
+    // Also check all images in viewport to find LCP candidate
+    const allViewportImages = Array.from(document.querySelectorAll("img"))
+      .filter(img => isInViewport(img) && img.getBoundingClientRect().width > 0);
+
+    // Find LCP candidate (largest visible image)
+    let lcpCandidate = null;
+    let maxArea = 0;
+
+    allViewportImages.forEach(img => {
+      const rect = img.getBoundingClientRect();
+      const area = rect.width * rect.height;
+      if (area > maxArea) {
+        maxArea = area;
+        lcpCandidate = img;
+      }
+    });
+
+    // Process lazy loaded images in viewport
+    lazyElements.forEach(element => {
+      const img = element.tagName === "SOURCE"
+        ? element.closest("picture")?.querySelector("img")
+        : element;
+
+      if (!img || !isInViewport(img)) return;
+
+      const info = getElementInfo(img);
+      info.isLcpCandidate = img === lcpCandidate;
+
+      results.lazyImages.push(info);
+      results.nodeArray.push(img);
+
+      // Update summary
+      results.summary.total++;
+      if (info.lazyType === "loading-lazy" || info.lazyType === "both") {
+        results.summary.withLoadingLazy++;
+      }
+      if (info.lazyType === "data-src" || info.lazyType === "both") {
+        results.summary.withDataSrc++;
+      }
+      if (info.isLcpCandidate) {
+        results.summary.lcpAffected = true;
+        results.lcpCandidate = info;
+      }
+    });
+
+    // Display results
+    console.group("🔍 Lazy Loading Detection - Above The Fold");
+
+    if (results.lazyImages.length === 0) {
+      console.log(
+        "%c✅ Good job! No lazily loaded images found in the viewport.",
+        "background: #222; color: #22c55e; padding: 0.5ch 1ch; font-weight: bold;"
+      );
+    } else {
+      // Summary
+      console.log(
+        `%c⚠️ Found ${results.summary.total} lazily loaded image(s) above the fold`,
+        "color: #f59e0b; font-weight: bold; font-size: 14px;"
+      );
+      console.log("");
+
+      // LCP Warning
+      if (results.summary.lcpAffected) {
+        console.group("🚨 Critical: LCP Candidate Has Lazy Loading");
+        console.log(
+          "%cThe largest image in your viewport has lazy loading enabled!",
+          "color: #ef4444; font-weight: bold;"
+        );
+        console.log("This can significantly delay your Largest Contentful Paint.");
+        console.log("");
+        console.log("LCP Candidate:", results.lcpCandidate.selector);
+        console.log("Dimensions:", results.lcpCandidate.dimensions);
+        console.log("File size:", results.lcpCandidate.fileSize || "unknown");
+        console.log("");
+        console.log("%cFix: Remove loading=\"lazy\" and add fetchpriority=\"high\"", "color: #22c55e;");
+        console.groupEnd();
+        console.log("");
+      }
+
+      // Table of all problematic images
+      console.group("📋 Lazy Loaded Images in Viewport");
+      const tableData = results.lazyImages.map(({ element, area, position, ...rest }) => ({
+        ...rest,
+        top: position.top + "px",
+        isLcpCandidate: rest.isLcpCandidate ? "⚠️ YES" : "no"
+      }));
+      console.table(tableData);
+      console.groupEnd();
+
+      // Elements for inspection
+      console.group("🔎 Elements for inspection");
+      console.log("Click to expand and inspect in Elements panel:");
+      results.nodeArray.forEach((node, i) => {
+        const marker = node === lcpCandidate ? " 🚨 LCP" : "";
+        console.log(`${i + 1}.${marker}`, node);
+      });
+      console.groupEnd();
+
+      // Quick fix suggestion
+      console.log("");
+      console.group("📝 Suggested Fix");
+      console.log("For above-the-fold images, use:");
+      console.log("");
+      console.log(
+        '%c<img src="hero.jpg" fetchpriority="high" alt="...">',
+        "font-family: monospace; background: #1e1e1e; color: #9cdcfe; padding: 8px; border-radius: 4px;"
+      );
+      console.log("");
+      console.log("Remove: loading=\"lazy\", data-src, data-lazy");
+      console.log("Add: fetchpriority=\"high\" for LCP candidate");
+      console.groupEnd();
+    }
+
+    console.groupEnd();
+
+    // Hint for opportunities analysis
+    console.log("");
+    console.log(
+      "%c💡 To find images that SHOULD have lazy loading, run: %canalyzeLazyLoadingOpportunities()",
+      "color: #3b82f6; font-weight: bold;",
+      "color: #22c55e; font-weight: bold; font-family: monospace;"
+    );
+
+    return results;
+  }
+
+  // ============================================
+  // Opportunities Analysis Function
+  // ============================================
+
+  // Options:
+  //   - threshold: distance from viewport bottom to consider "offscreen" (default: 0)
+  //   - minWidth: minimum image width in px (default: 50)
+  //   - minHeight: minimum image height in px (default: 50)
+  //   - includeHidden: include images in hidden containers (default: true)
+  function analyzeLazyLoadingOpportunities(options = {}) {
+    const {
+      threshold = 0,
+      minWidth = 50,
+      minHeight = 50,
+      includeHidden = true
+    } = options;
+
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+
+    const results = {
+      opportunities: [],
+      hiddenContainers: [],
+      excluded: {
+        lcpCandidate: null,
+        tooSmall: 0,
+        inViewport: 0,
+        alreadyLazy: 0
+      },
+      elements: [],
+      totalPotentialSavings: 0
+    };
+
+    // Find LCP candidate to exclude
+    const allViewportImages = Array.from(document.querySelectorAll("img"))
+      .filter(img => isInViewport(img) && img.getBoundingClientRect().width > 0);
+
+    let lcpCandidate = null;
+    let maxArea = 0;
+
+    allViewportImages.forEach(img => {
+      const rect = img.getBoundingClientRect();
+      const area = rect.width * rect.height;
+      if (area > maxArea) {
+        maxArea = area;
+        lcpCandidate = img;
+      }
+    });
+
+    // Process all images
+    const allImages = document.querySelectorAll("img");
+
+    allImages.forEach(img => {
+      const rect = img.getBoundingClientRect();
+      const hasLazyLoading = getLazyType(img) !== null;
+
+      // Skip if already has lazy loading
+      if (hasLazyLoading) {
+        results.excluded.alreadyLazy++;
+        return;
+      }
+
+      // Skip LCP candidate
+      if (img === lcpCandidate) {
+        results.excluded.lcpCandidate = getSelector(img);
+        return;
+      }
+
+      // Skip too small images
+      if (rect.width < minWidth || rect.height < minHeight) {
+        results.excluded.tooSmall++;
+        return;
+      }
+
+      // Check if in hidden container
+      const hiddenCheck = isInHiddenContainer(img);
+
+      if (hiddenCheck.hidden && includeHidden) {
+        const info = getElementInfo(img);
+        info.hiddenReason = hiddenCheck.reason;
+        info.container = hiddenCheck.container;
+        results.hiddenContainers.push(info);
+        results.elements.push(img);
+
+        // Estimate file size for savings
+        const size = getFileSize(img.currentSrc || img.src);
+        if (size) {
+          results.totalPotentialSavings += parseFloat(size);
+        }
+        return;
+      }
+
+      // Check if below viewport + threshold
+      const distanceFromViewport = rect.top - viewportHeight;
+
+      if (distanceFromViewport < threshold) {
+        // In or near viewport - should NOT be lazy loaded
+        if (isInViewport(img)) {
+          results.excluded.inViewport++;
+        }
+        return;
+      }
+
+      // This image should have lazy loading
+      const info = getElementInfo(img);
+      info.distanceFromViewport = Math.round(distanceFromViewport) + "px";
+
+      results.opportunities.push(info);
+      results.elements.push(img);
+
+      // Estimate file size for savings
+      const size = getFileSize(img.currentSrc || img.src);
+      if (size) {
+        results.totalPotentialSavings += parseFloat(size);
+      }
+    });
+
+    // Sort by distance (furthest first = highest impact)
+    results.opportunities.sort((a, b) => {
+      return parseInt(b.distanceFromViewport) - parseInt(a.distanceFromViewport);
+    });
+
+    // Display results
+    console.group("💡 Lazy Loading Opportunities");
+    console.log(
+      `%cSettings: threshold=${threshold}px, minWidth=${minWidth}px, minHeight=${minHeight}px, includeHidden=${includeHidden}`,
+      "color: #888;"
+    );
+    console.log("");
+
+    const totalOpportunities = results.opportunities.length + results.hiddenContainers.length;
+
+    if (totalOpportunities === 0) {
+      console.log(
+        "%c✅ No opportunities found with current settings.",
+        "color: #22c55e; font-weight: bold"
+      );
+      console.log("");
+      console.log("Try adjusting settings:");
+      console.log('  analyzeLazyLoadingOpportunities({ threshold: -200, minWidth: 30, minHeight: 30 })');
+    } else {
+      console.log(
+        `%cFound ${totalOpportunities} image(s) that should have lazy loading`,
+        "font-weight: bold; font-size: 14px;"
+      );
+
+      if (results.totalPotentialSavings > 0) {
+        console.log(
+          `%cPotential initial load savings: ~${results.totalPotentialSavings.toFixed(1)} KB`,
+          "color: #22c55e; font-weight: bold;"
+        );
+      }
+      console.log("");
+
+      // Below the fold images
+      if (results.opportunities.length > 0) {
+        console.group(`📍 Below The Fold (${results.opportunities.length} images)`);
+        const tableData = results.opportunities.slice(0, 15).map(({ element, area, position, ...rest }) => ({
+          selector: rest.selector,
+          dimensions: rest.dimensions,
+          distanceFromViewport: rest.distanceFromViewport,
+          fileSize: rest.fileSize || "unknown",
+          src: rest.src.length > 50 ? "..." + rest.src.slice(-47) : rest.src
+        }));
+        console.table(tableData);
+        if (results.opportunities.length > 15) {
+          console.log(`... and ${results.opportunities.length - 15} more images`);
+        }
+        console.groupEnd();
+      }
+
+      // Hidden container images
+      if (results.hiddenContainers.length > 0) {
+        console.log("");
+        console.group(`🔒 In Hidden Containers (${results.hiddenContainers.length} images)`);
+        console.log("These images are in tabs, modals, carousels, or other hidden elements:");
+        console.log("");
+        const tableData = results.hiddenContainers.slice(0, 10).map(({ element, area, position, ...rest }) => ({
+          selector: rest.selector,
+          dimensions: rest.dimensions,
+          hiddenReason: rest.hiddenReason,
+          container: rest.container,
+          fileSize: rest.fileSize || "unknown"
+        }));
+        console.table(tableData);
+        if (results.hiddenContainers.length > 10) {
+          console.log(`... and ${results.hiddenContainers.length - 10} more images`);
+        }
+        console.groupEnd();
+      }
+
+      // Excluded summary
+      console.log("");
+      console.group("ℹ️ Correctly Excluded");
+      console.log(`• LCP candidate: ${results.excluded.lcpCandidate || "none found"}`);
+      console.log(`• In viewport (should be eager): ${results.excluded.inViewport}`);
+      console.log(`• Too small (icons, etc.): ${results.excluded.tooSmall}`);
+      console.log(`• Already has lazy loading: ${results.excluded.alreadyLazy}`);
+      console.groupEnd();
+
+      // Elements for inspection
+      console.log("");
+      console.group("🔎 Elements for inspection");
+      console.log("Click to expand and inspect in Elements panel:");
+      results.elements.slice(0, 10).forEach((node, i) => {
+        console.log(`${i + 1}. `, node);
+      });
+      if (results.elements.length > 10) {
+        console.log(`... and ${results.elements.length - 10} more`);
+      }
+      console.groupEnd();
+
+      // Implementation example
+      console.log("");
+      console.group("📝 Implementation");
+      console.log("Add lazy loading to these images:");
+      console.log("");
+      console.log(
+        '%c<img src="image.jpg" loading="lazy" alt="...">',
+        "font-family: monospace; background: #1e1e1e; color: #9cdcfe; padding: 8px; border-radius: 4px;"
+      );
+      console.log("");
+      console.log("For JavaScript-based lazy loading libraries, ensure they're configured");
+      console.log("to NOT lazy load above-the-fold images.");
+      console.groupEnd();
+    }
+
+    console.groupEnd();
+
+    return {
+      opportunities: results.opportunities.map(({ element, ...rest }) => rest),
+      hiddenContainers: results.hiddenContainers.map(({ element, ...rest }) => rest),
+      excluded: results.excluded,
+      totalOpportunities,
+      totalPotentialSavings: results.totalPotentialSavings.toFixed(1) + " KB",
+      elements: results.elements
+    };
+  }
+
+  // Make functions available globally
+  window.findAboveTheFoldLazyLoadedImages = findAboveTheFoldLazyLoadedImages;
+  window.analyzeLazyLoadingOpportunities = analyzeLazyLoadingOpportunities;
+
+  // Run detection
+  findAboveTheFoldLazyLoadedImages();
+})();
 ```
+
+### Understanding the Results
+
+#### `findAboveTheFoldLazyLoadedImages()` Results
+
+This function scans the viewport for images that have lazy loading but shouldn't:
+
+**Lazy Images Array:**
+
+| Field | Description |
+|-------|-------------|
+| `selector` | CSS selector path to the element |
+| `lazyType` | Type of lazy loading: `"loading-lazy"`, `"data-src"`, or `"both"` |
+| `dimensions` | Image dimensions as `"width×height"` |
+| `position` | `{ top, left }` position from document top |
+| `distanceFromEdge` | Distance to nearest viewport edge |
+| `src` | Current image source URL |
+| `srcset` | Responsive image sources (if set) |
+| `sizes` | Responsive image sizes (if set) |
+| `alt` | Image alt text |
+| `fetchPriority` | Current fetch priority (`"high"`, `"low"`, `"auto"`) |
+| `fileSize` | Transfer size in KB (if available via Performance API) |
+| `isLcpCandidate` | Whether this is the largest image (potential LCP) |
+
+**Summary Object:**
+
+- `total`: Total lazy images found in viewport
+- `withLoadingLazy`: Count using native `loading="lazy"`
+- `withDataSrc`: Count using JavaScript lazy loading
+- `lcpAffected`: Critical warning if LCP candidate has lazy loading
+
+**Warnings:**
+
+- 🚨 **LCP Candidate**: If the largest viewport image has lazy loading, this significantly impacts Core Web Vitals
+- ⚠️ **Large Files**: Images over 50KB with lazy loading in viewport waste optimization potential
+
+#### `analyzeLazyLoadingOpportunities(options)` Results
+
+This function finds images that should have lazy loading but don't.
+
+**Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `threshold` | `0` | Distance in px from viewport bottom. Use negative values (e.g., `-200`) to include images closer to the fold |
+| `minWidth` | `50` | Minimum image width in px (filters out small icons) |
+| `minHeight` | `50` | Minimum image height in px |
+| `includeHidden` | `true` | Include images in hidden containers (tabs, modals, etc.) |
+
+**Examples:**
+
+```js copy
+// Default settings
+analyzeLazyLoadingOpportunities()
+
+// More aggressive - find images closer to viewport
+analyzeLazyLoadingOpportunities({ threshold: -200 })
+
+// Include smaller images
+analyzeLazyLoadingOpportunities({ minWidth: 30, minHeight: 30 })
+
+// Exclude hidden containers
+analyzeLazyLoadingOpportunities({ includeHidden: false })
+
+// Combine options
+analyzeLazyLoadingOpportunities({ threshold: -100, minWidth: 40, includeHidden: true })
+```
+
+**Output fields:**
+
+- **opportunities**: Images below the fold without lazy loading
+- **hiddenContainers**: Images in tabs, modals, carousels that could be lazy loaded
+- **excluded**: Correctly excluded images (LCP, in viewport, too small)
+- **totalPotentialSavings**: Estimated KB saved on initial page load
+
+**Hidden Container Detection:**
+
+The function automatically detects images in:
+- `display: none` or `visibility: hidden` elements
+- `[hidden]` attribute
+- Inactive tab panels (`.tab-pane:not(.active)`, `[role="tabpanel"]`)
+- Closed accordions (`.accordion-collapse:not(.show)`)
+- Non-active carousel slides (`.carousel-item:not(.active)`, `.swiper-slide`)
+- Modals (`.modal:not(.show)`)
+
+### Why This Matters: Impact on Core Web Vitals
+
+Lazy loading is a powerful optimization technique, but incorrect usage can severely harm your Largest Contentful Paint (LCP) score.
+
+**The Problem:**
+
+When you add `loading="lazy"` to an above-the-fold image:
+
+1. Browser defers loading until image is "near" the viewport
+2. For above-fold images, this adds unnecessary delay
+3. The image loads later than it would have naturally
+4. LCP score increases (worse performance)
+
+**Performance Impact:**
+
+| Scenario | Impact on LCP |
+|----------|---------------|
+| LCP image with `loading="lazy"` | +200-500ms delay |
+| Hero image with `loading="lazy"` | +100-300ms delay |
+| Above-fold gallery with lazy loading | +150-400ms cumulative |
+| Correctly lazy-loaded below-fold images | -100-500ms improvement |
+
+**The Solution:**
+
+| Image Location | Recommendation |
+|----------------|----------------|
+| LCP candidate (largest above-fold image) | `fetchpriority="high"`, NO lazy loading |
+| Other above-fold images | NO lazy loading, default priority |
+| Below-fold images | `loading="lazy"` |
+| Images in hidden containers | `loading="lazy"` |
+
+### Best Practices
+
+#### When to Use `loading="lazy"`
+
+✅ **Good candidates:**
+- Images below the fold
+- Images in carousels (non-active slides)
+- Images in tabs (non-active panels)
+- Images in accordions (collapsed sections)
+- Images in modals
+- Footer images
+- Blog post images after the first paragraph
+
+❌ **Never lazy load:**
+- The LCP candidate (largest above-fold image)
+- Hero images
+- Logo images in viewport
+- Critical product images
+- Any image visible on initial page load
+
+#### Prioritizing Critical Images
+
+For your LCP candidate, use `fetchpriority="high"`:
+
+```html copy
+<!-- LCP candidate - highest priority, no lazy loading -->
+<img
+  src="hero-image.jpg"
+  fetchpriority="high"
+  alt="Hero image description"
+>
+
+<!-- Other above-fold images - no lazy loading -->
+<img src="product.jpg" alt="Product image">
+
+<!-- Below-fold images - lazy loading -->
+<img
+  src="related-product.jpg"
+  loading="lazy"
+  alt="Related product"
+>
+```
+
+#### Combining with Responsive Images
+
+```html copy
+<!-- LCP candidate with responsive images -->
+<img
+  src="hero-800.jpg"
+  srcset="hero-400.jpg 400w, hero-800.jpg 800w, hero-1200.jpg 1200w"
+  sizes="(max-width: 600px) 400px, (max-width: 1000px) 800px, 1200px"
+  fetchpriority="high"
+  alt="Hero image"
+>
+
+<!-- Below-fold responsive image with lazy loading -->
+<img
+  src="content-800.jpg"
+  srcset="content-400.jpg 400w, content-800.jpg 800w"
+  sizes="(max-width: 600px) 400px, 800px"
+  loading="lazy"
+  alt="Content image"
+>
+```
+
+### Implementation Examples
+
+**Fixing an LCP image:**
+
+```html copy
+<!-- ❌ Before: Lazy loaded LCP candidate -->
+<img
+  src="hero.jpg"
+  loading="lazy"
+  alt="Hero"
+>
+
+<!-- ✅ After: Prioritized LCP candidate -->
+<img
+  src="hero.jpg"
+  fetchpriority="high"
+  alt="Hero"
+>
+```
+
+**Picture element with proper loading:**
+
+```html copy
+<!-- Above-fold picture element -->
+<picture>
+  <source srcset="hero.avif" type="image/avif">
+  <source srcset="hero.webp" type="image/webp">
+  <img
+    src="hero.jpg"
+    fetchpriority="high"
+    alt="Hero image"
+  >
+</picture>
+
+<!-- Below-fold picture element -->
+<picture>
+  <source srcset="content.avif" type="image/avif">
+  <source srcset="content.webp" type="image/webp">
+  <img
+    src="content.jpg"
+    loading="lazy"
+    alt="Content image"
+  >
+</picture>
+```
+
+**JavaScript lazy loading libraries:**
+
+If using a JS library (lazysizes, vanilla-lazyload, etc.), configure it to exclude above-fold images:
+
+```js copy
+// Example: Exclude images with data-priority attribute
+document.querySelectorAll('img[data-src]').forEach(img => {
+  const rect = img.getBoundingClientRect();
+  if (rect.top < window.innerHeight) {
+    // Above fold - load immediately
+    img.src = img.dataset.src;
+    img.removeAttribute('data-src');
+  }
+});
+```
+
+### Browser Support
+
+Native lazy loading (`loading="lazy"`) is supported in:
+
+- Chrome 77+
+- Edge 79+
+- Firefox 75+
+- Safari 15.4+
+- Opera 64+
+
+The `fetchpriority` attribute is supported in:
+
+- Chrome 101+
+- Edge 101+
+- Opera 87+
+
+Not yet in Firefox and Safari, but they ignore the attribute safely.
+
+### Further Reading
+
+- [Browser-level image lazy loading for the web](https://web.dev/articles/browser-level-image-lazy-loading) | web.dev
+- [Lazy loading images](https://developer.mozilla.org/en-US/docs/Web/Performance/Lazy_loading#images_and_iframes) | MDN Web Docs
+- [Optimize Largest Contentful Paint](https://web.dev/articles/optimize-lcp) | web.dev
+- [Fetch Priority API](https://web.dev/articles/fetch-priority) | web.dev
+- [The loading attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#loading) | MDN Web Docs
+- [Don't lazy-load LCP images](https://web.dev/articles/lcp-lazy-loading) | web.dev
+
+### Note
+
+_This snippet uses the Performance API to retrieve file sizes when available. For the most accurate results, run the analysis after the page has fully loaded. The detection runs synchronously and may take a moment on pages with many images._
