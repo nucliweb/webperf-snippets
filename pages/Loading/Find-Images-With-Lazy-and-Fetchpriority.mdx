@@ -1,41 +1,208 @@
-#  Find Images With Loading Lazy and Fetchpriority
+# Find Images With Loading Lazy and Fetchpriority
 
-List all images that have `loading="lazy"` and `fetchpriority=high`.
+Detects images that have both `loading="lazy"` and `fetchpriority="high"` - a contradictory combination that indicates a misconfiguration.
 
-> In reality you probably wouldn't really want `loading=lazy` and `fetchpriority=high` at the same time. That would mean don't load it initially, but when you start to load it, load it with high priority. Which is kind of contradictory! - [Barry Pollard](https://twitter.com/tunetheweb/status/1714750391890444582)
+**Why this is a problem:**
+
+| Attribute | Purpose | When to use |
+|-----------|---------|-------------|
+| `loading="lazy"` | Defer loading until near viewport | Below-the-fold images |
+| `fetchpriority="high"` | Prioritize loading over other resources | Critical above-the-fold images (LCP) |
+
+Using both together sends mixed signals to the browser:
+- "Don't load this initially" (`lazy`)
+- "But when you do load it, make it high priority" (`high`)
+
+This is contradictory because high-priority resources should load immediately, not be deferred.
+
+> "In reality you probably wouldn't really want `loading=lazy` and `fetchpriority=high` at the same time. That would mean don't load it initially, but when you start to load it, load it with high priority. Which is kind of contradictory!" - [Barry Pollard](https://twitter.com/tunetheweb/status/1714750391890444582)
+
+> **Related:** Use the [Find Above The Fold Lazy Loaded Images](/Loading/Find-Above-The-Fold-Lazy-Loaded-Images) snippet to detect lazy-loaded images in the viewport that may be hurting LCP.
 
 ### Attribution
 
-This snippet code it's based in the [script](https://twitter.com/csswizardry/status/1714697877245632832) shared by [Harry Roberts](https://csswizardry.com/).
+Based on the [script](https://twitter.com/csswizardry/status/1714697877245632832) shared by [Harry Roberts](https://csswizardry.com/).
 
-#### Snippet
+### Snippet
 
 ```js copy
-const MESSAGES = {
-  good: `The current rendered code, don't have elements with loading="lazy" fetchpriority="high"`,
-  bad: "In reality you probably wouldnt really want `loading=lazy` and `fetchpriority=high` at the same time. That would mean don't load it initially, but when you start to load it, load it with high priority. Which is kind of contradictory!",
-};
-const elementsLazyFetchpriority = document.querySelectorAll(
-  "[loading=lazy][fetchpriority=high]",
-);
-const numLazyFetchpriority = elementsLazyFetchpriority.length;
-const hasLazyFetchpriority = numLazyFetchpriority > 0;
+// Find images with contradictory loading="lazy" and fetchpriority="high"
+// https://webperf-snippets.nucliweb.net
 
-if (hasLazyFetchpriority) {
-  console.log(
-    `%c The page has ${numLazyFetchpriority} image(s) with loading="lazy" fetchpriority="high"`,
-    "background: #222; color: lightcoral; padding: 0.5ch; font-size: 1.28em",
-  );
-  elementsLazyFetchpriority.forEach((el) => console.log(el));
+(() => {
+  function getSelector(node) {
+    let sel = "";
+    try {
+      while (node && node.nodeType !== 9) {
+        const el = node;
+        const name = el.nodeName.toLowerCase();
+        const part = el.id
+          ? "#" + el.id
+          : name +
+            (el.classList && el.classList.value && el.classList.value.trim()
+              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
+              : "");
+        if (sel.length + part.length > 80) return sel || part;
+        sel = sel ? part + ">" + sel : part;
+        if (el.id) break;
+        node = el.parentNode;
+      }
+    } catch (err) {}
+    return sel;
+  }
 
-  console.log(
-    `%c ${MESSAGES.bad}`,
-    "background: #222; color: lightcoral; padding: 0.5ch; margin-top: 1em",
+  function isInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return (
+      rect.top < window.innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < window.innerWidth &&
+      rect.right > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }
+
+  // Find LCP candidate for context
+  const viewportImages = Array.from(document.querySelectorAll("img")).filter(
+    (img) => isInViewport(img) && img.getBoundingClientRect().width > 0
   );
-} else {
-  console.log(
-    `%c ${MESSAGES.good}`,
-    "background: #222; color: lightgreen; padding: 0.5ch",
+
+  let lcpCandidate = null;
+  let maxArea = 0;
+  viewportImages.forEach((img) => {
+    const rect = img.getBoundingClientRect();
+    const area = rect.width * rect.height;
+    if (area > maxArea) {
+      maxArea = area;
+      lcpCandidate = img;
+    }
+  });
+
+  // Find conflicting elements
+  const conflictingElements = document.querySelectorAll(
+    "[loading=lazy][fetchpriority=high]"
   );
-}
+
+  console.group("%c🔍 Lazy + Fetchpriority Conflict Check", "font-weight: bold; font-size: 14px;");
+
+  if (conflictingElements.length === 0) {
+    console.log(
+      "%c✅ No conflicts found. No elements have both loading=\"lazy\" and fetchpriority=\"high\".",
+      "color: #22c55e; font-weight: bold;"
+    );
+  } else {
+    console.log(
+      `%c⚠️ Found ${conflictingElements.length} element(s) with contradictory attributes`,
+      "color: #ef4444; font-weight: bold; font-size: 14px;"
+    );
+    console.log("");
+
+    // Analyze each element
+    const tableData = Array.from(conflictingElements).map((el) => {
+      const rect = el.getBoundingClientRect();
+      const inViewport = isInViewport(el);
+      const isLcp = el === lcpCandidate;
+
+      return {
+        selector: getSelector(el),
+        dimensions: `${Math.round(rect.width)}×${Math.round(rect.height)}`,
+        inViewport: inViewport ? "Yes" : "No",
+        isLcpCandidate: isLcp ? "⚠️ Yes" : "No",
+        src: (el.currentSrc || el.src || "").slice(-50),
+        element: el,
+      };
+    });
+
+    console.log("%c📋 Conflicting Elements:", "font-weight: bold;");
+    console.table(tableData.map(({ element, ...rest }) => rest));
+
+    // Elements for inspection
+    console.log("");
+    console.log("%c🔎 Elements for inspection:", "font-weight: bold;");
+    tableData.forEach(({ element, selector, isLcpCandidate }, i) => {
+      const marker = isLcpCandidate === "⚠️ Yes" ? " 🚨 LCP" : "";
+      console.log(`${i + 1}.${marker}`, element);
+    });
+
+    // Recommendation
+    console.log("");
+    console.log("%c📝 How to fix:", "color: #3b82f6; font-weight: bold;");
+    console.log("");
+
+    tableData.forEach(({ selector, inViewport, isLcpCandidate }) => {
+      console.log(`%c${selector}:`, "font-weight: bold;");
+      if (inViewport === "Yes" || isLcpCandidate === "⚠️ Yes") {
+        console.log("   → Image is in viewport. Remove loading=\"lazy\", keep fetchpriority=\"high\"");
+        console.log(
+          '%c   <img src="..." fetchpriority="high">',
+          "font-family: monospace; color: #22c55e;"
+        );
+      } else {
+        console.log("   → Image is outside viewport. Remove fetchpriority=\"high\", keep loading=\"lazy\"");
+        console.log(
+          '%c   <img src="..." loading="lazy">',
+          "font-family: monospace; color: #22c55e;"
+        );
+      }
+      console.log("");
+    });
+
+    console.log("%c💡 General rule:", "font-weight: bold;");
+    console.log("   • Above the fold (LCP): fetchpriority=\"high\", NO lazy loading");
+    console.log("   • Below the fold: loading=\"lazy\", NO fetchpriority");
+  }
+
+  console.groupEnd();
+})();
 ```
+
+### Understanding the Results
+
+The snippet checks for the contradictory combination and provides context:
+
+**For each conflicting element:**
+
+| Field | Description |
+|-------|-------------|
+| `selector` | CSS selector path to identify the element |
+| `dimensions` | Rendered width × height |
+| `inViewport` | Whether the image is currently visible |
+| `isLcpCandidate` | Whether this is the largest viewport image |
+| `src` | Image source URL (truncated) |
+
+**Recommendations:**
+
+Based on the image position, the snippet suggests which attribute to keep:
+
+| Image Position | Recommendation |
+|----------------|----------------|
+| In viewport / LCP | Remove `loading="lazy"`, keep `fetchpriority="high"` |
+| Outside viewport | Remove `fetchpriority="high"`, keep `loading="lazy"` |
+
+### Best Practices
+
+**For critical above-the-fold images (especially LCP):**
+
+```html
+<img src="hero.jpg" fetchpriority="high" alt="Hero image">
+```
+
+**For below-the-fold images:**
+
+```html
+<img src="content.jpg" loading="lazy" alt="Content image">
+```
+
+**Never combine both:**
+
+```html
+<!-- ❌ Contradictory - don't do this -->
+<img src="image.jpg" loading="lazy" fetchpriority="high" alt="...">
+```
+
+### Further Reading
+
+- [Fetch Priority API](https://web.dev/articles/fetch-priority) | web.dev
+- [Browser-level lazy loading](https://web.dev/articles/browser-level-image-lazy-loading) | web.dev
+- [Optimizing resource loading with Priority Hints](https://developer.chrome.com/docs/web-platform/performance/resource-priorities) | Chrome Developers
