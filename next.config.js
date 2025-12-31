@@ -11,6 +11,11 @@ module.exports = withNextra({
         destination: '/Loading/Find-Above-The-Fold-Lazy-Loaded-Images',
         permanent: true,
       },
+      {
+        source: '/Loading/Inline-Script-Info-and-Size-Including__NEXT_DATA',
+        destination: '/Loading/SSR-Hydration-Data-Analysis',
+        permanent: true,
+      },
     ]
   },
 })
