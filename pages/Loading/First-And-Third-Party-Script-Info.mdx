@@ -1,66 +1,279 @@
 # First And Third Party Script Info
 
-List all scripts using PerformanceResourceTiming API and separating them by first and third party
+Analyzes all scripts loaded on the page, separating them into first-party (your domain) and third-party (external) scripts. This helps identify the performance impact of external dependencies.
 
-[More Info](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming)
+**Why this matters:**
 
-[Info On CORS](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors)
+| Concern | First-Party | Third-Party |
+|---------|-------------|-------------|
+| **Control** | Full control over optimization | Limited or no control |
+| **Reliability** | Depends on your infrastructure | External point of failure |
+| **Performance** | Can be optimized, bundled, cached | Often unoptimized, may block rendering |
+| **Privacy** | Your data policies | May collect user data |
+| **Security** | Your responsibility | Potential vulnerability vector |
 
-#### Snippet
+**Common third-party script issues:**
+
+- Block main thread during execution
+- Add DNS lookups and connection overhead
+- May load additional scripts (script chains)
+- Often not cached effectively
+- Can delay Time to Interactive (TTI)
+
+> **Related:** Use the [Find render-blocking resources](/Loading/Find-render-blocking-resources) snippet to identify scripts blocking initial render.
+
+### Snippet
 
 ```js copy
-// ex: katespade.com - list firsty party subdomains in HOSTS array
-const HOSTS = ["assets.katespade.com"];
+// First and Third Party Script Analysis
+// https://webperf-snippets.nucliweb.net
 
-function getScriptInfo() {
-  const resourceListEntries = performance.getEntriesByType("resource");
-  // set for first party scripts
-  const first = [];
-  // set for third party scripts
-  const third = [];
-
-  resourceListEntries.forEach((resource) => {
-    // check for initiator type
-    const value = "initiatorType" in resource;
-    if (value) {
-      if (resource.initiatorType === "script") {
-        const { host } = new URL(resource.name);
-        // check if resource url host matches location.host = first party script
-        if (host === location.host || HOSTS.includes(host)) {
-          const json = resource.toJSON();
-          first.push({ ...json, type: "First Party" });
-        } else {
-          // add to third party script
-          const json = resource.toJSON();
-          third.push({ ...json, type: "Third Party" });
-        }
+(() => {
+  // Auto-detect first-party: same root domain (handles subdomains)
+  function getRootDomain(hostname) {
+    const parts = hostname.split(".");
+    // Handle cases like co.uk, com.au, etc.
+    if (parts.length > 2) {
+      // Simple heuristic: if second-to-last part is short (co, com, org, net), take 3 parts
+      const sld = parts[parts.length - 2];
+      if (sld.length <= 3 && ["co", "com", "org", "net", "gov", "edu"].includes(sld)) {
+        return parts.slice(-3).join(".");
       }
+      return parts.slice(-2).join(".");
     }
+    return hostname;
+  }
+
+  const currentRootDomain = getRootDomain(location.hostname);
+
+  function isFirstParty(hostname) {
+    return getRootDomain(hostname) === currentRootDomain;
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return "N/A";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
+  }
+
+  // Gather script data
+  const scripts = performance
+    .getEntriesByType("resource")
+    .filter((r) => r.initiatorType === "script")
+    .map((r) => {
+      const url = new URL(r.name);
+      const firstParty = isFirstParty(url.hostname);
+
+      return {
+        name: r.name,
+        shortName: url.pathname.split("/").pop() || url.pathname,
+        host: url.hostname,
+        firstParty,
+        duration: r.duration,
+        transferSize: r.transferSize || 0,
+        startTime: r.startTime,
+        responseEnd: r.responseEnd,
+        renderBlocking: r.renderBlockingStatus === "blocking",
+      };
+    });
+
+  const firstParty = scripts.filter((s) => s.firstParty);
+  const thirdParty = scripts.filter((s) => !s.firstParty);
+
+  // Calculate metrics
+  const calcMetrics = (list) => ({
+    count: list.length,
+    totalSize: list.reduce((sum, s) => sum + s.transferSize, 0),
+    totalDuration: list.reduce((sum, s) => sum + s.duration, 0),
+    blocking: list.filter((s) => s.renderBlocking).length,
+    hosts: [...new Set(list.map((s) => s.host))],
   });
 
-  const scripts = {
-    firstParty: [{ name: "no data" }],
-    thirdParty: [{ name: "no data" }],
-  };
+  const firstMetrics = calcMetrics(firstParty);
+  const thirdMetrics = calcMetrics(thirdParty);
+  const totalScripts = scripts.length;
+  const thirdPartyPct = totalScripts > 0 ? ((thirdParty.length / totalScripts) * 100).toFixed(0) : 0;
 
-  if (first.length) {
-    scripts.firstParty = first;
+  // Display results
+  console.group("%c📊 Script Analysis: First vs Third Party", "font-weight: bold; font-size: 14px;");
+
+  // Overall summary
+  console.log("");
+  console.log("%cOverall Summary:", "font-weight: bold;");
+  console.log(`   Total scripts: ${totalScripts}`);
+  console.log(`   First-party: ${firstParty.length} (${100 - thirdPartyPct}%)`);
+  console.log(`   Third-party: ${thirdParty.length} (${thirdPartyPct}%)`);
+
+  if (thirdParty.length > firstParty.length) {
+    console.log(`%c   ⚠️ More third-party scripts than first-party!`, "color: #f59e0b;");
   }
 
-  if (third.length) {
-    scripts.thirdParty = third;
+  // First Party Section
+  console.log("");
+  console.group(`%c🏠 First-Party Scripts (${firstParty.length})`, "color: #22c55e; font-weight: bold;");
+
+  if (firstParty.length === 0) {
+    console.log("No first-party scripts found.");
+  } else {
+    console.log(`   Total size: ${formatBytes(firstMetrics.totalSize)}`);
+    console.log(`   Render-blocking: ${firstMetrics.blocking}`);
+    console.log("");
+
+    const firstTable = firstParty
+      .sort((a, b) => b.transferSize - a.transferSize)
+      .map((s) => ({
+        Script: s.shortName,
+        Size: formatBytes(s.transferSize),
+        Duration: s.duration.toFixed(0) + "ms",
+        Blocking: s.renderBlocking ? "⚠️ Yes" : "No",
+        Host: s.host,
+      }));
+    console.table(firstTable);
+  }
+  console.groupEnd();
+
+  // Third Party Section
+  console.log("");
+  console.group(`%c🌐 Third-Party Scripts (${thirdParty.length})`, "color: #ef4444; font-weight: bold;");
+
+  if (thirdParty.length === 0) {
+    console.log(
+      "%c✅ No third-party scripts found!",
+      "color: #22c55e; font-weight: bold;"
+    );
+  } else {
+    console.log(`   Total size: ${formatBytes(thirdMetrics.totalSize)}`);
+    console.log(`   Render-blocking: ${thirdMetrics.blocking}`);
+    console.log(`   Unique hosts: ${thirdMetrics.hosts.length}`);
+    console.log("");
+
+    // Group by host
+    console.log("%c   By host:", "font-weight: bold;");
+    const byHost = thirdParty.reduce((acc, s) => {
+      if (!acc[s.host]) acc[s.host] = { count: 0, size: 0, blocking: 0 };
+      acc[s.host].count++;
+      acc[s.host].size += s.transferSize;
+      if (s.renderBlocking) acc[s.host].blocking++;
+      return acc;
+    }, {});
+
+    Object.entries(byHost)
+      .sort((a, b) => b[1].size - a[1].size)
+      .forEach(([host, data]) => {
+        const blockingMark = data.blocking > 0 ? " ⚠️" : "";
+        console.log(`      ${host}: ${data.count} script(s), ${formatBytes(data.size)}${blockingMark}`);
+      });
+
+    console.log("");
+    const thirdTable = thirdParty
+      .sort((a, b) => b.transferSize - a.transferSize)
+      .map((s) => ({
+        Script: s.shortName,
+        Host: s.host,
+        Size: formatBytes(s.transferSize),
+        Duration: s.duration.toFixed(0) + "ms",
+        Blocking: s.renderBlocking ? "⚠️ Yes" : "No",
+      }));
+    console.table(thirdTable);
+  }
+  console.groupEnd();
+
+  // Recommendations
+  if (thirdParty.length > 0) {
+    console.log("");
+    console.group("%c📝 Recommendations", "color: #3b82f6; font-weight: bold;");
+
+    if (thirdMetrics.blocking > 0) {
+      console.log("");
+      console.log("%c⚠️ Render-blocking third-party scripts:", "font-weight: bold; color: #ef4444;");
+      console.log("   • Load with 'async' or 'defer' attribute");
+      console.log("   • Consider lazy-loading after user interaction");
+      console.log('%c   <script src="..." async></script>', "font-family: monospace; color: #22c55e;");
+    }
+
+    if (thirdMetrics.hosts.length > 3) {
+      console.log("");
+      console.log(`%c⚠️ ${thirdMetrics.hosts.length} different third-party hosts:`, "font-weight: bold; color: #f59e0b;");
+      console.log("   • Each host requires DNS lookup + connection");
+      console.log("   • Use <link rel='preconnect'> for critical hosts");
+      console.log('%c   <link rel="preconnect" href="https://example.com">', "font-family: monospace; color: #22c55e;");
+    }
+
+    if (thirdMetrics.totalSize > 100 * 1024) {
+      console.log("");
+      console.log(`%c⚠️ Third-party scripts total ${formatBytes(thirdMetrics.totalSize)}:`, "font-weight: bold; color: #f59e0b;");
+      console.log("   • Audit necessity of each script");
+      console.log("   • Consider self-hosting critical scripts");
+      console.log("   • Look for lighter alternatives");
+    }
+
+    console.log("");
+    console.log("%c💡 General tips:", "font-weight: bold;");
+    console.log("   • Regularly audit third-party scripts");
+    console.log("   • Set up Content Security Policy (CSP)");
+    console.log("   • Monitor third-party performance with RUM");
+    console.log("   • Have fallbacks for critical functionality");
+
+    console.groupEnd();
   }
 
-  return scripts;
-}
-
-const { firstParty, thirdParty } = getScriptInfo();
-
-console.groupCollapsed("FIRST PARTY SCRIPTS");
-console.table(firstParty);
-console.groupEnd();
-
-console.groupCollapsed("THIRD PARTY SCRIPTS");
-console.table(thirdParty);
-console.groupEnd();
+  console.groupEnd();
+})();
 ```
+
+### Understanding the Results
+
+**Overall Summary:**
+- Total script count with first/third-party breakdown
+- Warning if third-party scripts outnumber first-party
+
+**First-Party Scripts:**
+- Scripts from your domain and subdomains (auto-detected)
+- Total size and render-blocking count
+
+**Third-Party Scripts:**
+- Scripts from external domains
+- Grouped by host to identify heavy dependencies
+- Total size, render-blocking count, unique hosts
+
+**For each script:**
+
+| Field | Description |
+|-------|-------------|
+| Script | Filename |
+| Host | Domain serving the script |
+| Size | Transfer size (compressed) |
+| Duration | Total time to load |
+| Blocking | Whether it blocks rendering |
+
+### How First-Party Detection Works
+
+The snippet automatically detects first-party scripts by comparing root domains:
+
+| Page Domain | Script Host | Detected As |
+|-------------|-------------|-------------|
+| `example.com` | `example.com` | First-party |
+| `example.com` | `cdn.example.com` | First-party |
+| `example.com` | `assets.example.com` | First-party |
+| `example.com` | `google-analytics.com` | Third-party |
+| `shop.example.co.uk` | `cdn.example.co.uk` | First-party |
+
+### Common Third-Party Script Categories
+
+| Category | Examples | Typical Impact |
+|----------|----------|----------------|
+| Analytics | Google Analytics, Segment, Mixpanel | 20-50 KB, often async |
+| Advertising | Google Ads, Facebook Pixel | 50-200 KB, may chain-load |
+| Tag Managers | GTM, Tealium | 30-80 KB, loads additional scripts |
+| Social | Facebook SDK, Twitter widgets | 100-300 KB, heavy |
+| Chat/Support | Intercom, Zendesk, Drift | 100-500 KB, often deferred |
+| A/B Testing | Optimizely, VWO | 50-150 KB, often blocking |
+
+### Further Reading
+
+- [Loading Third-Party JavaScript](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/loading-third-party-javascript) | Google Developers
+- [Best practices for third-party scripts](https://web.dev/articles/optimizing-content-efficiency-loading-third-party-javascript) | web.dev
+- [PerformanceResourceTiming API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming) | MDN
+- [Using the Resource Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API#coping_with_cors) | MDN
