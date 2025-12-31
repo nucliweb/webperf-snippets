@@ -1,32 +1,48 @@
-[`Star History`](https://star-history.com/#nucliweb/webperf-snippets&Date)
+# WebPerf Snippets
 
-<div style="margin-bottom: 1ch">
-    <img src="https://github.com/nucliweb/webperf-snippets/assets/1307927/f47f3049-34f5-407c-896a-d26a30ddf344" alt"WebPerf Snippets">
-</div>
+A curated collection of JavaScript snippets to measure and debug Web Performance directly in your browser's DevTools console.
 
-A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on [Chrome DevTools](https://developer.chrome.com/docs/devtools/).
+[![Star History](https://img.shields.io/github/stars/nucliweb/webperf-snippets?style=social)](https://star-history.com/#nucliweb/webperf-snippets&Date)
 
-![Chrome DevTools](https://github.com/nucliweb/webperf-snippets/assets/1307927/0d7bb9c8-5f21-47c6-90c5-2707a430dacb)
+![WebPerf Snippets](https://github.com/nucliweb/webperf-snippets/assets/1307927/f47f3049-34f5-407c-896a-d26a30ddf344)
 
-## Add snippet to Chrome DevTools
+## What you can measure
 
+| Category | What it includes |
+|----------|------------------|
+| **Core Web Vitals** | LCP, CLS, INP - the metrics that impact SEO and user experience |
+| **Loading** | TTFB, resource hints, scripts, fonts, images, render-blocking resources |
+| **Interaction** | Long Animation Frames, event timing, responsiveness |
 
-You can use the webperf-snippets as a Snippet in the Chrome DevTools Sources tab.
+## How to use
 
-1. Copy any of the WebPerf Snippets
-2. [Open Chrome DevTools](https://developer.chrome.com/docs/devtools/open/)
-3. Select the Sources tab
-4. Select the Snippets sub tab
-5. Click New snippet button, e.g. [LCP](https://github.com/nucliweb/webperf-snippets#largest-contentful-paint-lcp)
-6. Write the snippet name, LCP
-7. Paste the copied code at the right area
-8. Run the snippet
+### Option 1: Run in browser console
 
-## Video
+1. Copy any snippet from [webperf-snippets.nucliweb.net](https://webperf-snippets.nucliweb.net)
+2. Open DevTools (`F12` or `Cmd+Option+I` / `Ctrl+Shift+I`)
+3. Go to the **Console** tab
+4. Paste and press `Enter`
+
+### Option 2: Save as DevTools Snippet
+
+Save frequently used snippets for quick access:
+
+1. Open DevTools → **Sources** tab → **Snippets** panel
+2. Click **+ New snippet**
+3. Name it (e.g., "LCP")
+4. Paste the code
+5. Right-click → **Run** (or `Cmd+Enter` / `Ctrl+Enter`)
+
+### Video tutorial
 
 https://github.com/nucliweb/webperf-snippets/assets/1307927/2987a2ca-3eef-4b73-8f6b-7b1e06b50040
 
-## Snippets
+## Documentation
 
-Visit [webperf-snippets](https://webperf-snippets.nucliweb.net)
+Visit **[webperf-snippets.nucliweb.net](https://webperf-snippets.nucliweb.net)** for the full documentation with all snippets.
+
+## Resources
+
+- [Web Vitals](https://web.dev/articles/vitals) - Learn about Core Web Vitals
+- [Chrome DevTools](https://developer.chrome.com/docs/devtools/) - Official documentation
 
