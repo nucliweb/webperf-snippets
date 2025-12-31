@@ -1,109 +1,352 @@
-# Long Animation Frames
+# Long Animation Frames (LoAF)
 
-_This snippet requires specific features that are either available in Chrome 115+ for origins that are part of [the LoAF Origin Trial](https://developer.chrome.com/origintrials/#/view_trial/3935020174414970881) or require that you enable the **#enable-experimental-web-platform-features** flag in `chrome://flags` (please note that you will need to restart your browser)._
+Tracks [Long Animation Frames](https://developer.chrome.com/docs/web-platform/long-animation-frames) to identify JavaScript and rendering work that blocks the main thread. LoAF is the underlying API that powers INP debugging.
 
-To determine when long animation frames (LoAF) happen, you can use [PerformanceObserver](https://developer.mozilla.org/docs/Web/API/PerformanceObserver) and register to observe entries of type `long-animation-frame`. This snippet from [@noamr](https://github.com/noamr) provides additional metrics computed from the LoAF raw data.
+**What is a Long Animation Frame?**
 
-#### Snippet
+A frame is considered "long" when it takes more than 50ms. The API provides detailed breakdown of where time is spent:
+
+| Metric | Description |
+|--------|-------------|
+| **Duration** | Total frame time from start to render complete |
+| **Blocking Duration** | Time exceeding 50ms threshold (impacts INP) |
+| **Work Duration** | JavaScript execution time |
+| **Render Duration** | Style calculation, layout, and paint |
+| **Style & Layout Duration** | Time in style/layout specifically |
+
+**LoAF vs Long Tasks:**
+
+| Aspect | Long Tasks | Long Animation Frames |
+|--------|------------|----------------------|
+| Threshold | > 50ms | > 50ms |
+| Script attribution | Limited | Full (invoker, source URL, function) |
+| Render time | Not included | Included |
+| Forced layouts | Not detected | Detected and measured |
+
+> **Tip:** LoAF helps answer "Why was my interaction slow?" by showing exactly which scripts ran and how long each phase took.
+
+### Snippet
 
 ```js copy
-(function init() {
-  function processAndFilterLoAFs(entries) {
-    function floorObject(o) {
-      return Object.fromEntries(
-        Array.from(Object.entries(o)).map(([key, value]) => [
-          key,
-          typeof value === "number" ? Math.floor(value) : value,
-        ]),
-      );
-    }
+// Long Animation Frames Analysis
+// https://webperf-snippets.nucliweb.net
 
-    function processEntry(entry) {
-      const startTime = entry.startTime;
-      const endTime = entry.startTime + entry.duration;
-      const delay = entry.desiredRenderStart
-        ? Math.max(0, entry.startTime - entry.desiredRenderStart)
-        : 0;
-      const deferredDuration = Math.max(
-        0,
-        entry.desiredRenderStart - entry.startTime,
-      );
-      const renderDuration = entry.styleAndLayoutStart - entry.renderStart;
-      const workDuration = entry.renderStart
-        ? entry.renderStart - entry.startTime
-        : entry.duration;
-      const totalForcedStyleAndLayoutDuration = entry.scripts.reduce(
-        (sum, script) => sum + script.forcedStyleAndLayoutDuration,
-        0,
-      );
-      const styleAndLayoutDuration = entry.styleAndLayoutStart
-        ? endTime - entry.styleAndLayoutStart
-        : 0;
-      const scripts = entry.scripts.map((script) => {
-        const delay = script.startTime - script.desiredExecutionStart;
-        const scriptEnd = script.startTime + script.duration;
-        const compileDuration = script.executionStart - script.startTime;
-        const execDuration = scriptEnd - script.executionStart;
-        return floorObject({
-          delay,
-          compileDuration,
-          execDuration,
-          ...script.toJSON(),
-        });
-      });
-      return floorObject({
-        startTime,
-        delay,
-        deferredDuration,
-        renderDuration,
-        workDuration,
-        styleAndLayoutDuration,
-        totalForcedStyleAndLayoutDuration,
-        ...entry.toJSON(),
-        scripts,
-      });
-    }
+(() => {
+  const formatMs = (ms) => `${Math.round(ms)}ms`;
 
-    return entries.map(processEntry);
-  }
+  // Rating based on blocking duration
+  const valueToRating = (blockingDuration) =>
+    blockingDuration === 0 ? "good" : blockingDuration <= 100 ? "needs-improvement" : "poor";
 
-  function analyze() {
-    return loafs
-      .map((loaf) => ({
-        blockingDuration: loaf.blockingDuration,
-        loaf,
-        scripts: loaf.scripts,
-        events: events.filter((e) => overlap(e, loaf)),
-      }))
-      .filter((l) => l.blockingDuration && l.events.length);
-  }
+  const RATING_COLORS = {
+    good: "#0CCE6A",
+    "needs-improvement": "#FFA400",
+    poor: "#FF4E42",
+  };
 
-  let loafs = [];
-  let events = [];
-  function processLoAFs(entries) {
-    loafs = [...loafs, ...processAndFilterLoAFs(entries.getEntries())];
-    console.log(analyze());
-  }
+  const RATING_ICONS = {
+    good: "🟢",
+    "needs-improvement": "🟡",
+    poor: "🔴",
+  };
 
-  function processEvents(entries) {
-    events = [...events, ...entries.getEntries()];
-    console.log(analyze());
-  }
-  new PerformanceObserver(processLoAFs).observe({
-    type: "long-animation-frame",
-    buffered: true,
-  });
-  new PerformanceObserver(processEvents).observe({
-    type: "event",
-    buffered: true,
-  });
+  // Track all LoAFs and events
+  const allLoAFs = [];
+  const allEvents = [];
 
-  function overlap(e1, e2) {
-    return (
-      e1.startTime < e2.startTime + e2.duration &&
-      e2.startTime < e1.startTime + e1.duration
+  const getScriptSummary = (script) => {
+    const invoker = script.invoker || script.name || "(anonymous)";
+    const source = script.sourceURL
+      ? script.sourceURL.split("/").pop()?.split("?")[0] || script.sourceURL
+      : "";
+    return { invoker, source, type: script.invokerType || "unknown" };
+  };
+
+  const processLoAF = (entry) => {
+    const endTime = entry.startTime + entry.duration;
+
+    // Calculate derived metrics
+    const workDuration = entry.renderStart
+      ? entry.renderStart - entry.startTime
+      : entry.duration;
+
+    const renderDuration = entry.renderStart
+      ? endTime - entry.renderStart
+      : 0;
+
+    const styleAndLayoutDuration = entry.styleAndLayoutStart
+      ? endTime - entry.styleAndLayoutStart
+      : 0;
+
+    const totalForcedStyleAndLayout = entry.scripts.reduce(
+      (sum, script) => sum + (script.forcedStyleAndLayoutDuration || 0),
+      0
     );
-  }
-  window.whynp = analyze;
+
+    // Process scripts
+    const scripts = entry.scripts.map((script) => ({
+      ...getScriptSummary(script),
+      duration: Math.round(script.duration),
+      execDuration: Math.round(script.executionStart
+        ? script.startTime + script.duration - script.executionStart
+        : script.duration),
+      forcedStyleAndLayout: Math.round(script.forcedStyleAndLayoutDuration || 0),
+      startTime: Math.round(script.startTime),
+    }));
+
+    return {
+      startTime: Math.round(entry.startTime),
+      duration: Math.round(entry.duration),
+      blockingDuration: Math.round(entry.blockingDuration),
+      workDuration: Math.round(workDuration),
+      renderDuration: Math.round(renderDuration),
+      styleAndLayoutDuration: Math.round(styleAndLayoutDuration),
+      totalForcedStyleAndLayout: Math.round(totalForcedStyleAndLayout),
+      scripts,
+      entry,
+    };
+  };
+
+  const overlap = (e1, e2) =>
+    e1.startTime < e2.startTime + e2.duration &&
+    e2.startTime < e1.startTime + e1.duration;
+
+  // LoAF Observer
+  const loafObserver = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      const processed = processLoAF(entry);
+      allLoAFs.push(processed);
+
+      // Only log frames with blocking duration
+      if (entry.blockingDuration > 0) {
+        const rating = valueToRating(entry.blockingDuration);
+        const icon = RATING_ICONS[rating];
+        const color = RATING_COLORS[rating];
+
+        console.groupCollapsed(
+          `%c${icon} Long Animation Frame: ${formatMs(entry.duration)} (blocking: ${formatMs(entry.blockingDuration)})`,
+          `font-weight: bold; color: ${color};`
+        );
+
+        // Time breakdown
+        console.log("%cTime Breakdown:", "font-weight: bold;");
+        const breakdown = [
+          { Phase: "Work (JS)", Duration: formatMs(processed.workDuration) },
+          { Phase: "Render", Duration: formatMs(processed.renderDuration) },
+          { Phase: "Style & Layout", Duration: formatMs(processed.styleAndLayoutDuration) },
+        ];
+        console.table(breakdown);
+
+        // Visual bar
+        const total = processed.duration;
+        const barWidth = 40;
+        const workBar = "█".repeat(Math.round((processed.workDuration / total) * barWidth));
+        const renderBar = "░".repeat(Math.round((processed.renderDuration / total) * barWidth));
+        console.log(`   ${workBar}${renderBar}`);
+        console.log("   █ Work  ░ Render");
+
+        // Forced style/layout warning
+        if (processed.totalForcedStyleAndLayout > 0) {
+          console.log("");
+          console.log(
+            `%c⚠️ Forced style/layout: ${formatMs(processed.totalForcedStyleAndLayout)}`,
+            "color: #ef4444; font-weight: bold;"
+          );
+        }
+
+        // Scripts
+        if (processed.scripts.length > 0) {
+          console.log("");
+          console.log("%cScripts:", "font-weight: bold;");
+
+          const scriptTable = processed.scripts.map((s) => ({
+            Invoker: s.invoker.length > 40 ? s.invoker.slice(0, 37) + "..." : s.invoker,
+            Type: s.type,
+            Duration: formatMs(s.duration),
+            "Forced S&L": s.forcedStyleAndLayout > 0 ? formatMs(s.forcedStyleAndLayout) : "-",
+            Source: s.source.length > 25 ? "..." + s.source.slice(-22) : s.source,
+          }));
+          console.table(scriptTable);
+        }
+
+        // Find overlapping events (interactions during this frame)
+        const overlappingEvents = allEvents.filter((e) => overlap(e, entry));
+        if (overlappingEvents.length > 0) {
+          console.log("");
+          console.log("%c👆 Interactions during this frame:", "font-weight: bold;");
+          overlappingEvents.forEach((e) => {
+            console.log(`   ${e.name}: ${formatMs(e.duration)}`);
+          });
+        }
+
+        console.groupEnd();
+      }
+    }
+  });
+
+  // Event Observer (for correlation)
+  const eventObserver = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      if (entry.interactionId) {
+        allEvents.push(entry);
+      }
+    }
+  });
+
+  loafObserver.observe({ type: "long-animation-frame", buffered: true });
+  eventObserver.observe({ type: "event", buffered: true });
+
+  // Summary function
+  window.getLoAFSummary = () => {
+    console.group("%c📊 Long Animation Frames Summary", "font-weight: bold; font-size: 14px;");
+
+    if (allLoAFs.length === 0) {
+      console.log("   No long animation frames recorded.");
+      console.groupEnd();
+      return;
+    }
+
+    const blocking = allLoAFs.filter((l) => l.blockingDuration > 0);
+    const totalBlocking = blocking.reduce((sum, l) => sum + l.blockingDuration, 0);
+    const worstBlocking = Math.max(...allLoAFs.map((l) => l.blockingDuration));
+    const avgDuration = allLoAFs.reduce((sum, l) => sum + l.duration, 0) / allLoAFs.length;
+
+    // Statistics
+    console.log("");
+    console.log("%cStatistics:", "font-weight: bold;");
+    console.log(`   Total LoAFs: ${allLoAFs.length}`);
+    console.log(`   With blocking time: ${blocking.length}`);
+    console.log(`   Total blocking time: ${formatMs(totalBlocking)}`);
+    console.log(`   Worst blocking: ${formatMs(worstBlocking)}`);
+    console.log(`   Average duration: ${formatMs(avgDuration)}`);
+
+    // Script analysis
+    const scriptStats = new Map();
+    allLoAFs.forEach((loaf) => {
+      loaf.scripts.forEach((script) => {
+        const key = `${script.invoker}|${script.source}`;
+        if (!scriptStats.has(key)) {
+          scriptStats.set(key, {
+            invoker: script.invoker,
+            source: script.source,
+            count: 0,
+            totalDuration: 0,
+            totalForcedSL: 0,
+          });
+        }
+        const stats = scriptStats.get(key);
+        stats.count++;
+        stats.totalDuration += script.duration;
+        stats.totalForcedSL += script.forcedStyleAndLayout;
+      });
+    });
+
+    if (scriptStats.size > 0) {
+      console.log("");
+      console.log("%c🎯 Top Scripts by Total Duration:", "font-weight: bold; color: #ef4444;");
+
+      const topScripts = Array.from(scriptStats.values())
+        .sort((a, b) => b.totalDuration - a.totalDuration)
+        .slice(0, 10);
+
+      const scriptTable = topScripts.map((s) => ({
+        Invoker: s.invoker.length > 35 ? s.invoker.slice(0, 32) + "..." : s.invoker,
+        Count: s.count,
+        "Total Duration": formatMs(s.totalDuration),
+        "Forced S&L": s.totalForcedSL > 0 ? formatMs(s.totalForcedSL) : "-",
+        Source: s.source.length > 20 ? "..." + s.source.slice(-17) : s.source,
+      }));
+      console.table(scriptTable);
+    }
+
+    // Forced style/layout analysis
+    const forcedSLTotal = allLoAFs.reduce((sum, l) => sum + l.totalForcedStyleAndLayout, 0);
+    if (forcedSLTotal > 0) {
+      console.log("");
+      console.log(
+        `%c⚠️ Total forced style/layout: ${formatMs(forcedSLTotal)}`,
+        "color: #ef4444; font-weight: bold;"
+      );
+      console.log("   This indicates layout thrashing - reading layout after writing to DOM.");
+    }
+
+    // Recommendations
+    if (worstBlocking > 50) {
+      console.log("");
+      console.log("%c💡 Recommendations:", "font-weight: bold; color: #3b82f6;");
+      console.log("   • Break up long tasks using scheduler.yield() or setTimeout");
+      console.log("   • Move heavy computation to Web Workers");
+      console.log("   • Avoid forced synchronous layouts (read before write)");
+      console.log("   • Defer non-critical work with requestIdleCallback");
+    }
+
+    console.groupEnd();
+
+    return {
+      total: allLoAFs.length,
+      withBlocking: blocking.length,
+      totalBlockingTime: totalBlocking,
+      worstBlocking,
+      topScripts: Array.from(scriptStats.values())
+        .sort((a, b) => b.totalDuration - a.totalDuration)
+        .slice(0, 5),
+    };
+  };
+
+  console.log("%c🎬 Long Animation Frames Tracking Active", "font-weight: bold; font-size: 14px;");
+  console.log("   Frames with blocking duration will be logged.");
+  console.log(
+    "   Call %cgetLoAFSummary()%c for full analysis.",
+    "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
+    ""
+  );
 })();
 ```
+
+### Understanding the Results
+
+**Real-time Output:**
+
+Each blocking frame logs:
+- Total duration and blocking duration with rating
+- Time breakdown (Work vs Render)
+- Visual bar showing time distribution
+- Forced style/layout warnings
+- Scripts with invoker, type, duration, and source
+- Overlapping interactions (helps debug INP)
+
+**Summary Function:**
+
+Call `getLoAFSummary()` in the console to see:
+
+| Section | Description |
+|---------|-------------|
+| Statistics | Total LoAFs, blocking time, worst frame |
+| Top Scripts | Scripts consuming the most time |
+| Forced Style/Layout | Total time spent in layout thrashing |
+| Recommendations | Specific optimizations |
+
+### Key Metrics Explained
+
+| Metric | What it means | Target |
+|--------|---------------|--------|
+| **Blocking Duration** | Time > 50ms that blocks interactions | 0ms ideal |
+| **Work Duration** | Time executing JavaScript | Minimize |
+| **Forced Style & Layout** | Layout thrashing (read after write) | 0ms |
+| **Script Duration** | Individual script execution time | < 50ms each |
+
+### Common Patterns
+
+| Pattern | Detection | Solution |
+|---------|-----------|----------|
+| Long script execution | High work duration | Break into smaller tasks, use workers |
+| Layout thrashing | Forced S&L > 0 | Batch DOM reads before writes |
+| Many small scripts | High script count | Consolidate event handlers |
+| Render bottleneck | High render duration | Reduce DOM size, use content-visibility |
+
+### Further Reading
+
+- [Long Animation Frames API](https://developer.chrome.com/docs/web-platform/long-animation-frames) | Chrome Developers
+- [Optimize long tasks](https://web.dev/articles/optimize-long-tasks) | web.dev
+- [Avoid large, complex layouts](https://web.dev/articles/avoid-large-complex-layouts-and-layout-thrashing) | web.dev
+- [LoAF explainer](https://github.com/nicnacs/nicnacs) | GitHub
