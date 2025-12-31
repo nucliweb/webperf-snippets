@@ -1,66 +1,391 @@
 # Fonts Preloaded, Loaded, and Used Above The Fold
 
-List all the fonts preloaded via resources hints, all the fonts loaded via CSS, and all the fonts used in the viewport above the fold.
+Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and fonts actually used above the fold. This helps identify optimization opportunities and wasted resources.
 
-#### Snippet
+**Why font loading matters:**
+
+| Issue | Impact | Solution |
+|-------|--------|----------|
+| **FOIT** (Flash of Invisible Text) | Text hidden until font loads | Use `font-display: swap` or `optional` |
+| **FOUT** (Flash of Unstyled Text) | Text switches fonts visibly | Preload critical fonts, use `font-display: optional` |
+| **Unused preloads** | Wasted bandwidth, delayed other resources | Remove unnecessary preloads |
+| **Missing preloads** | LCP delay for text-based LCP | Add preload for critical fonts |
+
+**Font-display values:**
+
+| Value | Behavior | Best for |
+|-------|----------|----------|
+| `auto` | Browser default (usually FOIT) | Rarely recommended |
+| `block` | FOIT up to 3s, then swap | Icons, critical brand fonts |
+| `swap` | Immediate fallback, swap when ready | Body text, most use cases |
+| `fallback` | Brief FOIT (~100ms), swap if fast | Balance of performance/aesthetics |
+| `optional` | Brief FOIT, may skip font entirely | Non-critical fonts, slow connections |
+
+> **Tip:** For LCP optimization, critical fonts should be preloaded AND use `font-display: swap` or `optional`.
+
+### Snippet
 
 ```js copy
-const linkElements = document.querySelectorAll(`link[rel="preload"]`);
-const arrayLinks = Array.from(linkElements);
-const preloadedFonts = arrayLinks.filter((link) => link.as === "font");
+// Font Loading Analysis - Preloaded, Loaded, and Used Above The Fold
+// https://webperf-snippets.nucliweb.net
 
-console.log(
-  "%cFonts Preloaded via Resources Hints",
-  "font-weight: bold; font-size: 1.2em; color: lightcoral",
-);
-preloadedFonts.forEach((font) => console.log(`▸ ${font.href}`));
-console.log("");
+(() => {
+  // Helper to extract font filename from URL
+  function getFontName(url) {
+    try {
+      const path = new URL(url).pathname;
+      return path.split("/").pop() || path;
+    } catch {
+      return url;
+    }
+  }
 
-const loadedFonts = [
-  ...new Set(
-    Array.from(document.fonts.values())
-      .map((font) => font)
-      .filter((font) => font.status === "loaded")
-      .map((font) => `${font.family} - ${font.weight} - ${font.style}`),
-  ),
-];
+  // Check if URL is third-party
+  function isThirdParty(url) {
+    try {
+      return new URL(url).hostname !== location.hostname;
+    } catch {
+      return false;
+    }
+  }
 
-console.log(
-  "%cFonts and Weights Loaded in the Document",
-  "font-weight: bold; font-size: 1.2em; color: lightcoral",
-);
-loadedFonts.forEach((font) => console.log(`▸ ${font}`));
-console.log("");
+  // Normalize font family name for comparison
+  function normalizeFontFamily(family) {
+    return family
+      .split(",")[0]
+      .trim()
+      .replace(/["']/g, "")
+      .toLowerCase();
+  }
 
-const childrenSlector =
-  "body * > *:not(script):not(style):not(link):not(source)";
-const aboveFoldElements = Array.from(
-  document.querySelectorAll(childrenSlector),
-).filter((elm) => {
-  const rect = elm.getBoundingClientRect();
-  return (
-    rect.top >= 0 &&
-    rect.left >= 0 &&
-    rect.bottom <=
-      (window.innerHeight || document.documentElement.clientHeight) &&
-    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  // 1. Get preloaded fonts
+  const preloadedFonts = Array.from(
+    document.querySelectorAll('link[rel="preload"][as="font"]')
+  ).map((link) => ({
+    href: link.href,
+    name: getFontName(link.href),
+    crossorigin: link.crossOrigin,
+    type: link.type || "unknown",
+    thirdParty: isThirdParty(link.href),
+  }));
+
+  // 2. Get loaded fonts from document.fonts API
+  const loadedFonts = Array.from(document.fonts.values())
+    .filter((font) => font.status === "loaded")
+    .map((font) => ({
+      family: font.family.replace(/["']/g, ""),
+      weight: font.weight,
+      style: font.style,
+      display: font.display || "unknown",
+      key: `${font.family.replace(/["']/g, "")}-${font.weight}-${font.style}`,
+    }));
+
+  // Deduplicate loaded fonts
+  const uniqueLoadedFonts = Array.from(
+    new Map(loadedFonts.map((f) => [f.key, f])).values()
   );
-});
 
-const usedFonts = Array.from(
-  new Set(
-    [...aboveFoldElements].map(
-      (e) =>
-        `${getComputedStyle(e).fontFamily} | ${
-          getComputedStyle(e).fontWeight
-        } | ${getComputedStyle(e).fontStyle}`,
-    ),
-  ),
-);
+  // 3. Get fonts used above the fold
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
 
-console.log(
-  "%cFonts and Weights Used Above the Fold",
-  "font-weight: bold; font-size: 1.2em; color: lightcoral",
-);
-usedFonts.forEach((font) => console.log(`▸ ${font}`));
+  const aboveFoldElements = Array.from(
+    document.querySelectorAll("body *:not(script):not(style):not(link):not(source)")
+  ).filter((el) => {
+    const rect = el.getBoundingClientRect();
+    return (
+      rect.top < viewportHeight &&
+      rect.bottom > 0 &&
+      rect.left < viewportWidth &&
+      rect.right > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  });
+
+  const usedFontsMap = new Map();
+  aboveFoldElements.forEach((el) => {
+    const style = getComputedStyle(el);
+    const family = style.fontFamily;
+    const weight = style.fontWeight;
+    const fontStyle = style.fontStyle;
+    const key = `${family}-${weight}-${fontStyle}`;
+
+    if (!usedFontsMap.has(key)) {
+      usedFontsMap.set(key, {
+        family: family.split(",")[0].trim().replace(/["']/g, ""),
+        fullFamily: family,
+        weight,
+        style: fontStyle,
+        elements: 1,
+      });
+    } else {
+      usedFontsMap.get(key).elements++;
+    }
+  });
+
+  const usedFonts = Array.from(usedFontsMap.values());
+
+  // 4. Analysis - find mismatches
+  const preloadedNames = preloadedFonts.map((f) =>
+    normalizeFontFamily(f.name.replace(/\.(woff2?|ttf|otf|eot)$/i, ""))
+  );
+
+  const loadedFamilies = uniqueLoadedFonts.map((f) =>
+    normalizeFontFamily(f.family)
+  );
+
+  const usedFamilies = usedFonts.map((f) => normalizeFontFamily(f.family));
+
+  // Fonts preloaded but not used above the fold
+  const preloadedNotUsed = preloadedFonts.filter((f) => {
+    const name = normalizeFontFamily(
+      f.name.replace(/\.(woff2?|ttf|otf|eot)$/i, "")
+    );
+    return !usedFamilies.some(
+      (used) => used.includes(name) || name.includes(used)
+    );
+  });
+
+  // Fonts used but not preloaded (potential optimization)
+  const usedNotPreloaded = usedFonts.filter((f) => {
+    const family = normalizeFontFamily(f.family);
+    // Exclude system fonts
+    const systemFonts = [
+      "arial",
+      "helvetica",
+      "times",
+      "georgia",
+      "verdana",
+      "system-ui",
+      "-apple-system",
+      "segoe ui",
+      "roboto",
+      "sans-serif",
+      "serif",
+      "monospace",
+    ];
+    if (systemFonts.some((sf) => family.includes(sf))) return false;
+    return !preloadedNames.some(
+      (preloaded) => preloaded.includes(family) || family.includes(preloaded)
+    );
+  });
+
+  // Display results
+  console.group("%c🔤 Font Loading Analysis", "font-weight: bold; font-size: 14px;");
+
+  // Summary
+  console.log("");
+  console.log("%cSummary:", "font-weight: bold;");
+  console.log(`   Preloaded fonts: ${preloadedFonts.length}`);
+  console.log(`   Loaded fonts: ${uniqueLoadedFonts.length}`);
+  console.log(`   Used above the fold: ${usedFonts.length}`);
+
+  // Preloaded fonts
+  console.log("");
+  console.group(
+    `%c⬇️ Preloaded Fonts (${preloadedFonts.length})`,
+    "color: #8b5cf6; font-weight: bold;"
+  );
+
+  if (preloadedFonts.length === 0) {
+    console.log("No fonts preloaded via <link rel='preload'>.");
+  } else {
+    const preloadTable = preloadedFonts.map((f) => ({
+      Font: f.name,
+      Type: f.type,
+      "Third-Party": f.thirdParty ? "Yes" : "No",
+      Crossorigin: f.crossorigin || "missing ⚠️",
+    }));
+    console.table(preloadTable);
+
+    // Check for missing crossorigin
+    const missingCrossorigin = preloadedFonts.filter((f) => !f.crossorigin);
+    if (missingCrossorigin.length > 0) {
+      console.log(
+        "%c⚠️ Fonts preloaded without crossorigin attribute will be fetched twice!",
+        "color: #f59e0b;"
+      );
+    }
+  }
+  console.groupEnd();
+
+  // Loaded fonts
+  console.log("");
+  console.group(
+    `%c📦 Loaded Fonts (${uniqueLoadedFonts.length})`,
+    "color: #3b82f6; font-weight: bold;"
+  );
+
+  if (uniqueLoadedFonts.length === 0) {
+    console.log("No web fonts loaded (using system fonts only).");
+  } else {
+    const loadedTable = uniqueLoadedFonts.map((f) => ({
+      Family: f.family,
+      Weight: f.weight,
+      Style: f.style,
+      Display: f.display,
+    }));
+    console.table(loadedTable);
+
+    // Check font-display
+    const autoDisplay = uniqueLoadedFonts.filter(
+      (f) => f.display === "auto" || f.display === "unknown"
+    );
+    if (autoDisplay.length > 0) {
+      console.log(
+        `%c💡 ${autoDisplay.length} font(s) using default font-display. Consider using 'swap' or 'optional'.`,
+        "color: #f59e0b;"
+      );
+    }
+  }
+  console.groupEnd();
+
+  // Used above the fold
+  console.log("");
+  console.group(
+    `%c👁️ Fonts Used Above The Fold (${usedFonts.length})`,
+    "color: #22c55e; font-weight: bold;"
+  );
+
+  if (usedFonts.length === 0) {
+    console.log("No text elements found above the fold.");
+  } else {
+    const usedTable = usedFonts
+      .sort((a, b) => b.elements - a.elements)
+      .map((f) => ({
+        Family: f.family,
+        Weight: f.weight,
+        Style: f.style,
+        "Elements Using": f.elements,
+      }));
+    console.table(usedTable);
+  }
+  console.groupEnd();
+
+  // Issues and recommendations
+  const hasIssues = preloadedNotUsed.length > 0 || usedNotPreloaded.length > 0;
+
+  if (hasIssues) {
+    console.log("");
+    console.group("%c⚠️ Potential Issues", "color: #ef4444; font-weight: bold;");
+
+    if (preloadedNotUsed.length > 0) {
+      console.log("");
+      console.log(
+        `%c🗑️ Preloaded but NOT used above the fold (${preloadedNotUsed.length}):`,
+        "font-weight: bold;"
+      );
+      console.log("   These preloads may be wasting bandwidth:");
+      preloadedNotUsed.forEach((f) => {
+        console.log(`   • ${f.name}`);
+      });
+      console.log("");
+      console.log("   Consider:");
+      console.log("   • Removing the preload if font is only used below the fold");
+      console.log("   • The font may be for a different viewport/breakpoint");
+    }
+
+    if (usedNotPreloaded.length > 0) {
+      console.log("");
+      console.log(
+        `%c🚀 Used above the fold but NOT preloaded (${usedNotPreloaded.length}):`,
+        "font-weight: bold;"
+      );
+      console.log("   These fonts could benefit from preloading:");
+      usedNotPreloaded.forEach((f) => {
+        console.log(`   • ${f.family} (${f.weight})`);
+      });
+      console.log("");
+      console.log("%cExample preload:", "font-weight: bold;");
+      console.log(
+        '%c<link rel="preload" href="/fonts/font.woff2" as="font" type="font/woff2" crossorigin>',
+        "font-family: monospace; color: #22c55e;"
+      );
+    }
+
+    console.groupEnd();
+  } else if (preloadedFonts.length > 0 && usedFonts.length > 0) {
+    console.log("");
+    console.log(
+      "%c✅ Font loading looks optimized! Preloaded fonts match usage above the fold.",
+      "color: #22c55e; font-weight: bold;"
+    );
+  }
+
+  // Best practices
+  console.log("");
+  console.group("%c📝 Font Loading Best Practices", "color: #3b82f6; font-weight: bold;");
+  console.log("");
+  console.log("1. Preload critical fonts used above the fold");
+  console.log("2. Use font-display: swap or optional");
+  console.log("3. Always include crossorigin attribute on font preloads");
+  console.log("4. Self-host fonts when possible for better control");
+  console.log("5. Subset fonts to include only needed characters");
+  console.log("6. Use WOFF2 format for best compression");
+  console.groupEnd();
+
+  console.groupEnd();
+})();
 ```
+
+### Understanding the Results
+
+**Summary Section:**
+- Count of preloaded, loaded, and used fonts
+
+**Preloaded Fonts:**
+- Fonts loaded via `<link rel="preload" as="font">`
+- Shows type, third-party status, and crossorigin attribute
+- Warning if crossorigin is missing (causes double fetch)
+
+**Loaded Fonts:**
+- Fonts loaded via CSS `@font-face`
+- Shows family, weight, style, and font-display value
+- Warning if using default font-display
+
+**Used Above The Fold:**
+- Fonts actually rendered in the viewport
+- Shows element count using each font combination
+
+**Potential Issues:**
+
+| Issue | Meaning | Action |
+|-------|---------|--------|
+| Preloaded but not used | Wasting bandwidth | Remove preload or defer loading |
+| Used but not preloaded | Potential LCP delay | Add preload for critical fonts |
+
+### Common Font Loading Patterns
+
+**Optimal setup for critical fonts:**
+
+```html
+<!-- Preload in <head> -->
+<link rel="preload" href="/fonts/heading.woff2" as="font" type="font/woff2" crossorigin>
+
+<!-- CSS with font-display -->
+<style>
+@font-face {
+  font-family: 'Heading';
+  src: url('/fonts/heading.woff2') format('woff2');
+  font-display: swap;
+}
+</style>
+```
+
+**For non-critical fonts:**
+
+```css
+@font-face {
+  font-family: 'BodyFont';
+  src: url('/fonts/body.woff2') format('woff2');
+  font-display: optional; /* Skip if slow connection */
+}
+```
+
+### Further Reading
+
+- [Optimize WebFont loading](https://web.dev/articles/optimize-webfont-loading) | web.dev
+- [Best practices for fonts](https://web.dev/articles/font-best-practices) | web.dev
+- [Preload critical assets](https://web.dev/articles/preload-critical-assets) | web.dev
+- [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) | MDN
