@@ -4,5 +4,8 @@
   },
   "CSS-Media-Queries-Analysis": {
     "title": "CSS Media Queries Analysis"
+  },
+  "SSR-Hydration-Data-Analysis": {
+    "title": "SSR Framework Hydration Data Analysis"
   }
 }

@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "Web Performance Snippets",
   "scripts": {
-    "build": "npx next build",
+    "dev": "next dev",
+    "build": "next build",
     "postbuild": "next-sitemap",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

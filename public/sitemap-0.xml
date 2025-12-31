@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+<url><loc>https://webperf-snippets.nucliweb.net</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/CoreWebVitals/CLS</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP-Image-Entropy</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP-Sub-Parts</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Interaction/Interactions</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Interaction/Layout-Shift-Loading-and-Interaction</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Interaction/Long-Animation-Frames</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Interaction/Long-Animation-Frames-Helpers</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Interaction/LongTask</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/CSS-Media-Queries-Analysis</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Content-Visibility</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Event-Processing-Time</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Find-Above-The-Fold-Lazy-Loaded-Images</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Find-Images-With-Lazy-and-Fetchpriority</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Find-render-blocking-resources</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/First-And-Third-Party-Script-Info</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/First-And-Third-Party-Script-Timings</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Get-Your-Head-in-Order</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Inline-CSS-Info-and-Size</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Inline-Script-Info-and-Size</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Inline-Script-Info-and-Size-Including__NEXT_DATA</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Resource-Hints</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/Script-Loading</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+<url><loc>https://webperf-snippets.nucliweb.net/Loading/TTFB</loc><lastmod>2025-12-30T19:01:40.177Z</lastmod><changefreq>daily</changefreq><priority>0.7</priority></url>
+</urlset>
