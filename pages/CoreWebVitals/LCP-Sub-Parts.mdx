@@ -1,97 +1,273 @@
-###  Largest Contentful Paint Sub-Parts (LCP)
+# LCP Sub-Parts
 
-This script is part of the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma) and appear on the [Optimize Largest Contentful Paint](https://web.dev/articles/optimize-lcp) post.
+Breaks down [Largest Contentful Paint](https://web.dev/articles/lcp) into its four phases to identify optimization opportunities. Based on the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma).
 
+**The four phases of LCP:**
 
-#### Snippet
+```
+Navigation Start → [TTFB] → [Load Delay] → [Load Time] → [Render Delay] → LCP
+```
+
+| Sub-part | What it measures | Common causes |
+|----------|------------------|---------------|
+| **Time to First Byte** | Server response time | Slow server, no CDN, no caching |
+| **Resource Load Delay** | Time from TTFB until LCP resource starts loading | Render-blocking resources, late discovery |
+| **Resource Load Time** | Time to download the LCP resource | Large images, slow connection, no compression |
+| **Element Render Delay** | Time from download complete to paint | Client-side rendering, render-blocking JS |
+
+**Optimization priority:**
+
+| Phase | Target | How to optimize |
+|-------|--------|-----------------|
+| TTFB | < 800ms | Use CDN, optimize server, enable caching |
+| Load Delay | < 10% of LCP | Preload LCP image, remove render-blocking resources |
+| Load Time | < 40% of LCP | Compress images, use modern formats (WebP, AVIF) |
+| Render Delay | < 10% of LCP | Inline critical CSS, defer non-critical JS |
+
+> **Quick check:** Use [LCP](/CoreWebVitals/LCP) for a simple LCP value and element identification.
+
+### Snippet
 
 ```js copy
-const LCP_SUB_PARTS = [
-  "Time to first byte",
-  "Resource load delay",
-  "Resource load time",
-  "Element render delay",
-];
+// LCP Sub-Parts Analysis
+// https://webperf-snippets.nucliweb.net
 
-new PerformanceObserver((list) => {
-  const lcpEntry = list.getEntries().at(-1);
-  const navEntry = getNavigationEntry();
-  const lcpResEntry = performance
-    .getEntriesByType("resource")
-    .filter((e) => e.name === lcpEntry.url)[0];
+(() => {
+  const formatMs = (ms) => `${Math.round(ms)}ms`;
+  const formatPercent = (value, total) => `${Math.round((value / total) * 100)}%`;
 
-  const activationStart = getActivationStart()
- 
-  const ttfb = Math.max(0, navEntry.responseStart - activationStart);
-  const lcpRequestStart = Math.max(
-        ttfb,
-    // Prefer `requestStart` (if TOA is set), otherwise use `startTime`.
-    lcpResEntry
-      ? (lcpResEntry.requestStart || lcpResEntry.startTime) -
-          activationStart
-      : 0,
-  );
-  const lcpResponseEnd = Math.max(
-    lcpRequestStart,
-    lcpResEntry ? lcpResEntry.responseEnd - activationStart : 0,
-  );
-  const lcpRenderTime = Math.max(
-    lcpResponseEnd,
-    lcpEntry.startTime - activationStart,
-  );
- 
-  LCP_SUB_PARTS.forEach((part) => performance.clearMeasures(part));
- 
-  const lcpSubPartMeasures = [
-    performance.measure(LCP_SUB_PARTS[0], {
-      start: 0,
-      end: ttfb,
-    }),
-    performance.measure(LCP_SUB_PARTS[1], {
-      start: ttfb,
-      end: lcpRequestStart,
-    }),
-    performance.measure(LCP_SUB_PARTS[2], {
-      start: lcpRequestStart,
-      end: lcpResponseEnd,
-    }),
-    performance.measure(LCP_SUB_PARTS[3], {
-      start: lcpResponseEnd,
-      end: lcpRenderTime,
-    }),
+  const valueToRating = (ms) =>
+    ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";
+
+  const RATING = {
+    good: { icon: "🟢", color: "#0CCE6A" },
+    "needs-improvement": { icon: "🟡", color: "#FFA400" },
+    poor: { icon: "🔴", color: "#FF4E42" },
+  };
+
+  const SUB_PARTS = [
+    { name: "Time to First Byte", key: "ttfb", target: 800 },
+    { name: "Resource Load Delay", key: "loadDelay", targetPercent: 10 },
+    { name: "Resource Load Time", key: "loadTime", targetPercent: 40 },
+    { name: "Element Render Delay", key: "renderDelay", targetPercent: 10 },
   ];
- 
-  // Log helpful debug information to the console.
-  console.log("LCP value: ", lcpRenderTime);
-  console.log("LCP element: ", lcpEntry.element, lcpEntry?.url);
-  console.table(
-    lcpSubPartMeasures.map((measure) => ({
-      "LCP sub-part": measure.name,
-      "Time (ms)": measure.duration,
-      "% of LCP": `${
-        Math.round(((1000 * measure.duration) / lcpRenderTime) || 0) / 10
-      }%`,
-    })),
-  );
-}).observe({ type: "largest-contentful-paint", buffered: true });
 
-function getActivationStart() {
-  const navEntry = getNavigationEntry();
-  return (navEntry && navEntry.activationStart) || 0;
-}
+  const getNavigationEntry = () => {
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) {
+      return navEntry;
+    }
+    return null;
+  };
 
-function getNavigationEntry() {
-  const navigationEntry =
-    self.performance &&
-    performance.getEntriesByType &&
-    performance.getEntriesByType('navigation')[0];
+  const observer = new PerformanceObserver((list) => {
+    const lcpEntry = list.getEntries().at(-1);
+    if (!lcpEntry) return;
 
-  if (
-    navigationEntry &&
-    navigationEntry.responseStart > 0 &&
-    navigationEntry.responseStart < performance.now()
-  ) {
-    return navigationEntry;
-  }
-}
+    const navEntry = getNavigationEntry();
+    if (!navEntry) return;
+
+    const lcpResEntry = performance
+      .getEntriesByType("resource")
+      .find((e) => e.name === lcpEntry.url);
+
+    const activationStart = navEntry.activationStart || 0;
+
+    // Calculate sub-parts
+    const ttfb = Math.max(0, navEntry.responseStart - activationStart);
+
+    const lcpRequestStart = Math.max(
+      ttfb,
+      lcpResEntry
+        ? (lcpResEntry.requestStart || lcpResEntry.startTime) - activationStart
+        : 0
+    );
+
+    const lcpResponseEnd = Math.max(
+      lcpRequestStart,
+      lcpResEntry ? lcpResEntry.responseEnd - activationStart : 0
+    );
+
+    const lcpRenderTime = Math.max(
+      lcpResponseEnd,
+      lcpEntry.startTime - activationStart
+    );
+
+    const subPartValues = {
+      ttfb: ttfb,
+      loadDelay: lcpRequestStart - ttfb,
+      loadTime: lcpResponseEnd - lcpRequestStart,
+      renderDelay: lcpRenderTime - lcpResponseEnd,
+    };
+
+    // LCP Rating
+    const rating = valueToRating(lcpRenderTime);
+    const { icon, color } = RATING[rating];
+
+    console.group(
+      `%cLCP: ${icon} ${formatMs(lcpRenderTime)} (${rating})`,
+      `color: ${color}; font-weight: bold; font-size: 14px;`
+    );
+
+    // Element info
+    if (lcpEntry.element) {
+      const el = lcpEntry.element;
+      let selector = el.tagName.toLowerCase();
+      if (el.id) selector = `#${el.id}`;
+      else if (el.className && typeof el.className === "string") {
+        const classes = el.className.trim().split(/\s+/).slice(0, 2).join(".");
+        if (classes) selector = `${el.tagName.toLowerCase()}.${classes}`;
+      }
+
+      console.log("");
+      console.log("%cLCP Element:", "font-weight: bold;");
+      console.log(`   ${selector}`, el);
+      if (lcpEntry.url) {
+        const shortUrl = lcpEntry.url.split("/").pop()?.split("?")[0] || lcpEntry.url;
+        console.log(`   URL: ${shortUrl}`);
+      }
+
+      // Highlight
+      el.style.outline = "3px dashed lime";
+      el.style.outlineOffset = "2px";
+    }
+
+    // Sub-parts table
+    console.log("");
+    console.log("%cSub-Parts Breakdown:", "font-weight: bold;");
+
+    // Find the slowest phase
+    const phases = SUB_PARTS.map((part) => ({
+      ...part,
+      value: subPartValues[part.key],
+      percent: (subPartValues[part.key] / lcpRenderTime) * 100,
+    }));
+
+    const slowest = phases.reduce((a, b) => (a.value > b.value ? a : b));
+
+    const tableData = phases.map((part) => {
+      const isSlowest = part.key === slowest.key;
+      const isOverTarget = part.target
+        ? part.value > part.target
+        : part.percent > part.targetPercent;
+
+      return {
+        "Sub-part": isSlowest ? `⚠️ ${part.name}` : part.name,
+        Time: formatMs(part.value),
+        "%": formatPercent(part.value, lcpRenderTime),
+        Status: isOverTarget ? "🔴 Over target" : "✅ OK",
+      };
+    });
+
+    console.table(tableData);
+
+    // Visual bar
+    const barWidth = 40;
+    const bars = phases.map((p) => {
+      const width = Math.max(1, Math.round((p.value / lcpRenderTime) * barWidth));
+      return { key: p.key, bar: width };
+    });
+
+    const ttfbBar = "█".repeat(bars[0].bar);
+    const delayBar = "▓".repeat(bars[1].bar);
+    const loadBar = "▒".repeat(bars[2].bar);
+    const renderBar = "░".repeat(bars[3].bar);
+
+    console.log("");
+    console.log(`   ${ttfbBar}${delayBar}${loadBar}${renderBar}`);
+    console.log("   █ TTFB  ▓ Load Delay  ▒ Load Time  ░ Render Delay");
+
+    // Recommendations based on slowest phase
+    console.log("");
+    console.log("%c💡 Optimization Focus:", "font-weight: bold; color: #3b82f6;");
+    console.log(`   Slowest phase: ${slowest.name} (${formatPercent(slowest.value, lcpRenderTime)})`);
+
+    if (slowest.key === "ttfb") {
+      console.log("   → Use a CDN to reduce latency");
+      console.log("   → Enable server-side caching");
+      console.log("   → Optimize server response time");
+    } else if (slowest.key === "loadDelay") {
+      console.log("   → Preload the LCP image: <link rel=\"preload\" as=\"image\" href=\"...\">");
+      console.log("   → Remove render-blocking resources");
+      console.log("   → Inline critical CSS");
+    } else if (slowest.key === "loadTime") {
+      console.log("   → Compress and resize the LCP image");
+      console.log("   → Use modern formats (WebP, AVIF)");
+      console.log("   → Use a CDN for faster delivery");
+    } else if (slowest.key === "renderDelay") {
+      console.log("   → Reduce render-blocking JavaScript");
+      console.log("   → Avoid client-side rendering for LCP element");
+      console.log("   → Use fetchpriority=\"high\" on LCP image");
+    }
+
+    // Performance entries for DevTools
+    SUB_PARTS.forEach((part) => performance.clearMeasures(part.name));
+
+    phases.forEach((part) => {
+      const startTimes = {
+        ttfb: 0,
+        loadDelay: ttfb,
+        loadTime: lcpRequestStart,
+        renderDelay: lcpResponseEnd,
+      };
+      performance.measure(part.name, {
+        start: startTimes[part.key],
+        end: startTimes[part.key] + part.value,
+      });
+    });
+
+    console.log("");
+    console.log("%c📊 Measures added to Performance timeline", "color: #666;");
+    console.log("   Open DevTools → Performance → reload to see waterfall");
+
+    console.groupEnd();
+  });
+
+  observer.observe({ type: "largest-contentful-paint", buffered: true });
+
+  console.log("%c📊 LCP Sub-Parts Analysis Active", "font-weight: bold; font-size: 14px;");
+  console.log("   Waiting for LCP...");
+})();
 ```
+
+### Understanding the Results
+
+**Sub-Parts Table:**
+
+| Column | Description |
+|--------|-------------|
+| Sub-part | Phase name (⚠️ marks the slowest) |
+| Time | Duration in milliseconds |
+| % | Percentage of total LCP |
+| Status | ✅ OK or 🔴 Over target |
+
+**Visual Bar:**
+
+Shows time distribution across the four phases:
+- █ TTFB (server response)
+- ▓ Load Delay (discovery to request)
+- ▒ Load Time (download)
+- ░ Render Delay (paint)
+
+**Performance Timeline:**
+
+The snippet adds measures to the Performance API. To see them:
+1. Open DevTools → Performance tab
+2. Reload the page
+3. Look for "Time to First Byte", "Resource Load Delay", etc. in the timeline
+
+### Optimization Checklist
+
+| If slowest is... | Check these |
+|------------------|-------------|
+| **TTFB** | Server response time, CDN, caching headers |
+| **Load Delay** | Preload hints, render-blocking resources, late `<img>` in HTML |
+| **Load Time** | Image size, format, compression, CDN |
+| **Render Delay** | JavaScript blocking, CSS parsing, client-side rendering |
+
+### Further Reading
+
+- [Optimize LCP](https://web.dev/articles/optimize-lcp) | web.dev
+- [LCP breakdown](https://web.dev/articles/optimize-lcp#lcp-breakdown) | web.dev
+- [Preload critical assets](https://web.dev/articles/preload-critical-assets) | web.dev
+- [LCP Quick Check](/CoreWebVitals/LCP) | Simple LCP measurement
