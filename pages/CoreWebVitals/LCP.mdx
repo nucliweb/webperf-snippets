@@ -1,56 +1,132 @@
 # Largest Contentful Paint (LCP)
 
-The next scripts shows information about the [LCP](https://web.dev/lcp) metric.
+Quick check for [Largest Contentful Paint](https://web.dev/articles/lcp), a Core Web Vital that measures loading performance. LCP marks when the largest content element becomes visible in the viewport.
 
-> You can use it in the browser console or as a snippet in the Chrome DevTools Source tab, take a look at the [Introduction](/introduction/) section.
+**LCP Rating Thresholds:**
 
-## Get the LCP element
+| Rating | Time | Meaning |
+|--------|------|---------|
+| 🟢 Good | ≤ 2.5s | Fast, content appears quickly |
+| 🟡 Needs Improvement | ≤ 4s | Moderate delay |
+| 🔴 Poor | > 4s | Slow, users may abandon |
 
-List the Largest Contentful Paint in the console and add a green dotted line around the LCP element.
+> **Need to optimize?** Use [LCP Sub-Parts](/CoreWebVitals/LCP-Sub-Parts) to identify which phase (TTFB, load delay, load time, render delay) is causing the bottleneck.
 
-#### Snippet
+### Snippet
 
 ```js copy
-const po = new PerformanceObserver((list) => {
-  let entries = list.getEntries();
+// LCP Quick Check
+// https://webperf-snippets.nucliweb.net
 
-  entries = dedupe(entries, "startTime");
+(() => {
+  const valueToRating = (ms) =>
+    ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";
 
-  entries.forEach((item, i) => {
-    console.dir(item);
-    console.log(
-      `${i + 1} current LCP item : ${item.element}: ${Math.max(item.startTime - getActivationStart(), 0)}`,
-    );
-    item.element ? (item.element.style = "border: 5px dotted lime;") : "";
+  const RATING = {
+    good: { icon: "🟢", color: "#0CCE6A" },
+    "needs-improvement": { icon: "🟡", color: "#FFA400" },
+    poor: { icon: "🔴", color: "#FF4E42" },
+  };
+
+  const getActivationStart = () => {
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    return navEntry?.activationStart || 0;
+  };
+
+  const observer = new PerformanceObserver((list) => {
+    const entries = list.getEntries();
+    const lastEntry = entries[entries.length - 1];
+
+    if (!lastEntry) return;
+
+    const activationStart = getActivationStart();
+    const lcpTime = Math.max(0, lastEntry.startTime - activationStart);
+    const rating = valueToRating(lcpTime);
+    const { icon, color } = RATING[rating];
+
+    console.group(`%cLCP: ${icon} ${(lcpTime / 1000).toFixed(2)}s (${rating})`, `color: ${color}; font-weight: bold; font-size: 14px;`);
+
+    // Element info
+    const element = lastEntry.element;
+    if (element) {
+      console.log("");
+      console.log("%cLCP Element:", "font-weight: bold;");
+
+      // Get element identifier
+      let selector = element.tagName.toLowerCase();
+      if (element.id) selector = `#${element.id}`;
+      else if (element.className && typeof element.className === "string") {
+        const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
+        if (classes) selector = `${element.tagName.toLowerCase()}.${classes}`;
+      }
+
+      console.log(`   Element: ${selector}`, element);
+
+      // Element type and details
+      const tagName = element.tagName.toLowerCase();
+      if (tagName === "img") {
+        console.log(`   Type: Image`);
+        console.log(`   URL: ${lastEntry.url || element.src}`);
+        if (element.naturalWidth) {
+          console.log(`   Dimensions: ${element.naturalWidth}×${element.naturalHeight}`);
+        }
+      } else if (tagName === "video") {
+        console.log(`   Type: Video poster`);
+        console.log(`   URL: ${lastEntry.url || element.poster}`);
+      } else if (element.style?.backgroundImage) {
+        console.log(`   Type: Background image`);
+        console.log(`   URL: ${lastEntry.url}`);
+      } else {
+        console.log(`   Type: ${tagName === "h1" || tagName === "p" ? "Text block" : tagName}`);
+      }
+
+      // Size
+      if (lastEntry.size) {
+        console.log(`   Size: ${lastEntry.size.toLocaleString()} px²`);
+      }
+
+      // Highlight element
+      element.style.outline = "3px dashed lime";
+      element.style.outlineOffset = "2px";
+      console.log("");
+      console.log("%c✓ Element highlighted with green dashed outline", "color: #22c55e;");
+    }
+
+    console.groupEnd();
   });
 
-  const lastEntry = entries[entries.length - 1];
-  console.log(`LCP is: ${Math.max(lastEntry.startTime - getActivationStart(), 0)}`);
-});
+  observer.observe({ type: "largest-contentful-paint", buffered: true });
 
-po.observe({ type: "largest-contentful-paint", buffered: true });
-
-function dedupe(arr, key) {
-  return [...new Map(arr.map((item) => [item[key], item])).values()];
-}
-
-function getActivationStart() {
-  const navEntry = getNavigationEntry();
-  return (navEntry && navEntry.activationStart) || 0;
-}
-
-function getNavigationEntry() {
-  const navigationEntry =
-    self.performance &&
-    performance.getEntriesByType &&
-    performance.getEntriesByType('navigation')[0];
-
-  if (
-    navigationEntry &&
-    navigationEntry.responseStart > 0 &&
-    navigationEntry.responseStart < performance.now()
-  ) {
-    return navigationEntry;
-  }
-}
+  console.log("%c⏱️ LCP Tracking Active", "font-weight: bold; font-size: 14px;");
+  console.log("   LCP may update as larger elements load.");
+})();
 ```
+
+### Understanding LCP
+
+**What can be an LCP element:**
+- `<img>` elements
+- `<image>` inside `<svg>`
+- `<video>` poster images
+- Elements with `background-image` (CSS)
+- Block-level text elements (`<p>`, `<h1>`, etc.)
+
+**LCP updates until:**
+- User interacts (click, scroll, keypress)
+- A larger element renders
+- Page load completes
+
+### Common Causes of Slow LCP
+
+| Cause | Solution |
+|-------|----------|
+| Slow server response | Optimize TTFB, use CDN |
+| Render-blocking resources | Defer non-critical CSS/JS |
+| Slow resource load | Preload LCP image, optimize size |
+| Client-side rendering | Use SSR or prerender |
+
+### Further Reading
+
+- [Largest Contentful Paint (LCP)](https://web.dev/articles/lcp) | web.dev
+- [Optimize LCP](https://web.dev/articles/optimize-lcp) | web.dev
+- [LCP Sub-Parts](/CoreWebVitals/LCP-Sub-Parts) | Detailed phase breakdown
