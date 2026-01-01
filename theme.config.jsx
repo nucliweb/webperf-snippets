@@ -36,8 +36,7 @@ export default {
     </>
   ),
   head: (
-    <head>
-      <title>WebPerf Snippets</title>
+    <>
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <meta
         name="description"
@@ -50,9 +49,10 @@ export default {
       />
       <meta property="og:type" content="website" />
       <meta property="og:locale" content="en_US" />
+      <meta property="og:site_name" content="WebPerf Snippets" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="675" />
-      <meta property="og:title" content="Web Performance Snippets" />
+      <meta property="og:title" content="WebPerf Snippets" />
       <meta
         property="og:description"
         content="A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on Chrome DevTools by Joan León"
@@ -91,7 +91,7 @@ export default {
           }),
         }}
       />
-    </head>
+    </>
   ),
   project: {
     link: "https://github.com/nucliweb/webperf-snippets",
