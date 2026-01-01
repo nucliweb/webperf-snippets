@@ -1,23 +1,262 @@
-# Long Task
+# Long Tasks
 
-To determine when long tasks happen, you can use [PerformanceObserver](https://developer.mozilla.org/docs/Web/API/PerformanceObserver) and register to observe entries of type `longtask`:
+Tracks tasks that block the main thread for more than 50ms. Long tasks prevent the browser from responding to user input, causing poor [Interaction to Next Paint (INP)](https://web.dev/articles/inp).
 
-#### Snippet
+> **Recommendation:** For better debugging, consider using [Long Animation Frames (LoAF)](/Interaction/Long-Animation-Frames) which provides full script attribution and render timing.
+
+**Long Tasks vs Long Animation Frames:**
+
+| Aspect | Long Tasks | LoAF |
+|--------|------------|------|
+| Threshold | > 50ms | > 50ms |
+| Script attribution | Container only | Full (function, source URL) |
+| Render time included | No | Yes |
+| Forced layout detection | No | Yes |
+| Browser support | Chrome 58+ | Chrome 123+ |
+
+**When to use Long Tasks:**
+- Broader browser support needed
+- Simple detection of blocking work
+- Legacy monitoring systems
+
+**Severity thresholds:**
+
+| Severity | Duration | Impact |
+|----------|----------|--------|
+| 🟢 Low | 50-100ms | Minor delay |
+| 🟡 Medium | 100-150ms | Noticeable lag |
+| 🟠 High | 150-250ms | Poor responsiveness |
+| 🔴 Critical | > 250ms | Severe blocking |
+
+### Snippet
 
 ```js copy
-try {
-  const po = new PerformanceObserver((list) => {
-    const numLongTasks = list.getEntries().length;
-    for (const entry of list.getEntries()) {
-      console.table(entry.toJSON());
-    }
+// Long Tasks Tracking
+// https://webperf-snippets.nucliweb.net
+
+(() => {
+  const formatMs = (ms) => `${Math.round(ms)}ms`;
+
+  // Severity helpers
+  const getSeverity = (duration) => {
+    if (duration > 250) return { level: "critical", icon: "🔴", color: "#ef4444" };
+    if (duration > 150) return { level: "high", icon: "🟠", color: "#f97316" };
+    if (duration > 100) return { level: "medium", icon: "🟡", color: "#eab308" };
+    return { level: "low", icon: "🟢", color: "#22c55e" };
+  };
+
+  // Track all long tasks
+  const allTasks = [];
+  let totalBlockingTime = 0;
+
+  try {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const duration = entry.duration;
+        const blockingTime = Math.max(0, duration - 50); // Time over 50ms threshold
+        totalBlockingTime += blockingTime;
+
+        const sev = getSeverity(duration);
+
+        const task = {
+          startTime: entry.startTime,
+          duration,
+          blockingTime,
+          severity: sev.level,
+          attribution: entry.attribution?.[0]?.containerType || "unknown",
+          containerId: entry.attribution?.[0]?.containerId || "",
+          containerName: entry.attribution?.[0]?.containerName || "",
+        };
+        allTasks.push(task);
+
+        // Log each long task
+        console.groupCollapsed(
+          `%c${sev.icon} Long Task: ${formatMs(duration)} (blocking: ${formatMs(blockingTime)})`,
+          `font-weight: bold; color: ${sev.color};`
+        );
+
+        console.log(`%cTiming:`, "font-weight: bold;");
+        console.log(`   Start: ${formatMs(entry.startTime)}`);
+        console.log(`   Duration: ${formatMs(duration)}`);
+        console.log(`   Blocking time: ${formatMs(blockingTime)}`);
+
+        // Attribution (limited in Long Tasks API)
+        if (entry.attribution && entry.attribution.length > 0) {
+          console.log("");
+          console.log(`%cAttribution:`, "font-weight: bold;");
+          entry.attribution.forEach((attr) => {
+            console.log(`   Container: ${attr.containerType || "window"}`);
+            if (attr.containerName) console.log(`   Name: ${attr.containerName}`);
+            if (attr.containerId) console.log(`   ID: ${attr.containerId}`);
+            if (attr.containerSrc) console.log(`   Source: ${attr.containerSrc}`);
+          });
+        }
+
+        // Running totals
+        console.log("");
+        console.log(`%cSession totals:`, "font-weight: bold;");
+        console.log(`   Long tasks: ${allTasks.length}`);
+        console.log(`   Total blocking time: ${formatMs(totalBlockingTime)}`);
+
+        console.groupEnd();
+      }
+    });
+
+    observer.observe({ type: "longtask", buffered: true });
+
+    // Summary function
+    window.getLongTaskSummary = () => {
+      console.group("%c📊 Long Tasks Summary", "font-weight: bold; font-size: 14px;");
+
+      if (allTasks.length === 0) {
+        console.log("   No long tasks recorded.");
+        console.log("   This is good! The main thread has been responsive.");
+        console.groupEnd();
+        return;
+      }
+
+      const durations = allTasks.map((t) => t.duration);
+      const worst = Math.max(...durations);
+      const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+
+      const worstSev = getSeverity(worst);
+
+      // Statistics
+      console.log("");
+      console.log("%cStatistics:", "font-weight: bold;");
+      console.log(`   Total long tasks: ${allTasks.length}`);
+      console.log(`   Total blocking time: ${formatMs(totalBlockingTime)}`);
+      console.log(
+        `   Worst task: %c${formatMs(worst)}`,
+        `color: ${worstSev.color}; font-weight: bold;`
+      );
+      console.log(`   Average duration: ${formatMs(avg)}`);
+
+      // By severity
+      const bySeverity = {
+        critical: allTasks.filter((t) => t.severity === "critical").length,
+        high: allTasks.filter((t) => t.severity === "high").length,
+        medium: allTasks.filter((t) => t.severity === "medium").length,
+        low: allTasks.filter((t) => t.severity === "low").length,
+      };
+
+      console.log("");
+      console.log("%cBy severity:", "font-weight: bold;");
+      console.log(`   🔴 Critical (>250ms): ${bySeverity.critical}`);
+      console.log(`   🟠 High (150-250ms): ${bySeverity.high}`);
+      console.log(`   🟡 Medium (100-150ms): ${bySeverity.medium}`);
+      console.log(`   🟢 Low (50-100ms): ${bySeverity.low}`);
+
+      // Timeline
+      if (allTasks.length > 0) {
+        console.log("");
+        console.log("%c⏱️ Timeline:", "font-weight: bold;");
+
+        const tableData = allTasks
+          .sort((a, b) => b.duration - a.duration)
+          .slice(0, 10)
+          .map((t) => {
+            const sev = getSeverity(t.duration);
+            return {
+              "": sev.icon,
+              Start: formatMs(t.startTime),
+              Duration: formatMs(t.duration),
+              Blocking: formatMs(t.blockingTime),
+              Container: t.attribution,
+            };
+          });
+        console.table(tableData);
+      }
+
+      // Recommendations
+      if (totalBlockingTime > 300) {
+        console.log("");
+        console.log("%c💡 Recommendations:", "font-weight: bold; color: #3b82f6;");
+        console.log("   • Break up long tasks using setTimeout or scheduler.yield()");
+        console.log("   • Move heavy computation to Web Workers");
+        console.log("   • Defer non-critical JavaScript");
+        console.log("   • Use requestIdleCallback for low-priority work");
+        console.log("");
+        console.log("%c🔍 For better debugging:", "font-weight: bold;");
+        console.log("   Use the Long Animation Frames snippet for full script attribution");
+      }
+
+      console.groupEnd();
+
+      return {
+        count: allTasks.length,
+        totalBlockingTime,
+        worstTask: worst,
+        avgDuration: avg,
+        bySeverity,
+      };
+    };
+
+    // Initial message
+    console.log("%c⏱️ Long Tasks Tracking Active", "font-weight: bold; font-size: 14px;");
+    console.log("   Tasks blocking the main thread for >50ms will be logged.");
     console.log(
-      `%cNum. Long Tasks: ${numLongTasks}`,
-      "color: #FF4E42; font-weight: bold",
+      "   Call %cgetLongTaskSummary()%c for statistics.",
+      "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
+      ""
     );
-  });
-  po.observe({ type: "longtask", buffered: true });
-} catch (e) {
-  console.error(`The browser doesn't support this API`);
-}
+
+  } catch (e) {
+    console.error("%c⚠️ Long Tasks API not supported", "font-weight: bold;");
+    console.error("   Error:", e.message);
+  }
+})();
 ```
+
+### Understanding the Results
+
+**Real-time Output:**
+
+Each long task logs:
+- Duration and blocking time (time over 50ms)
+- Severity indicator (🟢/🟡/🟠/🔴)
+- Attribution (container type, if available)
+- Running session totals
+
+**Summary Function:**
+
+Call `getLongTaskSummary()` in the console to see:
+
+| Section | Description |
+|---------|-------------|
+| Statistics | Total tasks, blocking time, worst/average |
+| By severity | Count at each severity level |
+| Timeline | Top 10 longest tasks sorted by duration |
+| Recommendations | Optimization suggestions |
+
+### What is Blocking Time?
+
+Blocking time is the portion of a long task that exceeds 50ms:
+
+```
+Task duration: 150ms
+Blocking time: 150 - 50 = 100ms
+```
+
+Total Blocking Time (TBT) is a key metric for understanding main thread responsiveness.
+
+### Limitations
+
+The Long Tasks API provides limited information:
+
+| Information | Available |
+|-------------|-----------|
+| Task duration | ✅ Yes |
+| Start time | ✅ Yes |
+| Container (iframe, window) | ✅ Yes |
+| Script URL | ❌ No |
+| Function name | ❌ No |
+| Forced layout time | ❌ No |
+
+For full script attribution, use [Long Animation Frames](/Interaction/Long-Animation-Frames).
+
+### Further Reading
+
+- [Long Tasks API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceLongTaskTiming) | MDN
+- [Are long tasks the main thread is doing?](https://web.dev/articles/optimize-long-tasks) | web.dev
+- [Total Blocking Time (TBT)](https://web.dev/articles/tbt) | web.dev
