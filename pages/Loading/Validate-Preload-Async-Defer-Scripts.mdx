@@ -572,6 +572,38 @@ ES modules (`type="module"`) behave like `defer` scripts by default, loading at 
 
 **Learn more:** [MDN: `<link rel="modulepreload">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel/modulepreload)
 
+### Alternative Fix: Using `fetchpriority="low"`
+
+If you need to keep the preload for early discovery (e.g., the script is defined late in the HTML but needs to start downloading early), you can use `fetchpriority="low"` on the **script tag** to reduce its bandwidth priority while keeping the preload:
+
+**❌ Problem: Preload escalates async script priority**
+
+```html
+<link rel="preload" href="/analytics.js" as="script" />
+<!-- ... -->
+<script async src="/analytics.js"></script>
+<!-- Priority escalated to Medium/High, competes with critical resources -->
+```
+
+**✅ Solution: Keep preload for discovery, but lower script priority**
+
+```html
+<link rel="preload" href="/analytics.js" as="script" />
+<!-- ... -->
+<script async src="/analytics.js" fetchpriority="low"></script>
+<!-- Downloaded early, but at low priority - doesn't compete with LCP -->
+```
+
+**When to use this approach:**
+
+- Script is discovered late in HTML but should start downloading early
+- You need early discovery but don't want bandwidth competition
+- The script is truly async/defer and doesn't need high priority
+
+**Note:** The `fetchpriority` attribute on the `<script>` tag takes precedence over the preload hint priority. However, **removing the preload entirely** is usually the simpler and safer fix for most cases.
+
+**Learn more:** [MDN: `fetchpriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/fetchPriority)
+
 ### Understanding Script Priorities (Chrome)
 
 Based on [Addy Osmani's research](https://addyosmani.com/blog/script-priorities/), here's how different script loading strategies affect priorities:
