@@ -72,7 +72,14 @@ With preload on async script:
   );
 
   if (preloadedScripts.length === 0) {
-    console.log("%c✅ No preloaded scripts found.", "color: #22c55e; font-weight: bold;");
+    console.log(
+      "%c✅ No script preloads found (rel=\"preload\" as=\"script\").",
+      "color: #22c55e; font-weight: bold;",
+    );
+    console.log(
+      "%cℹ️ This is fine - only preload scripts if they're critical and blocking.",
+      "color: #3b82f6;",
+    );
     return;
   }
 
@@ -421,8 +428,12 @@ With preload on async script:
   if (errors.length === 0 && warnings.length === 0) {
     console.log("");
     console.log(
-      "%c✅ All preloaded scripts look properly configured!",
-      "color: #22c55e; font-weight: bold;",
+      "%c✅ Great! No anti-patterns detected.",
+      "color: #22c55e; font-weight: bold; font-size: 14px;",
+    );
+    console.log(
+      "%cAll script preloads are either on blocking scripts or properly mitigated with fetchpriority=\"low\".",
+      "color: #22c55e;",
     );
   } else {
     console.log("");
