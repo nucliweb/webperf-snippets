@@ -1,0 +1,687 @@
+# Validate Preload on Async/Defer Scripts
+
+### Overview
+
+Detects preload resource hints for scripts that use `async` or `defer` attributes. This is an anti-pattern that wastes bandwidth and can hurt performance by artificially elevating the priority of resources that should load at lower priority.
+
+**Why this matters:**
+
+| Issue                     | Impact                    | Explanation                                                                                      |
+| ------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Preload + async/defer** | Wrong priority escalation | Elevates async/defer scripts from Low to Medium/High priority, competing with critical resources |
+| **Bandwidth competition** | Delays LCP                | Preloaded scripts compete with CSS, fonts, and LCP images for bandwidth                          |
+| **Wasted bytes**          | Extra requests            | Browser may fetch the resource twice if preload doesn't match script attributes                  |
+| **False optimization**    | Maintenance burden        | Adds complexity without performance benefit                                                      |
+
+**Script loading priorities in Chrome:**
+
+| Strategy                                                  | Network Priority   | Execution Priority | Blocks Parser | Use Case                                   |
+| --------------------------------------------------------- | ------------------ | ------------------ | ------------- | ------------------------------------------ |
+| `<script>` in `<head>`                                    | Medium/High        | VeryHigh           | ✅ Yes        | Critical scripts affecting FMP layout      |
+| `<link rel=preload>` + `<script async>`                   | **Medium/High** ⚠️ | High               | Briefly       | ⚠️ Anti-pattern for most cases             |
+| `<link rel=preload>` + `<script async fetchpriority=low>` | Lowest/Low         | High               | Briefly       | ✅ Early discovery + low priority (valid)  |
+| `<script async>`                                          | Lowest/Low         | High               | Briefly       | Independent scripts (analytics, ads)       |
+| `<script defer>`                                          | Lowest/Low         | VeryLow            | ❌ No         | Scripts needing DOM, running in order      |
+| `<script>` at end of `<body>`                             | Medium/High        | Low                | Briefly       | Legacy pattern (use defer instead)         |
+| `<script defer>` at end of `<body>`                       | Lowest/Low         | VeryLow            | ❌ No         | Non-critical occasional features           |
+
+> **Key insight:** Adding `preload` to an `async` or `defer` script elevates it from **Lowest/Low** to **Medium/High** network priority, causing it to compete with critical resources. This is rarely what you want! Source: [JavaScript Loading Priorities in Chrome](https://addyosmani.com/blog/script-priorities/) by [Addy Osmani](https://addyosmani.com/)
+
+**How async/defer work:**
+
+![Script loading comparison: regular script blocks HTML parsing during download and execution. Script with async downloads in parallel but pauses parsing during execution. Script with defer downloads in parallel and executes after parsing completes.](https://v8.dev/_img/modules/async-defer.svg)
+
+_Diagram comparing script loading strategies. Source: [JavaScript modules - module vs script | V8](https://v8.dev/features/modules#module-vs-script)_
+
+**Why not to preload async/defer scripts:**
+
+1. **Async scripts** naturally load at **Lowest/Low** network priority (good!)
+2. **Defer scripts** also load at **Lowest/Low** network priority (also good!)
+3. **Adding preload** escalates them to **Medium/High** priority (bad!)
+4. **The result**: They compete with critical CSS, fonts, and LCP images for bandwidth
+5. **Performance impact**: Can delay LCP by 100-500ms on slower connections
+
+**Priority escalation example:**
+
+```
+Without preload:
+├── CSS: Medium/High priority ✅
+├── Fonts: Medium/High priority ✅
+├── LCP image: Medium/High priority ✅
+└── async script: Lowest/Low priority ✅
+·
+With preload on async script:
+├── CSS: Medium/High priority (now competing) ⚠️
+├── Fonts: Medium/High priority (now competing) ⚠️
+├── LCP image: Medium/High priority (now competing) ⚠️
+└── Preloaded async script: Medium/High priority ❌
+```
+
+> **Key insight:** If a script has `async` or `defer`, it's already declared as **"not critical for initial render"**. Preloading contradicts that by elevating its priority to compete with truly critical resources!
+
+### Snippet
+
+```js copy
+// Validate Preload on Async/Defer Scripts
+// https://webperf-snippets.nucliweb.net
+
+(() => {
+  // Get all preloaded scripts
+  const preloadedScripts = Array.from(
+    document.querySelectorAll('link[rel="preload"][as="script"]'),
+  );
+
+  if (preloadedScripts.length === 0) {
+    console.log("%c✅ No preloaded scripts found.", "color: #22c55e; font-weight: bold;");
+    return;
+  }
+
+  // Get performance entries for scripts
+  const performanceScripts = performance
+    .getEntriesByType("resource")
+    .filter((r) => r.initiatorType === "script" || r.initiatorType === "link");
+
+  // Find corresponding script elements for each preload
+  const issues = [];
+  const validPreloads = [];
+  const allScripts = Array.from(document.querySelectorAll("script[src]"));
+
+  preloadedScripts.forEach((preload) => {
+    const preloadHref = preload.href;
+    const preloadUrl = new URL(preloadHref, location.origin).href;
+
+    // Find matching script element
+    const matchingScript = allScripts.find((script) => {
+      try {
+        const scriptUrl = new URL(script.src, location.origin).href;
+        return scriptUrl === preloadUrl;
+      } catch {
+        return false;
+      }
+    });
+
+    const shortUrl = preloadHref.split("/").pop()?.split("?")[0] || preloadHref;
+
+    if (!matchingScript) {
+      // Check if script was loaded via Performance API (dynamic import, etc.)
+      const wasLoaded = performanceScripts.some((entry) => {
+        try {
+          // First try exact URL match
+          if (entry.name === preloadUrl) return true;
+
+          // For relative/partial matches, compare pathnames to reduce false positives
+          const entryUrl = new URL(entry.name, location.origin);
+          const preloadUrlObj = new URL(preloadUrl, location.origin);
+
+          // Match if pathnames end with the same file (more precise than includes)
+          return entryUrl.pathname.endsWith(preloadUrlObj.pathname);
+        } catch {
+          return false;
+        }
+      });
+
+      if (wasLoaded) {
+        // Script was loaded dynamically (import(), injected, etc.) - this is actually OK
+        validPreloads.push({
+          type: "dynamic",
+          preload,
+          url: preloadHref,
+          shortUrl,
+          note: "Dynamic script (not in DOM, but loaded)",
+        });
+      } else {
+        // Preload without matching script and not loaded - likely unused
+        issues.push({
+          type: "orphan",
+          severity: "warning",
+          preload,
+          url: preloadHref,
+          shortUrl,
+          message: "Preloaded script not found or loaded",
+          explanation: "This preload appears unused - script not in DOM and not in Performance API",
+          fix: "Verify the script is needed, or remove the preload",
+        });
+      }
+    } else {
+      const isAsync = matchingScript.async;
+      const isDefer = matchingScript.defer;
+      const isModule = matchingScript.type === "module";
+      const inHead = matchingScript.closest("head") !== null;
+      const scriptLocation = inHead ? "head" : "body";
+      const fetchPriority = matchingScript.getAttribute("fetchpriority");
+
+      // Determine natural priority
+      let naturalPriority = "Medium/High";
+      let executionPriority = "Low";
+
+      if (isAsync) {
+        naturalPriority = "Lowest/Low";
+        executionPriority = "High";
+      } else if (isDefer) {
+        naturalPriority = "Lowest/Low";
+        executionPriority = "VeryLow";
+      } else if (inHead) {
+        naturalPriority = "Medium/High";
+        executionPriority = "VeryHigh";
+      }
+
+      // Check for anti-pattern: preload + async/defer
+      if (isAsync || isDefer) {
+        const attributes = [];
+        if (isAsync) attributes.push("async");
+        if (isDefer) attributes.push("defer");
+        if (isModule) attributes.push("type='module'");
+
+        // Check if fetchpriority="low" is used to mitigate the issue
+        const hasMitigation = fetchPriority === "low";
+
+        if (hasMitigation) {
+          // Valid: preload with async/defer but fetchpriority="low" mitigates the issue
+          validPreloads.push({
+            type: "mitigated",
+            preload,
+            script: matchingScript,
+            url: preloadHref,
+            shortUrl,
+            location: scriptLocation,
+            attributes: attributes.join(" + ") + " + fetchpriority='low'",
+            naturalPriority,
+            note: "Early discovery with low priority - acceptable pattern",
+          });
+        } else {
+          issues.push({
+            type: "async-defer-preload",
+            severity: "error",
+            preload,
+            script: matchingScript,
+            url: preloadHref,
+            shortUrl,
+            attributes: attributes.join(" + "),
+            location: scriptLocation,
+            naturalPriority,
+            preloadPriority: "Medium/High",
+            fetchPriority: fetchPriority || "not set",
+            message: `Script has ${attributes.join("/")} but is also preloaded`,
+            explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. Preloading escalates them to Medium/High, causing bandwidth competition with critical resources.`,
+            fix: `Remove the preload, OR add fetchpriority="low" to the <script> tag to keep early discovery without priority escalation`,
+          });
+        }
+      } else if (isModule) {
+        // ES modules without async/defer behave like defer by default
+        issues.push({
+          type: "module-preload",
+          severity: "warning",
+          preload,
+          script: matchingScript,
+          url: preloadHref,
+          shortUrl,
+          attributes: "type='module'",
+          location: scriptLocation,
+          naturalPriority: "Lowest/Low (module default)",
+          preloadPriority: "Medium/High",
+          message: "ES module is using rel='preload' instead of rel='modulepreload'",
+          explanation: "ES modules behave like defer scripts by default (low priority). Using rel='preload' as='script' escalates priority unnecessarily. For modules, use rel='modulepreload' instead.",
+          fix: "Change <link rel='preload' as='script'> to <link rel='modulepreload'> for proper module preloading",
+        });
+      } else {
+        // Valid preload (blocking script) - but check if it's really needed
+        const needsReview = !inHead; // Blocking scripts at end of body rarely need preload
+
+        validPreloads.push({
+          preload,
+          script: matchingScript,
+          url: preloadHref,
+          shortUrl,
+          location: scriptLocation,
+          naturalPriority,
+          needsReview,
+          reviewNote: needsReview ? "Consider using 'defer' instead" : "Valid for critical scripts",
+        });
+      }
+    }
+  });
+
+  // Display results
+  console.group(
+    "%c🔍 Preload + Async/Defer Script Validation",
+    "font-weight: bold; font-size: 14px;",
+  );
+
+  console.log("");
+  console.log("%cSummary:", "font-weight: bold;");
+  console.log(`   Total preloaded scripts: ${preloadedScripts.length}`);
+  console.log(`   Valid preloads (blocking scripts): ${validPreloads.length}`);
+  console.log(`   Issues found: ${issues.length}`);
+
+  // Show issues
+  const errors = issues.filter((i) => i.severity === "error");
+  const warnings = issues.filter((i) => i.severity === "warning");
+
+  if (errors.length > 0) {
+    console.log("");
+    console.group(
+      `%c⚠️ Anti-patterns Found (${errors.length})`,
+      "color: #ef4444; font-weight: bold;",
+    );
+
+    const errorTable = errors
+      .filter((e) => e.type === "async-defer-preload")
+      .map((issue) => ({
+        Script: issue.shortUrl,
+        Location: issue.location,
+        Attributes: issue.attributes,
+        "Natural Priority": issue.naturalPriority,
+        "Preload Priority": "⚠️ Medium/High",
+        Issue: "❌ Priority escalation",
+      }));
+
+    if (errorTable.length > 0) {
+      console.table(errorTable);
+    }
+
+    console.log("");
+    console.log("%c🔴 Detailed Issues:", "font-weight: bold; color: #ef4444;");
+    errors
+      .filter((e) => e.type === "async-defer-preload")
+      .forEach((issue, i) => {
+        console.log("");
+        console.log(`%c${i + 1}. ${issue.message}`, "font-weight: bold;");
+        console.log(`   URL: ${issue.url}`);
+        console.log(`   Problem: ${issue.explanation}`);
+        console.log(`   Fix: ${issue.fix}`);
+        console.log("");
+        console.log("   Elements:");
+        console.log("   Preload:", issue.preload);
+        console.log("   Script:", issue.script);
+      });
+
+    console.groupEnd();
+  }
+
+  if (warnings.length > 0) {
+    console.log("");
+    console.group(`%c💡 Warnings (${warnings.length})`, "color: #f59e0b; font-weight: bold;");
+
+    warnings.forEach((issue) => {
+      console.log("");
+      console.log(`%c${issue.message}`, "font-weight: bold;");
+      console.log(`   URL: ${issue.url}`);
+      console.log(`   ${issue.fix}`);
+    });
+
+    console.groupEnd();
+  }
+
+  // Show valid preloads
+  if (validPreloads.length > 0) {
+    console.log("");
+    console.group(
+      `%c✅ Valid Preloads (${validPreloads.length})`,
+      "color: #22c55e; font-weight: bold;",
+    );
+
+    const blockingScripts = validPreloads.filter((v) => v.type !== "dynamic");
+    const dynamicScripts = validPreloads.filter((v) => v.type === "dynamic");
+
+    if (blockingScripts.length > 0) {
+      console.log("Blocking scripts that may benefit from preload:");
+      console.log("");
+
+      const validTable = blockingScripts.map((v) => ({
+        Script: v.shortUrl,
+        Location: v.location,
+        Priority: v.naturalPriority,
+        Status: v.needsReview ? "⚠️ Review needed" : "✅ Valid",
+        Note: v.reviewNote,
+      }));
+
+      console.table(validTable);
+
+      if (blockingScripts.some((v) => v.needsReview)) {
+        console.log("");
+        console.log(
+          "%c💡 Tip: Blocking scripts at end of <body> rarely need preload.",
+          "color: #f59e0b;",
+        );
+        console.log("   Consider using 'defer' instead for better performance.");
+      }
+    }
+
+    if (dynamicScripts.length > 0) {
+      console.log("");
+      console.log(
+        `%c📦 Dynamic Scripts (${dynamicScripts.length})`,
+        "font-weight: bold; color: #3b82f6;",
+      );
+      console.log("These scripts are loaded dynamically (import(), code splitting, etc.):");
+      console.log("");
+
+      const dynamicTable = dynamicScripts.map((v) => ({
+        Script: v.shortUrl,
+        Type: "Dynamic/Code-split",
+        Status: "✅ OK",
+        Note: v.note,
+      }));
+
+      console.table(dynamicTable);
+
+      console.log("");
+      console.log(
+        "%c💡 Info: Dynamic scripts don't appear in the DOM but are loaded by other scripts.",
+        "color: #3b82f6;",
+      );
+      console.log("   This is normal for code-splitting, dynamic imports, or lazy-loaded modules.");
+    }
+
+    console.groupEnd();
+  }
+
+  // Recommendations
+  console.log("");
+  console.group("%c📝 Best Practices", "color: #3b82f6; font-weight: bold;");
+  console.log("");
+  console.log("%c❌ DON'T preload async/defer scripts:", "font-weight: bold;");
+  console.log("   Bad pattern:");
+  console.log(
+    '%c   <link rel="preload" href="analytics.js" as="script">',
+    "font-family: monospace; color: #ef4444;",
+  );
+  console.log(
+    '%c   <script src="analytics.js" async></script>',
+    "font-family: monospace; color: #ef4444;",
+  );
+  console.log("");
+  console.log("%c✅ DO let async scripts load naturally:", "font-weight: bold;");
+  console.log("   Good pattern:");
+  console.log(
+    '%c   <script src="analytics.js" async></script>',
+    "font-family: monospace; color: #22c55e;",
+  );
+  console.log("");
+  console.log("%c✅ DO preload ONLY critical blocking scripts:", "font-weight: bold;");
+  console.log("   When script is needed early and blocks parsing:");
+  console.log(
+    '%c   <link rel="preload" href="critical.js" as="script">',
+    "font-family: monospace; color: #22c55e;",
+  );
+  console.log(
+    '%c   <script src="critical.js"></script>',
+    "font-family: monospace; color: #22c55e;",
+  );
+  console.log("");
+  console.log("%cResource priority order:", "font-weight: bold;");
+  console.log("   1. Critical CSS (for LCP)");
+  console.log("   2. Critical fonts (with crossorigin)");
+  console.log("   3. LCP images (fetchpriority='high')");
+  console.log("   4. Critical blocking scripts (rare)");
+  console.log("   5. Everything else (no preload needed)");
+  console.groupEnd();
+
+  // Summary
+  if (errors.length === 0 && warnings.length === 0) {
+    console.log("");
+    console.log(
+      "%c✅ All preloaded scripts look properly configured!",
+      "color: #22c55e; font-weight: bold;",
+    );
+  } else {
+    console.log("");
+    console.log(
+      `%c⚠️ Found ${errors.length} error(s) and ${warnings.length} warning(s). Review recommendations above.`,
+      "color: #ef4444; font-weight: bold;",
+    );
+  }
+
+  console.groupEnd();
+})();
+```
+
+### Understanding the Results
+
+**Summary Section:**
+
+- Total count of preloaded scripts
+- Valid preloads (blocking scripts that may benefit)
+- Issues detected
+
+**Issue Types:**
+
+| Type                      | Severity | Description                                                              |
+| ------------------------- | -------- | ------------------------------------------------------------------------ |
+| **Preload + async/defer** | Error    | Anti-pattern: script already loads non-blocking without fetchpriority    |
+| **Module preload**        | Warning  | ES module using rel="preload" instead of rel="modulepreload"             |
+| **Orphan preload**        | Warning  | Preloaded script not found or loaded                                     |
+
+**Valid Preload Types:**
+
+| Type                 | Description                                                                   |
+| -------------------- | ----------------------------------------------------------------------------- |
+| **Blocking scripts** | Scripts without async/defer that may benefit from preload                     |
+| **Mitigated pattern** | Preload + async/defer with fetchpriority="low" (early discovery, low priority) |
+| **Dynamic scripts**  | Scripts loaded via import(), code-splitting, or injection                     |
+
+> **Note:** Dynamic scripts (loaded via `import()` or code-splitting) don't appear in the DOM but are visible in the Performance API. The snippet detects these by checking resource timing entries and classifies them separately from truly orphaned preloads.
+
+**Anti-patterns Table:**
+
+| Column           | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| Script           | Filename of the preloaded script                                  |
+| Location         | Where the script is placed (head or body)                         |
+| Attributes       | async, defer, or type='module' attributes found                   |
+| Natural Priority | The script's network priority without preload                     |
+| Preload Priority | The elevated priority caused by preload                           |
+| fetchPriority    | Value of fetchpriority attribute (shows if mitigation is missing) |
+| Issue            | Type of problem detected                                          |
+
+**Recommendations:**
+
+The snippet provides specific guidance on:
+
+1. Which preloads to remove (async/defer scripts without fetchpriority="low")
+2. How to mitigate if preload is needed (add fetchpriority="low" to script tag)
+3. What to preload instead (critical resources like fonts, CSS, LCP images)
+4. Correct usage of rel="modulepreload" for ES modules
+
+### Real-World Example
+
+**❌ Anti-pattern (hurts performance):**
+
+```html
+<!-- Preloading Google Analytics (async) - BAD -->
+<link rel="preload" href="https://www.google-analytics.com/analytics.js" as="script" />
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+
+<!-- Result: Analytics competes with critical resources like fonts/CSS -->
+```
+
+**✅ Correct approach:**
+
+```html
+<!-- No preload - async is enough -->
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+
+<!-- Save preload for truly critical resources -->
+<link rel="preload" href="/critical-font.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/hero-image.webp" as="image" fetchpriority="high" />
+```
+
+### Why This Matters for Core Web Vitals
+
+**Impact on LCP (Largest Contentful Paint):**
+
+If you preload non-critical async scripts, they compete for bandwidth with:
+
+- LCP image
+- Critical CSS
+- Web fonts used above the fold
+
+This can measurably delay your LCP, especially on slower connections and bandwidth-constrained devices. The actual impact depends on your site's resource size, connection speed, and number of competing resources.
+
+**Priority order reality:**
+
+```
+Without preload:
+├── CSS (high priority)
+├── Fonts (high priority)
+├── LCP image (high priority)
+└── Async scripts (low priority) ✅
+·
+With wrong preload:
+├── Preloaded async script (high priority) ❌
+├── CSS (competing)
+├── Fonts (competing)
+└── LCP image (competing)
+```
+
+### When Is Preload + Script Actually Appropriate?
+
+According to [JavaScript Loading Priorities](https://addyosmani.com/blog/script-priorities/), preload is appropriate only for very specific cases:
+
+**Valid use case: `<link rel=preload>` + `<script async>`**
+
+For scripts that:
+
+1. **Generate critical content** needed for First Meaningful Paint
+2. **Shouldn't affect above-the-fold layout**
+3. **Are discovered late** in the HTML
+
+```html
+<!-- Valid: Critical content generator, discovered late -->
+<link rel="preload" href="/critical-content-generator.js" as="script" />
+<!-- ... lots of HTML ... -->
+<script src="/critical-content-generator.js" async></script>
+```
+
+**⚠️ Warning:** This is a rare edge case. Most scripts should NOT be preloaded.
+
+**Better alternatives for common cases:**
+
+```html
+<!-- For framework/polyfills needed early -->
+<script src="/framework.js"></script>
+<!-- In <head>, blocking -->
+
+<!-- For scripts needing DOM -->
+<script src="/app.js" defer></script>
+<!-- Loads at Low priority, executes after parse -->
+
+<!-- For independent scripts -->
+<script src="/analytics.js" async></script>
+<!-- Loads at Low priority, no preload needed -->
+```
+
+### ES Modules: Use `modulepreload`, Not `preload`
+
+ES modules (`type="module"`) behave like `defer` scripts by default, loading at low priority. If you need to preload them, use the **`rel="modulepreload"`** attribute instead of `rel="preload"`:
+
+**❌ Incorrect (detected as anti-pattern):**
+
+```html
+<link rel="preload" href="/app.js" as="script" />
+<script type="module" src="/app.js"></script>
+```
+
+**✅ Correct approach for modules:**
+
+```html
+<link rel="modulepreload" href="/app.js" />
+<script type="module" src="/app.js"></script>
+```
+
+**Key differences:**
+
+- `rel="modulepreload"` understands module imports and preloads dependencies
+- `rel="preload" as="script"` treats it as a regular script (wrong priority escalation)
+- Module scripts already defer by default, so avoid unnecessary preloading
+
+**Learn more:** [MDN: `<link rel="modulepreload">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel/modulepreload)
+
+### Alternative Fix: Using `fetchpriority="low"`
+
+If you need to keep the preload for early discovery (e.g., the script is defined late in the HTML but needs to start downloading early), you can use `fetchpriority="low"` on the **script tag** to reduce its bandwidth priority while keeping the preload:
+
+**❌ Problem: Preload escalates async script priority**
+
+```html
+<link rel="preload" href="/analytics.js" as="script" />
+<!-- ... -->
+<script async src="/analytics.js"></script>
+<!-- Priority escalated to Medium/High, competes with critical resources -->
+```
+
+**✅ Solution: Keep preload for discovery, but lower script priority**
+
+```html
+<link rel="preload" href="/analytics.js" as="script" />
+<!-- ... -->
+<script async src="/analytics.js" fetchpriority="low"></script>
+<!-- Downloaded early, but at low priority - doesn't compete with LCP -->
+```
+
+**When to use this approach:**
+
+- Script is discovered late in HTML but should start downloading early
+- You need early discovery but don't want bandwidth competition
+- The script is truly async/defer and doesn't need high priority
+
+**Note:** The `fetchpriority` attribute on the `<script>` tag takes precedence over the preload hint priority. However, **removing the preload entirely** is usually the simpler and safer fix for most cases.
+
+**Learn more:** [MDN: `fetchpriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/fetchPriority)
+
+### Understanding Script Priorities (Chrome)
+
+Based on [Addy Osmani's research](https://addyosmani.com/blog/script-priorities/), here's how different script loading strategies affect priorities:
+
+**Scripts in `<head>` (framework/polyfills):**
+
+- Network: Medium/High
+- Execution: VeryHigh (blocks parser)
+- Use for: Scripts affecting FMP layout, must run before other scripts
+
+**`<script defer>` (recommended for most scripts):**
+
+- Network: **Lowest/Low** ✅
+- Execution: VeryLow (after parsing)
+- Use for: Scripts needing DOM, non-critical content, interactive features used by >50% of sessions
+
+**`<script async>` (analytics, ads):**
+
+- Network: **Lowest/Low** ✅
+- Execution: High (interrupts parser briefly)
+- Use for: Independent scripts, but be careful - execution priority is inconsistent
+
+**`<link rel=preload>` + `<script async>` (rare case):**
+
+- Network: **Medium/High** ⚠️
+- Execution: High
+- Use for: Critical content generators (not layout), discovered late
+- Warning: Rarely needed, often misused
+
+**`<script>` at end of `<body>` (legacy):**
+
+- Network: Medium/High
+- Execution: Low
+- Problem: Still scheduled at high network priority despite appearing late
+- Better alternative: Use `defer` instead
+
+**Key takeaway:** Defer gives you **Lowest/Low** network priority (good for non-critical scripts) while preload forces **Medium/High** priority (should only be used for truly critical resources).
+
+### Common Sources of This Issue
+
+| Source                      | Why It Happens                                                               |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| **Tag managers**            | Auto-add preload to all scripts including async ones                         |
+| **Performance plugins**     | Generic "preload all scripts" rules                                          |
+| **Copy-paste optimization** | Adding preloads without understanding the script's loading strategy          |
+| **Outdated advice**         | Old articles suggesting "preload everything"                                 |
+| **Misunderstanding async**  | Assuming async always needs help, not realizing it already loads efficiently |
+
+### Further Reading
+
+- [JavaScript Loading Priorities](https://addyosmani.com/blog/script-priorities/) | Addy Osmani - Detailed breakdown of network and execution priorities
+- [Negative performance impact from preloading](https://www.debugbear.com/blog/resource-hints-rel-preload-prefetch-preconnect#negative-performance-impact-from-preloading) | DebugBear
+- [Preload critical assets](https://web.dev/articles/preload-critical-assets) | web.dev
+- [Script loading strategies](https://developer.chrome.com/docs/lighthouse/performance/render-blocking-resources) | Chrome Developers
+- [Resource prioritization](https://web.dev/articles/prioritize-resources) | web.dev
+- [Andy Davies on font preloading](https://andydavies.me/blog/2019/02/12/preloading-fonts-and-the-puzzle-of-priorities/) | Andy Davies
