@@ -105,7 +105,15 @@ With preload on async script:
       // Check if script was loaded via Performance API (dynamic import, etc.)
       const wasLoaded = performanceScripts.some((entry) => {
         try {
-          return entry.name === preloadUrl || entry.name.includes(shortUrl);
+          // First try exact URL match
+          if (entry.name === preloadUrl) return true;
+
+          // For relative/partial matches, compare pathnames to reduce false positives
+          const entryUrl = new URL(entry.name, location.origin);
+          const preloadUrlObj = new URL(preloadUrl, location.origin);
+
+          // Match if pathnames end with the same file (more precise than includes)
+          return entryUrl.pathname.endsWith(preloadUrlObj.pathname);
         } catch {
           return false;
         }
