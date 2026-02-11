@@ -185,6 +185,23 @@ With preload on async script:
           explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. Preloading escalates them to Medium/High, causing bandwidth competition with critical resources.`,
           fix: `Remove the preload to let the script load at its natural ${naturalPriority} priority`,
         });
+      } else if (isModule) {
+        // ES modules without async/defer behave like defer by default
+        issues.push({
+          type: "module-preload",
+          severity: "warning",
+          preload,
+          script: matchingScript,
+          url: preloadHref,
+          shortUrl,
+          attributes: "type='module'",
+          location: scriptLocation,
+          naturalPriority: "Lowest/Low (module default)",
+          preloadPriority: "Medium/High",
+          message: "ES module is using rel='preload' instead of rel='modulepreload'",
+          explanation: "ES modules behave like defer scripts by default (low priority). Using rel='preload' as='script' escalates priority unnecessarily. For modules, use rel='modulepreload' instead.",
+          fix: "Change <link rel='preload' as='script'> to <link rel='modulepreload'> for proper module preloading",
+        });
       } else {
         // Valid preload (blocking script) - but check if it's really needed
         const needsReview = !inHead; // Blocking scripts at end of body rarely need preload
@@ -528,6 +545,32 @@ For scripts that:
 <script src="/analytics.js" async></script>
 <!-- Loads at Low priority, no preload needed -->
 ```
+
+### ES Modules: Use `modulepreload`, Not `preload`
+
+ES modules (`type="module"`) behave like `defer` scripts by default, loading at low priority. If you need to preload them, use the **`rel="modulepreload"`** attribute instead of `rel="preload"`:
+
+**❌ Incorrect (detected as anti-pattern):**
+
+```html
+<link rel="preload" href="/app.js" as="script" />
+<script type="module" src="/app.js"></script>
+```
+
+**✅ Correct approach for modules:**
+
+```html
+<link rel="modulepreload" href="/app.js" />
+<script type="module" src="/app.js"></script>
+```
+
+**Key differences:**
+
+- `rel="modulepreload"` understands module imports and preloads dependencies
+- `rel="preload" as="script"` treats it as a regular script (wrong priority escalation)
+- Module scripts already defer by default, so avoid unnecessary preloading
+
+**Learn more:** [MDN: `<link rel="modulepreload">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel/modulepreload)
 
 ### Understanding Script Priorities (Chrome)
 
