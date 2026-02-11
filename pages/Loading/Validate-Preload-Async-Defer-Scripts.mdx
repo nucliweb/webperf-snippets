@@ -138,7 +138,7 @@ With preload on async script:
       const isDefer = matchingScript.defer;
       const isModule = matchingScript.type === "module";
       const inHead = matchingScript.closest("head") !== null;
-      const location = inHead ? "head" : "body";
+      const scriptLocation = inHead ? "head" : "body";
 
       // Determine natural priority
       let naturalPriority = "Medium/High";
@@ -170,7 +170,7 @@ With preload on async script:
           url: preloadHref,
           shortUrl,
           attributes: attributes.join(" + "),
-          location,
+          location: scriptLocation,
           naturalPriority,
           preloadPriority: "Medium/High",
           message: `Script has ${attributes.join("/")} but is also preloaded`,
@@ -186,7 +186,7 @@ With preload on async script:
           script: matchingScript,
           url: preloadHref,
           shortUrl,
-          location,
+          location: scriptLocation,
           naturalPriority,
           needsReview,
           reviewNote: needsReview ? "Consider using 'defer' instead" : "Valid for critical scripts",
