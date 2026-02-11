@@ -147,6 +147,7 @@ With preload on async script:
       const isModule = matchingScript.type === "module";
       const inHead = matchingScript.closest("head") !== null;
       const scriptLocation = inHead ? "head" : "body";
+      const fetchPriority = matchingScript.getAttribute("fetchpriority");
 
       // Determine natural priority
       let naturalPriority = "Medium/High";
@@ -170,21 +171,40 @@ With preload on async script:
         if (isDefer) attributes.push("defer");
         if (isModule) attributes.push("type='module'");
 
-        issues.push({
-          type: "async-defer-preload",
-          severity: "error",
-          preload,
-          script: matchingScript,
-          url: preloadHref,
-          shortUrl,
-          attributes: attributes.join(" + "),
-          location: scriptLocation,
-          naturalPriority,
-          preloadPriority: "Medium/High",
-          message: `Script has ${attributes.join("/")} but is also preloaded`,
-          explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. Preloading escalates them to Medium/High, causing bandwidth competition with critical resources.`,
-          fix: `Remove the preload to let the script load at its natural ${naturalPriority} priority`,
-        });
+        // Check if fetchpriority="low" is used to mitigate the issue
+        const hasMitigation = fetchPriority === "low";
+
+        if (hasMitigation) {
+          // Valid: preload with async/defer but fetchpriority="low" mitigates the issue
+          validPreloads.push({
+            type: "mitigated",
+            preload,
+            script: matchingScript,
+            url: preloadHref,
+            shortUrl,
+            location: scriptLocation,
+            attributes: attributes.join(" + ") + " + fetchpriority='low'",
+            naturalPriority,
+            note: "Early discovery with low priority - acceptable pattern",
+          });
+        } else {
+          issues.push({
+            type: "async-defer-preload",
+            severity: "error",
+            preload,
+            script: matchingScript,
+            url: preloadHref,
+            shortUrl,
+            attributes: attributes.join(" + "),
+            location: scriptLocation,
+            naturalPriority,
+            preloadPriority: "Medium/High",
+            fetchPriority: fetchPriority || "not set",
+            message: `Script has ${attributes.join("/")} but is also preloaded`,
+            explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. Preloading escalates them to Medium/High, causing bandwidth competition with critical resources.`,
+            fix: `Remove the preload, OR add fetchpriority="low" to the <script> tag to keep early discovery without priority escalation`,
+          });
+        }
       } else if (isModule) {
         // ES modules without async/defer behave like defer by default
         issues.push({
