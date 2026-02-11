@@ -15,14 +15,15 @@ Detects preload resource hints for scripts that use `async` or `defer` attribute
 
 **Script loading priorities in Chrome:**
 
-| Strategy                                | Network Priority   | Execution Priority | Blocks Parser | Use Case                              |
-| --------------------------------------- | ------------------ | ------------------ | ------------- | ------------------------------------- |
-| `<script>` in `<head>`                  | Medium/High        | VeryHigh           | ✅ Yes        | Critical scripts affecting FMP layout |
-| `<link rel=preload>` + `<script async>` | **Medium/High** ⚠️ | High               | Briefly       | ⚠️ Anti-pattern for most cases        |
-| `<script async>`                        | Lowest/Low         | High               | Briefly       | Independent scripts (analytics, ads)  |
-| `<script defer>`                        | Lowest/Low         | VeryLow            | ❌ No         | Scripts needing DOM, running in order |
-| `<script>` at end of `<body>`           | Medium/High        | Low                | Briefly       | Legacy pattern (use defer instead)    |
-| `<script defer>` at end of `<body>`     | Lowest/Low         | VeryLow            | ❌ No         | Non-critical occasional features      |
+| Strategy                                                  | Network Priority   | Execution Priority | Blocks Parser | Use Case                                   |
+| --------------------------------------------------------- | ------------------ | ------------------ | ------------- | ------------------------------------------ |
+| `<script>` in `<head>`                                    | Medium/High        | VeryHigh           | ✅ Yes        | Critical scripts affecting FMP layout      |
+| `<link rel=preload>` + `<script async>`                   | **Medium/High** ⚠️ | High               | Briefly       | ⚠️ Anti-pattern for most cases             |
+| `<link rel=preload>` + `<script async fetchpriority=low>` | Lowest/Low         | High               | Briefly       | ✅ Early discovery + low priority (valid)  |
+| `<script async>`                                          | Lowest/Low         | High               | Briefly       | Independent scripts (analytics, ads)       |
+| `<script defer>`                                          | Lowest/Low         | VeryLow            | ❌ No         | Scripts needing DOM, running in order      |
+| `<script>` at end of `<body>`                             | Medium/High        | Low                | Briefly       | Legacy pattern (use defer instead)         |
+| `<script defer>` at end of `<body>`                       | Lowest/Low         | VeryLow            | ❌ No         | Non-critical occasional features           |
 
 > **Key insight:** Adding `preload` to an `async` or `defer` script elevates it from **Lowest/Low** to **Medium/High** network priority, causing it to compete with critical resources. This is rarely what you want! Source: [JavaScript Loading Priorities in Chrome](https://addyosmani.com/blog/script-priorities/) by [Addy Osmani](https://addyosmani.com/)
 
@@ -445,38 +446,42 @@ With preload on async script:
 
 **Issue Types:**
 
-| Type                      | Severity | Description                                     |
-| ------------------------- | -------- | ----------------------------------------------- |
-| **Preload + async/defer** | Error    | Anti-pattern: script already loads non-blocking |
-| **Orphan preload**        | Warning  | Preloaded script not found or loaded            |
+| Type                      | Severity | Description                                                              |
+| ------------------------- | -------- | ------------------------------------------------------------------------ |
+| **Preload + async/defer** | Error    | Anti-pattern: script already loads non-blocking without fetchpriority    |
+| **Module preload**        | Warning  | ES module using rel="preload" instead of rel="modulepreload"             |
+| **Orphan preload**        | Warning  | Preloaded script not found or loaded                                     |
 
 **Valid Preload Types:**
 
-| Type                 | Description                                               |
-| -------------------- | --------------------------------------------------------- |
-| **Blocking scripts** | Scripts without async/defer that may benefit from preload |
-| **Dynamic scripts**  | Scripts loaded via import(), code-splitting, or injection |
+| Type                 | Description                                                                   |
+| -------------------- | ----------------------------------------------------------------------------- |
+| **Blocking scripts** | Scripts without async/defer that may benefit from preload                     |
+| **Mitigated pattern** | Preload + async/defer with fetchpriority="low" (early discovery, low priority) |
+| **Dynamic scripts**  | Scripts loaded via import(), code-splitting, or injection                     |
 
 > **Note:** Dynamic scripts (loaded via `import()` or code-splitting) don't appear in the DOM but are visible in the Performance API. The snippet detects these by checking resource timing entries and classifies them separately from truly orphaned preloads.
 
 **Anti-patterns Table:**
 
-| Column           | Description                                     |
-| ---------------- | ----------------------------------------------- |
-| Script           | Filename of the preloaded script                |
-| Location         | Where the script is placed (head or body)       |
-| Attributes       | async, defer, or type='module' attributes found |
-| Natural Priority | The script's network priority without preload   |
-| Preload Priority | The elevated priority caused by preload         |
-| Issue            | Type of problem detected                        |
+| Column           | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| Script           | Filename of the preloaded script                                  |
+| Location         | Where the script is placed (head or body)                         |
+| Attributes       | async, defer, or type='module' attributes found                   |
+| Natural Priority | The script's network priority without preload                     |
+| Preload Priority | The elevated priority caused by preload                           |
+| fetchPriority    | Value of fetchpriority attribute (shows if mitigation is missing) |
+| Issue            | Type of problem detected                                          |
 
 **Recommendations:**
 
 The snippet provides specific guidance on:
 
-1. Which preloads to remove (async/defer scripts)
-2. What to preload instead (critical resources)
-3. Correct priority order for resource hints
+1. Which preloads to remove (async/defer scripts without fetchpriority="low")
+2. How to mitigate if preload is needed (add fetchpriority="low" to script tag)
+3. What to preload instead (critical resources like fonts, CSS, LCP images)
+4. Correct usage of rel="modulepreload" for ES modules
 
 ### Real-World Example
 
