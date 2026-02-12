@@ -89,7 +89,7 @@ graph LR
     }
   });
 
-  // Valid 'as' attribute values for prefetch
+  // Valid 'as' attribute values for prefetch (per HTML spec)
   const validAsValues = new Set([
     "script",
     "style",
@@ -101,6 +101,7 @@ graph LR
     "fetch",
     "track",
     "worker",
+    // Note: "media" is not a valid spec value, use "video" or "audio" instead
   ]);
 
   // Thresholds
@@ -123,7 +124,8 @@ graph LR
     const href = link.href;
     const as = link.getAttribute("as") || "unknown";
     // Extract filename from URL; fallback to full href if URL is just origin
-    const shortUrl = href.split("/").pop()?.split("?")[0] || href;
+    // Note: Removes query params but preserves hash (e.g., page#section)
+    const shortUrl = href.split("/").pop()?.split("?")[0]?.split("#")[0] || href;
 
     // Normalize URL for matching
     let normalizedUrl;
@@ -228,9 +230,9 @@ graph LR
       let isInappropriate = false;
       let inappropriateReason = "";
 
-      if (as === "video" || as === "media") {
+      if (as === "video" || as === "audio") {
         isInappropriate = true;
-        inappropriateReason = "Videos/media files are typically too large for prefetch";
+        inappropriateReason = "Video/audio files are typically too large for prefetch";
       } else if (as === "image" && analysis.size > 200 * 1024) {
         isInappropriate = true;
         inappropriateReason = `Image is ${(analysis.size / 1024).toFixed(0)}KB (>200KB threshold)`;
@@ -300,13 +302,19 @@ graph LR
   // Count actually loaded resources
   const loadedCount = [...issues, ...validPrefetch].filter((item) => item.loaded).length;
 
+  // Count meaningful issues (exclude "info" severity)
+  const meaningfulIssues = issues.filter((i) =>
+    i.warnings.some((w) => w.severity === "error" || w.severity === "warning"),
+  );
+  const totalMeaningfulIssues = meaningfulIssues.length + countIssues.length;
+
   console.log("");
   console.log("%cSummary:", "font-weight: bold;");
   console.log(`   Total prefetch hints: ${prefetchLinks.length}`);
   console.log(`   Loaded resources: ${loadedCount}`);
   console.log(`   Total size: ${totalSizeMB} MB (decompressed)`);
   console.log(`   Transfer size: ${totalTransferMB} MB (over network)`);
-  console.log(`   Issues found: ${issues.length + countIssues.length}`);
+  console.log(`   Issues found: ${totalMeaningfulIssues} (excluding "not loaded" info)`);
 
   // Show count/size issues first
   if (countIssues.length > 0) {
@@ -462,8 +470,7 @@ graph LR
   console.groupEnd();
 
   // Summary
-  const totalIssues = issues.length + countIssues.length;
-  if (totalIssues === 0) {
+  if (totalMeaningfulIssues === 0) {
     console.log("");
     console.log(
       "%c✅ Great! No issues detected with prefetch usage.",
@@ -476,7 +483,7 @@ graph LR
   } else {
     console.log("");
     console.log(
-      `%c⚠️ Found ${totalIssues} issue(s). Review recommendations above.`,
+      `%c⚠️ Found ${totalMeaningfulIssues} issue(s). Review recommendations above.`,
       "color: #ef4444; font-weight: bold;",
     );
   }
@@ -500,7 +507,7 @@ Shows the overall state of prefetch usage:
 
 | Category               | Severity | Description                                                          |
 | ---------------------- | -------- | -------------------------------------------------------------------- |
-| **Wrong hint type**    | Error    | Resource used on current page - should use `preload` not `prefetch`  |
+| **Wrong hint type**    | Error    | Resource used on current page - should use `preload` not `prefetch` (\*) |
 | **Missing as**         | Warning  | Missing `as` attribute prevents correct MIME type matching           |
 | **Invalid as**         | Warning  | Invalid `as` attribute value (typo or unsupported type)              |
 | **Duplicate prefetch** | Warning  | Same URL is prefetched multiple times (wasteful)                     |
@@ -510,6 +517,8 @@ Shows the overall state of prefetch usage:
 | **High size**          | Warning  | Total prefetch &gt;2MB should be reduced                             |
 | **Inappropriate type** | Warning  | Resource type/size not suitable (video, large image/script)          |
 | **Not loaded**         | Info     | Prefetch hint present but resource not loaded yet                    |
+
+> **(\*) Note on "Wrong hint type" detection:** This check uses a 5-second heuristic (resources loaded in the first 5s are considered current-page resources). On very slow-loading pages (>5s), this may produce false positives. The heuristic works well for most pages but consider the page load time when evaluating this error.
 
 **Resource Analysis:**
 
@@ -885,8 +894,11 @@ Cache-Control: no-cache, no-store
 
 **Verify cache headers:**
 
+> **Note:** The following is a standalone example to check cache headers manually. It is NOT part of the diagnostic snippet above (it makes a real network request).
+
 ```javascript
-// Check if prefetched resource has good cache headers
+// Standalone example: Check if a specific resource has good cache headers
+// This makes a real HEAD request to inspect headers
 fetch("/prefetched-script.js", { method: "HEAD" }).then((res) => {
   const cacheControl = res.headers.get("cache-control");
   console.log("Cache-Control:", cacheControl);
