@@ -1,0 +1,823 @@
+# Prefetch Resource Validation
+
+### Overview
+
+Detects potential performance issues with `rel="prefetch"` resource hints by analyzing quantity, size, type, and appropriateness of prefetched resources. Excessive or incorrect prefetch usage can waste bandwidth, delay critical resources, and negatively impact mobile users.
+
+**What is prefetch?**
+
+`rel="prefetch"` is a resource hint that tells the browser to fetch and cache resources that may be needed for future navigations, during idle time. Unlike `preload`, which is for the current page, prefetch is for anticipated next-page resources.
+
+**Difference between preload and prefetch:**
+
+| Hint       | Priority | Timing            | Cache        | Use Case                                  |
+| ---------- | -------- | ----------------- | ------------ | ----------------------------------------- |
+| `preload`  | High     | Current page      | Memory cache | Critical resources for current page (LCP) |
+| `prefetch` | Lowest   | Future navigation | Disk cache   | Resources for likely next pages           |
+
+**Visual comparison:**
+
+```mermaid
+graph LR
+    A[User loads page] --> B{Resource hint type?}
+    B -->|preload| C[High Priority]
+    B -->|prefetch| D[Lowest Priority]
+
+    C --> E[Memory Cache]
+    D --> F[Disk Cache]
+
+    C --> G[Use: Current Page Critical Resources]
+    D --> H[Use: Future Navigation]
+
+    E --> I[Fast access for current page]
+    F --> J[Available for next navigation]
+
+    style C fill:#ef4444,color:#fff
+    style D fill:#22c55e,color:#fff
+    style G fill:#3b82f6,color:#fff
+    style H fill:#3b82f6,color:#fff
+```
+
+**Problems commonly detected:**
+
+| Issue                      | Impact                   | Detection                                 |
+| -------------------------- | ------------------------ | ----------------------------------------- |
+| **Excessive prefetch**     | Wasted bandwidth         | More than 10-15 resources prefetched      |
+| **Large files**            | Mobile data consumption  | Individual resources &gt;500KB            |
+| **Total size**             | Network congestion       | Cumulative prefetch &gt;2MB               |
+| **Wrong resource types**   | Ineffective optimization | Large images/videos instead of code       |
+| **Current page resources** | Wrong hint type          | Should use `preload` instead              |
+| **Missing cache headers**  | Prefetch won't be used   | Resources without proper cache directives |
+
+### Snippet
+
+```js copy
+// Prefetch Resource Validation
+// https://webperf-snippets.nucliweb.net
+
+(() => {
+  // Get all prefetch hints
+  const prefetchLinks = Array.from(document.querySelectorAll('link[rel="prefetch"]'));
+
+  if (prefetchLinks.length === 0) {
+    console.log(
+      '%c✅ No prefetch hints found (rel="prefetch").',
+      "color: #22c55e; font-weight: bold;",
+    );
+    console.log(
+      "%cℹ️ Prefetch is for future navigation resources. Use it sparingly for predictable user journeys.",
+      "color: #3b82f6;",
+    );
+    return;
+  }
+
+  // Get performance entries for all resources
+  const performanceEntries = performance.getEntriesByType("resource");
+
+  // Thresholds
+  const THRESHOLDS = {
+    maxCount: 10,
+    largeFileSize: 500 * 1024, // 500KB
+    totalSizeWarning: 2 * 1024 * 1024, // 2MB
+    totalSizeCritical: 5 * 1024 * 1024, // 5MB
+  };
+
+  // Analyze each prefetch
+  const issues = [];
+  const validPrefetch = [];
+  let totalSize = 0;
+  let totalTransferSize = 0;
+
+  prefetchLinks.forEach((link) => {
+    const href = link.href;
+    const as = link.getAttribute("as") || "unknown";
+    const shortUrl = href.split("/").pop()?.split("?")[0] || href;
+
+    // Find matching performance entry
+    const perfEntry = performanceEntries.find((entry) => {
+      try {
+        const entryUrl = new URL(entry.name, location.origin).href;
+        const linkUrl = new URL(href, location.origin).href;
+        return entryUrl === linkUrl;
+      } catch {
+        return false;
+      }
+    });
+
+    const analysis = {
+      link,
+      href,
+      shortUrl,
+      as,
+      size: 0,
+      transferSize: 0,
+      loaded: false,
+      isCurrentPage: false,
+      warnings: [],
+    };
+
+    // Check if resource was actually loaded
+    if (perfEntry) {
+      analysis.loaded = true;
+      analysis.size = perfEntry.decodedBodySize || 0;
+      analysis.transferSize = perfEntry.transferSize || 0;
+      analysis.duration = perfEntry.duration || 0;
+      analysis.cacheStatus = perfEntry.transferSize === 0 ? "cached" : "network";
+
+      totalSize += analysis.size;
+      totalTransferSize += analysis.transferSize;
+
+      // Check if it's a current page resource
+      const isCurrentPageResource = performanceEntries.some((entry) => {
+        try {
+          const entryUrl = new URL(entry.name, location.origin).href;
+          const linkUrl = new URL(href, location.origin).href;
+          return entryUrl === linkUrl && entry.initiatorType !== "link" && entry.startTime < 5000;
+        } catch {
+          return false;
+        }
+      });
+
+      if (isCurrentPageResource) {
+        analysis.isCurrentPage = true;
+        analysis.warnings.push({
+          type: "wrong-hint",
+          severity: "error",
+          message: "Resource used on current page - should use preload instead",
+        });
+      }
+
+      // Check file size
+      if (analysis.size > THRESHOLDS.largeFileSize) {
+        const sizeMB = (analysis.size / (1024 * 1024)).toFixed(2);
+        analysis.warnings.push({
+          type: "large-file",
+          severity: "warning",
+          message: `Large file (${sizeMB}MB) - consider if prefetch is appropriate`,
+        });
+      }
+
+      // Check resource type appropriateness
+      const inappropriateTypes = {
+        image: analysis.size > 200 * 1024, // >200KB images questionable
+        video: true, // Videos usually too large
+        media: true, // Media files usually too large
+      };
+
+      if (inappropriateTypes[as]) {
+        analysis.warnings.push({
+          type: "inappropriate-type",
+          severity: "warning",
+          message: `Type "${as}" may not be suitable for prefetch (typically too large)`,
+        });
+      }
+    } else {
+      // Prefetch defined but not loaded yet (or failed)
+      analysis.warnings.push({
+        type: "not-loaded",
+        severity: "info",
+        message: "Not loaded yet or failed to load",
+      });
+    }
+
+    // Categorize
+    if (analysis.warnings.length > 0) {
+      issues.push(analysis);
+    } else {
+      validPrefetch.push(analysis);
+    }
+  });
+
+  // Check total count
+  const countIssues = [];
+  if (prefetchLinks.length > THRESHOLDS.maxCount) {
+    countIssues.push({
+      type: "excessive-count",
+      severity: "warning",
+      message: `${prefetchLinks.length} prefetch hints found (recommended: <${THRESHOLDS.maxCount})`,
+      explanation: "Excessive prefetch can waste bandwidth, especially on mobile networks",
+    });
+  }
+
+  // Check total size
+  const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+  const totalTransferMB = (totalTransferSize / (1024 * 1024)).toFixed(2);
+
+  if (totalSize > THRESHOLDS.totalSizeCritical) {
+    countIssues.push({
+      type: "excessive-size",
+      severity: "error",
+      message: `Total prefetch size: ${totalSizeMB}MB (critical threshold exceeded)`,
+      explanation: "This is very high and will significantly impact mobile users",
+    });
+  } else if (totalSize > THRESHOLDS.totalSizeWarning) {
+    countIssues.push({
+      type: "high-size",
+      severity: "warning",
+      message: `Total prefetch size: ${totalSizeMB}MB (warning threshold exceeded)`,
+      explanation: "Consider reducing prefetch to improve mobile experience",
+    });
+  }
+
+  // Display results
+  console.group("%c🔍 Prefetch Resource Validation", "font-weight: bold; font-size: 14px;");
+
+  console.log("");
+  console.log("%cSummary:", "font-weight: bold;");
+  console.log(`   Total prefetch hints: ${prefetchLinks.length}`);
+  console.log(`   Loaded resources: ${issues.length + validPrefetch.length}`);
+  console.log(`   Total size: ${totalSizeMB} MB (decompressed)`);
+  console.log(`   Transfer size: ${totalTransferMB} MB (over network)`);
+  console.log(`   Issues found: ${issues.length + countIssues.length}`);
+
+  // Show count/size issues first
+  if (countIssues.length > 0) {
+    console.log("");
+    console.group(
+      `%c⚠️ Overall Issues (${countIssues.length})`,
+      "color: #ef4444; font-weight: bold;",
+    );
+
+    countIssues.forEach((issue) => {
+      const color = issue.severity === "error" ? "#ef4444" : "#f59e0b";
+      const icon = issue.severity === "error" ? "🔴" : "⚠️";
+      console.log("");
+      console.log(`%c${icon} ${issue.message}`, `color: ${color}; font-weight: bold;`);
+      console.log(`   ${issue.explanation}`);
+    });
+
+    console.groupEnd();
+  }
+
+  // Show resource-specific issues
+  const errors = issues.filter((i) => i.warnings.some((w) => w.severity === "error"));
+  const warnings = issues.filter(
+    (i) =>
+      !i.warnings.some((w) => w.severity === "error") &&
+      i.warnings.some((w) => w.severity === "warning"),
+  );
+  const infos = issues.filter((i) => i.warnings.every((w) => w.severity === "info"));
+
+  if (errors.length > 0) {
+    console.log("");
+    console.group(`%c🔴 Critical Issues (${errors.length})`, "color: #ef4444; font-weight: bold;");
+
+    const errorTable = errors.map((item) => ({
+      Resource: item.shortUrl,
+      Type: item.as,
+      Size: item.size > 0 ? `${(item.size / 1024).toFixed(1)} KB` : "Unknown",
+      Issue: item.warnings.map((w) => w.message).join("; "),
+    }));
+
+    console.table(errorTable);
+
+    console.log("");
+    console.log("%cDetails:", "font-weight: bold;");
+    errors.forEach((item, i) => {
+      console.log("");
+      console.log(`%c${i + 1}. ${item.shortUrl}`, "font-weight: bold;");
+      console.log(`   URL: ${item.href}`);
+      console.log(`   Type: ${item.as}`);
+      if (item.size > 0) {
+        console.log(`   Size: ${(item.size / 1024).toFixed(1)} KB`);
+      }
+      item.warnings.forEach((w) => {
+        console.log(`   ❌ ${w.message}`);
+      });
+      console.log("   Element:", item.link);
+    });
+
+    console.groupEnd();
+  }
+
+  if (warnings.length > 0) {
+    console.log("");
+    console.group(`%c⚠️ Warnings (${warnings.length})`, "color: #f59e0b; font-weight: bold;");
+
+    const warningTable = warnings.map((item) => ({
+      Resource: item.shortUrl,
+      Type: item.as,
+      Size: item.size > 0 ? `${(item.size / 1024).toFixed(1)} KB` : "Unknown",
+      Issue: item.warnings.map((w) => w.message).join("; "),
+    }));
+
+    console.table(warningTable);
+
+    console.groupEnd();
+  }
+
+  if (infos.length > 0) {
+    console.log("");
+    console.group(`%cℹ️ Info (${infos.length})`, "color: #3b82f6; font-weight: bold;");
+
+    const infoTable = infos.map((item) => ({
+      Resource: item.shortUrl,
+      Type: item.as,
+      Status: item.warnings.map((w) => w.message).join("; "),
+    }));
+
+    console.table(infoTable);
+
+    console.groupEnd();
+  }
+
+  // Show valid prefetch
+  if (validPrefetch.length > 0) {
+    console.log("");
+    console.group(
+      `%c✅ Valid Prefetch (${validPrefetch.length})`,
+      "color: #22c55e; font-weight: bold;",
+    );
+
+    const validTable = validPrefetch.map((item) => ({
+      Resource: item.shortUrl,
+      Type: item.as,
+      Size: item.size > 0 ? `${(item.size / 1024).toFixed(1)} KB` : "Unknown",
+      Status: item.loaded ? "✅ Loaded" : "Pending",
+      Cache: item.cacheStatus || "N/A",
+    }));
+
+    console.table(validTable);
+
+    console.groupEnd();
+  }
+
+  // Best practices
+  console.log("");
+  console.group("%c📝 Best Practices", "color: #3b82f6; font-weight: bold;");
+  console.log("");
+  console.log("%c✅ Good uses of prefetch:", "font-weight: bold; color: #22c55e;");
+  console.log("   • Next page chunks in predictable navigation (e.g., multi-step forms)");
+  console.log("   • Fonts used on commonly visited next pages");
+  console.log("   • Small scripts/styles for main navigation targets");
+  console.log("   • Resources based on user behavior analytics");
+  console.log("");
+  console.log("%c❌ Bad uses of prefetch:", "font-weight: bold; color: #ef4444;");
+  console.log("   • Resources needed on current page (use preload instead)");
+  console.log("   • Large images/videos without user intent analysis");
+  console.log("   • Excessive prefetch (>10 resources) hurting mobile users");
+  console.log("   • Resources without proper cache headers");
+  console.log("");
+  console.log("%cRecommended thresholds:", "font-weight: bold;");
+  console.log(`   • Resource count: <${THRESHOLDS.maxCount} resources`);
+  console.log(`   • Individual file size: <${THRESHOLDS.largeFileSize / 1024} KB`);
+  console.log(`   • Total prefetch size: <${THRESHOLDS.totalSizeWarning / (1024 * 1024)} MB`);
+  console.log("");
+  console.log("%cCode examples:", "font-weight: bold;");
+  console.log("");
+  console.log("%c  ✅ Good: Prefetch next page script", "color: #22c55e;");
+  console.log(
+    '%c  <link rel="prefetch" href="/checkout-page.js" as="script">',
+    "font-family: monospace;",
+  );
+  console.log("");
+  console.log("%c  ❌ Bad: Prefetch current page resource", "color: #ef4444;");
+  console.log(
+    '%c  <link rel="prefetch" href="/hero-image.jpg" as="image">',
+    "font-family: monospace;",
+  );
+  console.log('%c  <!-- Should be: rel="preload" -->', "font-family: monospace; color: #22c55e;");
+
+  console.groupEnd();
+
+  // Summary
+  const totalIssues = issues.length + countIssues.length;
+  if (totalIssues === 0) {
+    console.log("");
+    console.log(
+      "%c✅ Great! No issues detected with prefetch usage.",
+      "color: #22c55e; font-weight: bold; font-size: 14px;",
+    );
+    console.log(
+      "%cAll prefetch hints appear appropriate for future navigation.",
+      "color: #22c55e;",
+    );
+  } else {
+    console.log("");
+    console.log(
+      `%c⚠️ Found ${totalIssues} issue(s). Review recommendations above.`,
+      "color: #ef4444; font-weight: bold;",
+    );
+  }
+
+  console.groupEnd();
+})();
+```
+
+### Understanding the Results
+
+**Summary Section:**
+
+Shows the overall state of prefetch usage:
+
+- Total number of prefetch hints
+- How many were actually loaded
+- Total size (decompressed and transfer size)
+- Number of issues detected
+
+**Issue Categories:**
+
+| Category               | Severity | Description                                                         |
+| ---------------------- | -------- | ------------------------------------------------------------------- |
+| **Wrong hint type**    | Error    | Resource used on current page - should use `preload` not `prefetch` |
+| **Excessive count**    | Warning  | Too many prefetch hints (&gt;10) wastes bandwidth                   |
+| **Large file**         | Warning  | Individual resource &gt;500KB may be too large                      |
+| **Excessive size**     | Error    | Total prefetch &gt;5MB significantly impacts mobile users           |
+| **High size**          | Warning  | Total prefetch &gt;2MB should be reduced                            |
+| **Inappropriate type** | Warning  | Resource type (video, large image) not suitable for prefetch        |
+| **Not loaded**         | Info     | Prefetch hint present but resource not loaded yet                   |
+
+**Resource Analysis:**
+
+The snippet shows detailed information for each prefetched resource:
+
+| Column       | Description                                    |
+| ------------ | ---------------------------------------------- |
+| **Resource** | Filename of the prefetched resource            |
+| **Type**     | Resource type from `as` attribute              |
+| **Size**     | Decompressed size in KB (from Performance API) |
+| **Status**   | Whether resource was loaded or is pending      |
+| **Cache**    | Cache status (cached vs network fetch)         |
+| **Issue**    | Specific problems detected                     |
+
+**Thresholds:**
+
+| Metric               | Warning          | Critical | Rationale                                  |
+| -------------------- | ---------------- | -------- | ------------------------------------------ |
+| Resource count       | &gt;10 resources | -        | Excessive prefetch wastes mobile bandwidth |
+| Individual file size | &gt;500KB        | -        | Large files may not be used immediately    |
+| Total prefetch size  | &gt;2MB          | &gt;5MB  | Mobile data consumption and network impact |
+
+### Real-World Examples
+
+**Common prefetch scenarios:**
+
+| Scenario              | Recommendation                    | When to Use                       | Probability |
+| --------------------- | --------------------------------- | --------------------------------- | ----------- |
+| **Multi-step Forms**  | ✅ Prefetch next step             | User filling current step         | High (>80%) |
+| **Product Listings**  | ⚠️ Prefetch on hover/intent only  | User shows interest signal        | Medium      |
+| **Article Pages**     | ✅ Prefetch related articles      | Analytics show 60%+ click rate    | High        |
+| **SPA Route Chunks**  | ✅ Prefetch visible link targets  | Framework handles automatically   | Variable    |
+| **Dashboard Widgets** | ✅ Prefetch after initial render  | User will likely interact         | High        |
+| **Image Galleries**   | ⚠️ Prefetch on viewport proximity | User scrolling towards content    | Medium      |
+| **Search Results**    | ❌ Don't prefetch all results     | Unknown user intent               | Low         |
+| **Video Content**     | ❌ Too large for prefetch         | Use adaptive streaming instead    | N/A         |
+
+**✅ Good: Next.js route prefetching**
+
+```html
+<!-- Next.js automatically prefetches visible <Link> components -->
+<link rel="prefetch" href="/_next/static/chunks/pages/checkout-a1b2c3.js" as="script" />
+<link rel="prefetch" href="/_next/static/chunks/pages/products-d4e5f6.js" as="script" />
+
+<!-- Small scripts for likely next pages - excellent use of prefetch -->
+```
+
+**✅ Good: Predictable user journey**
+
+```html
+<!-- Multi-step form: prefetch step 2 while user fills step 1 -->
+<link rel="prefetch" href="/step-2-validation.js" as="script" />
+<link rel="prefetch" href="/step-2-styles.css" as="style" />
+
+<!-- User intent is clear, resources are small -->
+```
+
+**❌ Bad: Prefetching current page hero image**
+
+```html
+<!-- WRONG: Hero image is needed NOW, not for future navigation -->
+<link rel="prefetch" href="/hero-image.jpg" as="image" />
+
+<!-- CORRECT: Use preload for current page critical resources -->
+<link rel="preload" href="/hero-image.jpg" as="image" fetchpriority="high" />
+```
+
+**❌ Bad: Excessive prefetch without user intent**
+
+```html
+<!-- Prefetching 20+ product images "just in case" -->
+<link rel="prefetch" href="/product-1.jpg" />
+<link rel="prefetch" href="/product-2.jpg" />
+<!-- ... 18 more ... -->
+
+<!-- PROBLEM: Wastes bandwidth, user may not visit product pages -->
+<!-- SOLUTION: Use Intersection Observer to prefetch when user scrolls near links -->
+```
+
+**✅ Good: Analytics-driven prefetch**
+
+```javascript
+// Prefetch based on analytics: 80% of users go to /pricing after landing
+if (currentPage === "/features") {
+  const link = document.createElement("link");
+  link.rel = "prefetch";
+  link.href = "/pricing-page.js";
+  link.as = "script";
+  document.head.appendChild(link);
+}
+```
+
+### Framework-Specific Guidance
+
+**Next.js:**
+
+Next.js automatically prefetches routes for `<Link>` components in the viewport. This is generally good, but watch for:
+
+```javascript
+// Check prefetch behavior
+<Link href="/heavy-page" prefetch={false}>
+  Heavy Page
+</Link>
+
+// Disable prefetch for pages with large resources
+// User must click before loading begins
+```
+
+**Remix / React Router:**
+
+```javascript
+// Intentional prefetch on hover
+<Link to="/profile" prefetch="intent">
+  Profile
+</Link>
+
+// Prefetch immediately
+<Link to="/dashboard" prefetch="render">
+  Dashboard
+</Link>
+
+// Only prefetch when user hovers/focuses (recommended)
+```
+
+**SvelteKit:**
+
+```html
+<!-- Default: prefetch on hover -->
+<a href="/about" data-sveltekit-preload-data="hover">About</a>
+
+<!-- Prefetch immediately when link is visible -->
+<a href="/dashboard" data-sveltekit-preload-data="viewport">Dashboard</a>
+
+<!-- Disable prefetch for heavy pages -->
+<a href="/gallery" data-sveltekit-preload-data="off">Gallery</a>
+```
+
+### Advanced: Runtime Prefetch Strategies
+
+**Adaptive prefetch decision flow:**
+
+```mermaid
+graph TD
+    A[User on page] --> B{Check saveData}
+    B -->|Enabled| C[Skip all prefetch]
+    B -->|Disabled| D{Check effectiveType}
+
+    D -->|4g| E[Prefetch aggressively]
+    D -->|3g| F[Prefetch selectively]
+    D -->|2g/slow-2g| G[Skip prefetch]
+
+    E --> H[Load 5-10 resources]
+    F --> I[Load 1-3 most likely resources]
+
+    style C fill:#ef4444,color:#fff
+    style E fill:#22c55e,color:#fff
+    style F fill:#f59e0b,color:#fff
+    style G fill:#ef4444,color:#fff
+```
+
+**Adaptive prefetch based on connection:**
+
+```javascript
+// Only prefetch on fast connections
+if ("connection" in navigator) {
+  const conn = navigator.connection;
+  const shouldPrefetch = conn.effectiveType === "4g" && !conn.saveData;
+
+  if (shouldPrefetch) {
+    // Prefetch next page resources
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = "/next-page.js";
+    document.head.appendChild(link);
+  }
+}
+```
+
+**Intersection Observer for smart prefetch:**
+
+```javascript
+// Prefetch when user scrolls near a link
+const observer = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const link = entry.target;
+        const prefetch = document.createElement("link");
+        prefetch.rel = "prefetch";
+        prefetch.href = link.href;
+        document.head.appendChild(prefetch);
+        observer.unobserve(link);
+      }
+    });
+  },
+  { rootMargin: "200px" },
+);
+
+// Observe important navigation links
+document.querySelectorAll("a.important-nav").forEach((link) => {
+  observer.observe(link);
+});
+```
+
+### Impact on Core Web Vitals
+
+**How prefetch affects page load timeline:**
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Network
+    participant Cache
+
+    Note over Browser,Cache: Page Load Starts
+
+    Browser->>Network: Request HTML (High Priority)
+    Browser->>Network: Request CSS (High Priority)
+    Browser->>Network: Request LCP Image (High Priority)
+
+    alt With Excessive Prefetch
+        Browser->>Network: Request 15 prefetch resources (Lowest Priority)
+        Note over Network: Bandwidth congestion on slow connections
+        Network-->>Browser: Delayed critical resources ⚠️
+    end
+
+    alt With Smart Prefetch
+        Note over Browser: Wait for page interactive
+        Browser->>Network: Request 3 prefetch resources (Lowest Priority)
+        Note over Network: Minimal impact on critical resources
+        Network-->>Cache: Store in disk cache
+    end
+
+    Note over Browser,Cache: Page Interactive ✅
+```
+
+**Potential negative impacts:**
+
+1. **LCP (Largest Contentful Paint):**
+   - Prefetch competes with current page resources at network level
+   - On slow connections, can delay LCP image/text
+   - Monitor: Keep total prefetch &lt;2MB
+
+2. **FCP (First Contentful Paint):**
+   - Excessive prefetch during page load can delay FCP
+   - Best practice: Delay prefetch until after page is interactive
+
+3. **CLS (Cumulative Layout Shift):**
+   - Indirect impact: If prefetch delays critical fonts, can cause layout shifts
+   - Ensure fonts for current page use `preload`, not `prefetch`
+
+**Mobile considerations:**
+
+- **Data saver mode:** Respect `navigator.connection.saveData`
+- **Slow connections:** Check `navigator.connection.effectiveType`
+- **Battery impact:** Prefetch uses CPU and radio, draining battery
+- **Data costs:** Mobile users may pay per MB
+
+```javascript
+// Respect user preferences
+if (navigator.connection?.saveData) {
+  // Skip all prefetch
+  console.log("Data saver enabled, skipping prefetch");
+  return;
+}
+
+// Only prefetch on good connections
+const goodConnection = navigator.connection?.effectiveType === "4g";
+if (!goodConnection) {
+  console.log("Connection too slow for prefetch");
+  return;
+}
+```
+
+### When Prefetch vs Preload?
+
+**Use `rel="preload"` when:**
+
+- ✅ Resource is needed for **current page**
+- ✅ Resource is **critical** for LCP or FCP
+- ✅ You want **high priority** loading
+- ✅ Resource will be used within **seconds**
+
+```html
+<!-- Current page critical resources -->
+<link rel="preload" href="/hero-image.webp" as="image" fetchpriority="high" />
+<link rel="preload" href="/critical-font.woff2" as="font" crossorigin />
+<link rel="preload" href="/critical-styles.css" as="style" />
+```
+
+**Use `rel="prefetch"` when:**
+
+- ✅ Resource is for **future navigation**
+- ✅ User journey is **predictable**
+- ✅ You want **low priority** loading (idle time)
+- ✅ Resource won't be used for **several seconds**
+
+```html
+<!-- Future page resources -->
+<link rel="prefetch" href="/next-page.js" as="script" />
+<link rel="prefetch" href="/dashboard-styles.css" as="style" />
+```
+
+**Quick decision tree:**
+
+```mermaid
+graph TD
+    A[Is resource needed on current page?] --> B{Answer}
+    B -->|YES| C[Use rel='preload']
+    B -->|NO| D[Is user likely to navigate to page that needs it?]
+
+    D --> E{Probability?}
+    E -->|>50%| F[Use rel='prefetch']
+    E -->|<50%| G[Don't use resource hints]
+
+    C --> H[High priority, memory cache]
+    F --> I[Low priority, disk cache]
+    G --> J[Let browser handle naturally]
+
+    style C fill:#22c55e,color:#fff
+    style F fill:#3b82f6,color:#fff
+    style G fill:#6b7280,color:#fff
+```
+
+### Browser Support & Caching
+
+**Prefetch resource lifecycle:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> Discovered: Browser finds prefetch hint
+    Discovered --> Queued: Added to prefetch queue (lowest priority)
+    Queued --> Downloading: Browser idle time starts
+    Downloading --> DiskCache: Resource downloaded
+    DiskCache --> NextPage: User navigates to next page
+    NextPage --> MemoryCache: Resource promoted to memory
+    MemoryCache --> Used: Page consumes resource
+
+    Queued --> Cancelled: User navigates before download
+    Downloading --> Cancelled: Network congestion or navigation
+
+    state DiskCache {
+        [*] --> CheckCache: Check cache headers
+        CheckCache --> Stored: Good cache headers ✅
+        CheckCache --> Discarded: No-cache headers ❌
+    }
+```
+
+**Browser support:**
+
+| Browser         | Prefetch Support | Notes                                     |
+| --------------- | ---------------- | ----------------------------------------- |
+| Chrome/Edge     | ✅ Full          | Prefetch during idle time                 |
+| Firefox         | ✅ Full          | Prefetch in background                    |
+| Safari          | ⚠️ Limited       | Supports prefetch but behavior differs    |
+| Mobile browsers | ✅ Most          | May ignore on slow connections/data saver |
+
+**Cache requirements:**
+
+Prefetched resources MUST have proper cache headers to be effective:
+
+```http
+✅ Good: Resource will be reused
+Cache-Control: public, max-age=31536000, immutable
+
+✅ Good: Resource can be revalidated
+Cache-Control: public, max-age=3600
+
+❌ Bad: Resource won't be cached
+Cache-Control: no-cache, no-store
+```
+
+**Verify cache headers:**
+
+```javascript
+// Check if prefetched resource has good cache headers
+fetch("/prefetched-script.js", { method: "HEAD" }).then((res) => {
+  const cacheControl = res.headers.get("cache-control");
+  console.log("Cache-Control:", cacheControl);
+
+  if (cacheControl?.includes("no-cache")) {
+    console.warn("⚠️ Prefetch won't be effective - no caching");
+  }
+});
+```
+
+### Further Reading
+
+- [Resource Hints: `rel=prefetch`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel/prefetch) | MDN
+- [Resource Hints Specification](https://www.w3.org/TR/resource-hints/#prefetch) | W3C
+- [Prefetching in Chrome](https://developer.chrome.com/docs/web-platform/prerender-pages) | Chrome Developers
+- [Optimize resource loading with Priority Hints](https://web.dev/articles/priority-hints) | web.dev
+- [Fast load times with prefetch](https://web.dev/articles/link-prefetch) | web.dev
+- [Resource Hints comparison](https://www.debugbear.com/blog/resource-hints-rel-preload-prefetch-preconnect) | DebugBear
+- [The Network Information API](https://developer.mozilla.org/en-US/docs/Web/API/Network_Information_API) | MDN

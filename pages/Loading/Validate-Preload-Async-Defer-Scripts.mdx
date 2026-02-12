@@ -15,15 +15,15 @@ Detects preload resource hints for scripts that use `async` or `defer` attribute
 
 **Script loading priorities in Chrome:**
 
-| Strategy                                                  | Network Priority   | Execution Priority | Blocks Parser | Use Case                                   |
-| --------------------------------------------------------- | ------------------ | ------------------ | ------------- | ------------------------------------------ |
-| `<script>` in `<head>`                                    | Medium/High        | VeryHigh           | ✅ Yes        | Critical scripts affecting FMP layout      |
-| `<link rel=preload>` + `<script async>`                   | **Medium/High** ⚠️ | High               | Briefly       | ⚠️ Anti-pattern for most cases             |
-| `<link rel=preload>` + `<script async fetchpriority=low>` | Lowest/Low         | High               | Briefly       | ✅ Early discovery + low priority (valid)  |
-| `<script async>`                                          | Lowest/Low         | High               | Briefly       | Independent scripts (analytics, ads)       |
-| `<script defer>`                                          | Lowest/Low         | VeryLow            | ❌ No         | Scripts needing DOM, running in order      |
-| `<script>` at end of `<body>`                             | Medium/High        | Low                | Briefly       | Legacy pattern (use defer instead)         |
-| `<script defer>` at end of `<body>`                       | Lowest/Low         | VeryLow            | ❌ No         | Non-critical occasional features           |
+| Strategy                                                  | Network Priority   | Execution Priority | Blocks Parser | Use Case                                  |
+| --------------------------------------------------------- | ------------------ | ------------------ | ------------- | ----------------------------------------- |
+| `<script>` in `<head>`                                    | Medium/High        | VeryHigh           | ✅ Yes        | Critical scripts affecting FMP layout     |
+| `<link rel=preload>` + `<script async>`                   | **Medium/High** ⚠️ | High               | Briefly       | ⚠️ Anti-pattern for most cases            |
+| `<link rel=preload>` + `<script async fetchpriority=low>` | Lowest/Low         | High               | Briefly       | ✅ Early discovery + low priority (valid) |
+| `<script async>`                                          | Lowest/Low         | High               | Briefly       | Independent scripts (analytics, ads)      |
+| `<script defer>`                                          | Lowest/Low         | VeryLow            | ❌ No         | Scripts needing DOM, running in order     |
+| `<script>` at end of `<body>`                             | Medium/High        | Low                | Briefly       | Legacy pattern (use defer instead)        |
+| `<script defer>` at end of `<body>`                       | Lowest/Low         | VeryLow            | ❌ No         | Non-critical occasional features          |
 
 > **Key insight:** Adding `preload` to an `async` or `defer` script elevates it from **Lowest/Low** to **Medium/High** network priority, causing it to compete with critical resources. This is rarely what you want! Source: [JavaScript Loading Priorities in Chrome](https://addyosmani.com/blog/script-priorities/) by [Addy Osmani](https://addyosmani.com/)
 
@@ -73,7 +73,7 @@ With preload on async script:
 
   if (preloadedScripts.length === 0) {
     console.log(
-      "%c✅ No script preloads found (rel=\"preload\" as=\"script\").",
+      '%c✅ No script preloads found (rel="preload" as="script").',
       "color: #22c55e; font-weight: bold;",
     );
     console.log(
@@ -227,7 +227,8 @@ With preload on async script:
           naturalPriority: "Lowest/Low (module default)",
           preloadPriority: "Medium/High",
           message: "ES module is using rel='preload' instead of rel='modulepreload'",
-          explanation: "ES modules behave like defer scripts by default (low priority). Using rel='preload' as='script' escalates priority unnecessarily. For modules, use rel='modulepreload' instead.",
+          explanation:
+            "ES modules behave like defer scripts by default (low priority). Using rel='preload' as='script' escalates priority unnecessarily. For modules, use rel='modulepreload' instead.",
           fix: "Change <link rel='preload' as='script'> to <link rel='modulepreload'> for proper module preloading",
         });
       } else {
@@ -432,7 +433,7 @@ With preload on async script:
       "color: #22c55e; font-weight: bold; font-size: 14px;",
     );
     console.log(
-      "%cAll script preloads are either on blocking scripts or properly mitigated with fetchpriority=\"low\".",
+      '%cAll script preloads are either on blocking scripts or properly mitigated with fetchpriority="low".',
       "color: #22c55e;",
     );
   } else {
@@ -457,19 +458,19 @@ With preload on async script:
 
 **Issue Types:**
 
-| Type                      | Severity | Description                                                              |
-| ------------------------- | -------- | ------------------------------------------------------------------------ |
-| **Preload + async/defer** | Error    | Anti-pattern: script already loads non-blocking without fetchpriority    |
-| **Module preload**        | Warning  | ES module using rel="preload" instead of rel="modulepreload"             |
-| **Orphan preload**        | Warning  | Preloaded script not found or loaded                                     |
+| Type                      | Severity | Description                                                           |
+| ------------------------- | -------- | --------------------------------------------------------------------- |
+| **Preload + async/defer** | Error    | Anti-pattern: script already loads non-blocking without fetchpriority |
+| **Module preload**        | Warning  | ES module using rel="preload" instead of rel="modulepreload"          |
+| **Orphan preload**        | Warning  | Preloaded script not found or loaded                                  |
 
 **Valid Preload Types:**
 
-| Type                 | Description                                                                   |
-| -------------------- | ----------------------------------------------------------------------------- |
-| **Blocking scripts** | Scripts without async/defer that may benefit from preload                     |
+| Type                  | Description                                                                    |
+| --------------------- | ------------------------------------------------------------------------------ |
+| **Blocking scripts**  | Scripts without async/defer that may benefit from preload                      |
 | **Mitigated pattern** | Preload + async/defer with fetchpriority="low" (early discovery, low priority) |
-| **Dynamic scripts**  | Scripts loaded via import(), code-splitting, or injection                     |
+| **Dynamic scripts**   | Scripts loaded via import(), code-splitting, or injection                      |
 
 > **Note:** Dynamic scripts (loaded via `import()` or code-splitting) don't appear in the DOM but are visible in the Performance API. The snippet detects these by checking resource timing entries and classifies them separately from truly orphaned preloads.
 
@@ -640,6 +641,165 @@ If you need to keep the preload for early discovery (e.g., the script is defined
 
 **Learn more:** [MDN: `fetchpriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/fetchPriority)
 
+### Real-World Case: Third-Party Consent Scripts
+
+A common scenario where this anti-pattern appears is with third-party consent management scripts (cookie banners, GDPR compliance, etc.). Developers often think: "I want it async, but I need it now" and reach for preload. Let's analyze the tradeoffs and solutions.
+
+#### The Problem
+
+**Common (incorrect) approach:**
+
+```html
+<!-- ❌ Anti-pattern: Preload + async without mitigation -->
+<link rel="preload" href="https://cdn.example.com/consent.js" as="script" />
+<script async src="https://cdn.example.com/consent.js"></script>
+```
+
+**Why developers do this:**
+
+- Want the consent banner to appear quickly (early discovery)
+- Don't want to block page rendering (async)
+- Assume preload + async is the best of both worlds
+
+**What actually happens:**
+
+```mermaid
+graph LR
+    A[HTML Parser] --> B[Discovers Preload]
+    B --> C[Download at Medium/High Priority]
+    C --> D[Competes with LCP Image]
+    C --> E[Competes with CSS]
+    C --> F[Competes with Fonts]
+    D --> G[⚠️ Delayed LCP]
+    E --> G
+    F --> G
+```
+
+#### Proposed Alternative: `fetchpriority="high"`
+
+Some developers consider using `fetchpriority="high"` instead:
+
+```html
+<!-- ⚠️ Still problematic -->
+<script async src="https://cdn.example.com/consent.js" fetchpriority="high"></script>
+```
+
+**Why this doesn't solve the problem:**
+
+```mermaid
+graph TD
+    A[fetchpriority='high' on async script] --> B[Same Issue as Preload]
+    B --> C[Elevates to High Priority]
+    C --> D[Competes with LCP]
+    C --> E[Competes with CSS]
+    C --> F[Competes with Fonts]
+
+    style A fill:#ef4444,color:#fff
+    style B fill:#ef4444,color:#fff
+    style C fill:#ef4444,color:#fff
+```
+
+Using `fetchpriority="high"` on an async script has the **same negative effect** as preloading it - both artificially escalate the priority and cause bandwidth competition.
+
+#### Solution 1: Preload with Low Priority (Best Balance)
+
+If you truly need early discovery but don't want priority escalation:
+
+```html
+<!-- ✅ Early discovery + low priority -->
+<link rel="preload" href="https://cdn.example.com/consent.js" as="script" />
+<script async src="https://cdn.example.com/consent.js" fetchpriority="low"></script>
+```
+
+**How this works:**
+
+```mermaid
+graph LR
+    A[Preload Hint] --> B[Start Download Early]
+    C[fetchpriority='low'] --> D[Keep Low Priority]
+    B --> E[Early Discovery]
+    D --> E
+    E --> F[No LCP Competition]
+
+    style E fill:#22c55e,color:#fff
+    style F fill:#22c55e,color:#fff
+```
+
+**Benefits:**
+
+- ✅ Script discovered and starts downloading early
+- ✅ Stays at Low priority (doesn't compete with LCP)
+- ✅ Still loads async (non-blocking)
+- ✅ Best of both worlds
+
+#### Solution 2: Just Use Async (Simplest)
+
+If the script tag is already in `<head>`, preload may not be necessary:
+
+```html
+<!-- ✅ Simple and effective if script is in <head> -->
+<head>
+  <script async src="https://cdn.example.com/consent.js"></script>
+  <!-- Other head content -->
+</head>
+```
+
+**When this is sufficient:**
+
+```mermaid
+graph TD
+    A[Script in &lt;head&gt;] --> B{Discovered Early?}
+    B -->|Yes| C[Async = Low Priority]
+    B -->|No, late in HTML| D[Consider Preload + Low Priority]
+    C --> E[No Preload Needed]
+
+    style E fill:#22c55e,color:#fff
+```
+
+**Why this works:**
+
+- Script in `<head>` is discovered immediately
+- Async loads at Lowest/Low priority naturally
+- No preload overhead or complexity needed
+
+#### Priority Comparison: Consent Script Scenarios
+
+| Approach                                                  | Network Priority | LCP Impact | Complexity | Recommendation                 |
+| --------------------------------------------------------- | ---------------- | ---------- | ---------- | ------------------------------ |
+| `<script async>` in `<head>`                              | Lowest/Low       | ✅ None    | Low        | **Best for most cases**        |
+| `<link rel=preload>` + `<script async fetchpriority=low>` | Lowest/Low       | ✅ None    | Medium     | Good if script is late in HTML |
+| `<link rel=preload>` + `<script async>`                   | ⚠️ Medium/High   | ❌ High    | Medium     | **Anti-pattern - avoid**       |
+| `<script async fetchpriority=high>`                       | ⚠️ High          | ❌ High    | Low        | **Anti-pattern - avoid**       |
+
+#### Decision Tree for Consent Scripts
+
+```mermaid
+graph TD
+    A[Need consent script] --> B{Script in &lt;head&gt;?}
+    B -->|Yes| C[Use: &lt;script async&gt;]
+    B -->|No, late in body| D{Need early download?}
+    D -->|Yes| E[Use: preload + async + fetchpriority='low']
+    D -->|No| F[Use: &lt;script async&gt;]
+
+    C --> G[Loads early, low priority]
+    E --> G
+    F --> H[Loads when discovered, low priority]
+
+    style G fill:#22c55e,color:#fff
+    style H fill:#22c55e,color:#fff
+```
+
+#### Key Takeaway
+
+For consent scripts and other third-party resources:
+
+1. **Don't use `fetchpriority="high"`** - it causes the same problems as preload
+2. **If script is in `<head>`** - simple `async` is usually enough
+3. **If you must preload** - always add `fetchpriority="low"` to the script tag
+4. **Remember**: Consent banners are not critical for LCP - let them load at low priority
+
+The goal is **early start, low priority** - not high priority. Users care more about fast LCP than seeing the consent banner 50ms earlier.
+
 ### Understanding Script Priorities (Chrome)
 
 Based on [Addy Osmani's research](https://addyosmani.com/blog/script-priorities/), here's how different script loading strategies affect priorities:
@@ -687,6 +847,19 @@ Based on [Addy Osmani's research](https://addyosmani.com/blog/script-priorities/
 | **Copy-paste optimization** | Adding preloads without understanding the script's loading strategy          |
 | **Outdated advice**         | Old articles suggesting "preload everything"                                 |
 | **Misunderstanding async**  | Assuming async always needs help, not realizing it already loads efficiently |
+
+### Advanced Strategy: Server-Side Conditional Loading
+
+For production scenarios with consent scripts, a more sophisticated approach involves server-side logic to conditionally prioritize the script only when needed (first visit). This strategy considers that:
+
+- **First visit**: CMP banner IS critical (might even be the LCP element) - prioritize it
+- **Returning visits**: CMP script can load at low priority (consent already stored in cookie)
+
+**Key insight:** If you have a consent cookie, the user has already made their choice. The CMP script doesn't need high priority because the banner won't be shown. This server-side detection allows you to optimize resource prioritization dynamically based on user state.
+
+This approach is beyond the scope of this validation snippet, as it requires architectural changes to your server-side rendering logic.
+
+**For a complete implementation guide, see:** [Optimizing Consent Scripts for Core Web Vitals](#) _(coming soon on joanleon.dev)_
 
 ### Further Reading
 
