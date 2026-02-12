@@ -60,6 +60,7 @@ graph LR
   const prefetchLinks = Array.from(document.querySelectorAll('link[rel="prefetch"]'));
 
   if (prefetchLinks.length === 0) {
+    // Early return is safe here - console.group hasn't been opened yet
     console.log(
       '%c✅ No prefetch hints found (rel="prefetch").',
       "color: #22c55e; font-weight: bold;",
@@ -91,6 +92,7 @@ graph LR
   prefetchLinks.forEach((link) => {
     const href = link.href;
     const as = link.getAttribute("as") || "unknown";
+    // Extract filename from URL; fallback to full href if URL is just origin
     const shortUrl = href.split("/").pop()?.split("?")[0] || href;
 
     // Find matching performance entry
@@ -111,10 +113,20 @@ graph LR
       as,
       size: 0,
       transferSize: 0,
+      duration: 0,
       loaded: false,
       isCurrentPage: false,
       warnings: [],
     };
+
+    // Check for missing 'as' attribute
+    if (as === "unknown") {
+      analysis.warnings.push({
+        type: "missing-as",
+        severity: "warning",
+        message: "Missing 'as' attribute - browser cannot apply correct MIME type matching",
+      });
+    }
 
     // Check if resource was actually loaded
     if (perfEntry) {
@@ -122,12 +134,17 @@ graph LR
       analysis.size = perfEntry.decodedBodySize || 0;
       analysis.transferSize = perfEntry.transferSize || 0;
       analysis.duration = perfEntry.duration || 0;
-      analysis.cacheStatus = perfEntry.transferSize === 0 ? "cached" : "network";
+      // Note: transferSize === 0 can mean cached OR cross-origin without Timing-Allow-Origin
+      // More reliable: check if encodedBodySize > 0 && transferSize === 0
+      analysis.cacheStatus =
+        perfEntry.encodedBodySize > 0 && perfEntry.transferSize === 0 ? "cached" : "network";
 
       totalSize += analysis.size;
       totalTransferSize += analysis.transferSize;
 
       // Check if it's a current page resource
+      // Uses 5s heuristic: resources loaded in first 5s are likely for current page, not prefetch
+      // This cutoff works for most pages but may flag slow pages incorrectly
       const isCurrentPageResource = performanceEntries.some((entry) => {
         try {
           const entryUrl = new URL(entry.name, location.origin).href;
@@ -269,6 +286,7 @@ graph LR
       Resource: item.shortUrl,
       Type: item.as,
       Size: item.size > 0 ? `${(item.size / 1024).toFixed(1)} KB` : "Unknown",
+      Duration: item.duration > 0 ? `${item.duration.toFixed(0)} ms` : "N/A",
       Issue: item.warnings.map((w) => w.message).join("; "),
     }));
 
@@ -301,6 +319,7 @@ graph LR
       Resource: item.shortUrl,
       Type: item.as,
       Size: item.size > 0 ? `${(item.size / 1024).toFixed(1)} KB` : "Unknown",
+      Duration: item.duration > 0 ? `${item.duration.toFixed(0)} ms` : "N/A",
       Issue: item.warnings.map((w) => w.message).join("; "),
     }));
 
@@ -336,6 +355,7 @@ graph LR
       Resource: item.shortUrl,
       Type: item.as,
       Size: item.size > 0 ? `${(item.size / 1024).toFixed(1)} KB` : "Unknown",
+      Duration: item.duration > 0 ? `${item.duration.toFixed(0)} ms` : "N/A",
       Status: item.loaded ? "✅ Loaded" : "Pending",
       Cache: item.cacheStatus || "N/A",
     }));
@@ -420,28 +440,30 @@ Shows the overall state of prefetch usage:
 
 **Issue Categories:**
 
-| Category               | Severity | Description                                                         |
-| ---------------------- | -------- | ------------------------------------------------------------------- |
-| **Wrong hint type**    | Error    | Resource used on current page - should use `preload` not `prefetch` |
-| **Excessive count**    | Warning  | Too many prefetch hints (&gt;10) wastes bandwidth                   |
-| **Large file**         | Warning  | Individual resource &gt;500KB may be too large                      |
-| **Excessive size**     | Error    | Total prefetch &gt;5MB significantly impacts mobile users           |
-| **High size**          | Warning  | Total prefetch &gt;2MB should be reduced                            |
-| **Inappropriate type** | Warning  | Resource type (video, large image) not suitable for prefetch        |
-| **Not loaded**         | Info     | Prefetch hint present but resource not loaded yet                   |
+| Category               | Severity | Description                                                          |
+| ---------------------- | -------- | -------------------------------------------------------------------- |
+| **Wrong hint type**    | Error    | Resource used on current page - should use `preload` not `prefetch`  |
+| **Missing as**         | Warning  | Missing `as` attribute prevents correct MIME type matching           |
+| **Excessive count**    | Warning  | Too many prefetch hints (&gt;10) wastes bandwidth                    |
+| **Large file**         | Warning  | Individual resource &gt;500KB may be too large                       |
+| **Excessive size**     | Error    | Total prefetch &gt;5MB significantly impacts mobile users            |
+| **High size**          | Warning  | Total prefetch &gt;2MB should be reduced                             |
+| **Inappropriate type** | Warning  | Resource type (video, large image) not suitable for prefetch         |
+| **Not loaded**         | Info     | Prefetch hint present but resource not loaded yet                    |
 
 **Resource Analysis:**
 
 The snippet shows detailed information for each prefetched resource:
 
-| Column       | Description                                    |
-| ------------ | ---------------------------------------------- |
-| **Resource** | Filename of the prefetched resource            |
-| **Type**     | Resource type from `as` attribute              |
-| **Size**     | Decompressed size in KB (from Performance API) |
-| **Status**   | Whether resource was loaded or is pending      |
-| **Cache**    | Cache status (cached vs network fetch)         |
-| **Issue**    | Specific problems detected                     |
+| Column       | Description                                                             |
+| ------------ | ----------------------------------------------------------------------- |
+| **Resource** | Filename of the prefetched resource                                     |
+| **Type**     | Resource type from `as` attribute                                       |
+| **Size**     | Decompressed size in KB (from Performance API)                          |
+| **Duration** | Download time in milliseconds (from Performance API)                    |
+| **Status**   | Whether resource was loaded or is pending (valid prefetch table only)   |
+| **Cache**    | Cache status - cached vs network fetch (valid prefetch table only)      |
+| **Issue**    | Specific problems detected (issues tables only)                         |
 
 **Thresholds:**
 

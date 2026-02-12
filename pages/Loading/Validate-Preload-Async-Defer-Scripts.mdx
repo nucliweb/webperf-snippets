@@ -701,6 +701,8 @@ graph TD
 
 Using `fetchpriority="high"` on an async script has the **same negative effect** as preloading it - both artificially escalate the priority and cause bandwidth competition.
 
+> **Note:** This priority escalation applies to scripts discovered during initial HTML parsing. Dynamically inserted scripts (via JavaScript) may behave differently depending on when they're injected.
+
 #### Solution 1: Preload with Low Priority (Best Balance)
 
 If you truly need early discovery but don't want priority escalation:
@@ -789,6 +791,8 @@ graph TD
     style H fill:#22c55e,color:#fff
 ```
 
+> **Note:** For scripts late in `<body>` where early download is not needed, plain `<script async>` is appropriate because the consent banner is non-critical. The script will load when discovered by the parser, which is acceptable for this use case.
+
 #### Key Takeaway
 
 For consent scripts and other third-party resources:
@@ -859,7 +863,7 @@ For production scenarios with consent scripts, a more sophisticated approach inv
 
 This approach is beyond the scope of this validation snippet, as it requires architectural changes to your server-side rendering logic.
 
-**For a complete implementation guide, see:** [Optimizing Consent Scripts for Core Web Vitals](#) _(coming soon on joanleon.dev)_
+**For a complete implementation guide:** _A detailed blog post is coming soon on joanleon.dev_
 
 ### Further Reading
 
