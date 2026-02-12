@@ -10,5 +10,8 @@
   },
   "Validate-Preload-Async-Defer-Scripts": {
     "title": "Validate Preload on Async/Defer Scripts"
+  },
+  "Prefetch-Resource-Validation": {
+    "title": "Prefetch Resource Validation"
   }
 }
