@@ -75,10 +75,39 @@ graph LR
   // Get performance entries for all resources
   const performanceEntries = performance.getEntriesByType("resource");
 
+  // Pre-normalize URLs for efficient matching (avoids repeated URL parsing in nested loops)
+  const entryUrlMap = new Map();
+  performanceEntries.forEach((entry) => {
+    try {
+      const normalizedUrl = new URL(entry.name, location.origin).href;
+      if (!entryUrlMap.has(normalizedUrl)) {
+        entryUrlMap.set(normalizedUrl, []);
+      }
+      entryUrlMap.get(normalizedUrl).push(entry);
+    } catch {
+      // Ignore malformed URLs in performance entries
+    }
+  });
+
+  // Valid 'as' attribute values for prefetch
+  const validAsValues = new Set([
+    "script",
+    "style",
+    "font",
+    "image",
+    "video",
+    "audio",
+    "document",
+    "fetch",
+    "track",
+    "worker",
+  ]);
+
   // Thresholds
   const THRESHOLDS = {
     maxCount: 10,
     largeFileSize: 500 * 1024, // 500KB
+    largeScriptSize: 1024 * 1024, // 1MB for scripts specifically
     totalSizeWarning: 2 * 1024 * 1024, // 2MB
     totalSizeCritical: 5 * 1024 * 1024, // 5MB
   };
@@ -86,6 +115,7 @@ graph LR
   // Analyze each prefetch
   const issues = [];
   const validPrefetch = [];
+  const seenUrls = new Set(); // Track duplicates
   let totalSize = 0;
   let totalTransferSize = 0;
 
@@ -95,16 +125,18 @@ graph LR
     // Extract filename from URL; fallback to full href if URL is just origin
     const shortUrl = href.split("/").pop()?.split("?")[0] || href;
 
-    // Find matching performance entry
-    const perfEntry = performanceEntries.find((entry) => {
-      try {
-        const entryUrl = new URL(entry.name, location.origin).href;
-        const linkUrl = new URL(href, location.origin).href;
-        return entryUrl === linkUrl;
-      } catch {
-        return false;
-      }
-    });
+    // Normalize URL for matching
+    let normalizedUrl;
+    try {
+      normalizedUrl = new URL(href, location.origin).href;
+    } catch {
+      // Invalid href - will be caught later
+      normalizedUrl = href;
+    }
+
+    // Find matching performance entries using pre-built map
+    const matchingEntries = entryUrlMap.get(normalizedUrl) || [];
+    const perfEntry = matchingEntries[0]; // Use first matching entry
 
     const analysis = {
       link,
@@ -119,14 +151,30 @@ graph LR
       warnings: [],
     };
 
-    // Check for missing 'as' attribute
+    // Check for missing or invalid 'as' attribute
     if (as === "unknown") {
       analysis.warnings.push({
         type: "missing-as",
         severity: "warning",
         message: "Missing 'as' attribute - browser cannot apply correct MIME type matching",
       });
+    } else if (!validAsValues.has(as)) {
+      analysis.warnings.push({
+        type: "invalid-as",
+        severity: "warning",
+        message: `Invalid 'as' value: "${as}" - should be one of: ${Array.from(validAsValues).join(", ")}`,
+      });
     }
+
+    // Check for duplicate prefetch
+    if (seenUrls.has(normalizedUrl)) {
+      analysis.warnings.push({
+        type: "duplicate-prefetch",
+        severity: "warning",
+        message: "Duplicate prefetch - this URL is prefetched multiple times",
+      });
+    }
+    seenUrls.add(normalizedUrl);
 
     // Check if resource was actually loaded
     if (perfEntry) {
@@ -134,10 +182,17 @@ graph LR
       analysis.size = perfEntry.decodedBodySize || 0;
       analysis.transferSize = perfEntry.transferSize || 0;
       analysis.duration = perfEntry.duration || 0;
-      // Note: transferSize === 0 can mean cached OR cross-origin without Timing-Allow-Origin
-      // More reliable: check if encodedBodySize > 0 && transferSize === 0
-      analysis.cacheStatus =
-        perfEntry.encodedBodySize > 0 && perfEntry.transferSize === 0 ? "cached" : "network";
+
+      // Cache status detection with CORS considerations
+      // transferSize === 0 can mean: (1) cached, or (2) cross-origin without Timing-Allow-Origin
+      if (perfEntry.encodedBodySize > 0 && perfEntry.transferSize === 0) {
+        analysis.cacheStatus = "cached";
+      } else if (perfEntry.encodedBodySize === 0 && perfEntry.transferSize === 0) {
+        // Both zero = likely CORS-blocked timing info
+        analysis.cacheStatus = "unknown (CORS)";
+      } else {
+        analysis.cacheStatus = "network";
+      }
 
       totalSize += analysis.size;
       totalTransferSize += analysis.transferSize;
@@ -145,15 +200,9 @@ graph LR
       // Check if it's a current page resource
       // Uses 5s heuristic: resources loaded in first 5s are likely for current page, not prefetch
       // This cutoff works for most pages but may flag slow pages incorrectly
-      const isCurrentPageResource = performanceEntries.some((entry) => {
-        try {
-          const entryUrl = new URL(entry.name, location.origin).href;
-          const linkUrl = new URL(href, location.origin).href;
-          return entryUrl === linkUrl && entry.initiatorType !== "link" && entry.startTime < 5000;
-        } catch {
-          return false;
-        }
-      });
+      const isCurrentPageResource = matchingEntries.some(
+        (entry) => entry.initiatorType !== "link" && entry.startTime < 5000,
+      );
 
       if (isCurrentPageResource) {
         analysis.isCurrentPage = true;
@@ -174,18 +223,27 @@ graph LR
         });
       }
 
-      // Check resource type appropriateness
-      const inappropriateTypes = {
-        image: analysis.size > 200 * 1024, // >200KB images questionable
-        video: true, // Videos usually too large
-        media: true, // Media files usually too large
-      };
+      // Check resource type appropriateness (size-based)
+      // Note: Only checks if resource has loaded (has perfEntry with size)
+      let isInappropriate = false;
+      let inappropriateReason = "";
 
-      if (inappropriateTypes[as]) {
+      if (as === "video" || as === "media") {
+        isInappropriate = true;
+        inappropriateReason = "Videos/media files are typically too large for prefetch";
+      } else if (as === "image" && analysis.size > 200 * 1024) {
+        isInappropriate = true;
+        inappropriateReason = `Image is ${(analysis.size / 1024).toFixed(0)}KB (>200KB threshold)`;
+      } else if (as === "script" && analysis.size > THRESHOLDS.largeScriptSize) {
+        isInappropriate = true;
+        inappropriateReason = `Script is ${(analysis.size / 1024).toFixed(0)}KB (>1MB threshold)`;
+      }
+
+      if (isInappropriate) {
         analysis.warnings.push({
           type: "inappropriate-type",
           severity: "warning",
-          message: `Type "${as}" may not be suitable for prefetch (typically too large)`,
+          message: `Type "${as}" may not be suitable for prefetch: ${inappropriateReason}`,
         });
       }
     } else {
@@ -444,11 +502,13 @@ Shows the overall state of prefetch usage:
 | ---------------------- | -------- | -------------------------------------------------------------------- |
 | **Wrong hint type**    | Error    | Resource used on current page - should use `preload` not `prefetch`  |
 | **Missing as**         | Warning  | Missing `as` attribute prevents correct MIME type matching           |
+| **Invalid as**         | Warning  | Invalid `as` attribute value (typo or unsupported type)              |
+| **Duplicate prefetch** | Warning  | Same URL is prefetched multiple times (wasteful)                     |
 | **Excessive count**    | Warning  | Too many prefetch hints (&gt;10) wastes bandwidth                    |
 | **Large file**         | Warning  | Individual resource &gt;500KB may be too large                       |
 | **Excessive size**     | Error    | Total prefetch &gt;5MB significantly impacts mobile users            |
 | **High size**          | Warning  | Total prefetch &gt;2MB should be reduced                             |
-| **Inappropriate type** | Warning  | Resource type (video, large image) not suitable for prefetch         |
+| **Inappropriate type** | Warning  | Resource type/size not suitable (video, large image/script)          |
 | **Not loaded**         | Info     | Prefetch hint present but resource not loaded yet                    |
 
 **Resource Analysis:**

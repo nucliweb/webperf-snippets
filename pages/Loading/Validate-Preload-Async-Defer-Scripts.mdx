@@ -709,7 +709,7 @@ If you truly need early discovery but don't want priority escalation:
 
 ```html
 <!-- ✅ Early discovery + low priority -->
-<link rel="preload" href="https://cdn.example.com/consent.js" as="script" />
+<link rel="preload" href="https://cdn.example.com/consent.js" as="script" fetchpriority="low" />
 <script async src="https://cdn.example.com/consent.js" fetchpriority="low"></script>
 ```
 
