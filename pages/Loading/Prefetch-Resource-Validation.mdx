@@ -222,10 +222,13 @@ graph LR
   // Display results
   console.group("%c🔍 Prefetch Resource Validation", "font-weight: bold; font-size: 14px;");
 
+  // Count actually loaded resources
+  const loadedCount = [...issues, ...validPrefetch].filter((item) => item.loaded).length;
+
   console.log("");
   console.log("%cSummary:", "font-weight: bold;");
   console.log(`   Total prefetch hints: ${prefetchLinks.length}`);
-  console.log(`   Loaded resources: ${issues.length + validPrefetch.length}`);
+  console.log(`   Loaded resources: ${loadedCount}`);
   console.log(`   Total size: ${totalSizeMB} MB (decompressed)`);
   console.log(`   Transfer size: ${totalTransferMB} MB (over network)`);
   console.log(`   Issues found: ${issues.length + countIssues.length}`);
