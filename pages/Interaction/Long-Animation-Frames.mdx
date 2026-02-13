@@ -1,6 +1,12 @@
 # Long Animation Frames (LoAF)
 
-Tracks [Long Animation Frames](https://developer.chrome.com/docs/web-platform/long-animation-frames) to identify JavaScript and rendering work that blocks the main thread. LoAF is the underlying API that powers INP debugging.
+### Overview
+
+Tracks [Long Animation Frames](https://developer.chrome.com/docs/web-platform/long-animation-frames) to identify JavaScript and rendering work that blocks the main thread. LoAF is the underlying API that powers INP debugging and provides detailed attribution for slow interactions.
+
+**Why this matters:**
+
+LoAF is the successor to the Long Tasks API and provides much more detailed information about what's blocking your page. It tells you exactly which scripts ran, how long they took, and whether they caused forced layouts. This is essential for debugging slow interactions and improving INP scores.
 
 **What is a Long Animation Frame?**
 
@@ -24,6 +30,51 @@ A frame is considered "long" when it takes more than 50ms. The API provides deta
 | Forced layouts | Not detected | Detected and measured |
 
 > **Tip:** LoAF helps answer "Why was my interaction slow?" by showing exactly which scripts ran and how long each phase took.
+
+**LoAF Timeline Breakdown:**
+
+```mermaid
+flowchart LR
+    Start([Frame Start]) --> JS1[Script 1<br/>Execution]
+    JS1 --> JS2[Script 2<br/>Execution]
+    JS2 --> Render{Rendering Phase}
+    Render --> Style[Style<br/>Calculation]
+    Style --> Layout[Layout]
+    Layout --> Paint[Paint]
+    Paint --> End([Frame Complete])
+
+    Threshold[50ms Threshold] -.-> Render
+
+    style JS1 fill:#FFE5E5
+    style JS2 fill:#FFE5E5
+    style Style fill:#E5F2FF
+    style Layout fill:#E5F2FF
+    style Paint fill:#E5F2FF
+    style Threshold fill:#FFA500
+```
+
+**Comparison: Long Tasks vs LoAF:**
+
+```mermaid
+graph TB
+    subgraph LT[" Long Tasks API ❌ "]
+        LT1["⏱️ Task > 50ms"]
+        LT2["❓ Limited Attribution"]
+        LT3["🚫 No Render Time"]
+    end
+
+    subgraph LA[" Long Animation Frames API ✅ "]
+        LA1["⏱️ Frame > 50ms"]
+        LA2["✅ Full Script Attribution"]
+        LA3["🎨 Includes Render Time"]
+        LA4["🔍 Detects Forced Layouts"]
+    end
+
+    LT -->|Replaced by| LA
+
+    style LT fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
+    style LA fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
+```
 
 ### Snippet
 

@@ -1,26 +1,57 @@
 # Scripts Loading
 
-Analyzes all scripts on the page, showing their loading strategy and identifying potential performance issues. Understanding how scripts load is crucial for optimizing page performance.
+### Overview
+
+Analyzes all scripts on the page, showing their loading strategy and identifying potential performance issues. Scripts are often the biggest cause of main thread blocking and delayed rendering. This snippet helps you audit which scripts are blocking the critical rendering path.
+
+**Why this matters:**
+
+Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsing while they download and execute. This delays First Contentful Paint (FCP) and Largest Contentful Paint (LCP). Even a single blocking script can add hundreds of milliseconds to your load time, especially on slower connections.
 
 **How scripts affect HTML parsing:**
 
-```
-             Parsing HTML
-             ├────────────────────────────────────────┤
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Parser as HTML Parser
+    participant Script as Script
 
-<script>     ███░░░░░░░░░░░░░░░░░███████████████░░░░░░
-                 ↑ pause         ↑ download+exec  ↑ resume
+    Note over Browser,Script: Normal <script> - Blocks Everything
 
-<script      ███████████████████████████░░░█████░░░███
- async>          ↑ download parallel    ↑ exec    ↑ continue
+    Parser->>Script: Encounter <script>
+    Note over Parser: ⏸️ PAUSE parsing
+    Script->>Script: Download
+    Script->>Script: Execute
+    Note over Parser: ⏸️ Still waiting...
+    Script-->>Parser: Done
+    Note over Parser: ▶️ RESUME parsing
 
-<script      ███████████████████████████████████░░███░
- defer>          ↑ download parallel            ↑ exec after parse
+    Note over Browser,Script: <script async> - Execute When Ready
 
-<script      ███████████████████████████████████░░███░
- module>         ↑ download parallel            ↑ exec after parse
+    Parser->>Script: Encounter <script async>
+    Note over Parser: ✅ Continue parsing
+    par Parallel Operations
+        Parser->>Parser: Keep parsing HTML
+    and
+        Script->>Script: Download in background
+    end
+    Script->>Parser: Ready to execute
+    Note over Parser: ⏸️ Brief pause
+    Script->>Script: Execute
+    Note over Parser: ▶️ Resume parsing
 
-███ = parsing  ░░░ = blocked/waiting
+    Note over Browser,Script: <script defer> - Execute After Parsing
+
+    Parser->>Script: Encounter <script defer>
+    Note over Parser: ✅ Continue parsing
+    par Parallel Operations
+        Parser->>Parser: Keep parsing HTML
+    and
+        Script->>Script: Download in background
+    end
+    Parser->>Parser: Finish parsing
+    Script->>Script: Execute (in order)
+    Note over Script: All defer scripts run before DOMContentLoaded
 ```
 
 **Loading strategy comparison:**
@@ -382,14 +413,22 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 
 ### Script Loading Decision Tree
 
-```
-Is the script critical for initial render?
-├── Yes → Is it very small (< 1 KB)?
-│   ├── Yes → Inline it
-│   └── No → Place at end of <body> or use preload
-└── No → Does it need to run in order with other scripts?
-    ├── Yes → Use defer
-    └── No → Use async
+```mermaid
+flowchart TD
+    Start[Script Loading Strategy] --> Critical{Critical for<br/>initial render?}
+
+    Critical -->|Yes| Small{Very small<br/>< 1 KB?}
+    Small -->|Yes| Inline[✓ Inline the script<br/><code>&lt;script&gt;...&lt;/script&gt;</code>]
+    Small -->|No| EndBody[✓ Place at end of &lt;body&gt;<br/>or use preload]
+
+    Critical -->|No| Order{Needs to run<br/>in order?}
+    Order -->|Yes| Defer[✓ Use defer<br/><code>&lt;script defer&gt;</code>]
+    Order -->|No| Async[✓ Use async<br/><code>&lt;script async&gt;</code>]
+
+    style Inline fill:#E5FFE5
+    style EndBody fill:#E5FFE5
+    style Defer fill:#E5F2FF
+    style Async fill:#FFE5F2
 ```
 
 ### Further Reading

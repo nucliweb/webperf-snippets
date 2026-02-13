@@ -1,6 +1,12 @@
 # Cumulative Layout Shift (CLS)
 
-Quick check for [Cumulative Layout Shift](https://web.dev/articles/cls), a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime.
+### Overview
+
+Quick check for [Cumulative Layout Shift](https://web.dev/articles/cls), a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the cumulative impact of all unexpected layout shifts.
+
+**Why this matters:**
+
+Unexpected layout shifts are frustrating and can cause users to click the wrong element or lose their reading position. CLS directly impacts user experience and is a ranking factor for Google Search. Common causes include images without dimensions, web fonts, and dynamically injected content.
 
 **CLS Rating Thresholds:**
 
@@ -89,6 +95,40 @@ CLS = Σ (impact fraction × distance fraction)
 **What's excluded:**
 - Shifts within 500ms of user input (`hadRecentInput: true`)
 - Shifts caused by scroll anchoring
+
+**CLS Calculation Flow:**
+
+```mermaid
+flowchart TD
+    Start[Layout Shift Detected] --> Recent{Within 500ms<br/>of user input?}
+
+    Recent -->|Yes| Exclude[❌ Exclude from CLS<br/>hadRecentInput: true]
+    Recent -->|No| Calculate[✅ Include in CLS]
+
+    Calculate --> Impact[Calculate Impact Fraction<br/>% of viewport affected]
+    Impact --> Distance[Calculate Distance Fraction<br/>distance moved / viewport]
+    Distance --> Score[Shift Score = Impact × Distance]
+    Score --> Accumulate[Add to CLS total<br/>CLS += score]
+
+    style Exclude fill:#FFE5E5
+    style Calculate fill:#E5FFE5
+    style Accumulate fill:#E5F2FF
+```
+
+**CLS Lifecycle:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> PageLoad: Navigation Start
+    PageLoad --> Accumulating: First Shift
+    Accumulating --> Accumulating: More Shifts<br/>(CLS += score)
+    Accumulating --> Final: Page Hidden
+    Final --> [*]
+
+    note right of Accumulating
+        Only shifts where<br/>hadRecentInput = false<br/>are counted
+    end note
+```
 
 ### Common Causes
 

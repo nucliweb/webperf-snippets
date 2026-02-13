@@ -1,6 +1,12 @@
 # Find render-blocking resources
 
+### Overview
+
 Identifies resources that block the browser from rendering the page. These resources must be fully downloaded and processed before the browser can display any content, directly impacting First Contentful Paint (FCP) and Largest Contentful Paint (LCP).
+
+**Why this matters:**
+
+Render-blocking resources are the primary cause of slow initial page renders. Users see a blank white screen while CSS and JavaScript files download and parse. On slow connections or mobile networks, this can add several seconds to your load time. Eliminating or deferring render-blocking resources is one of the highest-impact optimizations you can make.
 
 **What are render-blocking resources?**
 
@@ -16,6 +22,39 @@ Identifies resources that block the browser from rendering the page. These resou
 - Can delay Largest Contentful Paint (LCP)
 - Users see a blank page while resources load
 - Particularly harmful on slow connections
+
+**Render-Blocking Timeline:**
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant HTML as HTML Parser
+    participant CSS as CSS File
+    participant JS as JavaScript
+    participant Render as Renderer
+
+    Browser->>HTML: Start parsing HTML
+    HTML->>CSS: Discover <link rel="stylesheet">
+    Note over HTML: ⏸️ PAUSE parsing
+    CSS->>CSS: Download CSS
+    CSS->>CSS: Parse CSS
+    CSS-->>HTML: CSS ready
+    Note over HTML: ▶️ RESUME parsing
+
+    HTML->>JS: Discover <script> (no defer/async)
+    Note over HTML: ⏸️ PAUSE parsing
+    JS->>JS: Download JS
+    JS->>JS: Execute JS
+    JS-->>HTML: Script complete
+    Note over HTML: ▶️ RESUME parsing
+
+    HTML->>Render: Parsing complete
+    Note over Render: ✅ Can start rendering
+    Render->>Render: Layout + Paint
+    Render-->>Browser: First Contentful Paint (FCP)
+
+    Note over Browser,Render: User sees content
+```
 
 > **Browser Support:** The `renderBlockingStatus` property is currently Chromium-only (Chrome 107+, Edge 107+, Opera 93+). Firefox and Safari don't support this API yet.
 
@@ -180,6 +219,36 @@ Shows each resource with:
 - Filename and size
 
 Resources are sorted by completion time (latest first), so you can see which resource is the last to complete and thus determines when rendering can start.
+
+### Optimization Decision Tree
+
+```mermaid
+flowchart TD
+    Start[Render-Blocking Resource] --> Type{Resource Type?}
+
+    Type -->|CSS| Critical{Critical for<br/>initial render?}
+    Type -->|JavaScript| JSCritical{Critical for<br/>initial render?}
+    Type -->|Font| FontStrategy[Use font-display: swap]
+
+    Critical -->|Yes| Inline[✓ Inline critical CSS<br/>in &lt;head&gt;]
+    Critical -->|No| Async[✓ Load asynchronously<br/>media='print' onload trick]
+
+    JSCritical -->|Yes| JSSmall{Very small<br/>< 1KB?}
+    JSCritical -->|No| Defer[✓ Add defer attribute]
+
+    JSSmall -->|Yes| JSInline[✓ Inline the script]
+    JSSmall -->|No| EndBody[✓ Move to end of &lt;body&gt;]
+
+    FontStrategy --> Preload[✓ Preload critical fonts]
+
+    style Inline fill:#E5FFE5
+    style Async fill:#FFE5F2
+    style Defer fill:#E5F2FF
+    style JSInline fill:#E5FFE5
+    style EndBody fill:#FFF3E5
+    style FontStrategy fill:#FFE5E5
+    style Preload fill:#E5FFE5
+```
 
 ### Common Render-Blocking Patterns
 

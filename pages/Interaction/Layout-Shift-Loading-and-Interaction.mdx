@@ -1,6 +1,12 @@
 # Layout Shift Tracking
 
-Tracks all layout shifts during page load and user interaction, identifying the elements causing [Cumulative Layout Shift (CLS)](https://web.dev/articles/cls).
+### Overview
+
+Tracks all layout shifts during page load and user interaction, identifying the elements causing [Cumulative Layout Shift (CLS)](https://web.dev/articles/cls). This debugging-focused snippet logs every shift with detailed information about which elements moved and when.
+
+**Why this matters:**
+
+While the [CLS quick check](/CoreWebVitals/CLS) gives you a score, this snippet helps you debug **which specific elements** are causing layout shifts. It shows you the exact selectors, movement distances, and whether shifts were excluded due to user input. This is essential for fixing CLS issues.
 
 **CLS Rating Thresholds:**
 
@@ -21,6 +27,37 @@ Tracks all layout shifts during page load and user interaction, identifying the 
 | DOM updates above viewport | Content inserted above current scroll | Insert below or use transforms |
 
 > **Note:** Shifts with `hadRecentInput: true` (within 500ms of user input) are excluded from CLS, as they're considered expected by the user.
+
+**Layout Shift Phases:**
+
+```mermaid
+flowchart LR
+    Start([Page<br/>Load]) --> Loading["📄 Loading Phase<br/><small>Initial layout shifts<br/>✅ Count toward CLS</small>"]
+    Loading --> Interact[👆 User<br/>Interaction]
+    Interact --> Window["⏱️ 500ms Window<br/><small>❌ Shifts excluded</small>"]
+    Window --> After["⏳ After Window<br/><small>✅ Count toward CLS</small>"]
+
+    style Loading fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
+    style Window fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
+    style After fill:#FFFBE5,stroke:#FF8800,stroke-width:2px
+```
+
+**CLS Counting Logic:**
+
+```mermaid
+flowchart TD
+    Start[Layout Shift Detected] --> Input{hadRecentInput?<br/>User input within 500ms?}
+
+    Input -->|true| Exclude[❌ Exclude from CLS<br/>Shift within interaction window]
+    Input -->|false| LoadingPhase{During loading<br/>or interaction?}
+
+    LoadingPhase -->|Loading| CountLoad[✅ Count toward CLS<br/>Loading phase shift]
+    LoadingPhase -->|After loading| CountNormal[✅ Count toward CLS<br/>Post-load shift]
+
+    style Exclude fill:#FFE5E5
+    style CountLoad fill:#FFE5F2
+    style CountNormal fill:#FFF3E5
+```
 
 ### Snippet
 

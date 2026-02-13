@@ -1,11 +1,28 @@
 # LCP Sub-Parts
 
-Breaks down [Largest Contentful Paint](https://web.dev/articles/lcp) into its four phases to identify optimization opportunities. Based on the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma).
+### Overview
+
+Breaks down [Largest Contentful Paint](https://web.dev/articles/lcp) into its four phases to identify optimization opportunities. Understanding which phase is slowest helps you focus your optimization efforts where they'll have the most impact. Based on the [Web Vitals Chrome Extension](https://chrome.google.com/webstore/detail/web-vitals/ahfhijdlegdabablpippeagghigmibma).
+
+**Why this matters:**
+
+LCP is a critical Core Web Vital that measures when the largest content element becomes visible. By breaking it into sub-parts, you can pinpoint exactly where delays occur and apply targeted optimizations instead of guessing.
 
 **The four phases of LCP:**
 
-```
-Navigation Start → [TTFB] → [Load Delay] → [Load Time] → [Render Delay] → LCP
+```mermaid
+flowchart LR
+    A([Navigation<br/>Start]) --> B["⏱️ TTFB<br/><small>Server Response</small>"]
+    B --> C["⏳ Load Delay<br/><small>Resource Discovery</small>"]
+    C --> D["📥 Load Time<br/><small>Download Resource</small>"]
+    D --> E["🎨 Render Delay<br/><small>Paint Element</small>"]
+    E --> F([✅ LCP<br/>Complete])
+
+    style B fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
+    style C fill:#FFF3E5,stroke:#FF8800,stroke-width:2px
+    style D fill:#FFFBE5,stroke:#FFBB00,stroke-width:2px
+    style E fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
+    style F fill:#E5F2FF,stroke:#4488FF,stroke-width:3px
 ```
 
 | Sub-part | What it measures | Common causes |
@@ -264,6 +281,26 @@ The snippet adds measures to the Performance API. To see them:
 | **Load Delay** | Preload hints, render-blocking resources, late `<img>` in HTML |
 | **Load Time** | Image size, format, compression, CDN |
 | **Render Delay** | JavaScript blocking, CSS parsing, client-side rendering |
+
+**Optimization Decision Tree:**
+
+```mermaid
+flowchart TD
+    Start[Identify Slowest Phase] --> TTFB{TTFB > 800ms?}
+    Start --> Delay{Load Delay > 10%?}
+    Start --> Load{Load Time > 40%?}
+    Start --> Render{Render Delay > 10%?}
+
+    TTFB -->|Yes| TTFB_Fix["✓ Use CDN<br/>✓ Enable caching<br/>✓ Optimize server"]
+    Delay -->|Yes| Delay_Fix["✓ Preload LCP image<br/>✓ Remove render-blocking<br/>✓ Inline critical CSS"]
+    Load -->|Yes| Load_Fix["✓ Compress images<br/>✓ Use WebP/AVIF<br/>✓ Use responsive images"]
+    Render -->|Yes| Render_Fix["✓ Defer non-critical JS<br/>✓ Avoid client-side rendering<br/>✓ Use fetchpriority=high"]
+
+    style TTFB_Fix fill:#FFE5E5
+    style Delay_Fix fill:#FFF3E5
+    style Load_Fix fill:#FFFBE5
+    style Render_Fix fill:#E5FFE5
+```
 
 ### Further Reading
 

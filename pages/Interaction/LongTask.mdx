@@ -1,6 +1,12 @@
 # Long Tasks
 
-Tracks tasks that block the main thread for more than 50ms. Long tasks prevent the browser from responding to user input, causing poor [Interaction to Next Paint (INP)](https://web.dev/articles/inp).
+### Overview
+
+Tracks tasks that block the main thread for more than 50ms. Long tasks prevent the browser from responding to user input, causing poor [Interaction to Next Paint (INP)](https://web.dev/articles/inp) and sluggish user experience.
+
+**Why this matters:**
+
+When the main thread is blocked by a long task, the browser cannot respond to clicks, taps, or keyboard input. This creates a frustrating experience where the page feels "frozen". Long tasks are the primary cause of poor INP scores and should be broken up into smaller chunks.
 
 > **Recommendation:** For better debugging, consider using [Long Animation Frames (LoAF)](/Interaction/Long-Animation-Frames) which provides full script attribution and render timing.
 
@@ -239,6 +245,37 @@ Blocking time: 150 - 50 = 100ms
 ```
 
 Total Blocking Time (TBT) is a key metric for understanding main thread responsiveness.
+
+**Blocking Time Visualization:**
+
+```mermaid
+flowchart LR
+    Start([Task<br/>Start]) --> Normal["✅ First 50ms<br/><small>Non-blocking</small>"]
+    Normal --> Threshold{50ms<br/>Threshold}
+    Threshold --> Block["⚠️ Blocking Time<br/><small>Everything beyond 50ms</small>"]
+    Block --> End([Task<br/>Complete])
+
+    style Normal fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
+    style Threshold fill:#FFF3E5,stroke:#FF8800,stroke-width:2px
+    style Block fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
+```
+
+**Severity Levels:**
+
+```mermaid
+flowchart TB
+    Task[Long Task Duration] --> Check{How long?}
+
+    Check -->|50-100ms| Low["🟢 Low Severity<br/><small>Minor delay</small>"]
+    Check -->|100-150ms| Medium["🟡 Medium Severity<br/><small>Noticeable lag</small>"]
+    Check -->|150-250ms| High["🟠 High Severity<br/><small>Poor responsiveness</small>"]
+    Check -->|> 250ms| Critical["🔴 Critical Severity<br/><small>Severe blocking</small>"]
+
+    style Low fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
+    style Medium fill:#FFFBE5,stroke:#FFBB00,stroke-width:2px
+    style High fill:#FFF3E5,stroke:#FF8800,stroke-width:2px
+    style Critical fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
+```
 
 ### Limitations
 
