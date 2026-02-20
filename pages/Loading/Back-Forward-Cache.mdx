@@ -749,16 +749,14 @@ Each blocking reason is a `NotRestoredReasonDetails` object with these propertie
 
 **Common reason values:**
 
-```
-Reason                    | What it means
-------------------------- | ---------------------------------------------
-"unload-listener"         | Page has unload event listener
-"response-cache-control"  | Cache-Control: no-store header
-"WebSocket"               | Open WebSocket connection
-"IndexedDB"               | Open IndexedDB transaction
-"BroadcastChannel"        | Open BroadcastChannel
-"related-active-contents" | Related page (popup/iframe) blocks caching
-```
+| Reason | What it means |
+|--------|---------------|
+| `unload-listener` | Page has unload event listener |
+| `response-cache-control` | Cache-Control: no-store header |
+| `WebSocket` | Open WebSocket connection |
+| `IndexedDB` | Open IndexedDB transaction |
+| `BroadcastChannel` | Open BroadcastChannel |
+| `related-active-contents` | Related page (popup/iframe) blocks caching |
 
 **Example output interpretation:**
 
