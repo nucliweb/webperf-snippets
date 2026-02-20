@@ -2,6 +2,9 @@
   "TTFB": {
     "title": "TTFB"
   },
+  "Back-Forward-Cache": {
+    "title": "Back/Forward Cache (bfcache)"
+  },
   "CSS-Media-Queries-Analysis": {
     "title": "CSS Media Queries Analysis"
   },
