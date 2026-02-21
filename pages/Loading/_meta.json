@@ -2,6 +2,9 @@
   "TTFB": {
     "title": "TTFB"
   },
+  "JS-Execution-Time-Breakdown": {
+    "title": "JS Execution Time Breakdown"
+  },
   "FCP": {
     "title": "FCP"
   },
