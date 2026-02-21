@@ -1,0 +1,234 @@
+# Network Bandwidth & Connection Quality
+
+### Overview
+
+Network quality directly affects web performance. Segmenting metrics by connection type helps identify whether performance issues are infrastructure-related or affect only users on slower connections.
+
+**Measured properties:**
+- Connection type (WiFi, cellular, etc.)
+- Effective connection type (slow-2g, 2g, 3g, 4g)
+- Estimated downlink speed (Mbps)
+- Round Trip Time (RTT) estimate
+- Save-Data preference status
+
+**Use cases:**
+- Segment RUM data by connection quality
+- Serve adaptive experiences based on network conditions
+- Debug performance regressions for specific network profiles
+
+> **API availability**: The Network Information API (`navigator.connection`) has limited browser support. It is available in Chrome and Android browsers but not in Safari or Firefox.
+
+## Snippet
+
+```js copy
+// Network Bandwidth & Connection Quality Analysis
+// https://webperf-snippets.nucliweb.net
+
+(() => {
+  const connection =
+    navigator.connection ||
+    navigator.mozConnection ||
+    navigator.webkitConnection;
+
+  if (!connection) {
+    console.warn(
+      "%c⚠️ Network Information API not supported in this browser",
+      "color: #f59e0b; font-weight: bold;"
+    );
+    console.log("Available in Chrome and Android browsers.");
+    return;
+  }
+
+  const effectiveTypeRating = {
+    "slow-2g": { label: "Slow 2G", color: "#ef4444" },
+    "2g": { label: "2G", color: "#f97316" },
+    "3g": { label: "3G", color: "#f59e0b" },
+    "4g": { label: "4G", color: "#22c55e" },
+  };
+
+  const effectiveType = connection.effectiveType || "unknown";
+  const rating = effectiveTypeRating[effectiveType] || {
+    label: effectiveType,
+    color: "#6b7280",
+  };
+
+  console.group(
+    `%c📡 Network Quality: ${rating.label}`,
+    `color: ${rating.color}; font-weight: bold; font-size: 14px;`
+  );
+
+  console.log("");
+  console.log("%cConnection details:", "font-weight: bold;");
+  console.table({
+    "Connection Type": connection.type || "unknown",
+    "Effective Type": effectiveType,
+    "Downlink (Mbps)":
+      connection.downlink !== undefined ? connection.downlink : "N/A",
+    "RTT (ms)": connection.rtt !== undefined ? connection.rtt : "N/A",
+    "Save-Data": connection.saveData ? "Enabled" : "Disabled",
+  });
+
+  // Recommendations
+  console.log("");
+  if (connection.saveData) {
+    console.log(
+      "%c💡 Save-Data is enabled — consider serving reduced assets:",
+      "color: #3b82f6; font-weight: bold;"
+    );
+    console.log("   - Omit non-essential images and videos");
+    console.log("   - Disable autoplay and animations");
+    console.log("   - Defer non-critical resources");
+  }
+
+  if (effectiveType === "slow-2g" || effectiveType === "2g") {
+    console.log(
+      "%c💡 Slow connection detected — performance tips:",
+      "color: #3b82f6; font-weight: bold;"
+    );
+    console.log("   - Prioritize critical resources with fetchpriority=high");
+    console.log("   - Minimize render-blocking scripts and stylesheets");
+    console.log("   - Consider skeleton screens over layout shifts");
+  }
+
+  // Monitor connection changes
+  const onChange = () => {
+    const updated = connection.effectiveType || "unknown";
+    const updatedRating = effectiveTypeRating[updated] || {
+      label: updated,
+      color: "#6b7280",
+    };
+    console.log(
+      `%c🔄 Connection changed → ${updatedRating.label} (${updated})`,
+      `color: ${updatedRating.color}; font-weight: bold;`
+    );
+  };
+
+  connection.addEventListener("change", onChange);
+  console.log("");
+  console.log(
+    "%c👂 Listening for connection changes... (navigate to trigger)",
+    "color: #6b7280;"
+  );
+
+  console.groupEnd();
+})();
+```
+
+### Understanding the Results
+
+**Connection Type vs Effective Type:**
+
+| Property | What it reports | Example values |
+|----------|----------------|----------------|
+| `type` | Physical medium | `wifi`, `cellular`, `ethernet`, `none`, `unknown` |
+| `effectiveType` | Estimated quality tier | `slow-2g`, `2g`, `3g`, `4g` |
+
+`effectiveType` is the most useful value for performance decisions — it reflects actual measured throughput, not just the connection medium. A user on LTE in a crowded area may show `3g` even though the physical type is `cellular`.
+
+**Downlink and RTT:**
+
+These are estimates derived from recent network activity, not live measurements:
+
+| Property | Unit | What it means |
+|----------|------|--------------|
+| `downlink` | Mbps | Estimated download speed, rounded to 25kbps increments |
+| `rtt` | ms | Estimated round-trip time, rounded to 25ms increments |
+
+Both values are intentionally coarsened by browsers to reduce fingerprinting risk.
+
+**Save-Data:**
+
+Reflects the user's `Save-Data: on` HTTP header preference (enabled via browser settings or OS data saver mode). When active, serve minimal payloads: skip non-essential images, disable autoplay, and defer analytics.
+
+**Effective type thresholds (Chrome):**
+
+| Effective Type | Max RTT | Min Downlink |
+|---------------|---------|-------------|
+| `slow-2g` | 2000ms | 50 kbps |
+| `2g` | 1400ms | 70 kbps |
+| `3g` | 270ms | 700 kbps |
+| `4g` | < 270ms | > 700 kbps |
+
+**Connection change listener:**
+
+The snippet registers a `change` event on `navigator.connection`. This fires when the browser detects a network quality change — useful for testing adaptive behavior by switching between network profiles in DevTools.
+
+### Limitations
+
+| Limitation | Details |
+|-----------|---------|
+| Browser support | Only available in Chrome and Android browsers; absent in Safari and Firefox |
+| Coarsened values | Downlink and RTT are rounded to protect user privacy |
+| Estimates, not measurements | Values reflect recent averages, not the current instant |
+| No upstream data | The API does not expose upload speed |
+| Fingerprinting mitigations | Some browsers may further restrict or mock these values |
+
+### Best Practices
+
+**Check Save-Data before serving heavy assets:**
+
+```js
+if (navigator.connection?.saveData) {
+  // Skip autoplay video, serve smaller images
+  video.removeAttribute("autoplay");
+  img.src = img.dataset.srcLow;
+}
+```
+
+**Serve different assets based on effective connection type:**
+
+```js
+const effectiveType = navigator.connection?.effectiveType ?? "4g";
+
+const src = {
+  "slow-2g": "image-low.webp",
+  "2g":      "image-low.webp",
+  "3g":      "image-medium.webp",
+  "4g":      "image-high.webp",
+}[effectiveType] ?? "image-high.webp";
+
+img.src = src;
+```
+
+**Adapt behaviour mid-session when connection changes:**
+
+```js
+navigator.connection?.addEventListener("change", () => {
+  const type = navigator.connection.effectiveType;
+  if (type === "slow-2g" || type === "2g") {
+    pauseBackgroundVideo();
+    disableInfiniteScroll();
+  }
+});
+```
+
+**Honour Save-Data server-side via the HTTP header:**
+
+```js
+// Express / Node.js
+app.get("/image", (req, res) => {
+  const saveData = req.headers["save-data"] === "on";
+  const file = saveData ? "image-low.webp" : "image-high.webp";
+  res.sendFile(file);
+});
+```
+
+**Tag RUM events with connection quality for segmentation:**
+
+```js
+const connection = navigator.connection;
+
+analytics.send("page_view", {
+  effective_type: connection?.effectiveType ?? "unknown",
+  rtt:            connection?.rtt,
+  downlink:       connection?.downlink,
+  save_data:      connection?.saveData ?? false,
+});
+```
+
+## Further Reading
+
+- [Network Information API](https://developer.mozilla.org/en-US/docs/Web/API/Network_Information_API) | MDN
+- [NetworkInformation: effectiveType](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/effectiveType) | MDN
+- [Adaptive serving based on network quality](https://web.dev/articles/adaptive-serving-based-on-network-quality) | web.dev
+- [Save-Data: Delivering fast and light applications](https://web.dev/articles/optimizing-content-efficiency-save-data) | web.dev
