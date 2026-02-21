@@ -51,12 +51,10 @@ Unexpected layout shifts are frustrating and can cause users to click the wrong 
         cls += entry.value;
       }
     }
+    logCLS();
   });
 
   observer.observe({ type: "layout-shift", buffered: true });
-
-  // Show current CLS
-  logCLS();
 
   // Update on visibility change (final CLS)
   document.addEventListener("visibilitychange", () => {
