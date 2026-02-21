@@ -2,6 +2,9 @@
   "TTFB": {
     "title": "TTFB"
   },
+  "FCP": {
+    "title": "FCP"
+  },
   "Back-Forward-Cache": {
     "title": "Back/Forward Cache (bfcache)"
   },
