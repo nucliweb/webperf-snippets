@@ -1,0 +1,165 @@
+# LCP Trail
+
+### Overview
+
+Tracks every [LCP candidate](https://web.dev/articles/lcp#what-elements-are-considered) element during page load and highlights each one with a distinct pastel-colored dashed outline — so you can see the full trail from first candidate to final LCP.
+
+Each time the browser promotes a larger element as the new LCP, the snippet assigns the next color in the palette and highlights it. All previous candidates remain visible on the page for easy comparison.
+
+> **Need timing breakdowns?** Use [LCP Sub-Parts](/CoreWebVitals/LCP-Sub-Parts) to identify which phase (TTFB, load delay, load time, render delay) is causing the bottleneck.
+
+### Snippet
+
+```js copy
+// LCP Trail
+// Tracks all LCP candidate elements during page load
+// https://webperf-snippets.nucliweb.net
+
+(() => {
+  const PALETTE = [
+    { color: "#EF4444", name: "Red" },
+    { color: "#F97316", name: "Orange" },
+    { color: "#22C55E", name: "Green" },
+    { color: "#3B82F6", name: "Blue" },
+    { color: "#A855F7", name: "Purple" },
+    { color: "#EC4899", name: "Pink" },
+  ];
+
+  const valueToRating = (ms) =>
+    ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";
+
+  const RATING = {
+    good: { icon: "🟢", color: "#0CCE6A" },
+    "needs-improvement": { icon: "🟡", color: "#FFA400" },
+    poor: { icon: "🔴", color: "#FF4E42" },
+  };
+
+  const getActivationStart = () => {
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    return navEntry?.activationStart || 0;
+  };
+
+  const getSelector = (element) => {
+    if (element.id) return `#${element.id}`;
+    if (element.className && typeof element.className === "string") {
+      const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
+      if (classes) return `${element.tagName.toLowerCase()}.${classes}`;
+    }
+    return element.tagName.toLowerCase();
+  };
+
+  const getElementInfo = (element, entry) => {
+    const tag = element.tagName.toLowerCase();
+    if (tag === "img") return { type: "Image", url: entry.url || element.src };
+    if (tag === "video") return { type: "Video poster", url: entry.url || element.poster };
+    if (element.style?.backgroundImage) return { type: "Background image", url: entry.url };
+    return { type: tag === "h1" || tag === "p" ? "Text block" : tag };
+  };
+
+  const candidates = [];
+
+  const logTrail = () => {
+    const current = candidates[candidates.length - 1];
+    if (!current) return;
+
+    const rating = valueToRating(current.time);
+    const { icon, color: ratingColor } = RATING[rating];
+
+    console.group(
+      `%cLCP: ${icon} ${(current.time / 1000).toFixed(2)}s (${rating})`,
+      `color: ${ratingColor}; font-weight: bold; font-size: 14px;`
+    );
+
+    // Current LCP element attribution
+    console.log("");
+    console.log("%cLCP Element:", "font-weight: bold;");
+    console.log(`   Element: ${current.selector}`, current.element);
+
+    const { type, url } = getElementInfo(current.element, current.entry);
+    console.log(`   Type: ${type}`);
+    if (url) console.log(`   URL: ${url}`);
+    if (current.element.naturalWidth) {
+      console.log(
+        `   Dimensions: ${current.element.naturalWidth}×${current.element.naturalHeight}`
+      );
+    }
+    if (current.entry.size) {
+      console.log(`   Size: ${current.entry.size.toLocaleString()} px²`);
+    }
+
+    // Trail legend
+    console.log("");
+    console.log("%cCandidates Trail:", "font-weight: bold;");
+    candidates.forEach(({ index, selector, color, name, time, element }) => {
+      const isCurrent = index === candidates.length;
+      console.log(
+        `%c  ● ${index}. ${selector}`,
+        `color: ${color}; font-weight: ${isCurrent ? "bold" : "normal"};`,
+        `| ${(time / 1000).toFixed(2)}s — ${name}${isCurrent ? " ← LCP" : ""}`,
+        element
+      );
+    });
+
+    console.log("");
+    console.log(
+      "%c✓ Each candidate highlighted with a colored dashed outline",
+      "color: #22c55e;"
+    );
+    console.groupEnd();
+  };
+
+  const observer = new PerformanceObserver((list) => {
+    const activationStart = getActivationStart();
+    const seen = new Set(candidates.map((c) => c.element));
+
+    for (const entry of list.getEntries()) {
+      const { element } = entry;
+      if (!element || seen.has(element)) continue;
+
+      const { color, name } = PALETTE[candidates.length % PALETTE.length];
+
+      element.style.outline = `3px dashed ${color}`;
+      element.style.outlineOffset = "2px";
+
+      candidates.push({
+        index: candidates.length + 1,
+        element,
+        selector: getSelector(element),
+        color,
+        name,
+        time: Math.max(0, entry.startTime - activationStart),
+        entry,
+      });
+
+      seen.add(element);
+    }
+
+    logTrail();
+  });
+
+  observer.observe({ type: "largest-contentful-paint", buffered: true });
+
+  console.log("%c⏱️ LCP Trail Active", "font-weight: bold; font-size: 14px;");
+  console.log("   Highlights all LCP candidate elements with distinct colors.");
+})();
+```
+
+### How It Works
+
+The snippet observes `largest-contentful-paint` entries with `buffered: true`, which captures all candidates since navigation started. Each time the browser promotes a new element as the current LCP:
+
+1. The element receives a dashed outline in the next palette color
+2. The console logs are updated with attribution for the current LCP
+3. The **Candidates Trail** legend shows every candidate in order, with its color, time, and a clickable element reference
+
+**Multiple candidates appear when:**
+- An image loads after a text element that was initially larger in the viewport
+- A hero image replaces a heading as the largest content
+- Lazy-loaded or late-loading resources become the largest visible element
+
+### Further Reading
+
+- [Largest Contentful Paint (LCP)](https://web.dev/articles/lcp) | web.dev
+- [LCP element candidates](https://web.dev/articles/lcp#what-elements-are-considered) | web.dev
+- [LCP](/CoreWebVitals/LCP) | Quick LCP check
+- [LCP Sub-Parts](/CoreWebVitals/LCP-Sub-Parts) | Detailed phase breakdown
