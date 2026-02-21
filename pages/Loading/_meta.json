@@ -19,5 +19,8 @@
   },
   "Prefetch-Resource-Validation": {
     "title": "Prefetch Resource Validation"
+  },
+  "Service-Worker-Analysis": {
+    "title": "Service Worker Analysis"
   }
 }
