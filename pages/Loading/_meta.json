@@ -26,6 +26,9 @@
   "Prefetch-Resource-Validation": {
     "title": "Prefetch Resource Validation"
   },
+  "Priority-Hints-Audit": {
+    "title": "Priority Hints Audit"
+  },
   "Service-Worker-Analysis": {
     "title": "Service Worker Analysis"
   }
