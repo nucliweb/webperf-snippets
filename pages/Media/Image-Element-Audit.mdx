@@ -1,0 +1,501 @@
+# Image Element Audit
+
+Audits all `<img>` elements on the page against image performance best practices — covering loading strategy, fetch priority, format modernisation, responsive markup, and CLS prevention.
+
+**What this snippet checks:**
+
+| Check                                                   | Scope                             |
+| ------------------------------------------------------- | --------------------------------- |
+| LCP candidate missing `fetchpriority="high"`            | Largest in-viewport image         |
+| LCP candidate with `loading="lazy"`                     | Largest in-viewport image         |
+| LCP candidate without `decoding="sync"`                 | Largest in-viewport image         |
+| In-viewport image with `loading="lazy"`                 | Above-the-fold images             |
+| Off-viewport image missing `loading="lazy"`             | Below-the-fold images             |
+| Off-viewport image with `fetchpriority="high"`          | Below-the-fold images             |
+| Conflicting `loading="lazy"` + `fetchpriority="high"`   | All images                        |
+| Missing `width` / `height` attributes                   | All images (CLS risk)             |
+| No modern format detected (WebP / AVIF / JXL)           | All images not inside `<picture>` |
+| LCP candidate without `<link rel="preload" as="image">` | Largest in-viewport image         |
+
+### Overview
+
+Every image on a page falls into one of three roles, each with its own optimal configuration:
+
+**LCP image** — the largest image visible on load, most likely the element measured by Largest Contentful Paint:
+
+```html
+<link rel="preload" as="image" href="hero.avif" fetchpriority="high" />
+<img src="hero.avif" fetchpriority="high" decoding="sync" width="1200" height="630" alt="..." />
+```
+
+> A `<link rel="preload">` in the `<head>` allows the browser to discover and start fetching the LCP image before the parser reaches the `<img>` tag, which is especially important when the image is inside a `<picture>`, a CSS background, or injected by JavaScript. Pair it with `fetchpriority="high"` to boost it above other preloaded resources.
+
+**Above-the-fold image** — visible on load but not the LCP element:
+
+```html
+<img src="logo.svg" decoding="async" width="120" height="40" alt="..." />
+```
+
+**Below-the-fold image** — outside the viewport on load:
+
+```html
+<img
+  src="content.avif"
+  loading="lazy"
+  decoding="async"
+  fetchpriority="low"
+  width="800"
+  height="600"
+  alt="..."
+/>
+```
+
+> `fetchpriority="low"` on below-the-fold images is optional — the browser already deprioritises off-viewport resources. It is most useful for images that are technically inside the viewport area but not visible, such as inactive carousel slides.
+
+For maximum format coverage, wrap images in a `<picture>` element:
+
+```html
+<picture>
+  <source type="image/jxl" srcset="image.jxl" />
+  <source type="image/avif" srcset="image.avif" />
+  <source type="image/webp" srcset="image.webp" />
+  <img src="image.jpg" loading="lazy" width="800" height="600" alt="..." />
+</picture>
+```
+
+> The browser uses the first format it supports. Ordering from most to least optimised (JXL → AVIF → WebP → JPEG) ensures the best available format is served. CDN image services such as Cloudinary handle this automatically via the HTTP `Accept` header, so no `<source>` elements are needed.
+
+### Snippet
+
+```js copy
+// Image Element Audit
+// https://webperf-snippets.nucliweb.net
+
+(async () => {
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
+    return (
+      rect.top < window.innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < window.innerWidth &&
+      rect.right > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }
+
+  function findLcpCandidate(imgs) {
+    let candidate = null;
+    let maxArea = 0;
+    imgs.filter(isInViewport).forEach((img) => {
+      const { width, height } = img.getBoundingClientRect();
+      const area = width * height;
+      if (area > maxArea) {
+        maxArea = area;
+        candidate = img;
+      }
+    });
+    return candidate;
+  }
+
+  function detectFormat(url) {
+    if (!url) return "unknown";
+    const lower = url.toLowerCase();
+    const path = lower.split("?")[0];
+    const query = lower.includes("?") ? lower.split("?")[1] : "";
+
+    // Cloudinary path transforms: /f_auto/, /f_avif,q_auto/, etc.
+    const cloudinaryMatch = path.match(/\/f_(auto|avif|webp|jxl|png|jpg|jpeg|gif|svg)[,/]/);
+    if (cloudinaryMatch) {
+      const fmt = cloudinaryMatch[1];
+      return fmt === "auto" ? "auto (cdn)" : fmt === "jpeg" ? "jpg" : fmt;
+    }
+
+    // Query string params: ?fm=webp (imgix), ?format=avif (generic)
+    const qMatch = query.match(/(?:^|&)(?:fm|format)=(avif|webp|jxl|png|jpg|jpeg|gif|svg)(?:&|$)/);
+    if (qMatch) return qMatch[1] === "jpeg" ? "jpg" : qMatch[1];
+
+    // File extension in path
+    const extMatch = path.match(/\.(avif|webp|jxl|png|gif|svg|jpg|jpeg)(?:[?#]|$)/);
+    if (extMatch) return extMatch[1] === "jpeg" ? "jpg" : extMatch[1];
+
+    // No extension at all — likely a DAM or CDN serving format via Accept header
+    const lastSegment = path.split("/").pop() || "";
+    if (!lastSegment.includes(".")) return "auto (cdn?)";
+
+    return "unknown";
+  }
+
+  function isModernFormat(format) {
+    return ["avif", "webp", "jxl", "auto (cdn)", "auto (cdn?)"].includes(format);
+  }
+
+  async function fetchFormat(url) {
+    if (!url) return detectFormat(url);
+    try {
+      const res = await fetch(url, { cache: "force-cache" });
+      const ct = res.headers.get("content-type")?.split(";")[0]?.trim() || "";
+      if (ct.includes("avif")) return "avif";
+      if (ct.includes("webp")) return "webp";
+      if (ct.includes("jxl")) return "jxl";
+      if (ct.includes("png")) return "png";
+      if (ct.includes("gif")) return "gif";
+      if (ct.includes("svg")) return "svg";
+      if (ct.includes("jpeg")) return "jpg";
+    } catch {}
+    return detectFormat(url);
+  }
+
+  function shortSrc(url) {
+    if (!url) return "";
+    return url.split("/").pop()?.split("?")[0]?.slice(0, 40) || url.slice(-40);
+  }
+
+  function normalizeUrl(url) {
+    try {
+      return new URL(url, location.origin).href;
+    } catch {
+      return url;
+    }
+  }
+
+  function findPreloadForLcp(img, preloads) {
+    const src = normalizeUrl(img.currentSrc || img.src || "");
+    return (
+      preloads.find((link) => {
+        const href = link.getAttribute("href");
+        const imagesrcset = link.getAttribute("imagesrcset") || "";
+        if (href && normalizeUrl(href) === src) return true;
+        if (imagesrcset) {
+          return imagesrcset
+            .split(",")
+            .map((s) => normalizeUrl(s.trim().split(/\s+/)[0]))
+            .includes(src);
+        }
+        return false;
+      }) ?? null
+    );
+  }
+
+  const images = Array.from(document.querySelectorAll("img"));
+
+  if (images.length === 0) {
+    console.log("No <img> elements found on this page.");
+    return;
+  }
+
+  const lcpCandidate = findLcpCandidate(images);
+  const imagePreloads = Array.from(document.querySelectorAll('link[rel="preload"][as="image"]'));
+
+  // Fetch actual formats from Content-Type headers in parallel.
+  // Uses the browser cache (force-cache) so already-loaded images
+  // don't trigger new network requests. Falls back to URL detection
+  // if the server does not expose CORS headers.
+  const formats = await Promise.all(images.map((img) => fetchFormat(img.currentSrc || img.src)));
+
+  const audited = images.map((img, i) => {
+    const inViewport = isInViewport(img);
+    const isLcp = img === lcpCandidate;
+    const rect = img.getBoundingClientRect();
+    const src = img.currentSrc || img.src || "";
+    const format = formats[i];
+    const inPicture = img.parentElement?.tagName === "PICTURE";
+
+    const loading = img.getAttribute("loading");
+    const decoding = img.getAttribute("decoding");
+    const fetchpriority = img.getAttribute("fetchpriority");
+    const hasDimensions = img.hasAttribute("width") && img.hasAttribute("height");
+
+    const issues = [];
+    let lcpPreload = null;
+
+    if (isLcp) {
+      if (fetchpriority !== "high")
+        issues.push({ s: "error", msg: 'Add fetchpriority="high" to the LCP image' });
+      if (loading === "lazy")
+        issues.push({ s: "error", msg: 'Remove loading="lazy" from the LCP image' });
+      if (decoding !== "sync")
+        issues.push({ s: "warning", msg: 'Consider decoding="sync" for the LCP image' });
+      lcpPreload = findPreloadForLcp(img, imagePreloads);
+      if (!lcpPreload)
+        issues.push({ s: "warning", msg: 'LCP image has no <link rel="preload" as="image">' });
+      else if (lcpPreload.getAttribute("fetchpriority") !== "high")
+        issues.push({ s: "info", msg: 'LCP image preload is missing fetchpriority="high"' });
+    } else if (inViewport) {
+      if (loading === "lazy")
+        issues.push({ s: "warning", msg: 'Remove loading="lazy" (image is above the fold)' });
+    } else {
+      if (loading !== "lazy")
+        issues.push({ s: "warning", msg: 'Add loading="lazy" (image is off-viewport)' });
+      if (fetchpriority === "high")
+        issues.push({ s: "error", msg: 'Remove fetchpriority="high" (image is off-viewport)' });
+    }
+
+    if (loading === "lazy" && fetchpriority === "high")
+      issues.push({ s: "error", msg: 'Conflict: loading="lazy" + fetchpriority="high"' });
+
+    if (!hasDimensions)
+      issues.push({ s: "warning", msg: "Missing width/height attributes (CLS risk)" });
+
+    if (!isModernFormat(format) && !inPicture)
+      issues.push({ s: "info", msg: "No modern format detected (WebP / AVIF / JXL)" });
+
+    return {
+      img,
+      inViewport,
+      isLcp,
+      src,
+      format,
+      loading: loading ?? "(not set)",
+      decoding: decoding ?? "(not set)",
+      fetchpriority: fetchpriority ?? "(not set)",
+      hasDimensions,
+      hasSrcset: img.hasAttribute("srcset"),
+      hasSizes: img.hasAttribute("sizes"),
+      inPicture,
+      dimensions: `${Math.round(rect.width)}×${Math.round(rect.height)}`,
+      lcpPreload,
+      issues,
+    };
+  });
+
+  const withIssues = audited.filter((r) => r.issues.length > 0);
+  const totalErrors = audited.flatMap((r) => r.issues.filter((i) => i.s === "error")).length;
+  const totalWarnings = audited.flatMap((r) => r.issues.filter((i) => i.s === "warning")).length;
+  const totalInfos = audited.flatMap((r) => r.issues.filter((i) => i.s === "info")).length;
+
+  console.group("%c🖼️ Image Element Audit", "font-weight: bold; font-size: 14px;");
+
+  // Summary
+  console.log("");
+  console.log("%cSummary", "font-weight: bold;");
+  console.log(`   Total images  : ${images.length}`);
+  console.log(`   In viewport   : ${audited.filter((r) => r.inViewport).length}`);
+  console.log(`   Off viewport  : ${audited.filter((r) => !r.inViewport).length}`);
+  console.log(
+    `   Issues        : ${totalErrors} errors · ${totalWarnings} warnings · ${totalInfos} info`,
+  );
+
+  // LCP candidate
+  if (lcpCandidate) {
+    const lcp = audited.find((r) => r.isLcp);
+    const fpOk = lcp.fetchpriority === "high";
+    const preloadStatus = lcp.lcpPreload
+      ? lcp.lcpPreload.getAttribute("fetchpriority") === "high"
+        ? "✅ found (fetchpriority=high)"
+        : "⚠️ found (no fetchpriority=high)"
+      : "⚠️ not found";
+    console.log("");
+    console.log("%cLCP Candidate", "font-weight: bold;");
+    console.log(`   fetchpriority : ${fpOk ? "✅" : "⚠️"} ${lcp.fetchpriority}`);
+    console.log(`   decoding      : ${lcp.decoding}`);
+    console.log(`   loading       : ${lcp.loading}`);
+    console.log(`   format        : ${lcp.format}`);
+    console.log(`   preload       : ${preloadStatus}`);
+    console.log(`   dimensions    : ${lcp.dimensions}`);
+    console.log("   Element:", lcpCandidate);
+    if (lcp.lcpPreload) console.log("   Preload:", lcp.lcpPreload);
+  }
+
+  // Full table
+  console.log("");
+  console.group(`%c📋 All Images (${images.length})`, "font-weight: bold;");
+  console.table(
+    audited.map((r) => ({
+      src: shortSrc(r.src),
+      format: r.format,
+      viewport: r.inViewport ? "✓" : "",
+      LCP: r.isLcp ? "⭐" : "",
+      loading: r.loading,
+      decoding: r.decoding,
+      fetchpriority: r.fetchpriority,
+      srcset: r.hasSrcset ? "✓" : "",
+      sizes: r.hasSizes ? "✓" : "",
+      "in <picture>": r.inPicture ? "✓" : "",
+      "w/h": r.hasDimensions ? "✓" : "⚠️",
+      issues:
+        r.issues.length === 0
+          ? "✅"
+          : r.issues
+              .map((i) => (i.s === "error" ? "🔴" : i.s === "warning" ? "⚠️" : "ℹ️"))
+              .join(" "),
+    })),
+  );
+  console.groupEnd();
+
+  // Issues detail
+  if (withIssues.length > 0) {
+    console.log("");
+    console.group(
+      `%c⚠️ Issues Detail (${totalErrors} errors · ${totalWarnings} warnings · ${totalInfos} info)`,
+      "color: #ef4444; font-weight: bold;",
+    );
+
+    withIssues.forEach((r) => {
+      const hasError = r.issues.some((i) => i.s === "error");
+      const icon = hasError ? "🔴" : "⚠️";
+      console.log("");
+      console.log(`%c${icon} ${shortSrc(r.src) || "(no src)"}`, "font-weight: bold;");
+      r.issues.forEach((issue) => {
+        const prefix = issue.s === "error" ? "   🔴" : issue.s === "warning" ? "   ⚠️" : "   ℹ️";
+        console.log(`${prefix} ${issue.msg}`);
+      });
+      console.log("   Element:", r.img);
+    });
+
+    console.groupEnd();
+  } else {
+    console.log("");
+    console.log("%c✅ No issues found.", "color: #22c55e; font-weight: bold;");
+  }
+
+  // Quick reference
+  console.log("");
+  console.group("%c📝 Quick Reference", "color: #3b82f6; font-weight: bold;");
+  console.log("");
+  console.log("%c  ⭐ LCP image + preload:", "color: #22c55e;");
+  console.log(
+    '%c  <link rel="preload" as="image" href="hero.avif" fetchpriority="high">\n  <img src="hero.avif" fetchpriority="high" decoding="sync" width="1200" height="630" alt="...">',
+    "font-family: monospace;",
+  );
+  console.log("");
+  console.log("%c  ✅ Below-fold image:", "color: #22c55e;");
+  console.log(
+    '%c  <img src="content.avif" loading="lazy" decoding="async" width="800" height="600" alt="...">',
+    "font-family: monospace;",
+  );
+  console.log("");
+  console.log("%c  ✅ Picture with modern format fallback chain:", "color: #22c55e;");
+  console.log(
+    '%c  <picture>\n    <source type="image/jxl" srcset="img.jxl">\n    <source type="image/avif" srcset="img.avif">\n    <source type="image/webp" srcset="img.webp">\n    <img src="img.jpg" loading="lazy" width="800" height="600" alt="...">\n  </picture>',
+    "font-family: monospace;",
+  );
+  console.groupEnd();
+
+  console.groupEnd();
+})();
+```
+
+### Understanding the Results
+
+#### Summary
+
+| Field        | Description                                                                  |
+| ------------ | ---------------------------------------------------------------------------- |
+| Total images | Count of all `<img>` elements on the page                                    |
+| In viewport  | Images visible in the current viewport                                       |
+| Off viewport | Images outside the current viewport                                          |
+| Issues       | Count by severity: errors (must fix), warnings (should fix), info (consider) |
+
+#### LCP Candidate
+
+The snippet estimates the LCP candidate as the largest `<img>` by rendered area currently in the viewport. This is an approximation — the browser's actual LCP element may differ if non-image elements are larger, or if the page has scrolled before running the snippet.
+
+| Field           | Description                                                                           |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `fetchpriority` | ✅ `high` is correct · ⚠️ any other value is a missed optimisation                    |
+| `decoding`      | `sync` is recommended for LCP; `async` or `auto` adds decoding latency                |
+| `loading`       | `lazy` on the LCP image delays loading and harms the LCP score                        |
+| `format`        | Detected from `currentSrc` — reflects what the browser actually loaded                |
+| `preload`       | ✅ `found (fetchpriority=high)` · ⚠️ `found (no fetchpriority=high)` · ⚠️ `not found` |
+| `dimensions`    | Rendered size in pixels                                                               |
+
+#### All Images Table
+
+| Column          | Description                                                             |
+| --------------- | ----------------------------------------------------------------------- |
+| `src`           | Filename extracted from `currentSrc` (what the browser actually loaded) |
+| `format`        | Image format detected from the URL extension                            |
+| `viewport`      | ✓ if currently visible                                                  |
+| `LCP`           | ⭐ for the estimated LCP candidate                                      |
+| `loading`       | `lazy` · `eager` · `(not set)` (browser default: eager)                 |
+| `decoding`      | `async` · `sync` · `auto` · `(not set)` (browser default: auto)         |
+| `fetchpriority` | `high` · `low` · `auto` · `(not set)` (browser default: auto)           |
+| `srcset`        | ✓ if `srcset` attribute is present                                      |
+| `sizes`         | ✓ if `sizes` attribute is present                                       |
+| `in <picture>`  | ✓ if the `<img>` is wrapped in a `<picture>` element                    |
+| `w/h`           | ✓ if both `width` and `height` are set · ⚠️ if missing (CLS risk)       |
+| `issues`        | ✅ no issues · 🔴 error · ⚠️ warning · ℹ️ info                          |
+
+#### Issues Detected
+
+| Issue                                               | Severity   | Explanation                                                                      |
+| --------------------------------------------------- | ---------- | -------------------------------------------------------------------------------- |
+| LCP image: no `fetchpriority="high"`                | 🔴 Error   | Browser discovers and fetches the LCP image too late                             |
+| LCP image: `loading="lazy"`                         | 🔴 Error   | Browser defers the most important image on the page                              |
+| Off-viewport: `fetchpriority="high"`                | 🔴 Error   | High priority fetch for an image the user cannot see                             |
+| Conflict: `loading="lazy"` + `fetchpriority="high"` | 🔴 Error   | Contradictory signals — browser ignores one or both                              |
+| LCP image: no `decoding="sync"`                     | ⚠️ Warning | Async decoding adds latency before the image is painted                          |
+| In-viewport: `loading="lazy"`                       | ⚠️ Warning | Deferring a visible image delays its display                                     |
+| Off-viewport: no `loading="lazy"`                   | ⚠️ Warning | Image loads eagerly, consuming bandwidth before it is needed                     |
+| Missing `width`/`height`                            | ⚠️ Warning | No reserved space causes layout shift when the image loads (CLS)                 |
+| No modern format detected                           | ℹ️ Info    | Serving JPEG/PNG when WebP or AVIF would reduce file size by 25–50%              |
+| LCP image: no `<link rel="preload">`                | ⚠️ Warning | Browser discovers the LCP image late — a preload allows an earlier fetch         |
+| LCP image preload: no `fetchpriority="high"`        | ℹ️ Info    | Preload without a priority hint may be deprioritised relative to other resources |
+
+#### Format Detection
+
+The snippet detects image formats using two strategies in order of accuracy:
+
+**1. `Content-Type` response header (primary)**
+
+The snippet performs a `fetch` with `cache: "force-cache"` for each image. Since images are already loaded on the page, the browser serves the response from its HTTP cache — no new network requests are made. The `Content-Type` header reveals the actual format served, regardless of the URL.
+
+This correctly handles CDNs that use automatic format negotiation (e.g. Cloudinary `f_auto`, DAM systems that respond based on the `Accept` header): a URL ending in `.jpg` may return `image/webp` or `image/avif`.
+
+If the server does not send CORS headers, the fetch fails silently and the snippet falls back to strategy 2.
+
+**2. URL-based heuristic (fallback)**
+
+| Detected value                                    | Source                                                               |
+| ------------------------------------------------- | -------------------------------------------------------------------- |
+| `avif`, `webp`, `jxl`, `png`, `jpg`, `gif`, `svg` | File extension or CDN transform parameter in the URL                 |
+| `auto (cdn)`                                      | Cloudinary `f_auto`-style path transform (e.g. `/f_auto,q_auto/`)    |
+| `auto (cdn?)`                                     | URL has no file extension — likely format-negotiated by a DAM or CDN |
+| `unknown`                                         | No recognisable extension or pattern found                           |
+
+`auto (cdn)` and `auto (cdn?)` are treated as modern formats and do not trigger the "no modern format" info note.
+
+Images inside a `<picture>` element are exempt from the format check: `currentSrc` already reflects the URL the browser selected.
+
+#### `fetchpriority="low"` on Off-Viewport Images
+
+The browser already assigns low priority to off-viewport images during initial load, so setting `fetchpriority="low"` explicitly is redundant in most cases. It becomes useful for images that are geometrically inside the viewport but not actually visible — for example, slides 2 and 3 of a full-viewport carousel. Adding `fetchpriority="low"` on those hidden slides prevents them from competing with the visible first slide (which is likely the LCP candidate).
+
+```html
+<!-- Active carousel slide — likely LCP -->
+<img src="slide-1.avif" fetchpriority="high" decoding="sync" width="1200" height="630" alt="..." />
+
+<!-- Hidden carousel slides — deprioritise explicitly -->
+<img src="slide-2.avif" fetchpriority="low" loading="lazy" width="1200" height="630" alt="..." />
+<img src="slide-3.avif" fetchpriority="low" loading="lazy" width="1200" height="630" alt="..." />
+```
+
+### Browser Support
+
+| Attribute        | Chrome | Edge | Firefox | Safari |
+| ---------------- | ------ | ---- | ------- | ------ |
+| `loading="lazy"` | 77     | 79   | 75      | 15.4   |
+| `decoding`       | 65     | 79   | 63      | 11.1   |
+| `fetchpriority`  | 101    | 101  | 132     | 17.2   |
+| WebP             | 32     | 18   | 65      | 14     |
+| AVIF             | 85     | 121  | 93      | 16     |
+| JPEG XL          | —      | —    | —       | 17 ⚠️  |
+
+⚠️ Safari 17 supports JPEG XL for still images only — animated sequences are not supported. Chrome and Firefox require enabling an experimental flag and do not support JPEG XL by default.
+
+Browsers that do not support `fetchpriority` or `loading` ignore the attributes safely — no polyfill is needed.
+
+### Further Reading
+
+- [Learn Images](https://web.dev/learn/images) | web.dev
+- [Optimizing Largest Contentful Paint](https://web.dev/articles/optimize-lcp) | web.dev
+- [Fetch Priority API](https://web.dev/articles/fetch-priority) | web.dev
+- [Preload critical assets](https://web.dev/articles/preload-critical-assets) | web.dev
+- [Browser-level lazy loading](https://web.dev/articles/browser-level-image-lazy-loading) | web.dev
+- [Prevent layout shifts with image dimensions](https://web.dev/articles/optimize-cls#images-without-dimensions) | web.dev
+- [`loading` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#loading) | MDN
+- [`decoding` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#decoding) | MDN
+- [`fetchpriority` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#fetchpriority) | MDN
+- [JPEG XL supported software](https://jpegxl.info/resources/supported-software.html) | jpegxl.info
+- [Best practices for images — nucliweb/image-element](https://github.com/nucliweb/image-element) | GitHub
