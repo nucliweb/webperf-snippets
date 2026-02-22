@@ -1,0 +1,396 @@
+# Video Element Audit
+
+Audits all `<video>` elements on the page against video performance best practices — covering preload strategy, autoplay configuration, format modernisation, CLS prevention, and playback accessibility.
+
+**What this snippet checks:**
+
+| Check                                            | Scope                           |
+| ------------------------------------------------ | ------------------------------- |
+| `preload="auto"` without `autoplay`              | All non-autoplay videos         |
+| Off-viewport video without `preload="none"`      | Below-the-fold videos           |
+| `autoplay` without `muted`                       | Autoplay videos                 |
+| `autoplay` without `playsinline`                 | Autoplay videos                 |
+| Missing `poster` attribute                       | All videos                      |
+| Missing `width` / `height` attributes            | All videos (CLS risk)           |
+| No modern codec source (WebM / VP9 / AV1)        | All videos with `<source>` tags |
+| No `controls` and no `autoplay`                  | Non-autoplay videos             |
+
+### Overview
+
+Every video on a page falls into one of three roles, each with its own optimal configuration:
+
+**Autoplay hero / background video** — silent, looping visual that plays immediately:
+
+```html
+<video autoplay muted playsinline loop poster="preview.avif" width="1280" height="720">
+  <source src="hero.av1.webm" type="video/webm; codecs=av01.0.04M.08" />
+  <source src="hero.vp9.webm" type="video/webm; codecs=vp9" />
+  <source src="hero.mp4" type="video/mp4" />
+</video>
+```
+
+> `muted` is required for `autoplay` to work in browsers. `playsinline` prevents iOS Safari from switching to fullscreen. Offering AV1 → VP9 → MP4 fallback ensures the best available codec is used, reducing file size by up to 50 % compared to H.264.
+
+**User-controlled video** — on-demand content the user initiates:
+
+```html
+<video controls preload="metadata" poster="thumbnail.avif" width="800" height="450">
+  <source src="video.vp9.webm" type="video/webm; codecs=vp9" />
+  <source src="video.mp4" type="video/mp4" />
+</video>
+```
+
+> `preload="metadata"` loads only the video duration and dimensions — enough to render the player UI — without downloading the full file. `poster` provides a visible thumbnail while the video is paused.
+
+**Below-the-fold video** — content outside the initial viewport:
+
+```html
+<video controls preload="none" poster="thumbnail.avif" width="800" height="450">
+  <source src="video.vp9.webm" type="video/webm; codecs=vp9" />
+  <source src="video.mp4" type="video/mp4" />
+</video>
+```
+
+> `preload="none"` prevents the browser from fetching any video data until the user scrolls to it or presses play. Combined with `poster`, the element still renders a visible thumbnail with no wasted bandwidth.
+
+### Snippet
+
+```js copy
+// Video Element Audit
+// https://webperf-snippets.nucliweb.net
+
+(() => {
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
+    return (
+      rect.top < window.innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < window.innerWidth &&
+      rect.right > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }
+
+  function detectBestCodec(video) {
+    const sources = Array.from(video.querySelectorAll("source"));
+    const types = sources
+      .map((s) => s.getAttribute("type") || "")
+      .filter(Boolean)
+      .map((t) => t.toLowerCase());
+
+    const allSrcs = [
+      (video.currentSrc || "").toLowerCase(),
+      (video.getAttribute("src") || "").toLowerCase(),
+      ...sources.map((s) => (s.getAttribute("src") || "").toLowerCase()),
+    ];
+
+    if (types.some((t) => t.includes("av01") || t.includes("av1"))) return "AV1";
+    if (types.some((t) => t.includes("vp9"))) return "VP9";
+    if (types.some((t) => t.includes("webm")) || allSrcs.some((s) => s.endsWith(".webm")))
+      return "WebM";
+    if (
+      types.some((t) => t.includes("mp4")) ||
+      allSrcs.some((s) => s.endsWith(".mp4") || s.endsWith(".mov"))
+    )
+      return "MP4";
+    if (types.some((t) => t.includes("ogg")) || allSrcs.some((s) => s.endsWith(".ogv")))
+      return "OGG";
+
+    return sources.length > 0 || video.getAttribute("src") ? "unknown" : "no source";
+  }
+
+  function isModernCodec(codec) {
+    return ["AV1", "VP9", "WebM"].includes(codec);
+  }
+
+  function shortSrc(url) {
+    if (!url) return "";
+    return url.split("/").pop()?.split("?")[0]?.slice(0, 40) || url.slice(-40);
+  }
+
+  const videos = Array.from(document.querySelectorAll("video"));
+
+  if (videos.length === 0) {
+    console.log("No <video> elements found on this page.");
+    return;
+  }
+
+  const audited = videos.map((video) => {
+    const inViewport = isInViewport(video);
+    const rect = video.getBoundingClientRect();
+    const src = video.currentSrc || video.getAttribute("src") || "";
+
+    const preload = video.getAttribute("preload");
+    const autoplay = video.hasAttribute("autoplay");
+    const muted = video.hasAttribute("muted") || video.muted;
+    const playsinline = video.hasAttribute("playsinline");
+    const loop = video.hasAttribute("loop");
+    const controls = video.hasAttribute("controls");
+    const poster = video.getAttribute("poster");
+    const hasDimensions = video.hasAttribute("width") && video.hasAttribute("height");
+    const sources = Array.from(video.querySelectorAll("source"));
+    const codec = detectBestCodec(video);
+
+    const issues = [];
+
+    if (preload === "auto" && !autoplay) {
+      issues.push({
+        s: "error",
+        msg: 'preload="auto" loads the full video eagerly — use preload="none" or preload="metadata"',
+      });
+    }
+
+    if (!autoplay && !inViewport && preload !== "none") {
+      issues.push({
+        s: "warning",
+        msg: 'Off-viewport video without preload="none" — set preload="none" to avoid unnecessary loading',
+      });
+    }
+
+    if (autoplay && !muted) {
+      issues.push({
+        s: "error",
+        msg: "autoplay without muted — browsers block unmuted autoplay",
+      });
+    }
+
+    if (autoplay && !playsinline) {
+      issues.push({
+        s: "warning",
+        msg: "autoplay without playsinline — iOS Safari forces fullscreen mode",
+      });
+    }
+
+    if (!poster) {
+      issues.push({
+        s: "warning",
+        msg: "Missing poster — no preview frame shown before playback starts",
+      });
+    }
+
+    if (!hasDimensions) {
+      issues.push({
+        s: "warning",
+        msg: "Missing width/height attributes (CLS risk)",
+      });
+    }
+
+    if (!isModernCodec(codec) && codec !== "no source") {
+      issues.push({
+        s: "info",
+        msg: "No modern codec source detected — consider adding a WebM source (VP9 or AV1) for better compression",
+      });
+    }
+
+    if (!controls && !autoplay) {
+      issues.push({
+        s: "info",
+        msg: "No controls attribute and no autoplay — users may not be able to play the video",
+      });
+    }
+
+    return {
+      video,
+      inViewport,
+      src,
+      codec,
+      preload: preload ?? "(not set)",
+      autoplay,
+      muted,
+      playsinline,
+      loop,
+      controls,
+      poster: poster ? "✓" : "(not set)",
+      hasDimensions,
+      sourceCount: sources.length,
+      dimensions: `${Math.round(rect.width)}×${Math.round(rect.height)}`,
+      issues,
+    };
+  });
+
+  const withIssues = audited.filter((r) => r.issues.length > 0);
+  const totalErrors = audited.flatMap((r) => r.issues.filter((i) => i.s === "error")).length;
+  const totalWarnings = audited.flatMap((r) => r.issues.filter((i) => i.s === "warning")).length;
+  const totalInfos = audited.flatMap((r) => r.issues.filter((i) => i.s === "info")).length;
+
+  console.group("%c🎬 Video Element Audit", "font-weight: bold; font-size: 14px;");
+
+  // Summary
+  console.log("");
+  console.log("%cSummary", "font-weight: bold;");
+  console.log(`   Total videos : ${videos.length}`);
+  console.log(`   In viewport  : ${audited.filter((r) => r.inViewport).length}`);
+  console.log(`   Off viewport : ${audited.filter((r) => !r.inViewport).length}`);
+  console.log(
+    `   Issues       : ${totalErrors} errors · ${totalWarnings} warnings · ${totalInfos} info`,
+  );
+
+  // Full table
+  console.log("");
+  console.group(`%c📋 All Videos (${videos.length})`, "font-weight: bold;");
+  console.table(
+    audited.map((r) => ({
+      src: shortSrc(r.src),
+      codec: r.codec,
+      viewport: r.inViewport ? "✓" : "",
+      preload: r.preload,
+      autoplay: r.autoplay ? "✓" : "",
+      muted: r.muted ? "✓" : "",
+      playsinline: r.playsinline ? "✓" : "",
+      controls: r.controls ? "✓" : "",
+      poster: r.poster,
+      "w/h": r.hasDimensions ? "✓" : "⚠️",
+      sources: r.sourceCount,
+      issues:
+        r.issues.length === 0
+          ? "✅"
+          : r.issues
+              .map((i) => (i.s === "error" ? "🔴" : i.s === "warning" ? "⚠️" : "ℹ️"))
+              .join(" "),
+    })),
+  );
+  console.groupEnd();
+
+  // Issues detail
+  if (withIssues.length > 0) {
+    console.log("");
+    console.group(
+      `%c⚠️ Issues Detail (${totalErrors} errors · ${totalWarnings} warnings · ${totalInfos} info)`,
+      "color: #ef4444; font-weight: bold;",
+    );
+
+    withIssues.forEach((r) => {
+      const hasError = r.issues.some((i) => i.s === "error");
+      const icon = hasError ? "🔴" : "⚠️";
+      console.log("");
+      console.log(`%c${icon} ${shortSrc(r.src) || "(no src)"}`, "font-weight: bold;");
+      r.issues.forEach((issue) => {
+        const prefix = issue.s === "error" ? "   🔴" : issue.s === "warning" ? "   ⚠️" : "   ℹ️";
+        console.log(`${prefix} ${issue.msg}`);
+      });
+      console.log("   Element:", r.video);
+    });
+
+    console.groupEnd();
+  } else {
+    console.log("");
+    console.log("%c✅ No issues found.", "color: #22c55e; font-weight: bold;");
+  }
+
+  // Quick reference
+  console.log("");
+  console.group("%c📝 Quick Reference", "color: #3b82f6; font-weight: bold;");
+  console.log("");
+  console.log("%c  🎬 Autoplay hero/background video:", "color: #22c55e;");
+  console.log(
+    '%c  <video autoplay muted playsinline loop poster="preview.avif" width="1280" height="720">\n    <source src="hero.av1.webm" type="video/webm; codecs=av01.0.04M.08">\n    <source src="hero.vp9.webm" type="video/webm; codecs=vp9">\n    <source src="hero.mp4" type="video/mp4">\n  </video>',
+    "font-family: monospace;",
+  );
+  console.log("");
+  console.log("%c  ✅ User-controlled video:", "color: #22c55e;");
+  console.log(
+    '%c  <video controls preload="metadata" poster="thumbnail.avif" width="800" height="450">\n    <source src="video.vp9.webm" type="video/webm; codecs=vp9">\n    <source src="video.mp4" type="video/mp4">\n  </video>',
+    "font-family: monospace;",
+  );
+  console.log("");
+  console.log("%c  ✅ Below-fold video:", "color: #22c55e;");
+  console.log(
+    '%c  <video controls preload="none" poster="thumbnail.avif" width="800" height="450">\n    <source src="video.vp9.webm" type="video/webm; codecs=vp9">\n    <source src="video.mp4" type="video/mp4">\n  </video>',
+    "font-family: monospace;",
+  );
+  console.groupEnd();
+
+  console.groupEnd();
+})();
+```
+
+### Understanding the Results
+
+#### Summary
+
+| Field        | Description                                                                  |
+| ------------ | ---------------------------------------------------------------------------- |
+| Total videos | Count of all `<video>` elements on the page                                  |
+| In viewport  | Videos visible in the current viewport                                       |
+| Off viewport | Videos outside the current viewport                                          |
+| Issues       | Count by severity: errors (must fix), warnings (should fix), info (consider) |
+
+#### All Videos Table
+
+| Column       | Description                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| `src`        | Filename extracted from `currentSrc` (what the browser actually loaded)                    |
+| `codec`      | Best codec detected from `<source type>` attributes or file extension                      |
+| `viewport`   | ✓ if currently visible                                                                     |
+| `preload`    | `none` · `metadata` · `auto` · `(not set)` (browser default: `metadata` on desktop)       |
+| `autoplay`   | ✓ if `autoplay` attribute is present                                                       |
+| `muted`      | ✓ if `muted` attribute is present or `video.muted` is true                                 |
+| `playsinline`| ✓ if `playsinline` attribute is present                                                    |
+| `controls`   | ✓ if `controls` attribute is present                                                       |
+| `poster`     | ✓ if `poster` attribute is set · `(not set)` if missing                                   |
+| `w/h`        | ✓ if both `width` and `height` are set · ⚠️ if missing (CLS risk)                         |
+| `sources`    | Number of `<source>` child elements                                                        |
+| `issues`     | ✅ no issues · 🔴 error · ⚠️ warning · ℹ️ info                                            |
+
+#### Issues Detected
+
+| Issue                                            | Severity   | Explanation                                                                                |
+| ------------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------ |
+| `preload="auto"` without `autoplay`              | 🔴 Error   | Browser downloads the entire video file on page load, wasting bandwidth                    |
+| `autoplay` without `muted`                       | 🔴 Error   | All modern browsers block autoplay with audio — the video will not play                    |
+| `autoplay` without `playsinline`                 | ⚠️ Warning | iOS Safari switches to native fullscreen, breaking the intended layout                     |
+| Off-viewport without `preload="none"`            | ⚠️ Warning | Browser may begin loading video data before the user scrolls to it                         |
+| Missing `poster`                                 | ⚠️ Warning | No preview frame — the element renders blank or black until the video loads                |
+| Missing `width`/`height`                         | ⚠️ Warning | No reserved space causes layout shift when the video renders (CLS)                         |
+| No modern codec source                           | ℹ️ Info    | Serving only MP4/H.264 when VP9 or AV1 would reduce file size by 30–50 %                  |
+| No `controls` and no `autoplay`                  | ℹ️ Info    | Users have no visible way to start playback                                                |
+
+#### Codec Detection
+
+The snippet detects the best codec offered by the video by inspecting the `type` attribute of each `<source>` element in order of quality:
+
+| Detected value | Source                                                                  |
+| -------------- | ----------------------------------------------------------------------- |
+| `AV1`          | `type` contains `av01` or `av1` codec string                            |
+| `VP9`          | `type` contains `vp9` codec string                                      |
+| `WebM`         | `type` contains `webm` or file URL ends in `.webm`                      |
+| `MP4`          | `type` contains `mp4` or file URL ends in `.mp4` / `.mov`               |
+| `OGG`          | `type` contains `ogg` or file URL ends in `.ogv`                        |
+| `unknown`      | Sources exist but no recognisable type or extension                     |
+| `no source`    | No `<source>` elements and no `src` attribute                           |
+
+`AV1`, `VP9`, and `WebM` are treated as modern codecs and do not trigger the info note. Offering a modern codec as the first `<source>` lets browsers that support it avoid downloading the larger H.264 fallback.
+
+#### `preload` Attribute Behaviour
+
+| Value      | Browser behaviour                                                               |
+| ---------- | ------------------------------------------------------------------------------- |
+| `none`     | Nothing is fetched until the user interacts or JavaScript calls `load()`        |
+| `metadata` | Only metadata is fetched: duration, dimensions, and the first frame             |
+| `auto`     | Browser is permitted to download the full video file                            |
+| (not set)  | Chrome/Firefox default to `metadata` on desktop and `none` on mobile            |
+
+Being explicit avoids relying on browser defaults, which vary across devices and versions.
+
+### Browser Support
+
+| Feature           | Chrome | Edge | Firefox | Safari |
+| ----------------- | ------ | ---- | ------- | ------ |
+| `autoplay` + `muted` | 66  | 79   | 65      | 11     |
+| `playsinline`     | 60     | 79   | —       | 10     |
+| `preload`         | 3      | 12   | 4       | 4      |
+| `poster`          | 8      | 12   | 3.6     | 4      |
+| VP9 (WebM)        | 29     | 14   | 28      | 14.1   |
+| AV1               | 70     | 75   | 67      | 17     |
+
+`playsinline` has no effect on desktop browsers — it is a no-op outside of iOS Safari's fullscreen enforcement.
+
+### Further Reading
+
+- [Video performance](https://web.dev/learn/performance/video-performance) | web.dev
+- [Optimizing Largest Contentful Paint](https://web.dev/articles/optimize-lcp) | web.dev
+- [The `preload` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video#preload) | MDN
+- [Autoplay guide for media and Web Audio APIs](https://developer.mozilla.org/en-US/docs/Web/Media/Autoplay_guide) | MDN
+- [AV1 codec](https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Video_codecs#av1) | MDN
+- [Video and source elements](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/video) | MDN
