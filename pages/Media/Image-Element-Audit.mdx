@@ -237,7 +237,7 @@ For maximum format coverage, wrap images in a `<picture>` element:
     if (!hasDimensions)
       issues.push({ s: "warning", msg: "Missing width/height attributes (CLS risk)" });
 
-    if (!isModernFormat(format) && !inPicture)
+    if (!isModernFormat(format) && !inPicture && format !== "svg")
       issues.push({ s: "info", msg: "No modern format detected (WebP / AVIF / JXL)" });
 
     return {
