@@ -1,0 +1,446 @@
+# Resource Hints Validation
+
+### Overview
+
+Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which hints are declared and whether the resources or connections are actually used. Detects unused hints that waste browser resources and opportunities to optimize loading.
+
+**What are resource hints?**
+
+Resource hints tell the browser to perform actions that can improve loading performance:
+
+| Hint           | Purpose                                       | When to Use                         |
+| -------------- | --------------------------------------------- | ----------------------------------- |
+| `preload`      | Load critical resources early, high priority  | Current page critical resources     |
+| `preconnect`   | Establish connection (DNS + TCP + TLS)        | Critical third-party domains        |
+| `dns-prefetch` | Resolve DNS only                              | Non-critical third-party domains    |
+
+**Problems commonly detected:**
+
+| Issue                         | Impact                         | Detection                                |
+| ----------------------------- | ------------------------------ | ---------------------------------------- |
+| **Unused preload**            | Wasted bandwidth               | Preload declared but resource not used   |
+| **Unused preconnect**         | Wasted CPU/network             | Connection opened but domain not used    |
+| **Unused dns-prefetch**       | Minimal waste                  | DNS resolved but domain not used         |
+| **Missing preconnect**        | Opportunity loss               | Domain used but no preconnect hint       |
+
+### Snippet
+
+```js copy
+// Resource Hints Validation
+// https://webperf-snippets.nucliweb.net
+
+(() => {
+  console.group("%c🔍 Resource Hints Validation", "font-weight: bold; font-size: 14px;");
+
+  // Get all resource hints from DOM
+  const preloadLinks = Array.from(document.querySelectorAll('link[rel="preload"]'));
+  const preconnectLinks = Array.from(document.querySelectorAll('link[rel="preconnect"]'));
+  const dnsPrefetchLinks = Array.from(document.querySelectorAll('link[rel="dns-prefetch"]'));
+
+  // Get all loaded resources from Performance API
+  const resources = performance.getEntriesByType("resource");
+
+  // Helper: Extract domain from URL
+  const getDomain = (url) => {
+    try {
+      return new URL(url, location.origin).origin;
+    } catch {
+      return null;
+    }
+  };
+
+  // Helper: Normalize URL for comparison
+  const normalizeUrl = (url) => {
+    try {
+      const parsed = new URL(url, location.origin);
+      return parsed.origin + parsed.pathname;
+    } catch {
+      return url;
+    }
+  };
+
+  // Helper: Format size
+  const formatSize = (bytes) => {
+    if (!bytes) return "N/A";
+    const kb = bytes / 1024;
+    return kb.toFixed(1) + " KB";
+  };
+
+  // Create maps of used resources and domains
+  const usedResourceUrls = new Set(resources.map(r => normalizeUrl(r.name)));
+  const usedDomains = new Set(resources.map(r => getDomain(r.name)).filter(Boolean));
+  usedDomains.add(location.origin);
+
+  console.log("");
+  console.log("%cSummary:", "font-weight: bold;");
+  console.log("   Preload hints: " + preloadLinks.length);
+  console.log("   Preconnect hints: " + preconnectLinks.length);
+  console.log("   DNS-prefetch hints: " + dnsPrefetchLinks.length);
+  console.log("   Total resources loaded: " + resources.length);
+  console.log("   Unique domains accessed: " + usedDomains.size);
+
+  // ===== PRELOAD VALIDATION =====
+  console.log("");
+  console.group("%c1. Preload Validation", "font-weight: bold; color: #3b82f6;");
+
+  if (preloadLinks.length === 0) {
+    console.log("%cℹ️ No preload hints found.", "color: #6b7280;");
+  } else {
+    const preloadResults = preloadLinks.map(link => {
+      const href = link.href;
+      const as = link.getAttribute("as") || "unknown";
+      const media = link.getAttribute("media");
+      const normalizedUrl = normalizeUrl(href);
+      const shortUrl = href.split("/").pop()?.split("?").shift() || href;
+
+      const wasUsed = usedResourceUrls.has(normalizedUrl);
+      const perfEntry = resources.find(r => normalizeUrl(r.name) === normalizedUrl);
+
+      let mediaMatches = true;
+      if (media) {
+        try {
+          mediaMatches = window.matchMedia(media).matches;
+        } catch {
+          mediaMatches = false;
+        }
+      }
+
+      return {
+        shortUrl,
+        href,
+        as,
+        media,
+        mediaMatches,
+        wasUsed,
+        size: perfEntry ? formatSize(perfEntry.decodedBodySize || perfEntry.transferSize) : "N/A",
+        link
+      };
+    });
+
+    const usedPreloads = preloadResults.filter(r => r.wasUsed);
+    const unusedPreloads = preloadResults.filter(r => !r.wasUsed && (!r.media || r.mediaMatches));
+    const conditionalPreloads = preloadResults.filter(r => !r.wasUsed && r.media && !r.mediaMatches);
+
+    if (unusedPreloads.length > 0) {
+      console.log("");
+      console.log("%c❌ Unused Preloads (" + unusedPreloads.length + ")", "color: #ef4444; font-weight: bold;");
+      console.table(unusedPreloads.map(r => ({
+        Resource: r.shortUrl,
+        Type: r.as,
+        Status: "Not Used ❌"
+      })));
+    }
+
+    if (conditionalPreloads.length > 0) {
+      console.log("");
+      console.log("%cℹ️ Conditional Preloads (" + conditionalPreloads.length + ")", "color: #3b82f6; font-weight: bold;");
+      console.log("%cThese preloads have media queries that don't match current viewport (this is OK):", "color: #6b7280;");
+      console.table(conditionalPreloads.map(r => ({
+        Resource: r.shortUrl,
+        Type: r.as,
+        Media: r.media,
+        Status: "Conditional ✅"
+      })));
+    }
+
+    if (usedPreloads.length > 0) {
+      console.log("");
+      console.log("%c✅ Used Preloads (" + usedPreloads.length + ")", "color: #22c55e; font-weight: bold;");
+      console.table(usedPreloads.map(r => ({
+        Resource: r.shortUrl,
+        Type: r.as,
+        Size: r.size,
+        Status: "Used ✅"
+      })));
+    }
+
+    const activePreloads = preloadLinks.length - conditionalPreloads.length;
+    const usageRate = activePreloads > 0 ? Math.round((usedPreloads.length / activePreloads) * 100) : 0;
+    console.log("");
+    console.log("%cUsage Rate: " + usageRate + "%", "font-weight: bold;");
+
+    if (unusedPreloads.length === 0) {
+      console.log("%c✅ All applicable preload hints are being used.", "color: #22c55e;");
+    } else {
+      console.log("%c⚠️ " + unusedPreloads.length + " unused preload(s) waste bandwidth.", "color: #ef4444;");
+    }
+  }
+
+  console.groupEnd();
+
+  // ===== PRECONNECT VALIDATION =====
+  console.log("");
+  console.group("%c2. Preconnect Validation", "font-weight: bold; color: #3b82f6;");
+
+  if (preconnectLinks.length === 0) {
+    console.log("%cℹ️ No preconnect hints found.", "color: #6b7280;");
+  } else {
+    const preconnectResults = preconnectLinks.map(link => {
+      const href = link.href;
+      const domain = getDomain(href);
+      const wasUsed = domain ? usedDomains.has(domain) : false;
+      const requestCount = resources.filter(r => getDomain(r.name) === domain).length;
+
+      return { domain, href, wasUsed, requestCount, link };
+    });
+
+    const usedPreconnects = preconnectResults.filter(r => r.wasUsed);
+    const unusedPreconnects = preconnectResults.filter(r => !r.wasUsed);
+
+    if (unusedPreconnects.length > 0) {
+      console.log("");
+      console.log("%c❌ Unused Preconnects (" + unusedPreconnects.length + ")", "color: #ef4444; font-weight: bold;");
+      console.table(unusedPreconnects.map(r => ({
+        Domain: r.domain || r.href,
+        Requests: 0,
+        Status: "Not Used ❌"
+      })));
+    }
+
+    if (usedPreconnects.length > 0) {
+      console.log("");
+      console.log("%c✅ Used Preconnects (" + usedPreconnects.length + ")", "color: #22c55e; font-weight: bold;");
+      console.table(usedPreconnects.map(r => ({
+        Domain: r.domain || r.href,
+        Requests: r.requestCount,
+        Status: "Used ✅"
+      })));
+    }
+
+    const usageRate = Math.round((usedPreconnects.length / preconnectLinks.length) * 100);
+    console.log("");
+    console.log("%cUsage Rate: " + usageRate + "%", "font-weight: bold;");
+
+    if (unusedPreconnects.length === 0) {
+      console.log("%c✅ All preconnect hints are being used.", "color: #22c55e;");
+    } else {
+      console.log("%c⚠️ " + unusedPreconnects.length + " unused preconnect(s) waste CPU/network.", "color: #ef4444;");
+    }
+  }
+
+  console.groupEnd();
+
+  // ===== DNS-PREFETCH VALIDATION =====
+  console.log("");
+  console.group("%c3. DNS-Prefetch Validation", "font-weight: bold; color: #3b82f6;");
+
+  if (dnsPrefetchLinks.length === 0) {
+    console.log("%cℹ️ No dns-prefetch hints found.", "color: #6b7280;");
+  } else {
+    const dnsPrefetchResults = dnsPrefetchLinks.map(link => {
+      const href = link.href;
+      const domain = getDomain(href);
+      const wasUsed = domain ? usedDomains.has(domain) : false;
+      const requestCount = resources.filter(r => getDomain(r.name) === domain).length;
+
+      return { domain, href, wasUsed, requestCount, link };
+    });
+
+    const usedDnsPrefetch = dnsPrefetchResults.filter(r => r.wasUsed);
+    const unusedDnsPrefetch = dnsPrefetchResults.filter(r => !r.wasUsed);
+
+    if (unusedDnsPrefetch.length > 0) {
+      console.log("");
+      console.log("%cℹ️ Unused DNS-Prefetch (" + unusedDnsPrefetch.length + ")", "color: #f59e0b; font-weight: bold;");
+      console.table(unusedDnsPrefetch.map(r => ({
+        Domain: r.domain || r.href,
+        Requests: 0,
+        Status: "Not Used"
+      })));
+      console.log("%cNote: Unused dns-prefetch has minimal impact.", "color: #6b7280;");
+    }
+
+    if (usedDnsPrefetch.length > 0) {
+      console.log("");
+      console.log("%c✅ Used DNS-Prefetch (" + usedDnsPrefetch.length + ")", "color: #22c55e; font-weight: bold;");
+      console.table(usedDnsPrefetch.map(r => ({
+        Domain: r.domain || r.href,
+        Requests: r.requestCount,
+        Status: "Used ✅"
+      })));
+    }
+
+    const usageRate = Math.round((usedDnsPrefetch.length / dnsPrefetchLinks.length) * 100);
+    console.log("");
+    console.log("%cUsage Rate: " + usageRate + "%", "font-weight: bold;");
+  }
+
+  console.groupEnd();
+
+  // ===== OPPORTUNITIES =====
+  console.log("");
+  console.group("%c4. Optimization Opportunities", "font-weight: bold; color: #3b82f6;");
+
+  const hintedDomains = new Set([
+    ...preconnectLinks.map(l => getDomain(l.href)),
+    ...dnsPrefetchLinks.map(l => getDomain(l.href))
+  ]);
+
+  const domainRequestCounts = {};
+  resources.forEach(r => {
+    const domain = getDomain(r.name);
+    if (domain && domain !== location.origin) {
+      domainRequestCounts[domain] = (domainRequestCounts[domain] || 0) + 1;
+    }
+  });
+
+  const missingHints = Object.entries(domainRequestCounts)
+    .filter(([domain, count]) => count >= 2 && !hintedDomains.has(domain))
+    .sort((a, b) => b[1] - a[1]);
+
+  const topPreconnects = missingHints.filter(([_, count]) => count >= 5).slice(0, 3);
+  const topDnsPrefetch = missingHints.filter(([_, count]) => count >= 2 && count < 5).slice(0, 5);
+  const shownHints = [...topPreconnects, ...topDnsPrefetch];
+
+  if (missingHints.length > 0) {
+    console.log("");
+    console.log("%c⚡ Optimization Opportunities (" + missingHints.length + " found)", "color: #f59e0b; font-weight: bold;");
+    console.log("%cThese domains make multiple requests but have no connection hints:", "color: #6b7280;");
+
+    if (shownHints.length < missingHints.length) {
+      console.log("%c⚠️ Showing top " + shownHints.length + " recommendations", "color: #f59e0b;");
+      console.log("%c💡 Too many hints compete for bandwidth. Focus on the most critical domains.", "color: #6b7280;");
+    }
+
+    console.table(shownHints.map(([domain, count]) => ({
+      Domain: domain,
+      Requests: count,
+      Recommendation: count >= 5 ? "preconnect" : "dns-prefetch",
+      Priority: count >= 10 ? "High" : count >= 5 ? "Medium" : "Low"
+    })));
+
+    console.log("");
+    console.log("%cSuggested code:", "font-weight: bold;");
+    shownHints.forEach(([domain, count]) => {
+      const hint = count >= 5 ? "preconnect" : "dns-prefetch";
+      console.log('%c<link rel="' + hint + '" href="' + domain + '">', "font-family: monospace;");
+    });
+  } else {
+    console.log("%c✅ All frequently-used domains have appropriate hints.", "color: #22c55e;");
+  }
+
+  console.groupEnd();
+
+  // ===== BEST PRACTICES =====
+  console.log("");
+  console.group("%c📝 Best Practices", "color: #3b82f6; font-weight: bold;");
+  console.log("");
+  console.log("%cPreload:", "font-weight: bold;");
+  console.log("   ✅ Use for critical resources on current page");
+  console.log("   ❌ Don't preload resources not used on current page");
+  console.log("   ⚡ Limit to few most critical resources");
+  console.log("");
+  console.log("%cPreconnect:", "font-weight: bold;");
+  console.log("   ✅ Use for critical third-party domains");
+  console.log("   ✅ Best for domains with many requests");
+  console.log("   ❌ Don't use for domains not accessed");
+  console.log("   ⚡ Limit to few most important domains");
+  console.log("");
+  console.log("%cDNS-Prefetch:", "font-weight: bold;");
+  console.log("   ✅ Use for non-critical third-party domains");
+  console.log("   ✅ Good for domains with few requests");
+  console.log("   ℹ️ Less impact than preconnect");
+
+  console.groupEnd();
+
+  // Final summary
+  const totalIssues = preloadLinks.filter(l => !usedResourceUrls.has(normalizeUrl(l.href))).length +
+    preconnectLinks.filter(l => {
+      const domain = getDomain(l.href);
+      return domain && !usedDomains.has(domain);
+    }).length +
+    dnsPrefetchLinks.filter(l => {
+      const domain = getDomain(l.href);
+      return domain && !usedDomains.has(domain);
+    }).length;
+
+  console.log("");
+  if (totalIssues === 0 && missingHints.length === 0) {
+    console.log("%c✅ Excellent! All resource hints are properly configured.", "color: #22c55e; font-weight: bold; font-size: 14px;");
+  } else {
+    console.log("%c⚠️ Found " + totalIssues + " unused hint(s) and " + missingHints.length + " optimization opportunity(ies).", "color: #ef4444; font-weight: bold;");
+    console.log("%cReview recommendations above to improve performance.", "color: #6b7280;");
+  }
+
+  console.groupEnd();
+})();
+```
+
+### Understanding the Results
+
+**Summary Section:**
+
+Shows the overall state of resource hints:
+
+- Total number of each hint type (preload, preconnect, dns-prefetch)
+- Total resources loaded on the page
+- Number of unique domains accessed
+
+**Validation Categories:**
+
+1. **Preload Validation**
+   - Lists preloaded resources and checks if they were actually used
+   - Shows size and load time for used resources
+   - Identifies unused preloads that waste bandwidth
+   - Recognizes conditional preloads with `media` attributes (best practice for responsive images)
+
+2. **Preconnect Validation**
+   - Lists domains with preconnect hints
+   - Counts how many requests were made to each domain
+   - Identifies unused connections that waste CPU/network
+
+3. **DNS-Prefetch Validation**
+   - Lists domains with dns-prefetch hints
+   - Checks if domains were actually accessed
+   - Unused dns-prefetch has minimal impact
+
+4. **Optimization Opportunities**
+   - Identifies domains making multiple requests without hints
+   - Suggests adding preconnect or dns-prefetch based on request count
+   - Limited to top recommendations to avoid bandwidth competition
+
+### When to Use Each Hint
+
+| Hint | Use Case | Request Count |
+| ---- | -------- | ------------- |
+| `preload` | Critical same-origin resources (fonts, hero images) | Any |
+| `preconnect` | Critical third-party domains (CDN) | 5+ requests recommended |
+| `dns-prefetch` | Non-critical third-party (analytics, ads) | 2-4 requests |
+
+### Real-World Examples
+
+**✅ Good: Proper resource hints**
+
+```html
+<!-- Preload critical resources -->
+<link rel="preload" href="/fonts/main.woff2" as="font" crossorigin>
+<link rel="preload" href="/hero-image.webp" as="image">
+
+<!-- Conditional preload for responsive images -->
+<link rel="preload" href="/hero-mobile.webp" as="image" media="(max-width: 768px)">
+<link rel="preload" href="/hero-desktop.webp" as="image" media="(min-width: 769px)">
+
+<!-- Preconnect to critical CDN -->
+<link rel="preconnect" href="https://cdn.example.com">
+
+<!-- DNS-prefetch for analytics -->
+<link rel="dns-prefetch" href="https://analytics.example.com">
+```
+
+**❌ Bad: Unused hints**
+
+```html
+<!-- Preload for resource not used on this page -->
+<link rel="preload" href="/admin-panel.js" as="script">
+
+<!-- Preconnect to domain never accessed -->
+<link rel="preconnect" href="https://unused-cdn.example.com">
+```
+
+### Further Reading
+
+- [Resource Hints](https://www.w3.org/TR/resource-hints/) | W3C Specification
+- [Preload critical assets](https://web.dev/articles/preload-critical-assets) | web.dev
+- [Establish network connections early](https://web.dev/articles/preconnect-and-dns-prefetch) | web.dev
+- [Resource Hints comparison](https://www.debugbear.com/blog/resource-hints-rel-preload-prefetch-preconnect) | DebugBear
+- [Optimize resource loading with the Fetch Priority API](https://web.dev/articles/fetch-priority) | web.dev
