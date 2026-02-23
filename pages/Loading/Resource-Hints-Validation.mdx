@@ -23,6 +23,22 @@ Resource hints tell the browser to perform actions that can improve loading perf
 | **Unused dns-prefetch**       | Minimal waste                  | DNS resolved but domain not used         |
 | **Missing preconnect**        | Opportunity loss               | Domain used but no preconnect hint       |
 
+### Important Notes
+
+**Timing**: Run this snippet after the page has fully loaded and all resources are in the Performance API. For best results:
+- Wait until `window.addEventListener('load', ...)` fires
+- Or wait a few seconds after initial page load
+- Resources like fonts may load asynchronously and won't appear immediately
+
+**Why timing matters**: The snippet compares declared hints against resources captured by `performance.getEntriesByType("resource")`. If resources haven't loaded yet when you run the snippet, they won't be detected as "used" even though they will load later.
+
+**Performance API Limitations**: Some resources may not appear in the Performance API even when they're loaded:
+- **Lazy-loaded images**: Images loaded via Intersection Observer or similar techniques may not be captured
+- **Service Worker cached resources**: Resources served from service worker cache might not be recorded
+- **Cross-origin restrictions**: Some third-party resources without `Timing-Allow-Origin` headers have limited visibility
+
+The snippet includes a check that compares DOM elements (like `<img>` tags) against Performance API data to detect these cases and warn you when domains have resources in the DOM but aren't captured by the Performance API.
+
 ### Snippet
 
 ```js copy
@@ -31,6 +47,14 @@ Resource hints tell the browser to perform actions that can improve loading perf
 
 (() => {
   console.group("%c🔍 Resource Hints Validation", "font-weight: bold; font-size: 14px;");
+
+  // Check if page is fully loaded
+  if (document.readyState !== 'complete') {
+    console.log("");
+    console.log("%c⚠️ Warning: Page is still loading (readyState: " + document.readyState + ")", "color: #f59e0b; font-weight: bold;");
+    console.log("%cFor accurate results, wait until the page is fully loaded and run again.", "color: #6b7280;");
+    console.log("");
+  }
 
   // Get all resource hints from DOM
   const preloadLinks = Array.from(document.querySelectorAll('link[rel="preload"]'));
@@ -43,7 +67,9 @@ Resource hints tell the browser to perform actions that can improve loading perf
   // Helper: Extract domain from URL
   const getDomain = (url) => {
     try {
-      return new URL(url, location.origin).origin;
+      // Handle relative URLs by resolving against current location
+      const absoluteUrl = url.startsWith('http') ? url : new URL(url, location.href).href;
+      return new URL(absoluteUrl).origin;
     } catch {
       return null;
     }
@@ -53,7 +79,7 @@ Resource hints tell the browser to perform actions that can improve loading perf
   const normalizeUrl = (url) => {
     try {
       const parsed = new URL(url, location.origin);
-      return parsed.origin + parsed.pathname;
+      return parsed.origin + parsed.pathname + parsed.search;
     } catch {
       return url;
     }
@@ -70,6 +96,9 @@ Resource hints tell the browser to perform actions that can improve loading perf
   const usedResourceUrls = new Set(resources.map(r => normalizeUrl(r.name)));
   const usedDomains = new Set(resources.map(r => getDomain(r.name)).filter(Boolean));
   usedDomains.add(location.origin);
+
+  // Get all image elements once for reuse across validations
+  const allImgElements = document.querySelectorAll('img[src]');
 
   console.log("");
   console.log("%cSummary:", "font-weight: bold;");
@@ -172,6 +201,17 @@ Resource hints tell the browser to perform actions that can improve loading perf
   console.log("");
   console.group("%c2. Preconnect Validation", "font-weight: bold; color: #3b82f6;");
 
+  // Get lazy-loaded image domains for preconnect validation
+  const lazyLoadedDomains = new Set();
+  allImgElements.forEach(img => {
+    try {
+      const domain = getDomain(img.src);
+      if (domain && domain !== location.origin && !usedDomains.has(domain)) {
+        lazyLoadedDomains.add(domain);
+      }
+    } catch {}
+  });
+
   if (preconnectLinks.length === 0) {
     console.log("%cℹ️ No preconnect hints found.", "color: #6b7280;");
   } else {
@@ -179,13 +219,15 @@ Resource hints tell the browser to perform actions that can improve loading perf
       const href = link.href;
       const domain = getDomain(href);
       const wasUsed = domain ? usedDomains.has(domain) : false;
+      const isLazyLoaded = domain ? lazyLoadedDomains.has(domain) : false;
       const requestCount = resources.filter(r => getDomain(r.name) === domain).length;
 
-      return { domain, href, wasUsed, requestCount, link };
+      return { domain, href, wasUsed, isLazyLoaded, requestCount, link };
     });
 
     const usedPreconnects = preconnectResults.filter(r => r.wasUsed);
-    const unusedPreconnects = preconnectResults.filter(r => !r.wasUsed);
+    const lazyLoadedPreconnects = preconnectResults.filter(r => !r.wasUsed && r.isLazyLoaded);
+    const unusedPreconnects = preconnectResults.filter(r => !r.wasUsed && !r.isLazyLoaded);
 
     if (unusedPreconnects.length > 0) {
       console.log("");
@@ -194,6 +236,17 @@ Resource hints tell the browser to perform actions that can improve loading perf
         Domain: r.domain || r.href,
         Requests: 0,
         Status: "Not Used ❌"
+      })));
+    }
+
+    if (lazyLoadedPreconnects.length > 0) {
+      console.log("");
+      console.log("%c✅ Lazy-Loaded Preconnects (" + lazyLoadedPreconnects.length + ")", "color: #22c55e; font-weight: bold;");
+      console.log("%cThese preconnects are for lazy-loaded resources (correct usage!):", "color: #6b7280;");
+      console.table(lazyLoadedPreconnects.map(r => ({
+        Domain: r.domain || r.href,
+        "Images in DOM": document.querySelectorAll('img[src*="' + (r.domain || r.href).replace(/https?:\/\//, '') + '"]').length,
+        Status: "Lazy-Loaded ✅"
       })));
     }
 
@@ -207,7 +260,8 @@ Resource hints tell the browser to perform actions that can improve loading perf
       })));
     }
 
-    const usageRate = Math.round((usedPreconnects.length / preconnectLinks.length) * 100);
+    const effectivePreconnects = usedPreconnects.length + lazyLoadedPreconnects.length;
+    const usageRate = Math.round((effectivePreconnects / preconnectLinks.length) * 100);
     console.log("");
     console.log("%cUsage Rate: " + usageRate + "%", "font-weight: bold;");
 
@@ -231,13 +285,15 @@ Resource hints tell the browser to perform actions that can improve loading perf
       const href = link.href;
       const domain = getDomain(href);
       const wasUsed = domain ? usedDomains.has(domain) : false;
+      const isLazyLoaded = domain ? lazyLoadedDomains.has(domain) : false;
       const requestCount = resources.filter(r => getDomain(r.name) === domain).length;
 
-      return { domain, href, wasUsed, requestCount, link };
+      return { domain, href, wasUsed, isLazyLoaded, requestCount, link };
     });
 
     const usedDnsPrefetch = dnsPrefetchResults.filter(r => r.wasUsed);
-    const unusedDnsPrefetch = dnsPrefetchResults.filter(r => !r.wasUsed);
+    const lazyLoadedDnsPrefetch = dnsPrefetchResults.filter(r => !r.wasUsed && r.isLazyLoaded);
+    const unusedDnsPrefetch = dnsPrefetchResults.filter(r => !r.wasUsed && !r.isLazyLoaded);
 
     if (unusedDnsPrefetch.length > 0) {
       console.log("");
@@ -250,6 +306,17 @@ Resource hints tell the browser to perform actions that can improve loading perf
       console.log("%cNote: Unused dns-prefetch has minimal impact.", "color: #6b7280;");
     }
 
+    if (lazyLoadedDnsPrefetch.length > 0) {
+      console.log("");
+      console.log("%c✅ Lazy-Loaded DNS-Prefetch (" + lazyLoadedDnsPrefetch.length + ")", "color: #22c55e; font-weight: bold;");
+      console.log("%cThese dns-prefetch hints are for lazy-loaded resources (correct usage!):", "color: #6b7280;");
+      console.table(lazyLoadedDnsPrefetch.map(r => ({
+        Domain: r.domain || r.href,
+        "Images in DOM": document.querySelectorAll('img[src*="' + (r.domain || r.href).replace(/https?:\/\//, '') + '"]').length,
+        Status: "Lazy-Loaded ✅"
+      })));
+    }
+
     if (usedDnsPrefetch.length > 0) {
       console.log("");
       console.log("%c✅ Used DNS-Prefetch (" + usedDnsPrefetch.length + ")", "color: #22c55e; font-weight: bold;");
@@ -260,9 +327,93 @@ Resource hints tell the browser to perform actions that can improve loading perf
       })));
     }
 
-    const usageRate = Math.round((usedDnsPrefetch.length / dnsPrefetchLinks.length) * 100);
+    const effectiveDnsPrefetch = usedDnsPrefetch.length + lazyLoadedDnsPrefetch.length;
+    const usageRate = Math.round((effectiveDnsPrefetch / dnsPrefetchLinks.length) * 100);
     console.log("");
     console.log("%cUsage Rate: " + usageRate + "%", "font-weight: bold;");
+  }
+
+  console.groupEnd();
+
+  // ===== REDUNDANT HINTS CHECK =====
+  console.log("");
+  console.group("%c⚠️ Redundant Hints", "font-weight: bold; color: #f59e0b;");
+
+  const preconnectDomains = new Set(preconnectLinks.map(l => getDomain(l.href)).filter(Boolean));
+  const dnsPrefetchDomains = new Set(dnsPrefetchLinks.map(l => getDomain(l.href)).filter(Boolean));
+  const redundantDomains = Array.from(preconnectDomains).filter(d => dnsPrefetchDomains.has(d));
+
+  if (redundantDomains.length > 0) {
+    console.log("");
+    console.log("%c⚠️ Redundant Configuration Detected", "color: #f59e0b; font-weight: bold;");
+    console.log("%cThese domains have BOTH preconnect AND dns-prefetch hints:", "color: #6b7280;");
+    console.log("");
+    redundantDomains.forEach(domain => {
+      console.log("   • " + domain);
+    });
+    console.log("");
+    console.log("%c💡 Recommendation: Remove dns-prefetch for these domains.", "color: #3b82f6; font-weight: bold;");
+    console.log("%cpreconnect already includes DNS resolution + TCP + TLS handshake.", "color: #6b7280;");
+    console.log("%cdns-prefetch only does DNS resolution, so it's redundant when preconnect exists.", "color: #6b7280;");
+  } else {
+    console.log("%c✅ No redundant hints found.", "color: #22c55e;");
+  }
+
+  console.groupEnd();
+
+  // ===== PERFORMANCE API LIMITATIONS CHECK =====
+  console.log("");
+  console.group("%c⚠️ Performance API Limitations", "font-weight: bold; color: #f59e0b;");
+
+  // Check for images in DOM that might not be in Performance API
+  const imgDomains = new Set();
+
+  allImgElements.forEach(img => {
+    try {
+      const domain = getDomain(img.src);
+      if (domain && domain !== location.origin) {
+        imgDomains.add(domain);
+      }
+    } catch {}
+  });
+
+  const missingFromPerf = Array.from(imgDomains).filter(domain => !usedDomains.has(domain));
+
+  if (missingFromPerf.length > 0) {
+    console.log("");
+    console.log("%c⚠️ Lazy-Loaded Resources Detected", "color: #f59e0b; font-weight: bold;");
+    console.log("%cThese domains have resources in the DOM but not in Performance API.", "color: #6b7280;");
+    console.log("%cThis typically happens with lazy-loaded images or service worker cached resources.", "color: #6b7280;");
+    console.log("");
+    console.log("%cDomains with lazy-loaded resources:", "font-weight: bold;");
+
+    const domainsWithCounts = missingFromPerf
+      .map(domain => {
+        const imgCount = Array.from(allImgElements).filter(img => {
+          try {
+            return getDomain(img.src) === domain;
+          } catch {
+            return false;
+          }
+        }).length;
+        return { domain, imgCount };
+      })
+      .filter(item => item.domain && item.domain !== 'null')
+      .sort((a, b) => b.imgCount - a.imgCount);
+
+    domainsWithCounts.forEach(item => {
+      console.log("   • " + item.domain + " (" + item.imgCount + " images in DOM)");
+    });
+
+    console.log("");
+    console.log("%c✅ IMPORTANT: Keep preconnect/dns-prefetch hints for these domains!", "color: #22c55e; font-weight: bold;");
+    console.log("%cLazy-loaded resources benefit MORE from connection hints because the connection", "color: #6b7280;");
+    console.log("%cis established early, making images load instantly when the user scrolls to them.", "color: #6b7280;");
+    console.log("");
+    console.log("%cIf these domains have preconnect hints marked as 'unused' above, IGNORE that warning.", "color: #f59e0b; font-weight: bold;");
+    console.log("%cThe hints are working correctly - the Performance API just can't see lazy-loaded resources.", "color: #6b7280;");
+  } else {
+    console.log("%c✅ All DOM image domains are captured in Performance API.", "color: #22c55e;");
   }
 
   console.groupEnd();
@@ -343,15 +494,25 @@ Resource hints tell the browser to perform actions that can improve loading perf
 
   console.groupEnd();
 
-  // Final summary
+  // Final summary - reuse lazy-loaded domains set from earlier
+  const lazyLoadedDomainsForSummary = new Set();
+  allImgElements.forEach(img => {
+    try {
+      const domain = getDomain(img.src);
+      if (domain && domain !== location.origin && !usedDomains.has(domain)) {
+        lazyLoadedDomainsForSummary.add(domain);
+      }
+    } catch {}
+  });
+
   const totalIssues = preloadLinks.filter(l => !usedResourceUrls.has(normalizeUrl(l.href))).length +
     preconnectLinks.filter(l => {
       const domain = getDomain(l.href);
-      return domain && !usedDomains.has(domain);
+      return domain && !usedDomains.has(domain) && !lazyLoadedDomainsForSummary.has(domain);
     }).length +
     dnsPrefetchLinks.filter(l => {
       const domain = getDomain(l.href);
-      return domain && !usedDomains.has(domain);
+      return domain && !usedDomains.has(domain) && !lazyLoadedDomainsForSummary.has(domain);
     }).length;
 
   console.log("");
@@ -363,6 +524,8 @@ Resource hints tell the browser to perform actions that can improve loading perf
   }
 
   console.groupEnd();
+
+  return "✅ Resource Hints Validation complete";
 })();
 ```
 
