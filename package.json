@@ -8,6 +8,7 @@
     "build": "next build",
     "postbuild": "next-sitemap",
     "prebuild": "rm -rf .next",
+    "generate-skills": "node scripts/generate-skills.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
