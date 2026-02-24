@@ -38,7 +38,7 @@ The correct pattern is to reference bitmap assets as separate files:
 // SVG Embedded Bitmap Analysis
 // https://webperf-snippets.nucliweb.net
 
-(async () => {
+void (async () => {
   function formatSize(bytes) {
     if (!bytes || bytes === 0) return "—";
     if (bytes < 1024) return `${bytes} B`;
@@ -122,7 +122,11 @@ The correct pattern is to reference bitmap assets as separate files:
   );
 
   // ── Inline <svg> elements (DOM scan) ────────────────────────────────
-  const inlineSvgTotal = document.querySelectorAll("svg").length;
+  const inlineSvgs = Array.from(document.querySelectorAll("svg"));
+  const inlineSvgTotal = inlineSvgs.length;
+  const svgsWithUse = inlineSvgs.filter((svg) => svg.querySelector("use")).length;
+  const standaloneInlineSvgs = inlineSvgTotal - svgsWithUse;
+
   const inlineResults = Array.from(document.querySelectorAll("svg"))
     .map((svg, i) => {
       const html = svg.outerHTML;
@@ -150,7 +154,11 @@ The correct pattern is to reference bitmap assets as separate files:
   console.log("");
   console.log("%cSummary", "font-weight: bold;");
   console.log(`   External SVG files    : ${svgEntries.length}`);
-  console.log(`   Inline <svg> elements : ${inlineSvgTotal}`);
+  const inlineLabel =
+    svgsWithUse > 0
+      ? `${inlineSvgTotal}  (${svgsWithUse} using <use>, ${standaloneInlineSvgs} standalone)`
+      : `${inlineSvgTotal}`;
+  console.log(`   Inline <svg> elements : ${inlineLabel}`);
   console.log(
     `   SVGs with bitmaps     : ${withBitmaps.length}${withBitmaps.length > 0 ? "  ⚠️" : "  ✅"}`,
   );
@@ -211,6 +219,28 @@ The correct pattern is to reference bitmap assets as separate files:
     );
   }
 
+  if (standaloneInlineSvgs >= 5) {
+    console.log("");
+    console.group("%c💡 SVG Sprite Opportunity", "color: #3b82f6; font-weight: bold;");
+    console.log("");
+    console.log(`   ${standaloneInlineSvgs} standalone inline <svg> elements detected.`);
+    console.log("   Each one duplicates markup in the HTML and cannot be cached independently.");
+    console.log("   Consider an SVG sprite: define each icon once as a <symbol> and");
+    console.log('   reference it anywhere with <use href="#icon-id">.');
+    console.log("");
+    console.log('%c  <!-- Sprite (once, hidden) -->', "font-family: monospace; color: #6b7280;");
+    console.log(
+      '%c  <svg hidden>\n    <symbol id="icon-arrow" viewBox="0 0 24 24">…</symbol>\n  </svg>',
+      "font-family: monospace;",
+    );
+    console.log('%c  <!-- Usage (anywhere, N times) -->', "font-family: monospace; color: #6b7280;");
+    console.log(
+      '%c  <svg aria-hidden="true"><use href="#icon-arrow"/></svg>',
+      "font-family: monospace;",
+    );
+    console.groupEnd();
+  }
+
   console.groupEnd();
 })();
 ```
@@ -222,7 +252,7 @@ The correct pattern is to reference bitmap assets as separate files:
 | Field                   | Description                                                                                               |
 | ----------------------- | --------------------------------------------------------------------------------------------------------- |
 | External SVG files      | Count of SVG resources captured by the Performance API (loaded via `<img>`, `<object>`, CSS, fetch, etc.) |
-| Inline `<svg>` elements | Count of `<svg>` elements present in the DOM                                                              |
+| Inline `<svg>` elements | Count of `<svg>` elements present in the DOM. When some already use the sprite pattern the breakdown shows `N using <use>, M standalone` |
 | SVGs with bitmaps       | SVGs (external or inline) that contain at least one embedded bitmap                                       |
 
 #### External SVG Resources Table
@@ -253,11 +283,36 @@ The correct pattern is to reference bitmap assets as separate files:
 | 🖼️   | `inline`   | Base64-encoded bitmap embedded directly as a `data:image/…;base64,` URI. The reported size is an estimate derived from the base64 string length                            |
 | 🔗   | `external` | Bitmap file referenced via `href` or `xlink:href` on an `<image>` element. The bitmap is a separate HTTP request, but it is still discovered only after the SVG has loaded |
 
+#### SVG Sprite Opportunity
+
+When 5 or more standalone inline `<svg>` elements are detected (i.e. not already using `<use>`), the snippet shows a tip suggesting the SVG sprite pattern.
+
+Inline SVGs repeated across a page inflate HTML size and cannot be cached independently. The sprite pattern defines each icon once as a `<symbol>` in a hidden `<svg>` block and references it anywhere with `<use href="#id">`:
+
+```html
+<!-- Define once (hidden, ideally in a separate .svg file loaded via fetch or server-side include) -->
+<svg hidden>
+  <symbol id="icon-arrow" viewBox="0 0 24 24">…</symbol>
+  <symbol id="icon-close" viewBox="0 0 24 24">…</symbol>
+</svg>
+
+<!-- Use anywhere, any number of times -->
+<svg aria-hidden="true"><use href="#icon-arrow"/></svg>
+<svg aria-hidden="true"><use href="#icon-close"/></svg>
+```
+
+The summary line for inline `<svg>` elements shows a breakdown when the sprite pattern is already partially in use:
+
+```
+Inline <svg> elements : 211  (5 using <use>, 206 standalone)
+```
+
 > **CORS note**: The snippet fetches each SVG with `cache: "force-cache"` to read headers and content without triggering new network requests. Cross-origin SVGs without CORS headers cannot be read — in that case the snippet falls back to Performance API timing data for size and compression, and bitmap detection is skipped for that resource.
 
 ### Further Reading
 
 - [SVG `<image>` element](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/image) | MDN
+- [SVG `<use>` element](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use) | MDN
 - [Data URLs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs) | MDN
 - [SVGOMG](https://jakearchibald.github.io/svgomg/) | jakearchibald.github.io
 - [SVGO](https://github.com/svg/svgo) | GitHub
