@@ -1,9 +1,36 @@
+const path = require('path')
 const withNextra = require('nextra')({
   theme: 'nextra-theme-docs',
   themeConfig: './theme.config.jsx'
 })
 
 module.exports = withNextra({
+  webpack(config) {
+    const snippetsDir = path.join(__dirname, 'snippets')
+
+    // Exclude snippets from pre-loaders (React Fast Refresh, etc.)
+    for (const rule of config.module.rules) {
+      if (rule.enforce === 'pre') {
+        rule.exclude = [].concat(rule.exclude || [], snippetsDir)
+      }
+    }
+
+    // Inject into oneOf so our rule takes precedence over the SWC loader
+    const rawRule = {
+      test: /\.js$/,
+      include: snippetsDir,
+      resourceQuery: /raw/,
+      type: 'asset/source',
+    }
+    const oneOfRule = config.module.rules.find(r => Array.isArray(r.oneOf))
+    if (oneOfRule) {
+      oneOfRule.oneOf.unshift(rawRule)
+    } else {
+      config.module.rules.unshift(rawRule)
+    }
+
+    return config
+  },
   async redirects() {
     return [
       {
