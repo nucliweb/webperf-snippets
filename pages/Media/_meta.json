@@ -4,5 +4,8 @@
   },
   "Video-Element-Audit": {
     "title": "Video Element Audit"
+  },
+  "SVG-Embedded-Bitmap-Analysis": {
+    "title": "SVG Embedded Bitmap Analysis"
   }
 }
