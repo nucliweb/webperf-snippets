@@ -1,0 +1,22 @@
+{
+  "skills": [
+    {
+      "path": "./skills/webperf"
+    },
+    {
+      "path": "./skills/webperf-core-web-vitals"
+    },
+    {
+      "path": "./skills/webperf-interaction"
+    },
+    {
+      "path": "./skills/webperf-loading"
+    },
+    {
+      "path": "./skills/webperf-media"
+    },
+    {
+      "path": "./skills/webperf-resources"
+    }
+  ]
+}
