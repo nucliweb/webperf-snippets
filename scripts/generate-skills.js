@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Generates SKILL.md files from /snippets/ JS files + /pages/ MDX documentation.
- * Output: /skills/webperf-{category}/SKILL.md + scripts/*.js
+ * Generates skill.md files from /snippets/ JS files + /pages/ MDX documentation.
+ * Output: /skills/webperf-{category}/skill.md + scripts/*.js
  *
  * Run: node scripts/generate-skills.js
  */
@@ -140,12 +140,6 @@ function extractThresholds(content) {
   return ''
 }
 
-// Extract further reading links from MDX content
-function extractFurtherReading(content) {
-  const match = content.match(/#{1,3} Further Reading\n\n((?:- .+\n?)+)/m)
-  return match ? match[1].trim() : ''
-}
-
 // Strip internal relative links (e.g. /CoreWebVitals/LCP-Sub-Parts) from markdown link text
 function cleanLinks(text) {
   return text
@@ -159,7 +153,7 @@ function buildSnippetMeta(category, snippetFile) {
   const found = findMdxForSnippet(category, snippetFile)
 
   if (!found) {
-    return { basename, title: basename.replace(/-/g, ' '), description: '', thresholds: '', furtherReading: '' }
+    return { basename, title: basename.replace(/-/g, ' '), description: '', thresholds: '' }
   }
 
   const { content, varName } = found
@@ -187,7 +181,6 @@ function buildSnippetMeta(category, snippetFile) {
     title,
     description,
     thresholds,
-    furtherReading: cleanLinks(extractFurtherReading(content)),
   }
 }
 
@@ -267,13 +260,6 @@ function generateCategorySkill(category, catConfig) {
       lines.push(meta.thresholds)
       lines.push('')
     }
-
-    if (meta.furtherReading) {
-      lines.push('**Further Reading:**')
-      lines.push('')
-      lines.push(meta.furtherReading)
-      lines.push('')
-    }
   }
 
   const skillContent = lines.join('\n')
@@ -338,7 +324,7 @@ function generateMetaSkill() {
   lines.push('## Workflow')
   lines.push('')
   lines.push('1. Identify the relevant skill based on the user\'s question (use Quick Reference above)')
-  lines.push('2. Load the skill\'s SKILL.md to see available snippets and thresholds')
+  lines.push('2. Load the skill\'s skill.md to see available snippets and thresholds')
   lines.push('3. Execute with Chrome DevTools MCP:')
   lines.push('   - `mcp__chrome-devtools__navigate_page` → navigate to target URL')
   lines.push('   - `mcp__chrome-devtools__evaluate_script` → run the snippet')
