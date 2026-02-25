@@ -1,0 +1,390 @@
+// LoAF Helpers - Advanced Debugging
+// https://webperf-snippets.nucliweb.net
+
+(() => {
+  "use strict";
+
+  // Check browser support
+  if (
+    !("PerformanceObserver" in window) ||
+    !PerformanceObserver.supportedEntryTypes.includes("long-animation-frame")
+  ) {
+    console.warn("%c⚠️ Long Animation Frames API not supported", "font-weight: bold;");
+    console.warn("   Requires Chrome 123+");
+    return;
+  }
+
+  // Storage for captured frames
+  const capturedFrames = [];
+
+  // Severity helpers
+  const getSeverity = (duration) => {
+    if (duration > 200) return { level: "critical", icon: "🔴" };
+    if (duration > 150) return { level: "high", icon: "🟠" };
+    if (duration > 100) return { level: "medium", icon: "🟡" };
+    return { level: "low", icon: "🟢" };
+  };
+
+  // Start observing
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      const frameData = {
+        startTime: entry.startTime,
+        duration: entry.duration,
+        renderStart: entry.renderStart,
+        styleAndLayoutStart: entry.styleAndLayoutStart,
+        firstUIEventTimestamp: entry.firstUIEventTimestamp,
+        blockingDuration: entry.blockingDuration,
+        scripts: entry.scripts.map((s) => ({
+          sourceURL: s.sourceURL || "",
+          sourceFunctionName: s.sourceFunctionName || "(anonymous)",
+          invoker: s.invoker || "",
+          invokerType: s.invokerType || "",
+          duration: s.duration,
+          executionStart: s.executionStart,
+          forcedStyleAndLayoutDuration: s.forcedStyleAndLayoutDuration || 0,
+        })),
+      };
+      capturedFrames.push(frameData);
+    }
+  });
+
+  try {
+    observer.observe({ type: "long-animation-frame", buffered: true });
+  } catch (e) {
+    console.error("Failed to start LoAF observer:", e);
+    return;
+  }
+
+  // Helper functions
+  window.loafHelpers = {
+    /**
+     * Show summary of all captured frames
+     */
+    summary() {
+      if (capturedFrames.length === 0) {
+        console.log("%c📊 No frames captured yet", "font-weight: bold;");
+        console.log("   Interact with the page to generate long frames.");
+        return;
+      }
+
+      const totalTime = capturedFrames.reduce((sum, f) => sum + f.duration, 0);
+      const totalBlocking = capturedFrames.reduce((sum, f) => sum + f.blockingDuration, 0);
+      const avgDuration = totalTime / capturedFrames.length;
+      const maxDuration = Math.max(...capturedFrames.map((f) => f.duration));
+
+      const severity = {
+        critical: capturedFrames.filter((f) => f.duration > 200).length,
+        high: capturedFrames.filter((f) => f.duration > 150 && f.duration <= 200).length,
+        medium: capturedFrames.filter((f) => f.duration > 100 && f.duration <= 150).length,
+        low: capturedFrames.filter((f) => f.duration <= 100).length,
+      };
+
+      console.group("%c📊 LoAF Summary", "font-weight: bold; font-size: 14px;");
+
+      console.log("");
+      console.log("%cStatistics:", "font-weight: bold;");
+      console.log(`   Total frames: ${capturedFrames.length}`);
+      console.log(`   Total duration: ${totalTime.toFixed(0)}ms`);
+      console.log(`   Total blocking: ${totalBlocking.toFixed(0)}ms`);
+      console.log(`   Average duration: ${avgDuration.toFixed(0)}ms`);
+      console.log(`   Max duration: ${maxDuration.toFixed(0)}ms`);
+
+      console.log("");
+      console.log("%cBy severity:", "font-weight: bold;");
+      console.log(`   🔴 Critical (>200ms): ${severity.critical}`);
+      console.log(`   🟠 High (150-200ms): ${severity.high}`);
+      console.log(`   🟡 Medium (100-150ms): ${severity.medium}`);
+      console.log(`   🟢 Low (<100ms): ${severity.low}`);
+
+      console.groupEnd();
+    },
+
+    /**
+     * Show top N slowest scripts
+     */
+    topScripts(n = 10) {
+      if (capturedFrames.length === 0) {
+        console.log("%c📋 No frames captured yet", "font-weight: bold;");
+        return;
+      }
+
+      const allScripts = capturedFrames.flatMap((f) => f.scripts);
+      if (allScripts.length === 0) {
+        console.log("%c📋 No scripts found in captured frames", "font-weight: bold;");
+        return;
+      }
+
+      // Aggregate by source
+      const scriptStats = new Map();
+      allScripts.forEach((s) => {
+        const key = `${s.sourceURL}|${s.sourceFunctionName}`;
+        if (!scriptStats.has(key)) {
+          scriptStats.set(key, {
+            sourceURL: s.sourceURL,
+            functionName: s.sourceFunctionName,
+            totalDuration: 0,
+            count: 0,
+            maxDuration: 0,
+            totalForcedLayout: 0,
+          });
+        }
+        const stats = scriptStats.get(key);
+        stats.totalDuration += s.duration;
+        stats.count++;
+        stats.maxDuration = Math.max(stats.maxDuration, s.duration);
+        stats.totalForcedLayout += s.forcedStyleAndLayoutDuration;
+      });
+
+      const sorted = Array.from(scriptStats.values())
+        .sort((a, b) => b.totalDuration - a.totalDuration)
+        .slice(0, n);
+
+      console.group(`%c📋 Top ${Math.min(n, sorted.length)} Scripts by Total Duration`, "font-weight: bold; font-size: 14px;");
+
+      const tableData = sorted.map((s) => {
+        let path = s.sourceURL;
+        try {
+          path = new URL(s.sourceURL || location.href).pathname;
+          if (path.length > 40) path = "..." + path.slice(-37);
+        } catch {}
+
+        return {
+          Script: path || "(inline)",
+          Function: s.functionName.length > 25 ? s.functionName.slice(0, 22) + "..." : s.functionName,
+          Count: s.count,
+          "Total": `${s.totalDuration.toFixed(0)}ms`,
+          "Max": `${s.maxDuration.toFixed(0)}ms`,
+          "Forced S&L": s.totalForcedLayout > 0 ? `${s.totalForcedLayout.toFixed(0)}ms` : "-",
+        };
+      });
+
+      console.table(tableData);
+      console.groupEnd();
+
+      return sorted;
+    },
+
+    /**
+     * Filter frames by criteria
+     */
+    filter(options = {}) {
+      if (capturedFrames.length === 0) {
+        console.log("%c🔍 No frames captured yet", "font-weight: bold;");
+        return [];
+      }
+
+      let filtered = capturedFrames;
+
+      if (options.minDuration) {
+        filtered = filtered.filter((f) => f.duration >= options.minDuration);
+      }
+      if (options.maxDuration) {
+        filtered = filtered.filter((f) => f.duration <= options.maxDuration);
+      }
+
+      console.group(`%c🔍 Filtered: ${filtered.length} of ${capturedFrames.length} frames`, "font-weight: bold;");
+
+      if (filtered.length > 0) {
+        const tableData = filtered.map((f) => {
+          const sev = getSeverity(f.duration);
+          return {
+            "": sev.icon,
+            Start: `${f.startTime.toFixed(0)}ms`,
+            Duration: `${f.duration.toFixed(0)}ms`,
+            Blocking: `${f.blockingDuration.toFixed(0)}ms`,
+            Scripts: f.scripts.length,
+          };
+        });
+        console.table(tableData);
+      }
+
+      console.groupEnd();
+      return filtered;
+    },
+
+    /**
+     * Find frames containing scripts that match a URL pattern
+     */
+    findByURL(search) {
+      if (capturedFrames.length === 0) {
+        console.log("%c🔎 No frames captured yet", "font-weight: bold;");
+        return [];
+      }
+
+      const matches = capturedFrames.filter((f) =>
+        f.scripts.some((s) => s.sourceURL.toLowerCase().includes(search.toLowerCase()))
+      );
+
+      console.group(`%c🔎 Found ${matches.length} frames matching "${search}"`, "font-weight: bold;");
+
+      if (matches.length > 0) {
+        const tableData = matches.map((f) => {
+          const matchingScript = f.scripts.find((s) =>
+            s.sourceURL.toLowerCase().includes(search.toLowerCase())
+          );
+          let scriptPath = matchingScript.sourceURL;
+          try {
+            scriptPath = new URL(scriptPath).pathname;
+            if (scriptPath.length > 35) scriptPath = "..." + scriptPath.slice(-32);
+          } catch {}
+
+          return {
+            "Frame Start": `${f.startTime.toFixed(0)}ms`,
+            "Frame Duration": `${f.duration.toFixed(0)}ms`,
+            "Script": scriptPath,
+            "Script Duration": `${matchingScript.duration.toFixed(0)}ms`,
+          };
+        });
+        console.table(tableData);
+      }
+
+      console.groupEnd();
+      return matches;
+    },
+
+    /**
+     * Calculate percentiles for RUM reporting
+     */
+    percentiles(pcts = [50, 75, 95, 99]) {
+      if (capturedFrames.length === 0) {
+        console.log("%c📊 No frames captured yet", "font-weight: bold;");
+        return {};
+      }
+
+      const durations = capturedFrames.map((f) => f.duration).sort((a, b) => a - b);
+      const result = {};
+
+      pcts.forEach((p) => {
+        const index = Math.ceil((p / 100) * durations.length) - 1;
+        const safeIndex = Math.max(0, Math.min(index, durations.length - 1));
+        result[`p${p}`] = durations[safeIndex];
+      });
+
+      console.group("%c📊 Frame Duration Percentiles", "font-weight: bold; font-size: 14px;");
+      console.log(`   Frames analyzed: ${capturedFrames.length}`);
+      console.log("");
+
+      Object.entries(result).forEach(([key, value]) => {
+        const sev = getSeverity(value);
+        console.log(`   ${sev.icon} ${key.toUpperCase()}: ${value.toFixed(0)}ms`);
+      });
+
+      console.log("");
+      console.log("%c💡 Tip:", "font-weight: bold;");
+      console.log("   Use P75 for general performance, P95/P99 for tail latency");
+      console.groupEnd();
+
+      return result;
+    },
+
+    /**
+     * Export as JSON
+     */
+    exportJSON() {
+      if (capturedFrames.length === 0) {
+        console.log("%c📁 No frames to export", "font-weight: bold;");
+        return;
+      }
+
+      const data = JSON.stringify(capturedFrames, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `loaf-data-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      console.log(`%c✅ Exported ${capturedFrames.length} frames to JSON`, "color: #22c55e; font-weight: bold;");
+    },
+
+    /**
+     * Export as CSV
+     */
+    exportCSV() {
+      if (capturedFrames.length === 0) {
+        console.log("%c📁 No frames to export", "font-weight: bold;");
+        return;
+      }
+
+      const rows = [
+        ["Frame Start", "Duration", "Blocking", "Script URL", "Function", "Script Duration", "Forced S&L"],
+      ];
+
+      capturedFrames.forEach((f) => {
+        if (f.scripts.length === 0) {
+          rows.push([
+            f.startTime.toFixed(2),
+            f.duration.toFixed(2),
+            f.blockingDuration.toFixed(2),
+            "", "", "", "",
+          ]);
+        } else {
+          f.scripts.forEach((s) => {
+            rows.push([
+              f.startTime.toFixed(2),
+              f.duration.toFixed(2),
+              f.blockingDuration.toFixed(2),
+              s.sourceURL,
+              s.sourceFunctionName,
+              s.duration.toFixed(2),
+              s.forcedStyleAndLayoutDuration.toFixed(2),
+            ]);
+          });
+        }
+      });
+
+      const csv = rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `loaf-data-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      console.log(`%c✅ Exported ${capturedFrames.length} frames to CSV`, "color: #22c55e; font-weight: bold;");
+    },
+
+    /**
+     * Get raw data for custom analysis
+     */
+    getRawData() {
+      return capturedFrames;
+    },
+
+    /**
+     * Clear all captured data
+     */
+    clear() {
+      capturedFrames.length = 0;
+      console.log("%c✅ Captured data cleared", "color: #22c55e; font-weight: bold;");
+    },
+
+    /**
+     * Show help
+     */
+    help() {
+      console.group("%c📚 LoAF Helpers - Commands", "font-weight: bold; font-size: 14px;");
+      console.log("");
+      console.log("%csummary()%c - Overview of all captured frames", "font-weight: bold; color: #3b82f6;", "");
+      console.log("%ctopScripts(n)%c - Top N slowest scripts (default: 10)", "font-weight: bold; color: #3b82f6;", "");
+      console.log("%cfilter({ minDuration, maxDuration })%c - Filter frames by duration", "font-weight: bold; color: #3b82f6;", "");
+      console.log("%cfindByURL(search)%c - Find frames by script URL", "font-weight: bold; color: #3b82f6;", "");
+      console.log("%cpercentiles([50,75,95,99])%c - Calculate percentiles for RUM", "font-weight: bold; color: #3b82f6;", "");
+      console.log("%cexportJSON()%c - Download data as JSON", "font-weight: bold; color: #3b82f6;", "");
+      console.log("%cexportCSV()%c - Download data as CSV", "font-weight: bold; color: #3b82f6;", "");
+      console.log("%cgetRawData()%c - Get raw frame array", "font-weight: bold; color: #3b82f6;", "");
+      console.log("%cclear()%c - Clear captured data", "font-weight: bold; color: #3b82f6;", "");
+      console.groupEnd();
+    },
+  };
+
+  // Initial message
+  console.log("%c🔧 LoAF Helpers Loaded", "font-weight: bold; font-size: 14px;");
+  console.log("   Observing long animation frames (>50ms)...");
+  console.log("");
+  console.log("   Quick start: %cloafHelpers.summary()%c", "font-family: monospace; background: #f3f4f6; padding: 2px 4px;", "");
+  console.log("   All commands: %cloafHelpers.help()%c", "font-family: monospace; background: #f3f4f6; padding: 2px 4px;", "");
+})();
