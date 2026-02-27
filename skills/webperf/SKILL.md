@@ -11,11 +11,11 @@ A collection of 47 JavaScript snippets for measuring and debugging web performan
 
 | Skill | Snippets | Use when |
 |-------|----------|----------|
-| webperf-core-web-vitals | 7 | Measure and debug Core Web Vitals (LCP, CLS, INP) |
-| webperf-loading | 28 | Analyze loading performance (TTFB, FCP, render-blocking resources, scripts, fonts, resource hints, service workers) |
-| webperf-interaction | 8 | Measure interaction and animation performance (Long Animation Frames, Long Tasks, scroll jank, layout shifts) |
-| webperf-media | 3 | Audit images, videos, and SVGs for performance issues |
-| webperf-resources | 1 | Analyze network and resource performance (bandwidth, connection quality, effective connection type) |
+| webperf-core-web-vitals | 7 | Intelligent Core Web Vitals analysis with automated workflows and decision trees |
+| webperf-loading | 28 | Intelligent loading performance analysis with automated workflows for TTFB investigation (DNS/connection/server breakdown), render-blocking detection, script performance deep dive (first vs third-party attribution), font optimization, and resource hints validation |
+| webperf-interaction | 8 | Intelligent interaction performance analysis with automated workflows for INP debugging, scroll jank investigation, and main thread blocking |
+| webperf-media | 3 | Intelligent media optimization with automated workflows for images, videos, and SVGs |
+| webperf-resources | 1 | Intelligent network quality analysis with adaptive loading strategies |
 
 ## Quick Reference
 

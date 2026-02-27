@@ -13,37 +13,38 @@ const ROOT = path.join(__dirname, '..')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
 const PAGES_DIR = path.join(ROOT, 'pages')
 const SKILLS_DIR = path.join(ROOT, 'skills')
+const CLAUDE_SKILLS_DIR = path.join(ROOT, '.claude', 'skills')
 
 const CATEGORIES = {
   CoreWebVitals: {
     skill: 'webperf-core-web-vitals',
     name: 'Core Web Vitals',
     description:
-      'Measure and debug Core Web Vitals (LCP, CLS, INP). Use when the user asks about LCP, CLS, INP, page loading performance, or wants to analyze Core Web Vitals on a URL or current page. Compatible with Chrome DevTools MCP.',
+      'Intelligent Core Web Vitals analysis with automated workflows and decision trees. Measures LCP, CLS, INP with guided debugging that automatically determines follow-up analysis based on results. Includes workflows for LCP deep dive (5 phases), CLS investigation (loading vs interaction), INP debugging (latency breakdown + attribution), and cross-skill integration with loading, interaction, and media skills. Use when the user asks about Core Web Vitals, LCP optimization, layout shifts, or interaction responsiveness. Compatible with Chrome DevTools MCP.',
   },
   Loading: {
     skill: 'webperf-loading',
     name: 'Loading Performance',
     description:
-      'Analyze loading performance (TTFB, FCP, render-blocking resources, scripts, fonts, resource hints, service workers). Use when the user asks about loading time, TTFB, FCP, render-blocking, font loading, script analysis, or prefetching. Compatible with Chrome DevTools MCP.',
+      'Intelligent loading performance analysis with automated workflows for TTFB investigation (DNS/connection/server breakdown), render-blocking detection, script performance deep dive (first vs third-party attribution), font optimization, and resource hints validation. Includes decision trees that automatically analyze TTFB sub-parts when slow, detect script loading anti-patterns (async/defer/preload conflicts), identify render-blocking resources, and validate resource hints usage. Features workflows for complete loading audit (6 phases), backend performance investigation, and priority optimization. Cross-skill integration with Core Web Vitals (LCP resource loading), Interaction (script execution blocking), and Media (lazy loading strategy). Use when the user asks about TTFB, FCP, render-blocking, slow loading, font performance, script optimization, or resource hints. Compatible with Chrome DevTools MCP.',
   },
   Interaction: {
     skill: 'webperf-interaction',
     name: 'Interaction & Animation',
     description:
-      'Measure interaction and animation performance (Long Animation Frames, Long Tasks, scroll jank, layout shifts). Use when the user asks about interaction latency, jank, animation frames, long tasks, or scroll performance. Compatible with Chrome DevTools MCP.',
+      'Intelligent interaction performance analysis with automated workflows for INP debugging, scroll jank investigation, and main thread blocking. Includes decision trees that automatically run script attribution when long frames detected, break down input latency phases, and correlate layout shifts with interactions. Features workflows for complete interaction audit, third-party script impact analysis, and animation performance debugging. Cross-skill integration with Core Web Vitals (INP/CLS correlation) and Loading (script execution analysis). Use when the user asks about slow interactions, janky scrolling, unresponsive pages, or INP optimization. Compatible with Chrome DevTools MCP.',
   },
   Media: {
     skill: 'webperf-media',
     name: 'Media Performance',
     description:
-      'Audit images, videos, and SVGs for performance issues. Use when the user asks about image optimization, video performance, lazy loading, image formats, or SVG analysis. Compatible with Chrome DevTools MCP.',
+      'Intelligent media optimization with automated workflows for images, videos, and SVGs. Includes decision trees that detect LCP images (triggers format/lazy-loading/priority analysis), identify layout shift risks (missing dimensions), and flag lazy loading issues (above-fold lazy or below-fold eager). Features workflows for complete media audit, LCP image investigation, video performance (poster optimization), and SVG embedded bitmap detection. Cross-skill integration with Core Web Vitals (LCP/CLS impact) and Loading (priority hints, resource preloading). Provides performance budgets and format recommendations based on content type. Use when the user asks about image optimization, LCP is an image/video, layout shifts from media, or media loading strategy. Compatible with Chrome DevTools MCP.',
   },
   Resources: {
     skill: 'webperf-resources',
     name: 'Resources & Network',
     description:
-      'Analyze network and resource performance (bandwidth, connection quality, effective connection type). Use when the user asks about network performance, bandwidth, connection quality, or adaptive loading. Compatible with Chrome DevTools MCP.',
+      'Intelligent network quality analysis with adaptive loading strategies. Detects connection type (2g/3g/4g), bandwidth, RTT, and save-data mode, then automatically triggers appropriate optimization workflows. Includes decision trees that recommend image compression for slow connections, critical CSS inlining for high RTT, and save-data optimizations (disable autoplay, reduce quality). Features connection-aware performance budgets (500KB for 2g, 1.5MB for 3g, 3MB for 4g+) and adaptive loading implementation guides. Cross-skill integration with Loading (TTFB impact), Media (responsive images), and Core Web Vitals (connection impact on LCP/INP). Use when the user asks about slow connections, mobile optimization, save-data support, or adaptive loading strategies. Compatible with Chrome DevTools MCP.',
   },
 }
 
@@ -382,7 +383,31 @@ function main() {
 
   generateMetaSkill()
 
-  console.log('\nDone! Skills generated in /skills/')
+  // Copy skills to .claude/skills/ for Claude Code
+  console.log('\nCopying skills to .claude/skills/...')
+
+  function copyRecursive(src, dest) {
+    if (!fs.existsSync(src)) return
+
+    fs.mkdirSync(dest, { recursive: true })
+    const entries = fs.readdirSync(src, { withFileTypes: true })
+
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name)
+      const destPath = path.join(dest, entry.name)
+
+      if (entry.isDirectory()) {
+        copyRecursive(srcPath, destPath)
+      } else {
+        fs.copyFileSync(srcPath, destPath)
+      }
+    }
+  }
+
+  copyRecursive(SKILLS_DIR, CLAUDE_SKILLS_DIR)
+  console.log('  copied to .claude/skills/')
+
+  console.log('\nDone! Skills generated in /skills/ and .claude/skills/')
 }
 
 main()
