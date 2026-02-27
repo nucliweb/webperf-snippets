@@ -240,6 +240,17 @@ function generateCategorySkill(category, catConfig) {
   lines.push('```')
   lines.push('')
 
+  // Inject WORKFLOWS.md if exists
+  const workflowsPath = path.join(SNIPPETS_DIR, category, 'WORKFLOWS.md')
+  if (fs.existsSync(workflowsPath)) {
+    const workflowsContent = fs.readFileSync(workflowsPath, 'utf-8').trim()
+    lines.push(workflowsContent)
+    lines.push('')
+    lines.push('---')
+    lines.push('')
+    console.log(`  injected WORKFLOWS.md`)
+  }
+
   for (const meta of metas) {
     lines.push(`---`)
     lines.push('')

@@ -5,14 +5,14 @@ description: Web performance measurement and debugging toolkit. Use when the use
 
 # WebPerf Snippets Toolkit
 
-A collection of 46 JavaScript snippets for measuring and debugging web performance in Chrome DevTools. Each snippet runs in the browser console and outputs structured, color-coded results.
+A collection of 47 JavaScript snippets for measuring and debugging web performance in Chrome DevTools. Each snippet runs in the browser console and outputs structured, color-coded results.
 
 ## Skills by Category
 
 | Skill | Snippets | Use when |
 |-------|----------|----------|
 | webperf-core-web-vitals | 7 | Measure and debug Core Web Vitals (LCP, CLS, INP) |
-| webperf-loading | 27 | Analyze loading performance (TTFB, FCP, render-blocking resources, scripts, fonts, resource hints, service workers) |
+| webperf-loading | 28 | Analyze loading performance (TTFB, FCP, render-blocking resources, scripts, fonts, resource hints, service workers) |
 | webperf-interaction | 8 | Measure interaction and animation performance (Long Animation Frames, Long Tasks, scroll jank, layout shifts) |
 | webperf-media | 3 | Audit images, videos, and SVGs for performance issues |
 | webperf-resources | 1 | Analyze network and resource performance (bandwidth, connection quality, effective connection type) |

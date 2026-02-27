@@ -73,14 +73,44 @@ This installs skills to `~/.claude/skills/` for use across any project.
 
 ### Available Skills
 
-| Skill | Description |
-|-------|-------------|
-| `webperf` | Main entry point for all web performance analysis |
-| `webperf-core-web-vitals` | LCP, CLS, INP measurements |
-| `webperf-loading` | TTFB, FCP, script/font analysis |
-| `webperf-interaction` | Long tasks, animation frames, jank |
-| `webperf-media` | Image/video audits |
-| `webperf-resources` | Network and bandwidth analysis |
+| Skill | Snippets | Description |
+|-------|----------|-------------|
+| `webperf` | 47 | Main entry point for all web performance analysis |
+| `webperf-core-web-vitals` | 7 | LCP, CLS, INP measurements with detailed breakdowns |
+| `webperf-loading` | 28 | TTFB, FCP, script/font analysis, resource hints, service workers |
+| `webperf-interaction` | 8 | Long tasks, animation frames, scroll jank, INP debugging |
+| `webperf-media` | 3 | Image/video audits, lazy loading validation, SVG analysis |
+| `webperf-resources` | 1 | Network bandwidth, connection quality, adaptive loading |
+
+### Intelligent Workflows & Decision Trees
+
+Skills include built-in workflows and decision trees that enable autonomous performance analysis:
+
+**Workflows** - Predefined sequences for common scenarios:
+- Complete loading audit (6 snippets)
+- Server performance investigation (4 snippets)
+- Font loading optimization (3 snippets)
+- Script performance deep dive (6 snippets)
+- And more...
+
+**Decision Trees** - Conditional logic based on results:
+- If TTFB > 600ms → automatically run TTFB-Sub-Parts.js
+- If FCP > 1.8s → run render-blocking resource analysis
+- If many third-party scripts detected → analyze timing and impact
+- And 15+ more intelligent triggers
+
+Example interaction:
+
+```
+User: "Analyze loading performance"
+
+Agent:
+1. Runs TTFB.js → detects 750ms (slow)
+2. Follows decision tree → runs TTFB-Sub-Parts.js
+3. Identifies DNS + server time issues
+4. Runs Service-Worker-Analysis.js
+5. Provides consolidated report with specific fixes
+```
 
 ### Usage
 
@@ -90,6 +120,8 @@ Skills activate automatically when matched:
 Audit this page for Core Web Vitals
 Analyze loading performance
 Check for image optimization issues
+Debug slow LCP
+Why is my TTFB so high?
 ```
 
 Skills are compatible with [Chrome DevTools MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/chrome-devtools) for automated browser-based performance auditing.

@@ -6,13 +6,15 @@ A collection of [Agent Skills](https://agentskills.io/) for measuring and debugg
 
 ## Why WebPerf Skills?
 
-These skills transform 40+ battle-tested JavaScript snippets into agent capabilities for any skills-compatible AI coding assistant:
+These skills transform 47 battle-tested JavaScript snippets into agent capabilities for any skills-compatible AI coding assistant:
 
 - **Browser Console Integration**: Run performance measurements directly in Chrome DevTools
 - **Real-time Analysis**: Measure actual user experience on live pages
 - **Core Web Vitals**: Track LCP, CLS, INP with detailed breakdowns
 - **Resource Optimization**: Analyze scripts, fonts, images, and network performance
 - **Interaction Debugging**: Detect long tasks, animation frames, and scroll jank
+- **Intelligent Workflows**: Predefined sequences for common performance scenarios
+- **Decision Trees**: Autonomous follow-up analysis based on measurement results
 
 ## Available Skills
 
@@ -129,11 +131,11 @@ Measure and debug the three Core Web Vitals that impact Google Search ranking.
 
 ### webperf-loading
 
-Comprehensive loading performance analysis and optimization.
+Comprehensive loading performance analysis and optimization with built-in workflows and decision trees.
 
 **Trigger phrases:** "TTFB", "FCP", "render-blocking", "script loading", "font loading", "resource hints"
 
-**Snippets (27):**
+**Snippets (28):**
 
 - TTFB (Time to First Byte) with sub-parts
 - FCP (First Contentful Paint)
@@ -146,6 +148,27 @@ Comprehensive loading performance analysis and optimization.
 - Inline script/CSS analysis
 - Back/Forward Cache compatibility
 - Priority hints audit
+- Client-side redirect detection
+
+**Intelligent Features:**
+
+**8 Common Workflows:**
+- Complete loading performance audit (6 snippets)
+- Server/backend performance investigation (4 snippets)
+- Font loading optimization (3 snippets)
+- Script performance deep dive (6 snippets)
+- Resource hints & priority optimization (5 snippets)
+- CSS optimization workflow (4 snippets)
+- Image loading audit (4 snippets)
+- SSR/framework performance (4 snippets)
+
+**16 Decision Trees:**
+- Automatic follow-up snippets based on thresholds
+- Example: If TTFB > 600ms → runs TTFB-Sub-Parts.js
+- Example: If FCP > 1.8s → runs render-blocking analysis + critical CSS detection
+- Example: If many third-party scripts → analyzes timing and execution impact
+
+This enables autonomous, multi-snippet performance audits that progressively diagnose issues.
 
 ### webperf-interaction
 
@@ -207,8 +230,14 @@ npm run generate-skills
 
 This creates:
 
-- `skills/{category}/SKILL.md` - Skill documentation
+- `skills/{category}/SKILL.md` - Skill documentation with injected workflows
 - `skills/{category}/scripts/*.js` - Snippet code
+
+The generator:
+1. Reads all `.js` files from `snippets/{Category}/`
+2. Extracts metadata from `pages/{Category}/*.mdx` documentation
+3. Injects workflows from `snippets/{Category}/WORKFLOWS.md` (if exists)
+4. Generates complete `SKILL.md` with thresholds and execution instructions
 
 ### Adding New Snippets
 
@@ -216,6 +245,36 @@ This creates:
 2. Document in `pages/{Category}/*.mdx`
 3. Run `npm run generate-skills`
 4. Run `npm run install-skills` to update local installation
+
+### Adding Workflows & Decision Trees
+
+To add intelligent workflows to a skill category:
+
+1. Create `snippets/{Category}/WORKFLOWS.md`
+2. Structure with `## Common Workflows` and `## Decision Tree` sections
+3. Run `npm run generate-skills` to inject into generated skills
+
+Example structure:
+
+```markdown
+## Common Workflows
+
+### Workflow Name
+
+When the user asks about [scenario]:
+
+1. **Snippet1.js** - Brief description
+2. **Snippet2.js** - Brief description
+
+## Decision Tree
+
+### After Snippet1.js
+
+- **If condition** → Run **Snippet2.js**
+- **If other condition** → Run **Snippet3.js**
+```
+
+See `snippets/Loading/WORKFLOWS.md` for a complete example with 8 workflows and 16 decision trees.
 
 ## Compatible Agents
 
