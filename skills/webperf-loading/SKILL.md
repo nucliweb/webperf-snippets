@@ -13,6 +13,7 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 |---------|-------------|------|
 | Back/Forward Cache (bfcache) | Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for instant back/forward | scripts/Back-Forward-Cache.js |
 | CSS Media Queries Analysis | Analyze all @media rules in CSS stylesheets to identify classes and properties targeting viewports b | scripts/CSS-Media-Queries-Analysis.js |
+| Client-Side Redirect Detection | Detects client-side redirects that add unnecessary latency to page load and impact Core Web Vitals,  | scripts/Client-Side-Redirect-Detection.js |
 | Content Visibility | Detect and analyze all elements using content-visibility: auto on a page | scripts/Content-Visibility.js |
 | Critical CSS Detection | Analyzes the CSS loading strategy of a page — identifying render-blocking stylesheets, measuring the | scripts/Critical-CSS-Detection.js |
 | Event Processing Time | Analyzes the time spent in each phase of page navigation, from initial redirect to the load event | scripts/Event-Processing-Time.js |
@@ -63,6 +64,22 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
 Analyze all @media rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files, with byte size estimates for potential mobile savings.
 
 **Script:** `scripts/CSS-Media-Queries-Analysis.js`
+
+---
+
+## Client-Side Redirect Detection
+
+Detects client-side redirects that add unnecessary latency to page load and impact Core Web Vitals, particularly LCP. Client-side redirects implemented via JavaScript or SPA routers can add seconds to the critical rendering path, yet they're often invisible to standard monitoring tools.
+
+**Script:** `scripts/Client-Side-Redirect-Detection.js`
+
+**Thresholds:**
+
+| Impact Level | Overhead | Rating | Action |
+|--------------|----------|--------|--------|
+| **CRITICAL** | &gt; 3000ms | 🔴 | Fix immediately - major LCP issue |
+| **MODERATE** | 1000-3000ms | 🟡 | High priority - noticeable delay |
+| **LOW** | &lt; 1000ms | 🟢 | Monitor - may be acceptable for SPAs |
 
 ---
 
