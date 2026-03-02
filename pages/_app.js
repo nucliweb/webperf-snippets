@@ -1,9 +1,11 @@
 import Script from "next/script";
 import "../styles/globals.css";
+import { WebMCP } from "../components/WebMCP";
 
 function WebPerfSnippets({ Component, pageProps }) {
   return (
     <>
+      <WebMCP />
       <Component {...pageProps} />
       <Script
         src="https://cdn.debugbear.com/BK73p0yToVVP.js"
