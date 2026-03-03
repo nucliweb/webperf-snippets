@@ -28,6 +28,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "eslint": "^10.0.2",
     "vercel": "^32.4.1"
   },
   "overrides": {
