@@ -4,7 +4,7 @@ export function WebMCP() {
   useEffect(() => {
     if (!navigator.modelContext) return
 
-    import('../lib/snippets-registry').then(({ snippets }) => {
+    import(/* webpackChunkName: "snippets-registry" */ '../lib/snippets-registry').then(({ snippets }) => {
     navigator.modelContext.registerTool({
       name: 'list_snippets',
       description:
