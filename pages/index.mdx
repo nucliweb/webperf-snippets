@@ -1,4 +1,4 @@
-import { CldVideoPlayer } from "next-cloudinary";
+import { LazyVideoPlayer } from "../components/LazyVideoPlayer";
 
 # WebPerf Snippets
 
@@ -76,10 +76,11 @@ Save frequently used snippets for quick access:
 ### Video tutorial
 
 <div style={{ marginTop: "20px", display: "block" }}>
-  <CldVideoPlayer
+  <LazyVideoPlayer
     width="1920"
     height="1080"
     src="webperf-snippets/devtools-new-snippet"
+    poster="https://res.cloudinary.com/nucliweb/video/upload/so_auto,f_jpg,q_auto/webperf-snippets/devtools-new-snippet.jpg"
   />
 </div>
 
