@@ -2,6 +2,9 @@
   "TTFB": {
     "title": "TTFB"
   },
+  "Client-Side-Redirect-Detection": {
+    "title": "Client-Side Redirect Detection"
+  },
   "JS-Execution-Time-Breakdown": {
     "title": "JS Execution Time Breakdown"
   },
