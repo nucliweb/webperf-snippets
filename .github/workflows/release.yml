@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate skills
+        run: node scripts/generate-skills.js
+
+      - name: Package skills
+        run: |
+          cd skills
+          for dir in */; do
+            skill_name="${dir%/}"
+            zip -r "../${skill_name}.zip" "$dir"
+          done
+          cd ..
+          zip -r "webperf-skills-all.zip" skills/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            webperf-skills-all.zip
+            webperf.zip
+            webperf-core-web-vitals.zip
+            webperf-loading.zip
+            webperf-interaction.zip
+            webperf-media.zip
+            webperf-resources.zip
+
+      # Uncomment when ready to notify downstream repos instantly
+      # - name: Notify downstream repositories
+      #   uses: peter-evans/repository-dispatch@v3
+      #   with:
+      #     token: ${{ secrets.DISPATCH_TOKEN }}
+      #     repository: nucliweb/chrome-devtools-mcp
+      #     event-type: webperf-snippets-release
+      #     client-payload: '{"version": "${{ github.ref_name }}"}'

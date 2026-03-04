@@ -11,6 +11,7 @@
     "generate-skills": "node scripts/generate-skills.js",
     "install-skills": "node scripts/install-skills.js",
     "install-global": "node scripts/install-global.js",
+    "install-from-release": "node scripts/install-from-release.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
