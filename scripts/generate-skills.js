@@ -61,7 +61,7 @@ async function buildScript(src, dst, relPath) {
   let code
   try {
     const result = await minify(source, {
-      compress: { drop_console: true },
+      compress: { drop_console: true, pure_getters: true, passes: 2 },
       mangle: true,
       format: { comments: false },
     })
