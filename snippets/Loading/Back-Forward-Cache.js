@@ -432,7 +432,19 @@
     testEligibility();
     displayResults();
     checkNotRestoredReasons();
-    return results;
+    return {
+      script: "Back-Forward-Cache",
+      status: "ok",
+      details: {
+        eligibility: results.eligibility,
+        wasRestored: results.wasRestored,
+        supported: results.supported,
+      },
+      issues: results.blockingReasons.map(i => ({
+        severity: i.severity === 'high' ? 'error' : i.severity === 'medium' ? 'warning' : 'info',
+        message: i.reason,
+      })),
+    };
   };
 
   console.log('%c🚀 bfcache Analysis Running...', 'font-weight: bold; font-size: 14px;');
@@ -442,4 +454,20 @@
     'font-family: monospace; background: #f3f4f6; padding: 2px 4px;',
     ''
   );
+
+  return {
+    script: "Back-Forward-Cache",
+    status: "ok",
+    details: {
+      eligibility: results.eligibility,
+      wasRestored: results.wasRestored,
+      supported: results.supported,
+    },
+    issues: results.blockingReasons.map(i => ({
+      severity: i.severity === 'high' ? 'error' : i.severity === 'medium' ? 'warning' : 'info',
+      message: i.reason,
+    })),
+    message: "bfcache analysis running. Call checkBfcache() to re-run analysis.",
+    getDataFn: "checkBfcache",
+  };
 })();

@@ -193,4 +193,25 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "First-And-Third-Party-Script-Info",
+    status: "ok",
+    count: totalScripts,
+    details: {
+      firstPartyCount: firstParty.length,
+      thirdPartyCount: thirdParty.length,
+      thirdPartyPercent: Number(thirdPartyPct),
+      firstPartySizeBytes: firstMetrics.totalSize,
+      thirdPartySizeBytes: thirdMetrics.totalSize,
+      thirdPartyBlockingCount: thirdMetrics.blocking,
+      thirdPartyHostCount: thirdMetrics.hosts.length,
+    },
+    items: scripts.map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, transferBytes: s.transferSize, durationMs: Math.round(s.duration), renderBlocking: s.renderBlocking })),
+    issues: [
+      ...(thirdMetrics.blocking > 0 ? [{ severity: "error", message: `${thirdMetrics.blocking} render-blocking third-party script(s)` }] : []),
+      ...(thirdMetrics.hosts.length > 3 ? [{ severity: "warning", message: `${thirdMetrics.hosts.length} different third-party hosts require separate DNS lookups` }] : []),
+      ...(thirdMetrics.totalSize > 100 * 1024 ? [{ severity: "warning", message: `Third-party scripts total ${Math.round(thirdMetrics.totalSize / 1024)} KB` }] : []),
+    ],
+  };
 })();

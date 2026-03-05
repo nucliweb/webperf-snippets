@@ -253,13 +253,19 @@
     console.groupEnd();
 
     return {
-      total: allLoAFs.length,
-      withBlocking: blocking.length,
-      totalBlockingTime: totalBlocking,
-      worstBlocking,
-      topScripts: Array.from(scriptStats.values())
-        .sort((a, b) => b.totalDuration - a.totalDuration)
-        .slice(0, 5),
+      script: "Long-Animation-Frames",
+      status: "ok",
+      count: allLoAFs.length,
+      details: {
+        totalLoAFs: allLoAFs.length,
+        withBlockingTime: blocking.length,
+        totalBlockingTimeMs: Math.round(totalBlocking),
+        worstBlockingMs: Math.round(worstBlocking),
+        topScripts: Array.from(scriptStats.values())
+          .sort((a, b) => b.totalDuration - a.totalDuration)
+          .slice(0, 5)
+          .map((s) => ({ invoker: s.invoker, source: s.source, totalDurationMs: Math.round(s.totalDuration), count: s.count })),
+      },
     };
   };
 
@@ -270,4 +276,23 @@
     "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
     ""
   );
+
+  // Synchronous return for agent (buffered entries)
+  const loafBuffered = performance.getEntriesByType("long-animation-frame");
+  const blockingLoafs = loafBuffered.filter((e) => e.blockingDuration > 0);
+  const totalBlockingSync = blockingLoafs.reduce((sum, e) => sum + e.blockingDuration, 0);
+  const worstBlockingSync = loafBuffered.length > 0 ? Math.max(...loafBuffered.map((e) => e.blockingDuration)) : 0;
+  return {
+    script: "Long-Animation-Frames",
+    status: "tracking",
+    count: loafBuffered.length,
+    details: {
+      totalLoAFs: loafBuffered.length,
+      withBlockingTime: blockingLoafs.length,
+      totalBlockingTimeMs: Math.round(totalBlockingSync),
+      worstBlockingMs: Math.round(worstBlockingSync),
+    },
+    message: "Tracking long animation frames. Call getLoAFSummary() for full script attribution.",
+    getDataFn: "getLoAFSummary",
+  };
 })();

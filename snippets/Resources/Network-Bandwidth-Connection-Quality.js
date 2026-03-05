@@ -13,7 +13,7 @@
       "color: #f59e0b; font-weight: bold;"
     );
     console.log("Available in Chrome and Android browsers.");
-    return;
+    return { script: "Network-Bandwidth-Connection-Quality", status: "unsupported", error: "Network Information API not supported" };
   }
 
   const effectiveTypeRating = {
@@ -88,4 +88,16 @@
   );
 
   console.groupEnd();
+
+  return {
+    script: "Network-Bandwidth-Connection-Quality",
+    status: "ok",
+    details: {
+      effectiveType,
+      downlink: connection.downlink,
+      rtt: connection.rtt,
+      saveData: connection.saveData,
+      type: connection.type || "unknown",
+    },
+  };
 })();

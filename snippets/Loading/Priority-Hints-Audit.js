@@ -163,7 +163,7 @@
       "color: #3b82f6;"
     );
     console.groupEnd();
-    return;
+    return { script: "Priority-Hints-Audit", status: "ok", count: 0, items: [], issues: [] };
   }
 
   // LCP candidate status
@@ -314,4 +314,23 @@
   );
 
   console.groupEnd();
+
+  return {
+    script: "Priority-Hints-Audit",
+    status: "ok",
+    count: allElements.length,
+    details: {
+      highCount,
+      lowCount,
+      autoCount,
+      preloadsWithPriorityCount: preloadsWithPriority.length,
+      lcpCandidateHasFetchpriority: lcpCandidate ? lcpCandidate.getAttribute("fetchpriority") === "high" : null,
+    },
+    items: allElements.map(el => ({
+      tag: el.tagName.toLowerCase(),
+      fetchpriority: el.getAttribute("fetchpriority"),
+      resource: (el.src || el.href || el.getAttribute("href") || "").split("/").pop()?.split("?")[0] || "",
+    })),
+    issues: issues.map(i => ({ severity: i.severity, message: i.message })),
+  };
 })();

@@ -196,4 +196,72 @@
 
   console.log("%c📊 LCP Sub-Parts Analysis Active", "font-weight: bold; font-size: 14px;");
   console.log("   Waiting for LCP...");
+
+  // Synchronous return for agent (buffered entries)
+  const lcpBuffered = performance.getEntriesByType("largest-contentful-paint");
+  const lcpEntry = lcpBuffered.at(-1);
+  if (!lcpEntry) {
+    return { script: "LCP-Sub-Parts", status: "error", error: "No LCP entries yet" };
+  }
+  const navEntrySync = getNavigationEntry();
+  if (!navEntrySync) {
+    return { script: "LCP-Sub-Parts", status: "error", error: "No navigation entry" };
+  }
+  const lcpResEntrySync = performance.getEntriesByType("resource")
+    .find((e) => e.name === lcpEntry.url);
+  const activationStartSync = navEntrySync.activationStart || 0;
+  const ttfbSync = Math.max(0, navEntrySync.responseStart - activationStartSync);
+  const lcpRequestStartSync = Math.max(ttfbSync,
+    lcpResEntrySync ? (lcpResEntrySync.requestStart || lcpResEntrySync.startTime) - activationStartSync : 0
+  );
+  const lcpResponseEndSync = Math.max(lcpRequestStartSync,
+    lcpResEntrySync ? lcpResEntrySync.responseEnd - activationStartSync : 0
+  );
+  const lcpRenderTimeSync = Math.max(lcpResponseEndSync, lcpEntry.startTime - activationStartSync);
+  const totalSync = Math.round(lcpRenderTimeSync);
+  const ratingSync = valueToRating(totalSync);
+  const ttfbVal = Math.round(ttfbSync);
+  const loadDelayVal = Math.round(lcpRequestStartSync - ttfbSync);
+  const loadTimeVal = Math.round(lcpResponseEndSync - lcpRequestStartSync);
+  const renderDelayVal = Math.round(lcpRenderTimeSync - lcpResponseEndSync);
+  const subPartsForRank = [
+    { key: "ttfb", value: ttfbVal },
+    { key: "resourceLoadDelay", value: loadDelayVal },
+    { key: "resourceLoadTime", value: loadTimeVal },
+    { key: "elementRenderDelay", value: renderDelayVal },
+  ];
+  const slowestPhaseSync = subPartsForRank.reduce((a, b) => a.value > b.value ? a : b).key;
+  let lcpSelectorSync = null;
+  if (lcpEntry.element) {
+    const el = lcpEntry.element;
+    lcpSelectorSync = el.tagName.toLowerCase();
+    if (el.id) lcpSelectorSync = `#${el.id}`;
+    else if (el.className && typeof el.className === "string") {
+      const classes = el.className.trim().split(/\s+/).slice(0, 2).join(".");
+      if (classes) lcpSelectorSync = `${el.tagName.toLowerCase()}.${classes}`;
+    }
+  }
+  const shortUrlSync = lcpEntry.url
+    ? (lcpEntry.url.split("/").pop()?.split("?")[0] || lcpEntry.url)
+    : null;
+  return {
+    script: "LCP-Sub-Parts",
+    status: "ok",
+    metric: "LCP",
+    value: totalSync,
+    unit: "ms",
+    rating: ratingSync,
+    thresholds: { good: 2500, needsImprovement: 4000 },
+    details: {
+      element: lcpSelectorSync,
+      url: shortUrlSync,
+      subParts: {
+        ttfb: { value: ttfbVal, percent: Math.round((ttfbVal / totalSync) * 100), overTarget: ttfbVal > 800 },
+        resourceLoadDelay: { value: loadDelayVal, percent: Math.round((loadDelayVal / totalSync) * 100), overTarget: (loadDelayVal / totalSync) * 100 > 10 },
+        resourceLoadTime: { value: loadTimeVal, percent: Math.round((loadTimeVal / totalSync) * 100), overTarget: (loadTimeVal / totalSync) * 100 > 40 },
+        elementRenderDelay: { value: renderDelayVal, percent: Math.round((renderDelayVal / totalSync) * 100), overTarget: (renderDelayVal / totalSync) * 100 > 10 },
+      },
+      slowestPhase: slowestPhaseSync,
+    },
+  };
 })();

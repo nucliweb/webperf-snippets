@@ -8,7 +8,7 @@
     console.warn(
       "⚠️ No LCP entries found. Run this snippet before interacting with the page, or reload and run it immediately.",
     );
-    return;
+    return { script: "LCP-Video-Candidate", status: "error", error: "No LCP entries found" };
   }
 
   const lcp = lcpEntries[lcpEntries.length - 1];
@@ -54,7 +54,17 @@
     if (lcp.url) console.log(`   URL      : ${lcp.url}`);
     if (element) console.log("   Element  :", element);
     console.groupEnd();
-    return;
+    return {
+      script: "LCP-Video-Candidate",
+      status: "ok",
+      metric: "LCP",
+      value: Math.round(lcp.startTime),
+      unit: "ms",
+      rating,
+      thresholds: { good: 2500, needsImprovement: 4000 },
+      details: { isVideo: false },
+      issues: [],
+    };
   }
 
   // --- LCP IS a video ---
@@ -180,4 +190,24 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  return {
+    script: "LCP-Video-Candidate",
+    status: "ok",
+    metric: "LCP",
+    value: Math.round(lcp.startTime),
+    unit: "ms",
+    rating,
+    thresholds: { good: 2500, needsImprovement: 4000 },
+    details: {
+      isVideo: true,
+      posterUrl: lcpUrl || posterUrl || null,
+      posterFormat,
+      posterPreloaded: !!posterPreload,
+      fetchpriorityOnPreload: posterPreload?.getAttribute("fetchpriority") ?? null,
+      isCrossOrigin,
+      videoAttributes: { autoplay, muted, playsinline, preload },
+    },
+    issues: issues.map((i) => ({ severity: i.s === "error" ? "error" : i.s === "warning" ? "warning" : "info", message: i.msg })),
+  };
 })();

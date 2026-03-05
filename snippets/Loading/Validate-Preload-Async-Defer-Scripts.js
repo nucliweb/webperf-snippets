@@ -16,7 +16,7 @@
       "%cℹ️ This is fine - only preload scripts if they're critical and blocking.",
       "color: #3b82f6;",
     );
-    return;
+    return { script: "Validate-Preload-Async-Defer-Scripts", status: "ok", count: 0, items: [], issues: [] };
   }
 
   // Get performance entries for scripts
@@ -381,4 +381,18 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "Validate-Preload-Async-Defer-Scripts",
+    status: "ok",
+    count: preloadedScripts.length,
+    details: {
+      validCount: validPreloads.length,
+      issueCount: issues.length,
+    },
+    items: preloadedScripts.map(p => ({
+      url: p.href.split("/").pop()?.split("?")[0] || p.href,
+    })),
+    issues: issues.map(i => ({ severity: i.severity, message: i.message })),
+  };
 })();

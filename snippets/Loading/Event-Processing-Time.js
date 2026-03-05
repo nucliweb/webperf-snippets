@@ -138,4 +138,42 @@
 
     console.groupEnd();
   }).observe({ type: "navigation", buffered: true });
+
+  // Synchronous return for agent
+  const [navSync] = performance.getEntriesByType("navigation");
+  if (!navSync) return { script: "Event-Processing-Time", status: "error", error: "No navigation entry" };
+  const totalTimeSync = navSync.loadEventEnd - navSync.startTime;
+  const networkTimeSync = (navSync.responseEnd || 0) - navSync.startTime;
+  const ratingSync = totalTimeSync <= 2500 ? "good" : totalTimeSync <= 4000 ? "needs-improvement" : "poor";
+  const phasesSync = [
+    { key: "redirect", duration: Math.max(0, navSync.redirectEnd - navSync.redirectStart) },
+    { key: "dnsLookup", duration: Math.max(0, navSync.domainLookupEnd - navSync.domainLookupStart) },
+    { key: "tcpConnection", duration: Math.max(0, (navSync.secureConnectionStart > 0 ? navSync.secureConnectionStart : navSync.connectEnd) - navSync.connectStart) },
+    { key: "sslTls", duration: navSync.secureConnectionStart > 0 ? Math.max(0, navSync.connectEnd - navSync.secureConnectionStart) : 0 },
+    { key: "request", duration: Math.max(0, navSync.responseStart - navSync.requestStart) },
+    { key: "response", duration: Math.max(0, navSync.responseEnd - navSync.responseStart) },
+    { key: "domProcessing", duration: Math.max(0, navSync.domContentLoadedEventStart - navSync.responseEnd) },
+    { key: "domContentLoaded", duration: Math.max(0, navSync.domContentLoadedEventEnd - navSync.domContentLoadedEventStart) },
+    { key: "resourceLoading", duration: Math.max(0, navSync.loadEventStart - navSync.domContentLoadedEventEnd) },
+    { key: "loadEvent", duration: Math.max(0, navSync.loadEventEnd - navSync.loadEventStart) },
+  ];
+  const nonZeroPhases = phasesSync.filter((p) => p.duration > 0);
+  const slowestPhase = nonZeroPhases.length > 0 ? nonZeroPhases.reduce((a, b) => a.duration > b.duration ? a : b) : phasesSync[0];
+  return {
+    script: "Event-Processing-Time",
+    status: "ok",
+    value: Math.round(totalTimeSync),
+    unit: "ms",
+    rating: ratingSync,
+    thresholds: { good: 2500, needsImprovement: 4000 },
+    details: {
+      networkTimeMs: Math.round(networkTimeSync),
+      processingTimeMs: Math.round(totalTimeSync - networkTimeSync),
+      ttfbMs: Math.round(navSync.responseStart),
+      domContentLoadedMs: Math.round(navSync.domContentLoadedEventEnd),
+      loadCompleteMs: Math.round(navSync.loadEventEnd),
+      phases: Object.fromEntries(phasesSync.map((p) => [p.key, { value: Math.round(p.duration), unit: "ms" }])),
+      slowestPhase: slowestPhase.key,
+    },
+  };
 })();

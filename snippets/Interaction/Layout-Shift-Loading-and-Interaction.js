@@ -205,14 +205,25 @@
 
     console.groupEnd();
 
+    const topElementsData = Array.from(elementShifts.entries())
+      .sort((a, b) => b[1].totalShift - a[1].totalShift)
+      .slice(0, 5)
+      .map(([selector, data]) => ({ selector, shiftCount: data.count, totalImpact: Math.round(data.totalShift * 10000) / 10000 }));
     return {
-      cls: totalCLS,
+      script: "Layout-Shift-Loading-and-Interaction",
+      status: "ok",
+      metric: "CLS",
+      value: Math.round(totalCLS * 10000) / 10000,
+      unit: "score",
       rating,
-      shiftCount: countedShifts.length,
-      topElements: Array.from(elementShifts.entries())
-        .sort((a, b) => b[1].totalShift - a[1].totalShift)
-        .slice(0, 5)
-        .map(([selector, data]) => ({ selector, ...data })),
+      thresholds: { good: 0.1, needsImprovement: 0.25 },
+      details: {
+        currentCLS: Math.round(totalCLS * 10000) / 10000,
+        shiftCount: allShifts.length,
+        countedShifts: countedShifts.length,
+        excludedShifts: excludedShifts.length,
+        topElements: topElementsData,
+      },
     };
   };
 
@@ -228,4 +239,28 @@
     "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
     ""
   );
+
+  // Synchronous return for agent (buffered layout-shift entries)
+  const clsBufferedSync = performance.getEntriesByType("layout-shift")
+    .reduce((sum, e) => !e.hadRecentInput ? sum + e.value : sum, 0);
+  const countedSync = performance.getEntriesByType("layout-shift").filter((e) => !e.hadRecentInput).length;
+  const excludedSync = performance.getEntriesByType("layout-shift").filter((e) => e.hadRecentInput).length;
+  const clsRatingSync = valueToRating(clsBufferedSync);
+  return {
+    script: "Layout-Shift-Loading-and-Interaction",
+    status: "tracking",
+    metric: "CLS",
+    value: Math.round(clsBufferedSync * 10000) / 10000,
+    unit: "score",
+    rating: clsRatingSync,
+    thresholds: { good: 0.1, needsImprovement: 0.25 },
+    details: {
+      currentCLS: Math.round(clsBufferedSync * 10000) / 10000,
+      shiftCount: countedSync + excludedSync,
+      countedShifts: countedSync,
+      excludedShifts: excludedSync,
+    },
+    message: "Layout shift tracking active. Call getLayoutShiftSummary() for full element attribution.",
+    getDataFn: "getLayoutShiftSummary",
+  };
 })();

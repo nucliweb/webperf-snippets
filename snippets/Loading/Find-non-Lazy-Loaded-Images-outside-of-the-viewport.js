@@ -246,4 +246,40 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "Find-non-Lazy-Loaded-Images-outside-of-the-viewport",
+    status: "ok",
+    count: totalImages,
+    details: {
+      belowFoldCount: results.belowFold.length,
+      hiddenContainerCount: results.hiddenContainers.length,
+      totalSizeBytes: totalSize,
+      excluded: {
+        inViewport: results.excluded.inViewport,
+        lcpCandidate: results.excluded.lcpCandidate,
+        tooSmall: results.excluded.tooSmall,
+      },
+    },
+    items: [
+      ...results.belowFold.map((img) => ({
+        selector: img.selector,
+        src: img.fullSrc,
+        sizeBytes: img.size,
+        category: "below-fold",
+        distancePx: parseInt(img.distanceFromViewport),
+      })),
+      ...results.hiddenContainers.map((img) => ({
+        selector: img.selector,
+        src: img.fullSrc,
+        sizeBytes: img.size,
+        category: "hidden-container",
+        hiddenReason: img.hiddenReason,
+        container: img.container,
+      })),
+    ],
+    issues: totalImages > 0
+      ? [{ severity: "warning", message: `${totalImages} image(s) outside the viewport are missing loading="lazy"` }]
+      : [],
+  };
 })();

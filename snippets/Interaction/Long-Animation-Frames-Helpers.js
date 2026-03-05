@@ -11,7 +11,7 @@
   ) {
     console.warn("%c⚠️ Long Animation Frames API not supported", "font-weight: bold;");
     console.warn("   Requires Chrome 123+");
-    return;
+    return { script: "Long-Animation-Frames-Helpers", status: "unsupported", error: "Long Animation Frames API not supported. Requires Chrome 123+" };
   }
 
   // Storage for captured frames
@@ -53,7 +53,7 @@
     observer.observe({ type: "long-animation-frame", buffered: true });
   } catch (e) {
     console.error("Failed to start LoAF observer:", e);
-    return;
+    return { script: "Long-Animation-Frames-Helpers", status: "error", error: e.message };
   }
 
   // Helper functions
@@ -387,4 +387,11 @@
   console.log("");
   console.log("   Quick start: %cloafHelpers.summary()%c", "font-family: monospace; background: #f3f4f6; padding: 2px 4px;", "");
   console.log("   All commands: %cloafHelpers.help()%c", "font-family: monospace; background: #f3f4f6; padding: 2px 4px;", "");
+
+  return {
+    script: "Long-Animation-Frames-Helpers",
+    status: "tracking",
+    message: "LoAF Helpers loaded. Use loafHelpers.summary(), loafHelpers.topScripts(), etc. Call loafHelpers.getRawData() to get raw frame data.",
+    getDataFn: "loafHelpers.getRawData",
+  };
 })();

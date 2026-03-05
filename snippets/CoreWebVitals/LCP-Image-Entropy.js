@@ -27,7 +27,7 @@
 
   lcpObserver.observe({ type: "largest-contentful-paint", buffered: true });
 
-  // Wait a tick to ensure LCP is captured
+  // Wait a tick to ensure LCP is captured (for human console output)
   setTimeout(() => {
     lcpObserver.disconnect();
 
@@ -141,4 +141,54 @@
 
     console.groupEnd();
   }, 100);
+
+  // Synchronous return for agent (buffered entries + DOM)
+  const lcpEntriesSync = performance.getEntriesByType("largest-contentful-paint");
+  const lcpEntrySync = lcpEntriesSync.at(-1);
+  const lcpElementSync = lcpEntrySync?.element ?? null;
+  const lcpUrlSync = lcpEntrySync?.url ?? null;
+  const imagesSync = [...document.images]
+    .filter((img) => { const src = img.currentSrc || img.src; return src && !src.startsWith("data:image"); })
+    .map((img) => {
+      const src = img.currentSrc || img.src;
+      const resource = performance.getEntriesByName(src)[0];
+      const fileSize = resource?.encodedBodySize || 0;
+      const pixels = img.naturalWidth * img.naturalHeight;
+      const bpp = pixels > 0 ? (fileSize * 8) / pixels : 0;
+      const isLowEntropy = bpp > 0 && bpp < LCP_THRESHOLD;
+      const isLCP = lcpElementSync === img || lcpUrlSync === src;
+      return {
+        url: src.split("/").pop()?.split("?")[0] || src,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        fileSizeBytes: fileSize,
+        bpp: Math.round(bpp * 10000) / 10000,
+        isLowEntropy,
+        lcpEligible: !isLowEntropy && bpp > 0,
+        isLCP,
+      };
+    })
+    .filter((img) => img.bpp > 0);
+  const lowEntropyCount = imagesSync.filter((img) => img.isLowEntropy).length;
+  const lcpImageSync = imagesSync.find((img) => img.isLCP);
+  const issuesSync = [];
+  if (lowEntropyCount > 0) {
+    issuesSync.push({ severity: "warning", message: `${lowEntropyCount} image(s) have low entropy and are LCP-ineligible in Chrome 112+` });
+  }
+  if (lcpImageSync?.isLowEntropy) {
+    issuesSync.push({ severity: "error", message: "Current LCP image has low entropy and may be skipped by Chrome" });
+  }
+  return {
+    script: "LCP-Image-Entropy",
+    status: "ok",
+    count: imagesSync.length,
+    details: {
+      totalImages: imagesSync.length,
+      lowEntropyCount,
+      lcpImageEligible: lcpImageSync ? !lcpImageSync.isLowEntropy : null,
+      lcpImage: lcpImageSync ? { url: lcpImageSync.url, bpp: lcpImageSync.bpp, isLowEntropy: lcpImageSync.isLowEntropy } : null,
+    },
+    items: imagesSync,
+    issues: issuesSync,
+  };
 })();

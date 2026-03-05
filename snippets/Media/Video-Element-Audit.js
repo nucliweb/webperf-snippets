@@ -55,7 +55,7 @@
 
   if (videos.length === 0) {
     console.log("No <video> elements found on this page.");
-    return;
+    return { script: "Video-Element-Audit", status: "ok", count: 0, items: [], issues: [] };
   }
 
   const audited = videos.map((video) => {
@@ -244,4 +244,39 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  return {
+    script: "Video-Element-Audit",
+    status: "ok",
+    count: videos.length,
+    details: {
+      totalVideos: videos.length,
+      inViewport: audited.filter((r) => r.inViewport).length,
+      offViewport: audited.filter((r) => !r.inViewport).length,
+      totalErrors,
+      totalWarnings,
+      totalInfos,
+    },
+    items: audited.map((r) => ({
+      src: r.src,
+      codec: r.codec,
+      inViewport: r.inViewport,
+      preload: r.preload,
+      autoplay: r.autoplay,
+      muted: r.muted,
+      playsinline: r.playsinline,
+      loop: r.loop,
+      controls: r.controls,
+      hasPoster: r.poster !== "(not set)",
+      hasDimensions: r.hasDimensions,
+      sourceCount: r.sourceCount,
+      issues: r.issues.map((i) => ({ severity: i.s, message: i.msg })),
+    })),
+    issues: audited.flatMap((r) =>
+      r.issues.map((i) => ({
+        severity: i.s,
+        message: `${shortSrc(r.src) || "(no src)"}: ${i.msg}`,
+      }))
+    ),
+  };
 })();

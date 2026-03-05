@@ -109,7 +109,7 @@ void (async () => {
 
   if (svgEntries.length === 0 && inlineSvgTotal === 0) {
     console.log("No SVG resources found on this page.");
-    return;
+    return { script: "SVG-Embedded-Bitmap-Analysis", status: "ok", count: 0, items: [], issues: [] };
   }
 
   console.group("%c🖼️ SVG Embedded Bitmap Analysis", "font-weight: bold; font-size: 14px;");
@@ -205,4 +205,21 @@ void (async () => {
   }
 
   console.groupEnd();
+
+  return {
+    script: "SVG-Embedded-Bitmap-Analysis",
+    status: "ok",
+    count: withBitmaps.length,
+    items: withBitmaps.map((r) => ({
+      url: r.url || r.name,
+      name: r.name,
+      hasBitmap: true,
+      bitmapCount: r.bitmaps.length,
+      bitmapTypes: r.bitmaps.map((b) => b.format).join(", "),
+      sizeBytes: r.transferSize,
+    })),
+    issues: withBitmaps.length > 0
+      ? [{ severity: "warning", message: `${withBitmaps.length} SVG file(s) contain embedded bitmaps` }]
+      : [],
+  };
 })();

@@ -22,7 +22,7 @@
     console.log("%c✅ No inline scripts found.", "color: #22c55e; font-weight: bold;");
     console.log("The page uses external scripts only.");
     console.groupEnd();
-    return;
+    return { script: "Inline-Script-Info-and-Size", status: "ok", count: 0, items: [], issues: [] };
   }
 
   // Analyze each script
@@ -304,4 +304,20 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  return {
+    script: "Inline-Script-Info-and-Size",
+    status: "ok",
+    count: scripts.length,
+    details: {
+      executableCount: executableScripts.length,
+      jsonLdCount: jsonLdScripts.length,
+      otherCount: otherScripts.length,
+      totalSizeBytes: totalSize,
+      parserBlockingCount: parserBlockingScripts.length,
+      parserBlockingInHeadCount: parserBlockingInHead.length,
+    },
+    items: executableScripts.map(s => ({ index: s.index, sizeBytes: s.size, category: s.category, inHead: s.inHead, isParserBlocking: s.isParserBlocking, isAnalytics: s.isAnalytics, isConfig: s.isConfig })),
+    issues: issues.map(i => ({ severity: i.type === "blocking" ? "error" : "warning", message: i.message })),
+  };
 })();

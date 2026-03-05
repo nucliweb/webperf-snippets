@@ -151,11 +151,15 @@
       console.groupEnd();
 
       return {
+        script: "LongTask",
+        status: "ok",
         count: allTasks.length,
-        totalBlockingTime,
-        worstTask: worst,
-        avgDuration: avg,
-        bySeverity,
+        details: {
+          totalBlockingTimeMs: Math.round(totalBlockingTime),
+          worstTaskMs: Math.round(worst),
+          avgDurationMs: Math.round(avg),
+          bySeverity,
+        },
       };
     };
 
@@ -168,8 +172,32 @@
       ""
     );
 
+    // Synchronous return for agent (buffered entries)
+    const longtaskBuffered = performance.getEntriesByType("longtask");
+    const totalBlockingSync = longtaskBuffered.reduce((sum, t) => sum + Math.max(0, t.duration - 50), 0);
+    const worstTaskSync = longtaskBuffered.length > 0 ? Math.max(...longtaskBuffered.map((t) => t.duration)) : 0;
+    const bySeveritySync = {
+      critical: longtaskBuffered.filter((t) => t.duration > 250).length,
+      high: longtaskBuffered.filter((t) => t.duration > 150 && t.duration <= 250).length,
+      medium: longtaskBuffered.filter((t) => t.duration > 100 && t.duration <= 150).length,
+      low: longtaskBuffered.filter((t) => t.duration >= 50 && t.duration <= 100).length,
+    };
+    return {
+      script: "LongTask",
+      status: "tracking",
+      count: longtaskBuffered.length,
+      details: {
+        totalBlockingTimeMs: Math.round(totalBlockingSync),
+        worstTaskMs: Math.round(worstTaskSync),
+        bySeverity: bySeveritySync,
+      },
+      message: "Tracking long tasks. Call getLongTaskSummary() for statistics.",
+      getDataFn: "getLongTaskSummary",
+    };
+
   } catch (e) {
     console.error("%c⚠️ Long Tasks API not supported", "font-weight: bold;");
     console.error("   Error:", e.message);
+    return { script: "LongTask", status: "unsupported", error: e.message };
   }
 })();

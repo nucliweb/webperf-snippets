@@ -83,4 +83,19 @@
 
     console.groupEnd();
   }).observe({ type: "paint", buffered: true });
+
+  // Synchronous return for agent
+  const fcpEntrySync = performance.getEntriesByName("first-contentful-paint")[0];
+  if (!fcpEntrySync) return { script: "FCP", status: "error", error: "No FCP entry yet" };
+  const fcpTimeSync = fcpEntrySync.startTime;
+  const ratingSync = valueToRating(fcpTimeSync);
+  return {
+    script: "FCP",
+    status: "ok",
+    metric: "FCP",
+    value: Math.round(fcpTimeSync),
+    unit: "ms",
+    rating: ratingSync,
+    thresholds: { good: 1800, needsImprovement: 3000 },
+  };
 })();

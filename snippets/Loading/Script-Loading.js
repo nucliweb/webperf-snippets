@@ -278,7 +278,7 @@
     console.groupEnd();
   }
 
-  // Best practices
+  // Best practices (defined here so firstPartyScripts/thirdPartyScripts are in scope for return)
   console.log("");
   console.group("%c📝 Best Practices", "color: #3b82f6; font-weight: bold;");
   console.log("");
@@ -296,4 +296,37 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  const agentRating = blockingInHead.length === 0 ? "good" :
+    (blockingInHead.length <= 2 && thirdPartyBlocking.length === 0) ? "needs-improvement" : "poor";
+  return {
+    script: "Script-Loading",
+    status: "ok",
+    count: scripts.length,
+    rating: agentRating,
+    details: {
+      totalSizeBytes: totalSize,
+      byStrategy: {
+        blocking: blocking.length,
+        async: asyncScripts.length,
+        defer: deferScripts.length,
+        module: moduleScripts.length,
+      },
+      byParty: {
+        firstParty: firstPartyScripts.length,
+        thirdParty: thirdPartyScripts.length,
+      },
+      thirdPartyBlockingCount: thirdPartyBlocking.length,
+    },
+    items: scripts.map((s) => ({
+      url: s.src,
+      shortName: s.shortSrc,
+      strategy: s.strategy,
+      location: s.inHead ? "head" : "body",
+      party: s.firstParty ? "first" : "third",
+      sizeBytes: s.size,
+      durationMs: Math.round(s.duration),
+    })),
+    issues: issues.map((i) => ({ severity: i.severity, message: i.message })),
+  };
 })();

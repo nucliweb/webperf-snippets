@@ -128,4 +128,48 @@
 
   console.log("%c⏱️ LCP Trail Active", "font-weight: bold; font-size: 14px;");
   console.log("   Highlights all LCP candidate elements with distinct colors.");
+
+  // Synchronous return for agent (buffered entries)
+  const trailEntries = performance.getEntriesByType("largest-contentful-paint");
+  if (trailEntries.length === 0) {
+    return { script: "LCP-Trail", status: "error", error: "No LCP entries yet" };
+  }
+  const trailActivationStart = getActivationStart();
+  const seenEls = new Set();
+  const syncCandidates = [];
+  for (const entry of trailEntries) {
+    const el = entry.element;
+    if (!el || seenEls.has(el)) continue;
+    seenEls.add(el);
+    const selector = getSelector(el);
+    const time = Math.round(Math.max(0, entry.startTime - trailActivationStart));
+    const { type, url } = getElementInfo(el, entry);
+    syncCandidates.push({
+      index: syncCandidates.length + 1,
+      selector,
+      time,
+      elementType: type,
+      ...(url ? { url: url.split("/").pop()?.split("?")[0] || url } : {}),
+    });
+  }
+  if (syncCandidates.length === 0) {
+    return { script: "LCP-Trail", status: "error", error: "No LCP elements in DOM" };
+  }
+  const lastCandidate = syncCandidates.at(-1);
+  const trailValue = lastCandidate.time;
+  const trailRating = valueToRating(trailValue);
+  return {
+    script: "LCP-Trail",
+    status: "ok",
+    metric: "LCP",
+    value: trailValue,
+    unit: "ms",
+    rating: trailRating,
+    thresholds: { good: 2500, needsImprovement: 4000 },
+    details: {
+      candidateCount: syncCandidates.length,
+      finalElement: lastCandidate.selector,
+      candidates: syncCandidates,
+    },
+  };
 })();

@@ -160,7 +160,23 @@
       );
     }
 
+    const typeSummary = {};
+    for (const [type, b] of Object.entries(byEventType)) {
+      typeSummary[type] = {
+        count: b.count,
+        p75Ms: Math.round(p75(b.durations)),
+        inputDelayMs: Math.round(p75(b.inputDelays)),
+        processingMs: Math.round(p75(b.processingTimes)),
+        presentationMs: Math.round(p75(b.presentationDelays)),
+      };
+    }
     console.groupEnd();
+    return {
+      script: "Input-Latency-Breakdown",
+      status: "ok",
+      count: types.length,
+      details: { eventTypes: typeSummary },
+    };
   };
 
   console.log(
@@ -173,4 +189,11 @@
     "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
     ""
   );
+
+  return {
+    script: "Input-Latency-Breakdown",
+    status: "tracking",
+    message: "Tracking input latency by event type. Interact with the page then call getInputLatencyBreakdown().",
+    getDataFn: "getInputLatencyBreakdown",
+  };
 })();
