@@ -8,6 +8,10 @@
 
 const fs = require('fs')
 const path = require('path')
+const { createHash } = require('crypto')
+const { minify } = require('terser')
+
+const GITHUB_BASE = 'https://github.com/nucliweb/webperf-snippets/blob/main'
 
 const ROOT = path.join(__dirname, '..')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
@@ -46,6 +50,28 @@ const CATEGORIES = {
     description:
       'Intelligent network quality analysis with adaptive loading strategies. Detects connection type (2g/3g/4g), bandwidth, RTT, and save-data mode, then automatically triggers appropriate optimization workflows. Includes decision trees that recommend image compression for slow connections, critical CSS inlining for high RTT, and save-data optimizations (disable autoplay, reduce quality). Features connection-aware performance budgets (500KB for 2g, 1.5MB for 3g, 3MB for 4g+) and adaptive loading implementation guides. Cross-skill integration with Loading (TTFB impact), Media (responsive images), and Core Web Vitals (connection impact on LCP/INP). Use when the user asks about slow connections, mobile optimization, save-data support, or adaptive loading strategies. Compatible with Chrome DevTools MCP.',
   },
+}
+
+async function buildScript(src, dst, relPath) {
+  const source = fs.readFileSync(src, 'utf-8')
+  const hash = createHash('sha256').update(source).digest('hex').slice(0, 16)
+  const githubUrl = `${GITHUB_BASE}/${relPath}`
+  const header = `// ${relPath} | sha256:${hash} | ${githubUrl}\n`
+
+  let code
+  try {
+    const result = await minify(source, {
+      compress: { drop_console: true },
+      mangle: true,
+      format: { comments: false },
+    })
+    code = result.code
+  } catch (err) {
+    console.warn(`  ⚠ minify failed for ${path.basename(src)}: ${err.message} — copying as-is`)
+    code = source
+  }
+
+  fs.writeFileSync(dst, header + code)
 }
 
 function getSnippetFiles(category) {
@@ -185,7 +211,7 @@ function buildSnippetMeta(category, snippetFile) {
   }
 }
 
-function generateCategorySkill(category, catConfig) {
+async function generateCategorySkill(category, catConfig) {
   const snippetFiles = getSnippetFiles(category)
   if (snippetFiles.length === 0) return
 
@@ -200,9 +226,9 @@ function generateCategorySkill(category, catConfig) {
   for (const snippetFile of snippetFiles) {
     const src = path.join(SNIPPETS_DIR, category, snippetFile)
     const dst = path.join(scriptsDir, snippetFile)
-    fs.copyFileSync(src, dst)
+    await buildScript(src, dst, `snippets/${category}/${snippetFile}`)
   }
-  console.log(`  copied ${snippetFiles.length} scripts to scripts/`)
+  console.log(`  built ${snippetFiles.length} scripts to scripts/`)
 
   const lines = []
 
@@ -357,7 +383,7 @@ function validateSkill(name, description) {
   return errors
 }
 
-function main() {
+async function main() {
   console.log('Generating WebPerf skills...\n')
   fs.mkdirSync(SKILLS_DIR, { recursive: true })
 
@@ -378,7 +404,7 @@ function main() {
   }
 
   for (const [category, config] of Object.entries(CATEGORIES)) {
-    generateCategorySkill(category, config)
+    await generateCategorySkill(category, config)
   }
 
   generateMetaSkill()
@@ -410,4 +436,4 @@ function main() {
   console.log('\nDone! Skills generated in /skills/ and .claude/skills/')
 }
 
-main()
+main().catch(console.error)
