@@ -11,7 +11,7 @@
     );
     console.log("This API is currently Chromium-only (Chrome 107+, Edge 107+).");
     console.log("Try using Chrome or Edge to analyze render-blocking resources.");
-    return;
+    return { script: "Find-render-blocking-resources", status: "unsupported", error: "renderBlockingStatus API requires Chrome 107+" };
   }
 
   const blockingResources = performance
@@ -133,4 +133,26 @@
   }
 
   console.groupEnd();
+
+  const lastBlockingEnd = blockingResources.length ? Math.max(...blockingResources.map((r) => r.responseEnd)) : 0;
+  const totalSizeBytes = blockingResources.reduce((sum, r) => sum + r.size, 0);
+  const byType = blockingResources.reduce((acc, r) => { acc[r.type] = (acc[r.type] || 0) + 1; return acc; }, {});
+  return {
+    script: "Find-render-blocking-resources",
+    status: "ok",
+    count: blockingResources.length,
+    details: {
+      totalBlockingUntilMs: Math.round(lastBlockingEnd),
+      totalSizeBytes,
+      byType,
+    },
+    items: blockingResources.map((r) => ({
+      type: r.type,
+      url: r.name,
+      shortName: r.shortName,
+      responseEndMs: Math.round(r.responseEnd),
+      durationMs: Math.round(r.duration),
+      sizeBytes: r.size,
+    })),
+  };
 })();

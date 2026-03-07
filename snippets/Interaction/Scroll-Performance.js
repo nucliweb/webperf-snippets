@@ -305,10 +305,24 @@
 
     console.groupEnd();
 
+    const cssAuditResult = auditScrollCSS();
     return {
-      sessions,
-      nonPassiveListeners: nonPassiveListeners.length,
-      cssAudit: auditScrollCSS(),
+      script: "Scroll-Performance",
+      status: "ok",
+      details: {
+        nonPassiveListeners: nonPassiveListeners.length,
+        cssAudit: {
+          smoothScrollElements: cssAuditResult.smoothScrollElements.length,
+          willChangeElements: cssAuditResult.willChangeElements.length,
+          contentVisibilityElements: cssAuditResult.contentVisibilityElements.length,
+        },
+        sessionCount: sessions.length,
+        ...(sessions.length > 0 ? {
+          avgFps: Math.round(sessions.reduce((a, s) => a + s.avgFps, 0) / sessions.length),
+          worstSessionFps: Math.round(Math.min(...sessions.map((s) => s.avgFps))),
+          totalDrops: sessions.reduce((a, s) => a + s.drops, 0),
+        } : {}),
+      },
     };
   };
 
@@ -326,4 +340,20 @@
     "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
     ""
   );
+
+  const cssSnapshot = auditScrollCSS();
+  return {
+    script: "Scroll-Performance",
+    status: "tracking",
+    details: {
+      nonPassiveListeners: nonPassiveListeners.length,
+      cssAudit: {
+        smoothScrollElements: cssSnapshot.smoothScrollElements.length,
+        willChangeElements: cssSnapshot.willChangeElements.length,
+        contentVisibilityElements: cssSnapshot.contentVisibilityElements.length,
+      },
+    },
+    message: "Scroll performance tracking active. Scroll the page then call getScrollSummary() for FPS data.",
+    getDataFn: "getScrollSummary",
+  };
 })();

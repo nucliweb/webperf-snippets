@@ -486,7 +486,24 @@ async function analyzeCSSPerformanceImpact(minWidth = 768) {
 }
 
 // Run with default breakpoint (768px)
-analyzeCSSMediaQueries();
+(async () => {
+  const result = await analyzeCSSMediaQueries();
+  if (!result) {
+    return { script: "CSS-Media-Queries-Analysis", status: "error", error: "No analyzable CSS found (CORS blocked or no desktop media queries)" };
+  }
+  return {
+    script: "CSS-Media-Queries-Analysis",
+    status: "ok",
+    count: result.summary.total.mediaQueries,
+    details: {
+      total: result.summary.total,
+      inline: result.summary.inline,
+      files: result.summary.files,
+      corsBlockedCount: result.summary.corsBlocked,
+    },
+    items: [...result.details.inline, ...result.details.files],
+  };
+})();
 
 // Or customize the breakpoint:
 // analyzeCSSMediaQueries(1024);  // for desktop

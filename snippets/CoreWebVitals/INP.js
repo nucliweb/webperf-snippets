@@ -279,7 +279,31 @@
     inpValue = result.value;
     inpEntry = result.entry;
     logINP();
-    return { value: inpValue, rating: valueToRating(inpValue) };
+    const rating = valueToRating(inpValue);
+    const details = { totalInteractions: interactions.length };
+    if (inpEntry) {
+      details.worstEvent = inpEntry.formattedName;
+      details.phases = {
+        inputDelay: Math.round(inpEntry.phases.inputDelay),
+        processingTime: Math.round(inpEntry.phases.processingTime),
+        presentationDelay: Math.round(inpEntry.phases.presentationDelay),
+      };
+    }
+    if (interactions.length === 0) {
+      return { script: "INP", status: "error", error: "No interactions recorded yet",
+        metric: "INP", value: 0, unit: "ms", rating: "good",
+        thresholds: { good: 200, needsImprovement: 500 }, details };
+    }
+    return {
+      script: "INP",
+      status: "ok",
+      metric: "INP",
+      value: Math.round(inpValue),
+      unit: "ms",
+      rating,
+      thresholds: { good: 200, needsImprovement: 500 },
+      details,
+    };
   };
 
   // Expose function to get all interactions
@@ -394,4 +418,11 @@
     "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
     ""
   );
+
+  return {
+    script: "INP",
+    status: "tracking",
+    message: "INP tracking active. Interact with the page then call getINP() for results.",
+    getDataFn: "getINP",
+  };
 })();

@@ -20,7 +20,7 @@
     console.log("%c✅ No inline <style> tags found.", "color: #22c55e; font-weight: bold;");
     console.log("The page uses external stylesheets only.");
     console.groupEnd();
-    return;
+    return { script: "Inline-CSS-Info-and-Size", status: "ok", count: 0, items: [], issues: [] };
   }
 
   // Analyze each style tag
@@ -216,4 +216,19 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  return {
+    script: "Inline-CSS-Info-and-Size",
+    status: "ok",
+    count: styles.length,
+    details: {
+      totalSizeBytes: totalSize,
+      totalRules,
+      criticalBudgetBytes: criticalBudget,
+      duplicateBlocks: duplicates.length,
+      bodyStyleBlocks: styles.filter(s => !s.inHead).length,
+    },
+    items: styles.map(s => ({ index: s.index, sizeBytes: s.size, parent: s.parent, inHead: s.inHead, ruleCount: s.ruleCount, hasMediaQueries: s.hasMediaQueries, hasKeyframes: s.hasKeyframes })),
+    issues: issues.map(i => ({ severity: "warning", message: i.message })),
+  };
 })();

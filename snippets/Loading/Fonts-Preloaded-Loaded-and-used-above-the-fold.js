@@ -298,4 +298,23 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  return {
+    script: "Fonts-Preloaded-Loaded-and-used-above-the-fold",
+    status: "ok",
+    count: uniqueLoadedFonts.length,
+    details: {
+      preloadedCount: preloadedFonts.length,
+      loadedCount: uniqueLoadedFonts.length,
+      usedAboveFoldCount: usedFonts.length,
+      preloadedNotUsedCount: preloadedNotUsed.length,
+      usedNotPreloadedCount: usedNotPreloaded.length,
+    },
+    items: uniqueLoadedFonts.map(f => ({ family: f.family, weight: f.weight, style: f.style, display: f.display })),
+    issues: [
+      ...preloadedNotUsed.map(f => ({ severity: "warning", message: `Preloaded but not used above fold: ${f.name}` })),
+      ...usedNotPreloaded.map(f => ({ severity: "warning", message: `Used above fold but not preloaded: ${f.family} (${f.weight})` })),
+      ...preloadedFonts.filter(f => !f.crossorigin).map(f => ({ severity: "error", message: `Font preloaded without crossorigin (double fetch): ${f.name}` })),
+    ],
+  };
 })();

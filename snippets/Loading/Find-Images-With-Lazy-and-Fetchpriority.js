@@ -126,4 +126,24 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "Find-Images-With-Lazy-and-Fetchpriority",
+    status: "ok",
+    count: conflictingElements.length,
+    items: Array.from(conflictingElements).map((el) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        selector: getSelector(el),
+        src: el.currentSrc || el.src || "",
+        inViewport: isInViewport(el),
+        isLcpCandidate: el === lcpCandidate,
+        widthPx: Math.round(rect.width),
+        heightPx: Math.round(rect.height),
+      };
+    }),
+    issues: conflictingElements.length > 0
+      ? [{ severity: "error", message: `${conflictingElements.length} element(s) have conflicting loading="lazy" and fetchpriority="high"` }]
+      : [],
+  };
 })();

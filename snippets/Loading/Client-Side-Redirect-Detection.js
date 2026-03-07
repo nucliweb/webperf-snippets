@@ -9,7 +9,7 @@
       '%c⚠️ Navigation Timing not available',
       'color: #f59e0b; font-weight: bold;'
     );
-    return;
+    return { script: "Client-Side-Redirect-Detection", status: "unsupported", error: "Navigation Timing not available" };
   }
 
   const navEntry = navEntries[0];
@@ -316,4 +316,24 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "Client-Side-Redirect-Detection",
+    status: "ok",
+    details: {
+      serverRedirects,
+      redirectTimeMs: Math.round(redirectTime),
+      clientRedirectIndicators: indicators.length,
+      documentNavigations: documentNavigations.length,
+      hasSPARouter,
+      historyLength,
+      currentPath,
+      referrerPath,
+    },
+    issues: [
+      ...(serverRedirects > 0 ? [{ severity: "warning", message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)` }] : []),
+      ...(documentNavigations.length > 0 ? [{ severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected — likely client-side redirect` }] : []),
+      ...indicators.filter(i => i.severity === "warning").map(i => ({ severity: "warning", message: i.type })),
+    ],
+  };
 })();

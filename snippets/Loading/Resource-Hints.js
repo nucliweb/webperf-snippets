@@ -385,4 +385,16 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  return {
+    script: "Resource-Hints",
+    status: "ok",
+    count: allHints.length,
+    details: {
+      byType: Object.fromEntries(hintTypes.map(t => [t.rel, allHints.filter(h => h.rel === t.rel).length])),
+      missingPreconnectsCount: missingPreconnects.length,
+    },
+    items: allHints.map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
+    issues: issues.map(i => ({ severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}` })),
+  };
 })();

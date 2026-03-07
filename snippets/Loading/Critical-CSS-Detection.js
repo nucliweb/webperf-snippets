@@ -289,13 +289,31 @@
   console.groupEnd();
 
   return {
-    renderBlocking: renderBlockingCSS,
-    nonBlocking: nonBlockingCSS,
-    inline: inlineStyles,
-    totals: {
-      externalTransferBytes: totalExternalTransfer,
+    script: "Critical-CSS-Detection",
+    status: "ok",
+    count: externalCSSData.length,
+    details: {
+      renderBlockingCount: renderBlockingCSS.length,
+      nonBlockingCount: nonBlockingCSS.length,
+      inlineCount: inlineStyles.length,
+      totalExternalTransferBytes: totalExternalTransfer,
       renderBlockingDecodedBytes: totalRenderBlockingDecoded,
       inlineBytes: totalInlineBytes,
+      criticalBudgetBytes: criticalBudget,
     },
+    items: externalCSSData.map(s => ({
+      filename: s.filename,
+      media: s.media,
+      isRenderBlocking: s.isRenderBlocking,
+      transferBytes: s.transferSize,
+      decodedBytes: s.decodedSize,
+      ruleCount: s.ruleCount,
+      preloaded: s.preloaded,
+      corsBlocked: s.corsBlocked,
+    })),
+    issues: issues.map(i => ({
+      severity: i.severity === 'high' ? 'error' : 'warning',
+      message: i.message,
+    })),
   };
 })();

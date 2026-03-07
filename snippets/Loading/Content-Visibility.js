@@ -312,10 +312,27 @@ function analyzeContentVisibilityOpportunities(options = {}) {
 }
 
 // Run detection
-detectContentVisibility();
-
-console.log(
-  "%c\n To find optimization opportunities, run: %canalyzeContentVisibilityOpportunities()",
-  "color: #3b82f6; font-weight: bold;",
-  "color: #22c55e; font-weight: bold; font-family: monospace;"
-);
+(() => {
+  const cvResults = detectContentVisibility();
+  console.log(
+    "%c\n To find optimization opportunities, run: %canalyzeContentVisibilityOpportunities()",
+    "color: #3b82f6; font-weight: bold;",
+    "color: #22c55e; font-weight: bold; font-family: monospace;"
+  );
+  return {
+    script: "Content-Visibility",
+    status: "ok",
+    count: cvResults.autoElements.length + cvResults.hiddenElements.length,
+    details: {
+      autoCount: cvResults.autoElements.length,
+      hiddenCount: cvResults.hiddenElements.length,
+    },
+    items: [
+      ...cvResults.autoElements.map(el => ({ ...el, type: "auto" })),
+      ...cvResults.hiddenElements.map(el => ({ ...el, type: "hidden" })),
+    ],
+    issues: cvResults.autoElements
+      .filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none")
+      .map(el => ({ severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)` })),
+  };
+})();

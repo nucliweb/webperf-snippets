@@ -1,7 +1,8 @@
 // Measure TTFB for all resources with sorting and summary
 // https://webperf-snippets.nucliweb.net
 
-new PerformanceObserver((entryList) => {
+(() => {
+  new PerformanceObserver((entryList) => {
   const entries = entryList.getEntries();
 
   const resourcesData = entries
@@ -75,7 +76,40 @@ new PerformanceObserver((entryList) => {
   }
 
   console.groupEnd();
-}).observe({
-  type: "resource",
-  buffered: true,
-});
+  }).observe({
+    type: "resource",
+    buffered: true,
+  });
+
+  // Synchronous return for agent
+  const resourcesSync = performance.getEntriesByType("resource")
+    .filter((entry) => entry.responseStart > 0)
+    .map((entry) => {
+      const url = new URL(entry.name);
+      return {
+        url: entry.name,
+        ttfbMs: Math.round(entry.responseStart),
+        durationMs: Math.round(entry.duration),
+        type: entry.initiatorType,
+        isThirdParty: url.hostname !== location.hostname,
+      };
+    })
+    .sort((a, b) => b.ttfbMs - a.ttfbMs);
+  if (resourcesSync.length === 0) {
+    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available" };
+  }
+  const ttfbVals = resourcesSync.map((r) => r.ttfbMs);
+  return {
+    script: "TTFB-Resources",
+    status: "ok",
+    count: resourcesSync.length,
+    details: {
+      avgTtfbMs: Math.round(ttfbVals.reduce((a, b) => a + b, 0) / ttfbVals.length),
+      maxTtfbMs: Math.max(...ttfbVals),
+      minTtfbMs: Math.min(...ttfbVals),
+      thirdPartyCount: resourcesSync.filter((r) => r.isThirdParty).length,
+      slowCount: resourcesSync.filter((r) => r.ttfbMs > 500).length,
+    },
+    items: resourcesSync,
+  };
+})();

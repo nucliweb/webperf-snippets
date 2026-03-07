@@ -271,4 +271,25 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "First-And-Third-Party-Script-Timings",
+    status: "ok",
+    count: scripts.length,
+    details: {
+      firstPartyCount: firstParty.length,
+      thirdPartyCount: thirdParty.length,
+      corsRestrictedCount: thirdStats.withoutTiming,
+      slowScriptCount: slowScripts.length,
+      firstPartyAvgTotalMs: Math.round(firstStats.stats.total?.avg || 0),
+      thirdPartyAvgTotalMs: Math.round(thirdStats.stats.total?.avg || 0),
+    },
+    items: scripts.map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: Math.round(s.dns), tcpMs: Math.round(s.tcp), requestMs: Math.round(s.request), responseMs: Math.round(s.response), hasTiming: s.hasTiming })),
+    issues: [
+      ...(slowScripts.length > 0 ? [{ severity: "warning", message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load` }] : []),
+      ...(hasSlowDns ? [{ severity: "warning", message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect." }] : []),
+      ...(hasSlowTcp ? [{ severity: "warning", message: "Slow TCP connections detected (>100ms). Add preconnect for critical origins." }] : []),
+      ...(hasSlowRequest ? [{ severity: "warning", message: "Slow server response times detected (>200ms). Consider CDN or self-hosting." }] : []),
+    ],
+  };
 })();

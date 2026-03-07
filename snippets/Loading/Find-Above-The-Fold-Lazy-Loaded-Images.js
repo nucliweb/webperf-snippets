@@ -222,4 +222,21 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "Find-Above-The-Fold-Lazy-Loaded-Images",
+    status: "ok",
+    count: results.lazyImages.length,
+    details: {
+      total: results.summary.total,
+      withLoadingLazy: results.summary.withLoadingLazy,
+      withDataSrc: results.summary.withDataSrc,
+      lcpAffected: results.summary.lcpAffected,
+    },
+    items: results.lazyImages.map(({ element, area, ...rest }) => rest),
+    issues: [
+      ...(results.summary.lcpAffected ? [{ severity: "error", message: 'LCP candidate image has lazy loading — remove loading="lazy" and add fetchpriority="high"' }] : []),
+      ...(results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [{ severity: "warning", message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading — remove loading="lazy"` }] : []),
+    ],
+  };
 })();

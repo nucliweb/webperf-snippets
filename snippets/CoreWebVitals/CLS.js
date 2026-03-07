@@ -45,7 +45,16 @@
   // Expose function for manual check
   window.getCLS = () => {
     logCLS();
-    return cls;
+    const rating = valueToRating(cls);
+    return {
+      script: "CLS",
+      status: "ok",
+      metric: "CLS",
+      value: Math.round(cls * 10000) / 10000,
+      unit: "score",
+      rating,
+      thresholds: { good: 0.1, needsImprovement: 0.25 },
+    };
   };
 
   console.log(
@@ -53,4 +62,18 @@
     "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
     ""
   );
+
+  // Synchronous return for agent (buffered entries)
+  const clsSync = performance.getEntriesByType("layout-shift")
+    .reduce((sum, e) => !e.hadRecentInput ? sum + e.value : sum, 0);
+  const clsRating = valueToRating(clsSync);
+  return {
+    script: "CLS",
+    status: "ok",
+    metric: "CLS",
+    value: Math.round(clsSync * 10000) / 10000,
+    unit: "score",
+    rating: clsRating,
+    thresholds: { good: 0.1, needsImprovement: 0.25 },
+  };
 })();

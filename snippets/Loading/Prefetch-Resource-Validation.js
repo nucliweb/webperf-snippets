@@ -15,7 +15,7 @@
       "%cℹ️ Prefetch is for future navigation resources. Use it sparingly for predictable user journeys.",
       "color: #3b82f6;",
     );
-    return;
+    return { script: "Prefetch-Resource-Validation", status: "ok", count: 0, items: [], issues: [] };
   }
 
   // Get performance entries for all resources
@@ -435,4 +435,22 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "Prefetch-Resource-Validation",
+    status: "ok",
+    count: prefetchLinks.length,
+    details: {
+      loadedCount,
+      validCount: validPrefetch.length,
+      issueCount: totalMeaningfulIssues,
+      totalSizeBytes: totalSize,
+      totalTransferBytes: totalTransferSize,
+    },
+    items: [...validPrefetch, ...issues].map(item => ({ href: item.shortUrl, as: item.as, sizeBytes: item.size, loaded: item.loaded, isCurrentPage: item.isCurrentPage || false })),
+    issues: [
+      ...countIssues.map(i => ({ severity: i.severity === "error" ? "error" : "warning", message: i.message })),
+      ...issues.flatMap(item => item.warnings.filter(w => w.severity !== "info").map(w => ({ severity: w.severity, message: `${item.shortUrl}: ${w.message}` }))),
+    ],
+  };
 })();

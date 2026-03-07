@@ -310,4 +310,29 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  return {
+    script: "JS-Execution-Time-Breakdown",
+    status: "ok",
+    count: scripts.length,
+    details: {
+      blockingCount: blocking.length,
+      nonBlockingCount: nonBlocking.length,
+      totalTransferBytes: totalSize,
+      totalDecodedBytes: totalDecodedSize,
+      totalDownloadMs: Math.round(totalDownload),
+      totalEstParseMobileMs: Math.round(totalEstParse),
+      splitCandidatesCount: splitCandidates.length,
+      domInteractiveMs: Math.round(domInteractive),
+      domContentLoadedMs: Math.round(domContentLoaded),
+      loadEventMs: Math.round(loadEvent),
+    },
+    items: scripts.slice(0, 50).map(s => ({ shortName: s.shortName, isBlocking: s.isBlocking, downloadMs: Math.round(s.downloadDuration), estimatedParseMobileMs: s.estimatedParseMobile, transferBytes: s.transferSize, decodedBytes: s.decodedSize, corsRestricted: s.corsRestricted })),
+    issues: [
+      ...(blocking.length > 0 ? [{ severity: "error", message: `${blocking.length} render-blocking script(s) delay HTML parsing` }] : []),
+      ...(hasHighParseTime ? [{ severity: "warning", message: `High estimated parse cost (~${Math.round(totalEstParse)}ms on mobile)` }] : []),
+      ...(splitCandidates.length > 0 ? [{ severity: "warning", message: `${splitCandidates.length} script(s) over 50KB decoded — consider code splitting` }] : []),
+      ...(poorCompression ? [{ severity: "warning", message: `Low compression ratio (${compressionRatio.toFixed(1)}x) — enable Brotli/gzip` }] : []),
+    ],
+  };
 })();

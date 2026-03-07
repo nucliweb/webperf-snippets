@@ -150,7 +150,7 @@
       `Found ${otherScripts.length} other inline scripts (${formatBytes(otherSize)})`
     );
     console.groupEnd();
-    return;
+    return { script: "SSR-Hydration-Data-Analysis", status: "ok", count: 0, details: { frameworksFound: 0, totalHydrationBytes: 0, otherInlineBytes: otherSize }, items: [], issues: [] };
   }
 
   // Summary
@@ -347,4 +347,18 @@
   }
 
   console.groupEnd();
+
+  return {
+    script: "SSR-Hydration-Data-Analysis",
+    status: "ok",
+    count: detected.length,
+    details: {
+      frameworksFound: detected.length,
+      totalHydrationBytes: totalHydrationSize,
+      otherInlineBytes: otherSize,
+      hasExceedingThreshold: detected.some(d => d.exceedsThreshold),
+    },
+    items: detected.map(fw => ({ name: fw.name, sizeBytes: fw.size, thresholdBytes: fw.threshold, exceedsThreshold: fw.exceedsThreshold })),
+    issues: detected.filter(fw => fw.exceedsThreshold).map(fw => ({ severity: "warning", message: `${fw.name} hydration data (${Math.round(fw.size / 1024)} KB) exceeds ${Math.round(fw.threshold / 1024)} KB threshold` })),
+  };
 })();

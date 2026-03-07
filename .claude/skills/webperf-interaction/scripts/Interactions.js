@@ -1,3 +1,4 @@
+// snippets/Interaction/Interactions.js | sha256:cc9adb40e749b9f0 | https://github.com/nucliweb/webperf-snippets/blob/main/snippets/Interaction/Interactions.js
 // Interaction Tracking
 // https://webperf-snippets.nucliweb.net
 
@@ -132,7 +133,7 @@
     if (allInteractions.length === 0) {
       console.log("%c📊 No interactions recorded yet.", "font-weight: bold;");
       console.log("   Interact with the page (click, type, etc.) and call this again.");
-      return;
+      return { script: "Interactions", status: "error", error: "No interactions recorded yet", count: 0 };
     }
 
     console.group("%c📊 Interaction Summary", "font-weight: bold; font-size: 14px;");
@@ -182,10 +183,43 @@
       });
     }
 
+    const durations2 = allInteractions.map((i) => i.duration);
+    const worst2 = Math.max(...durations2);
+    const avg2 = Math.round(durations2.reduce((a, b) => a + b, 0) / durations2.length);
+    const p75 = Math.round(durations2.sort((a, b) => a - b)[Math.floor(durations2.length * 0.75)]);
+    const byRating = {
+      good: allInteractions.filter((i) => i.rating === "good").length,
+      "needs-improvement": allInteractions.filter((i) => i.rating === "needs-improvement").length,
+      poor: allInteractions.filter((i) => i.rating === "poor").length,
+    };
     console.groupEnd();
+    return {
+      script: "Interactions",
+      status: "ok",
+      count: allInteractions.length,
+      details: {
+        totalInteractions: allInteractions.length,
+        worstMs: Math.round(worst2),
+        avgMs: avg2,
+        p75Ms: p75,
+        byRating,
+      },
+      items: allInteractions.map((i) => ({
+        type: i.type,
+        durationMs: Math.round(i.duration),
+        rating: i.rating,
+      })),
+    };
   };
 
   console.log("%c👆 Interaction Tracking Active", "font-weight: bold; font-size: 14px;");
   console.log("   Interact with the page to see interaction details.");
   console.log("   Call %cgetInteractionSummary()%c for a summary.", "font-family: monospace; background: #f3f4f6; padding: 2px 4px;", "");
+
+  return {
+    script: "Interactions",
+    status: "tracking",
+    message: "Tracking interactions. Interact with the page then call getInteractionSummary() for results.",
+    getDataFn: "getInteractionSummary",
+  };
 })();

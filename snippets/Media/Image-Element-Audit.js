@@ -111,7 +111,7 @@
 
   if (images.length === 0) {
     console.log("No <img> elements found on this page.");
-    return;
+    return { script: "Image-Element-Audit", status: "ok", count: 0, items: [], issues: [] };
   }
 
   const lcpCandidate = findLcpCandidate(images);
@@ -303,4 +303,48 @@
   console.groupEnd();
 
   console.groupEnd();
+
+  const lcpData = lcpCandidate ? audited.find((r) => r.isLcp) : null;
+  return {
+    script: "Image-Element-Audit",
+    status: "ok",
+    count: images.length,
+    details: {
+      totalImages: images.length,
+      inViewport: audited.filter((r) => r.inViewport).length,
+      offViewport: audited.filter((r) => !r.inViewport).length,
+      totalErrors,
+      totalWarnings,
+      totalInfos,
+      lcpCandidate: lcpData
+        ? {
+            selector: shortSrc(lcpData.src),
+            format: lcpData.format,
+            fetchpriority: lcpData.fetchpriority,
+            loading: lcpData.loading,
+            preloaded: !!lcpData.lcpPreload,
+          }
+        : null,
+    },
+    items: audited.map((r) => ({
+      url: r.src,
+      format: r.format,
+      inViewport: r.inViewport,
+      isLCP: r.isLcp,
+      loading: r.loading,
+      decoding: r.decoding,
+      fetchpriority: r.fetchpriority,
+      hasDimensions: r.hasDimensions,
+      hasSrcset: r.hasSrcset,
+      hasSizes: r.hasSizes,
+      inPicture: r.inPicture,
+      issues: r.issues.map((i) => ({ severity: i.s, message: i.msg })),
+    })),
+    issues: audited.flatMap((r) =>
+      r.issues.map((i) => ({
+        severity: i.s,
+        message: `${shortSrc(r.src) || "(no src)"}: ${i.msg}`,
+      }))
+    ),
+  };
 })();

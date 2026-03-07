@@ -481,5 +481,23 @@
 
   console.groupEnd();
 
-  return "✅ Resource Hints Validation complete";
+  return {
+    script: "Resource-Hints-Validation",
+    status: "ok",
+    count: preloadLinks.length + preconnectLinks.length + dnsPrefetchLinks.length,
+    details: {
+      preloadCount: preloadLinks.length,
+      preconnectCount: preconnectLinks.length,
+      dnsPrefetchCount: dnsPrefetchLinks.length,
+      totalResourcesLoaded: resources.length,
+      unusedHints: totalIssues,
+      missingPreconnects: missingHints.length,
+      redundantHints: redundantDomains.length,
+    },
+    issues: [
+      ...(totalIssues > 0 ? [{ severity: "warning", message: `${totalIssues} unused hint(s) waste bandwidth` }] : []),
+      ...(missingHints.length > 0 ? [{ severity: "info", message: `${missingHints.length} domain(s) could benefit from connection hints` }] : []),
+      ...(redundantDomains.length > 0 ? [{ severity: "warning", message: `${redundantDomains.length} domain(s) have both preconnect and dns-prefetch (redundant)` }] : []),
+    ],
+  };
 })();
