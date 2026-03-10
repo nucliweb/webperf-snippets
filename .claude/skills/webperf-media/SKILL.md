@@ -1,28 +1,26 @@
 ---
 name: webperf-media
 description: Intelligent media optimization with automated workflows for images, videos, and SVGs. Includes decision trees that detect LCP images (triggers format/lazy-loading/priority analysis), identify layout shift risks (missing dimensions), and flag lazy loading issues (above-fold lazy or below-fold eager). Features workflows for complete media audit, LCP image investigation, video performance (poster optimization), and SVG embedded bitmap detection. Cross-skill integration with Core Web Vitals (LCP/CLS impact) and Loading (priority hints, resource preloading). Provides performance budgets and format recommendations based on content type. Use when the user asks about image optimization, LCP is an image/video, layout shifts from media, or media loading strategy. Compatible with Chrome DevTools MCP.
+license: MIT
+metadata:
+  author: Joan Leon | @nucliweb
+  version: 1.0.0
+  mcp-server: chrome-devtools
+  category: web-performance
+  repository: https://github.com/nucliweb/webperf-snippets
 ---
 
 # WebPerf: Media Performance
 
 JavaScript snippets for measuring web performance in Chrome DevTools. Execute with `mcp__chrome-devtools__evaluate_script`, capture output with `mcp__chrome-devtools__get_console_message`.
 
-## Available Snippets
+## Scripts
 
-| Snippet | Description | File |
-|---------|-------------|------|
-| Image Element Audit | Audits all <img> elements on the page against image performance best practices — covering loading st | scripts/Image-Element-Audit.js |
-| SVG Embedded Bitmap Analysis | Scans all SVG resources on the page — both external files and inline <svg> elements — and flags any  | scripts/SVG-Embedded-Bitmap-Analysis.js |
-| Video Element Audit | Audits all <video> elements on the page against video performance best practices — covering preload  | scripts/Video-Element-Audit.js |
+- `scripts/Image-Element-Audit.js` — Image Element Audit
+- `scripts/SVG-Embedded-Bitmap-Analysis.js` — SVG Embedded Bitmap Analysis
+- `scripts/Video-Element-Audit.js` — Video Element Audit
 
-## Execution with Chrome DevTools MCP
-
-```
-1. mcp__chrome-devtools__navigate_page  → navigate to target URL
-2. mcp__chrome-devtools__evaluate_script → run snippet code (read from scripts/ file)
-3. mcp__chrome-devtools__get_console_message → capture console output
-4. Interpret results using thresholds below, provide recommendations
-```
+Descriptions and thresholds: `references/snippets.md`
 
 ## Common Workflows
 
@@ -286,28 +284,9 @@ Use these thresholds to trigger recommendations:
 3. Run SVGO on pure SVG
 4. Re-measure file sizes
 
----
+## References
 
----
+- `references/snippets.md` — Descriptions and thresholds for each script
+- `references/schema.md` — Return value schema for interpreting script output
 
-## Image Element Audit
-
-Audits all <img> elements on the page against image performance best practices — covering loading strategy, fetch priority, format modernisation, responsive markup, and CLS prevention.
-
-**Script:** `scripts/Image-Element-Audit.js`
-
----
-
-## SVG Embedded Bitmap Analysis
-
-Scans all SVG resources on the page — both external files and inline <svg> elements — and flags any that contain embedded bitmap images, reporting name, transfer size, compression encoding, and embedded bitmap details.
-
-**Script:** `scripts/SVG-Embedded-Bitmap-Analysis.js`
-
----
-
-## Video Element Audit
-
-Audits all <video> elements on the page against video performance best practices — covering preload strategy, autoplay configuration, format modernisation, CLS prevention, and playback accessibility.
-
-**Script:** `scripts/Video-Element-Audit.js`
+> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.
