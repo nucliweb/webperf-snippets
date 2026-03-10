@@ -19,6 +19,19 @@ const PAGES_DIR = path.join(ROOT, 'pages')
 const SKILLS_DIR = path.join(ROOT, 'skills')
 const CLAUDE_SKILLS_DIR = path.join(ROOT, '.claude', 'skills')
 
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'))
+
+const SKILL_METADATA = {
+  license: pkg.license,
+  metadata: {
+    author: pkg.author,
+    version: pkg.version,
+    'mcp-server': 'chrome-devtools',
+    category: 'web-performance',
+    repository: 'https://github.com/nucliweb/webperf-snippets',
+  },
+}
+
 const CATEGORIES = {
   CoreWebVitals: {
     skill: 'webperf-core-web-vitals',
@@ -221,7 +234,9 @@ async function generateCategorySkill(category, catConfig) {
 
   const skillDir = path.join(SKILLS_DIR, catConfig.skill)
   const scriptsDir = path.join(skillDir, 'scripts')
+  const refsDir = path.join(skillDir, 'references')
   fs.mkdirSync(scriptsDir, { recursive: true })
+  fs.mkdirSync(refsDir, { recursive: true })
 
   for (const snippetFile of snippetFiles) {
     const src = path.join(SNIPPETS_DIR, category, snippetFile)
@@ -230,11 +245,44 @@ async function generateCategorySkill(category, catConfig) {
   }
   console.log(`  built ${snippetFiles.length} scripts to scripts/`)
 
+  // Write references/snippets.md (L3 — loaded on demand)
+  const snippetLines = []
+  for (const meta of metas) {
+    snippetLines.push(`---`)
+    snippetLines.push(`## ${meta.title}`)
+    if (meta.description) {
+      snippetLines.push('')
+      snippetLines.push(meta.description)
+    }
+    snippetLines.push('')
+    snippetLines.push(`**Script:** \`scripts/${meta.basename}.js\``)
+    if (meta.thresholds) {
+      snippetLines.push('')
+      snippetLines.push('**Thresholds:**')
+      snippetLines.push('')
+      snippetLines.push(meta.thresholds)
+    }
+  }
+  fs.writeFileSync(path.join(refsDir, 'snippets.md'), snippetLines.join('\n') + '\n')
+  console.log(`  written: references/snippets.md`)
+
+  // Copy SCHEMA.md to references/schema.md
+  const schemaSrc = path.join(CLAUDE_SKILLS_DIR, 'SCHEMA.md')
+  if (fs.existsSync(schemaSrc)) {
+    fs.copyFileSync(schemaSrc, path.join(refsDir, 'schema.md'))
+    console.log(`  copied: references/schema.md`)
+  }
+
   const lines = []
 
   lines.push('---')
   lines.push(`name: ${catConfig.skill}`)
   lines.push(`description: ${catConfig.description}`)
+  lines.push(`license: ${SKILL_METADATA.license}`)
+  lines.push('metadata:')
+  for (const [key, value] of Object.entries(SKILL_METADATA.metadata)) {
+    lines.push(`  ${key}: ${value}`)
+  }
   lines.push('---')
   lines.push('')
   lines.push(`# WebPerf: ${catConfig.name}`)
@@ -245,60 +293,31 @@ async function generateCategorySkill(category, catConfig) {
   )
   lines.push('')
 
-  lines.push('## Available Snippets')
+  // Compact script list (replaces truncated table)
+  lines.push('## Scripts')
   lines.push('')
-  lines.push('| Snippet | Description | File |')
-  lines.push('|---------|-------------|------|')
   for (const meta of metas) {
-    const desc = meta.description
-      ? meta.description.split(/[.!?]/)[0].slice(0, 100)
-      : meta.title
-    lines.push(`| ${meta.title} | ${desc} | scripts/${meta.basename}.js |`)
+    lines.push(`- \`scripts/${meta.basename}.js\` — ${meta.title}`)
   }
   lines.push('')
-
-  lines.push('## Execution with Chrome DevTools MCP')
-  lines.push('')
-  lines.push('```')
-  lines.push('1. mcp__chrome-devtools__navigate_page  → navigate to target URL')
-  lines.push('2. mcp__chrome-devtools__evaluate_script → run snippet code (read from scripts/ file)')
-  lines.push('3. mcp__chrome-devtools__get_console_message → capture console output')
-  lines.push('4. Interpret results using thresholds below, provide recommendations')
-  lines.push('```')
+  lines.push('Descriptions and thresholds: `references/snippets.md`')
   lines.push('')
 
-  // Inject WORKFLOWS.md if exists
+  // Inject WORKFLOWS.md if exists (no trailing --- to avoid double separator)
   const workflowsPath = path.join(SNIPPETS_DIR, category, 'WORKFLOWS.md')
   if (fs.existsSync(workflowsPath)) {
     const workflowsContent = fs.readFileSync(workflowsPath, 'utf-8').trim()
     lines.push(workflowsContent)
     lines.push('')
-    lines.push('---')
-    lines.push('')
     console.log(`  injected WORKFLOWS.md`)
   }
 
-  for (const meta of metas) {
-    lines.push(`---`)
-    lines.push('')
-    lines.push(`## ${meta.title}`)
-    lines.push('')
-
-    if (meta.description) {
-      lines.push(meta.description)
-      lines.push('')
-    }
-
-    lines.push(`**Script:** \`scripts/${meta.basename}.js\``)
-    lines.push('')
-
-    if (meta.thresholds) {
-      lines.push('**Thresholds:**')
-      lines.push('')
-      lines.push(meta.thresholds)
-      lines.push('')
-    }
-  }
+  lines.push('## References')
+  lines.push('')
+  lines.push('- `references/snippets.md` — Descriptions and thresholds for each script')
+  lines.push('- `references/schema.md` — Return value schema for interpreting script output')
+  lines.push('')
+  lines.push('> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.')
 
   const skillContent = lines.join('\n')
   const skillPath = path.join(skillDir, 'SKILL.md')
@@ -323,6 +342,11 @@ function generateMetaSkill() {
   lines.push(
     'description: Web performance measurement and debugging toolkit. Use when the user asks about web performance, wants to audit a page, or says "analyze performance", "debug lcp", "check ttfb", "measure core web vitals", "audit images", or similar.'
   )
+  lines.push(`license: ${SKILL_METADATA.license}`)
+  lines.push('metadata:')
+  for (const [key, value] of Object.entries(SKILL_METADATA.metadata)) {
+    lines.push(`  ${key}: ${value}`)
+  }
   lines.push('---')
   lines.push('')
   lines.push('# WebPerf Snippets Toolkit')

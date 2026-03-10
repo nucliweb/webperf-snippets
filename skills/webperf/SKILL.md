@@ -1,6 +1,13 @@
 ---
 name: webperf
 description: Web performance measurement and debugging toolkit. Use when the user asks about web performance, wants to audit a page, or says "analyze performance", "debug lcp", "check ttfb", "measure core web vitals", "audit images", or similar.
+license: MIT
+metadata:
+  author: Joan Leon | @nucliweb
+  version: 1.0.0
+  mcp-server: chrome-devtools
+  category: web-performance
+  repository: https://github.com/nucliweb/webperf-snippets
 ---
 
 # WebPerf Snippets Toolkit

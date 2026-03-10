@@ -1,26 +1,24 @@
 ---
 name: webperf-resources
 description: Intelligent network quality analysis with adaptive loading strategies. Detects connection type (2g/3g/4g), bandwidth, RTT, and save-data mode, then automatically triggers appropriate optimization workflows. Includes decision trees that recommend image compression for slow connections, critical CSS inlining for high RTT, and save-data optimizations (disable autoplay, reduce quality). Features connection-aware performance budgets (500KB for 2g, 1.5MB for 3g, 3MB for 4g+) and adaptive loading implementation guides. Cross-skill integration with Loading (TTFB impact), Media (responsive images), and Core Web Vitals (connection impact on LCP/INP). Use when the user asks about slow connections, mobile optimization, save-data support, or adaptive loading strategies. Compatible with Chrome DevTools MCP.
+license: MIT
+metadata:
+  author: Joan Leon | @nucliweb
+  version: 1.0.0
+  mcp-server: chrome-devtools
+  category: web-performance
+  repository: https://github.com/nucliweb/webperf-snippets
 ---
 
 # WebPerf: Resources & Network
 
 JavaScript snippets for measuring web performance in Chrome DevTools. Execute with `mcp__chrome-devtools__evaluate_script`, capture output with `mcp__chrome-devtools__get_console_message`.
 
-## Available Snippets
+## Scripts
 
-| Snippet | Description | File |
-|---------|-------------|------|
-| Network Bandwidth & Connection Quality | Network quality directly affects web performance | scripts/Network-Bandwidth-Connection-Quality.js |
+- `scripts/Network-Bandwidth-Connection-Quality.js` — Network Bandwidth & Connection Quality
 
-## Execution with Chrome DevTools MCP
-
-```
-1. mcp__chrome-devtools__navigate_page  → navigate to target URL
-2. mcp__chrome-devtools__evaluate_script → run snippet code (read from scripts/ file)
-3. mcp__chrome-devtools__get_console_message → capture console output
-4. Interpret results using thresholds below, provide recommendations
-```
+Descriptions and thresholds: `references/snippets.md`
 
 ## Common Workflows
 
@@ -282,21 +280,9 @@ To test adaptive loading implementations:
 - 4g (4 Mbps, RTT 20ms)
 - save-data enabled at each level
 
----
+## References
 
----
+- `references/snippets.md` — Descriptions and thresholds for each script
+- `references/schema.md` — Return value schema for interpreting script output
 
-## Network Bandwidth & Connection Quality
-
-Network quality directly affects web performance. Segmenting metrics by connection type helps identify whether performance issues are infrastructure-related or affect only users on slower connections.
-
-**Script:** `scripts/Network-Bandwidth-Connection-Quality.js`
-
-**Thresholds:**
-
-| Effective Type | Max RTT | Min Downlink |
-|---------------|---------|-------------|
-| `slow-2g` | 2000ms | 50 kbps |
-| `2g` | 1400ms | 70 kbps |
-| `3g` | 270ms | 700 kbps |
-| `4g` | < 270ms | > 700 kbps |
+> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.
