@@ -24,15 +24,25 @@
     const href = link.href;
     const media = link.getAttribute("media") || "all";
 
-    // A stylesheet is render-blocking when it applies to screen without deferral
-    const isRenderBlocking =
-      media === "all" ||
-      media === "" ||
-      media === "screen" ||
-      (media.toLowerCase().includes("screen") &&
-        !media.toLowerCase().includes("print"));
-
     const perfEntry = perfEntries.find((e) => e.name === href);
+
+    // Prefer browser-reported render-blocking status (PerformanceResourceTiming API,
+    // Chrome 107+). This correctly handles the media="print" onload="this.media='all'"
+    // deferral pattern — by page load time the media attribute has already changed to
+    // "all", so a DOM-only check would produce false positives.
+    let isRenderBlocking;
+    if (perfEntry && perfEntry.renderBlockingStatus !== undefined) {
+      isRenderBlocking = perfEntry.renderBlockingStatus === "blocking";
+    } else {
+      // Fallback for browsers without renderBlockingStatus support.
+      // Note: may produce false positives when the media/onload deferral pattern is used.
+      isRenderBlocking =
+        media === "all" ||
+        media === "" ||
+        media === "screen" ||
+        (media.toLowerCase().includes("screen") &&
+          !media.toLowerCase().includes("print"));
+    }
     const transferSize = perfEntry ? perfEntry.transferSize : 0;
     const decodedSize = perfEntry ? perfEntry.decodedBodySize : 0;
 
