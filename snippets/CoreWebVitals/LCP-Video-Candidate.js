@@ -43,13 +43,19 @@
   console.group("%c🎬 LCP Video Candidate", "font-weight: bold; font-size: 14px;");
   console.log("");
 
+  const activationStart = (() => {
+    const nav = performance.getEntriesByType("navigation")[0];
+    return nav?.activationStart || 0;
+  })();
+  const lcpTime = Math.round(Math.max(0, lcp.startTime - activationStart));
+
   // --- LCP is NOT a video ---
   if (!element || element.tagName !== "VIDEO") {
     const tag = element ? `<${element.tagName.toLowerCase()}>` : "(element no longer in DOM)";
-    const rating = valueToRating(lcp.startTime);
+    const rating = valueToRating(lcpTime);
     console.log("%cLCP element is not a <video>", "font-weight: bold;");
     console.log("");
-    console.log(`   LCP time : ${Math.round(lcp.startTime)} ms  ${RATING[rating].icon} ${RATING[rating].label}`);
+    console.log(`   LCP time : ${lcpTime} ms  ${RATING[rating].icon} ${RATING[rating].label}`);
     console.log(`   Tag      : ${tag}`);
     if (lcp.url) console.log(`   URL      : ${lcp.url}`);
     if (element) console.log("   Element  :", element);
@@ -58,7 +64,7 @@
       script: "LCP-Video-Candidate",
       status: "ok",
       metric: "LCP",
-      value: Math.round(lcp.startTime),
+      value: lcpTime,
       unit: "ms",
       rating,
       thresholds: { good: 2500, needsImprovement: 4000 },
@@ -72,7 +78,7 @@
   const posterUrl = posterAttr ? normalizeUrl(posterAttr) : "";
   const lcpUrl = lcp.url || "";
 
-  const rating = valueToRating(lcp.startTime);
+  const rating = valueToRating(lcpTime);
   const posterFormat = detectFormat(lcpUrl || posterUrl);
   const isModernFormat = ["avif", "webp", "jxl"].includes(posterFormat);
   const isCrossOrigin = lcp.renderTime === 0 && lcp.loadTime > 0;
@@ -123,7 +129,7 @@
 
   // LCP metrics
   console.log("%cLCP Metrics", "font-weight: bold;");
-  console.log(`   LCP time    : ${Math.round(lcp.startTime)} ms  ${RATING[rating].icon} ${RATING[rating].label}`);
+  console.log(`   LCP time    : ${lcpTime} ms  ${RATING[rating].icon} ${RATING[rating].label}`);
   console.log(`   Render time : ${lcp.renderTime > 0 ? Math.round(lcp.renderTime) + " ms" : "0 (cross-origin — add Timing-Allow-Origin)"}`);
   console.log(`   Load time   : ${Math.round(lcp.loadTime)} ms`);
   console.log(`   Size        : ${Math.round(lcp.size)} px²`);
@@ -195,7 +201,7 @@
     script: "LCP-Video-Candidate",
     status: "ok",
     metric: "LCP",
-    value: Math.round(lcp.startTime),
+    value: lcpTime,
     unit: "ms",
     rating,
     thresholds: { good: 2500, needsImprovement: 4000 },

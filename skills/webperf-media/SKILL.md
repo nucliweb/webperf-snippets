@@ -21,7 +21,6 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 - `scripts/SVG-Embedded-Bitmap-Analysis.js` — SVG Embedded Bitmap Analysis
 - `scripts/Video-Element-Audit.js` — Video Element Audit
 
-Descriptions and thresholds: `references/snippets.md`
 
 ## Common Workflows
 
@@ -125,6 +124,10 @@ Use this decision tree to automatically run follow-up snippets based on results:
   1. **webperf-loading:Find-Images-With-Lazy-and-Fetchpriority.js** (confirm contradiction)
   2. Recommend removing one of the conflicting attributes
 
+- **If images competing with critical resources** → Run:
+  1. **webperf-loading:Find-render-blocking-resources.js** (resource priority conflicts)
+  2. **webperf-loading:TTFB-Resources.js** (identify slow image CDN)
+
 - **If images missing alt text** → Accessibility issue, recommend adding descriptive alt text
 
 ### After Video-Element-Audit.js
@@ -176,44 +179,6 @@ Use this decision tree to automatically run follow-up snippets based on results:
   - SVG symbols for reusable graphics
   - Extracting to individual optimized images
 
-### Cross-Skill Triggers
-
-These triggers recommend using snippets from other skills:
-
-#### From Media to Core Web Vitals Skill
-
-- **If LCP image detected** → Use **webperf-core-web-vitals** skill:
-  - LCP.js (measure LCP)
-  - LCP-Sub-Parts.js (break down timing phases)
-  - LCP-Image-Entropy.js (analyze image complexity)
-
-- **If video is LCP candidate** → Use **webperf-core-web-vitals** skill:
-  - LCP-Video-Candidate.js (confirm and analyze)
-  - LCP.js (measure impact)
-
-- **If images causing layout shifts** → Use **webperf-core-web-vitals** skill:
-  - CLS.js (measure cumulative shift)
-
-#### From Media to Loading Skill
-
-- **If lazy loading issues detected** → Use **webperf-loading** skill:
-  - Find-Above-The-Fold-Lazy-Loaded-Images.js (incorrectly lazy)
-  - Find-non-Lazy-Loaded-Images-outside-of-the-viewport.js (missing lazy)
-  - Find-Images-With-Lazy-and-Fetchpriority.js (contradictory attributes)
-
-- **If LCP image needs priority optimization** → Use **webperf-loading** skill:
-  - Priority-Hints-Audit.js (fetchpriority analysis)
-  - Resource-Hints-Validation.js (preload validation)
-
-- **If images competing with critical resources** → Use **webperf-loading** skill:
-  - Find-render-blocking-resources.js (resource priority conflicts)
-  - TTFB-Resources.js (identify slow image CDN)
-
-#### From Media to Interaction Skill
-
-- **If images causing layout shifts during interaction** → Use **webperf-interaction** skill:
-  - Layout-Shift-Loading-and-Interaction.js (shift timing analysis)
-
 ### Performance Budget Thresholds
 
 Use these thresholds to trigger recommendations:
@@ -247,47 +212,7 @@ Use these thresholds to trigger recommendations:
 - **Non-LCP images with fetchpriority="high"** → Remove, wasting browser hints
 - **Lazy + fetchpriority="high" conflict** → Fix contradiction
 
-### Common Issues and Resolutions
-
-**Issue: LCP is slow and LCP element is an image**
-1. Run Image-Element-Audit.js
-2. Run webperf-core-web-vitals:LCP-Image-Entropy.js
-3. Check: format, lazy loading, fetchpriority, preload
-4. Fix in order: remove lazy, add fetchpriority="high", optimize format, add preload
-
-**Issue: CLS from images**
-1. Run Image-Element-Audit.js
-2. Check for missing width/height
-3. Add explicit dimensions or aspect-ratio CSS
-4. Verify with webperf-core-web-vitals:CLS.js
-
-**Issue: Page loads too many images**
-1. Run Image-Element-Audit.js
-2. Run webperf-loading:Find-non-Lazy-Loaded-Images-outside-of-the-viewport.js
-3. Implement lazy loading on below-fold images
-4. Consider pagination or infinite scroll
-
-**Issue: Images are the wrong format**
-1. Run Image-Element-Audit.js
-2. Check format vs content type
-3. Recommend WebP with JPEG/PNG fallback
-4. Consider AVIF for even better compression
-
-**Issue: Video is LCP**
-1. Run Video-Element-Audit.js
-2. Run webperf-core-web-vitals:LCP-Video-Candidate.js
-3. Optimize poster image or consider static image alternative
-4. Add fetchpriority="high" to poster if keeping video
-
-**Issue: SVG files are huge**
-1. Run SVG-Embedded-Bitmap-Analysis.js
-2. Extract embedded bitmaps
-3. Run SVGO on pure SVG
-4. Re-measure file sizes
-
 ## References
 
 - `references/snippets.md` — Descriptions and thresholds for each script
 - `references/schema.md` — Return value schema for interpreting script output
-
-> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.

@@ -16,9 +16,9 @@
 
   const SUB_PARTS = [
     { name: "Time to First Byte", key: "ttfb", target: 800 },
-    { name: "Resource Load Delay", key: "loadDelay", targetPercent: 10 },
-    { name: "Resource Load Time", key: "loadTime", targetPercent: 40 },
-    { name: "Element Render Delay", key: "renderDelay", targetPercent: 10 },
+    { name: "Resource Load Delay", key: "resourceLoadDelay", targetPercent: 10 },
+    { name: "Resource Load Time", key: "resourceLoadTime", targetPercent: 40 },
+    { name: "Element Render Delay", key: "elementRenderDelay", targetPercent: 10 },
   ];
 
   const getNavigationEntry = () => {
@@ -64,9 +64,9 @@
 
     const subPartValues = {
       ttfb: ttfb,
-      loadDelay: lcpRequestStart - ttfb,
-      loadTime: lcpResponseEnd - lcpRequestStart,
-      renderDelay: lcpRenderTime - lcpResponseEnd,
+      resourceLoadDelay: lcpRequestStart - ttfb,
+      resourceLoadTime: lcpResponseEnd - lcpRequestStart,
+      elementRenderDelay: lcpRenderTime - lcpResponseEnd,
     };
 
     // LCP Rating
@@ -92,7 +92,14 @@
       console.log("%cLCP Element:", "font-weight: bold;");
       console.log(`   ${selector}`, el);
       if (lcpEntry.url) {
-        const shortUrl = lcpEntry.url.split("/").pop()?.split("?")[0] || lcpEntry.url;
+        const shortUrl = (() => {
+          try {
+            const u = new URL(lcpEntry.url);
+            return u.hostname !== location.hostname
+              ? `${u.hostname}/…/${u.pathname.split("/").pop()?.split("?")[0]}`
+              : u.pathname.split("/").pop()?.split("?")[0] || lcpEntry.url;
+          } catch { return lcpEntry.url; }
+        })();
         console.log(`   URL: ${shortUrl}`);
       }
 
@@ -155,15 +162,15 @@
       console.log("   → Use a CDN to reduce latency");
       console.log("   → Enable server-side caching");
       console.log("   → Optimize server response time");
-    } else if (slowest.key === "loadDelay") {
+    } else if (slowest.key === "resourceLoadDelay") {
       console.log("   → Preload the LCP image: <link rel=\"preload\" as=\"image\" href=\"...\">");
       console.log("   → Remove render-blocking resources");
       console.log("   → Inline critical CSS");
-    } else if (slowest.key === "loadTime") {
+    } else if (slowest.key === "resourceLoadTime") {
       console.log("   → Compress and resize the LCP image");
       console.log("   → Use modern formats (WebP, AVIF)");
       console.log("   → Use a CDN for faster delivery");
-    } else if (slowest.key === "renderDelay") {
+    } else if (slowest.key === "elementRenderDelay") {
       console.log("   → Reduce render-blocking JavaScript");
       console.log("   → Avoid client-side rendering for LCP element");
       console.log("   → Use fetchpriority=\"high\" on LCP image");
@@ -175,9 +182,9 @@
     phases.forEach((part) => {
       const startTimes = {
         ttfb: 0,
-        loadDelay: ttfb,
-        loadTime: lcpRequestStart,
-        renderDelay: lcpResponseEnd,
+        resourceLoadDelay: ttfb,
+        resourceLoadTime: lcpRequestStart,
+        elementRenderDelay: lcpResponseEnd,
       };
       performance.measure(part.name, {
         start: startTimes[part.key],
@@ -242,7 +249,14 @@
     }
   }
   const shortUrlSync = lcpEntry.url
-    ? (lcpEntry.url.split("/").pop()?.split("?")[0] || lcpEntry.url)
+    ? (() => {
+        try {
+          const u = new URL(lcpEntry.url);
+          return u.hostname !== location.hostname
+            ? `${u.hostname}/…/${u.pathname.split("/").pop()?.split("?")[0]}`
+            : u.pathname.split("/").pop()?.split("?")[0] || lcpEntry.url;
+        } catch { return lcpEntry.url; }
+      })()
     : null;
   return {
     script: "LCP-Sub-Parts",

@@ -46,7 +46,6 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 - `scripts/TTFB.js` — Time To First Byte: Measure the time to first byte
 - `scripts/Validate-Preload-Async-Defer-Scripts.js` — Validate Preload on Async/Defer Scripts
 
-Descriptions and thresholds: `references/snippets.md`
 
 ## Common Workflows
 
@@ -107,15 +106,6 @@ When CSS is bloated or blocking rendering:
 2. **Inline-CSS-Info-and-Size.js** - Measure inline CSS overhead
 3. **CSS-Media-Queries-Analysis.js** - Find unused responsive CSS
 4. **Find-render-blocking-resources.js** - Identify blocking stylesheets
-
-### Image Loading Audit
-
-When images are suspected to cause loading issues:
-
-1. **Find-Above-The-Fold-Lazy-Loaded-Images.js** - Check for lazy-loading anti-patterns
-2. **Find-non-Lazy-Loaded-Images-outside-of-the-viewport.js** - Find missed optimization opportunities
-3. **Find-Images-With-Lazy-and-Fetchpriority.js** - Detect contradictory attributes
-4. **Priority-Hints-Audit.js** - Verify LCP image has fetchpriority="high"
 
 ### SSR/Framework Performance
 
@@ -225,5 +215,3 @@ Use this decision tree to automatically run follow-up snippets based on results:
 
 - `references/snippets.md` — Descriptions and thresholds for each script
 - `references/schema.md` — Return value schema for interpreting script output
-
-> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.

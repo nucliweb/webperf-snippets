@@ -2,6 +2,7 @@
 /**
  * Generates skill.md files from /snippets/ JS files + /pages/ MDX documentation.
  * Output: /skills/webperf-{category}/skill.md + scripts/*.js
+ *         /dist/webperf-{category}/*.js  (readable, no console, no headers — for external repos)
  *
  * Run: node scripts/generate-skills.js
  */
@@ -18,6 +19,7 @@ const SNIPPETS_DIR = path.join(ROOT, 'snippets')
 const PAGES_DIR = path.join(ROOT, 'pages')
 const SKILLS_DIR = path.join(ROOT, 'skills')
 const CLAUDE_SKILLS_DIR = path.join(ROOT, '.claude', 'skills')
+const DIST_DIR = path.join(ROOT, 'dist')
 
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'))
 
@@ -63,6 +65,42 @@ const CATEGORIES = {
     description:
       'Intelligent network quality analysis with adaptive loading strategies. Detects connection type (2g/3g/4g), bandwidth, RTT, and save-data mode, then automatically triggers appropriate optimization workflows. Includes decision trees that recommend image compression for slow connections, critical CSS inlining for high RTT, and save-data optimizations (disable autoplay, reduce quality). Features connection-aware performance budgets (500KB for 2g, 1.5MB for 3g, 3MB for 4g+) and adaptive loading implementation guides. Cross-skill integration with Loading (TTFB impact), Media (responsive images), and Core Web Vitals (connection impact on LCP/INP). Use when the user asks about slow connections, mobile optimization, save-data support, or adaptive loading strategies. Compatible with Chrome DevTools MCP.',
   },
+}
+
+// Strips leading header comment lines (// Title\n// URL\n) before the IIFE
+function stripHeaderComments(source) {
+  return source.replace(/^(\/\/[^\n]*\n)+\n*/, '')
+}
+
+async function buildReadableScript(src, dst) {
+  const source = fs.readFileSync(src, 'utf-8')
+  const stripped = stripHeaderComments(source)
+
+  let code
+  try {
+    const result = await minify(stripped, {
+      compress: {
+        defaults: false,     // disable all default transforms
+        drop_console: true,  // only remove console.* calls
+        unused: true,        // remove vars made dead by console removal
+        dead_code: true,     // remove unreachable code
+        passes: 2,
+      },
+      mangle: false,
+      format: { beautify: true, comments: false, indent_level: 2 },
+    })
+    code = result.code
+      // Remove void 0 placeholders left by drop_console
+      .replace(/^\s*void 0;\s*\n/gm, '')
+      // Restore number literals: 1e4 → 10000, .1 → 0.1
+      .replace(/\b(\d+(?:\.\d+)?)e(\d+)\b/g, (_, m, e) => String(Number(`${m}e${e}`)))
+      .replace(/(?<![.\w])\.(\d)/g, '0.$1')
+  } catch (err) {
+    console.warn(`  ⚠ readable minify failed for ${path.basename(src)}: ${err.message} — stripping comments only`)
+    code = stripped
+  }
+
+  fs.writeFileSync(dst, code + '\n')
 }
 
 async function buildScript(src, dst, relPath) {
@@ -235,15 +273,17 @@ async function generateCategorySkill(category, catConfig) {
   const skillDir = path.join(SKILLS_DIR, catConfig.skill)
   const scriptsDir = path.join(skillDir, 'scripts')
   const refsDir = path.join(skillDir, 'references')
+  const distDir = path.join(DIST_DIR, catConfig.skill)
   fs.mkdirSync(scriptsDir, { recursive: true })
   fs.mkdirSync(refsDir, { recursive: true })
+  fs.mkdirSync(distDir, { recursive: true })
 
   for (const snippetFile of snippetFiles) {
     const src = path.join(SNIPPETS_DIR, category, snippetFile)
-    const dst = path.join(scriptsDir, snippetFile)
-    await buildScript(src, dst, `snippets/${category}/${snippetFile}`)
+    await buildScript(src, path.join(scriptsDir, snippetFile), `snippets/${category}/${snippetFile}`)
+    await buildReadableScript(src, path.join(distDir, snippetFile))
   }
-  console.log(`  built ${snippetFiles.length} scripts to scripts/`)
+  console.log(`  built ${snippetFiles.length} scripts to scripts/ and dist/`)
 
   // Write references/snippets.md (L3 — loaded on demand)
   const snippetLines = []
@@ -301,7 +341,6 @@ async function generateCategorySkill(category, catConfig) {
     lines.push(`- \`scripts/${meta.basename}.js\` — ${meta.title}`)
   }
   lines.push('')
-  lines.push('Descriptions and thresholds: `references/snippets.md`')
   lines.push('')
 
   // Inject WORKFLOWS.md if exists (no trailing --- to avoid double separator)
@@ -317,8 +356,6 @@ async function generateCategorySkill(category, catConfig) {
   lines.push('')
   lines.push('- `references/snippets.md` — Descriptions and thresholds for each script')
   lines.push('- `references/schema.md` — Return value schema for interpreting script output')
-  lines.push('')
-  lines.push('> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.')
 
   const skillContent = lines.join('\n')
   const skillPath = path.join(skillDir, 'SKILL.md')
@@ -359,35 +396,20 @@ function generateMetaSkill() {
   )
   lines.push('')
 
-  lines.push('## Skills by Category')
-  lines.push('')
-  lines.push('| Skill | Snippets | Use when |')
-  lines.push('|-------|----------|----------|')
-  for (const [category, config] of Object.entries(CATEGORIES)) {
-    const count = getSnippetFiles(category).length
-    const useWhen = config.description.split('.')[0]
-    lines.push(`| ${config.skill} | ${count} | ${useWhen} |`)
-  }
-  lines.push('')
-
   lines.push('## Quick Reference')
   lines.push('')
-  lines.push('| User says | Skill to use |')
-  lines.push('|-----------|--------------|')
-  lines.push('| "debug LCP", "slow LCP", "largest contentful paint" | webperf-core-web-vitals |')
-  lines.push('| "check CLS", "layout shifts", "visual stability" | webperf-core-web-vitals |')
-  lines.push('| "INP", "interaction latency", "responsiveness" | webperf-core-web-vitals |')
-  lines.push('| "TTFB", "slow server", "time to first byte" | webperf-loading |')
-  lines.push('| "FCP", "first contentful paint", "render blocking" | webperf-loading |')
-  lines.push('| "font loading", "script loading", "resource hints", "service worker" | webperf-loading |')
-  lines.push('| "jank", "scroll performance", "long tasks", "animation frames", "INP debug" | webperf-interaction |')
-  lines.push('| "image audit", "lazy loading", "image optimization", "video audit" | webperf-media |')
-  lines.push('| "network quality", "bandwidth", "connection type", "save-data" | webperf-resources |')
+  lines.push('| Skill | Snippets | Trigger phrases |')
+  lines.push('|-------|----------|-----------------|')
+  lines.push(`| webperf-core-web-vitals | ${getSnippetFiles('CoreWebVitals').length} | "debug LCP", "slow LCP", "CLS", "layout shifts", "INP", "interaction latency", "responsiveness" |`)
+  lines.push(`| webperf-loading | ${getSnippetFiles('Loading').length} | "TTFB", "slow server", "FCP", "render blocking", "font loading", "script loading", "resource hints", "service worker" |`)
+  lines.push(`| webperf-interaction | ${getSnippetFiles('Interaction').length} | "jank", "scroll performance", "long tasks", "animation frames", "INP debug" |`)
+  lines.push(`| webperf-media | ${getSnippetFiles('Media').length} | "image audit", "lazy loading", "image optimization", "video audit" |`)
+  lines.push(`| webperf-resources | ${getSnippetFiles('Resources').length} | "network quality", "bandwidth", "connection type", "save-data" |`)
   lines.push('')
 
   lines.push('## Workflow')
   lines.push('')
-  lines.push('1. Identify the relevant skill based on the user\'s question (use Quick Reference above)')
+  lines.push('1. Identify the relevant skill based on the user\'s question (see Quick Reference above)')
   lines.push('2. Load the skill\'s skill.md to see available snippets and thresholds')
   lines.push('3. Execute with Chrome DevTools MCP:')
   lines.push('   - `mcp__chrome-devtools__navigate_page` → navigate to target URL')
@@ -449,6 +471,8 @@ async function main() {
       const destPath = path.join(dest, entry.name)
 
       if (entry.isDirectory()) {
+        // Replace dest subdirectory entirely to avoid stale files
+        if (fs.existsSync(destPath)) fs.rmSync(destPath, { recursive: true, force: true })
         copyRecursive(srcPath, destPath)
       } else {
         fs.copyFileSync(srcPath, destPath)

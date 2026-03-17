@@ -75,5 +75,7 @@
     unit: "score",
     rating: clsRating,
     thresholds: { good: 0.1, needsImprovement: 0.25 },
+    message: "CLS tracking active. Call getCLS() for updated value after page interactions.",
+    getDataFn: "getCLS",
   };
 })();
