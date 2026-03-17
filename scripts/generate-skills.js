@@ -65,6 +65,42 @@ const CATEGORIES = {
   },
 }
 
+// Strips leading header comment lines (// Title\n// URL\n) before the IIFE
+function stripHeaderComments(source) {
+  return source.replace(/^(\/\/[^\n]*\n)+\n*/, '')
+}
+
+async function buildReadableScript(src, dst) {
+  const source = fs.readFileSync(src, 'utf-8')
+  const stripped = stripHeaderComments(source)
+
+  let code
+  try {
+    const result = await minify(stripped, {
+      compress: {
+        defaults: false,     // disable all default transforms
+        drop_console: true,  // only remove console.* calls
+        unused: true,        // remove vars made dead by console removal
+        dead_code: true,     // remove unreachable code
+        passes: 2,
+      },
+      mangle: false,
+      format: { beautify: true, comments: false, indent_level: 2 },
+    })
+    code = result.code
+      // Remove void 0 placeholders left by drop_console
+      .replace(/^\s*void 0;\s*\n/gm, '')
+      // Restore number literals: 1e4 → 10000, .1 → 0.1
+      .replace(/\b(\d+(?:\.\d+)?)e(\d+)\b/g, (_, m, e) => String(Number(`${m}e${e}`)))
+      .replace(/(?<![.\w])\.(\d)/g, '0.$1')
+  } catch (err) {
+    console.warn(`  ⚠ readable minify failed for ${path.basename(src)}: ${err.message} — stripping comments only`)
+    code = stripped
+  }
+
+  fs.writeFileSync(dst, code + '\n')
+}
+
 async function buildScript(src, dst, relPath) {
   const source = fs.readFileSync(src, 'utf-8')
   const hash = createHash('sha256').update(source).digest('hex').slice(0, 16)
@@ -234,16 +270,18 @@ async function generateCategorySkill(category, catConfig) {
 
   const skillDir = path.join(SKILLS_DIR, catConfig.skill)
   const scriptsDir = path.join(skillDir, 'scripts')
+  const scriptsReadableDir = path.join(skillDir, 'scripts-readable')
   const refsDir = path.join(skillDir, 'references')
   fs.mkdirSync(scriptsDir, { recursive: true })
+  fs.mkdirSync(scriptsReadableDir, { recursive: true })
   fs.mkdirSync(refsDir, { recursive: true })
 
   for (const snippetFile of snippetFiles) {
     const src = path.join(SNIPPETS_DIR, category, snippetFile)
-    const dst = path.join(scriptsDir, snippetFile)
-    await buildScript(src, dst, `snippets/${category}/${snippetFile}`)
+    await buildScript(src, path.join(scriptsDir, snippetFile), `snippets/${category}/${snippetFile}`)
+    await buildReadableScript(src, path.join(scriptsReadableDir, snippetFile))
   }
-  console.log(`  built ${snippetFiles.length} scripts to scripts/`)
+  console.log(`  built ${snippetFiles.length} scripts to scripts/ and scripts-readable/`)
 
   // Write references/snippets.md (L3 — loaded on demand)
   const snippetLines = []

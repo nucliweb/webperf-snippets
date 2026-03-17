@@ -1,0 +1,162 @@
+(function() {
+  function getSelector(node) {
+    let sel = "";
+    try {
+      while (node && node.nodeType !== 9) {
+        const el = node;
+        const name = el.nodeName.toLowerCase();
+        const part = el.id ? "#" + el.id : name + (el.classList && el.classList.value && el.classList.value.trim() ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".") : "");
+        if (sel.length + part.length > 80) return sel || part;
+        sel = sel ? part + ">" + sel : part;
+        if (el.id) break;
+        node = el.parentNode;
+      }
+    } catch (err) {}
+    return sel;
+  }
+  function isInViewport(element) {
+    const rect = element.getBoundingClientRect();
+    return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
+  }
+  function isInHiddenContainer(element) {
+    let parent = element.parentElement;
+    const hiddenSelectors = [ "[hidden]", '[aria-hidden="true"]', ".modal:not(.show)", ".tab-pane:not(.active)", '[role="tabpanel"]:not(.active)', ".accordion-collapse:not(.show)", ".carousel-item:not(.active)", ".swiper-slide:not(.swiper-slide-active)" ];
+    while (parent && parent !== document.body) {
+      const cs = window.getComputedStyle(parent);
+      if (cs.display === "none" || cs.visibility === "hidden") return {
+        hidden: true,
+        reason: "CSS hidden",
+        container: getSelector(parent)
+      };
+      for (const selector of hiddenSelectors) try {
+        if (parent.matches(selector)) return {
+          hidden: true,
+          reason: selector,
+          container: getSelector(parent)
+        };
+      } catch (e) {}
+      parent = parent.parentElement;
+    }
+    return {
+      hidden: false
+    };
+  }
+  function getImageSize(imgElement) {
+    const src = imgElement.currentSrc || imgElement.src;
+    if (!src || src.startsWith("data:")) return 0;
+    const perfEntries = performance.getEntriesByType("resource");
+    const imgEntry = perfEntries.find(entry => entry.name === src);
+    if (imgEntry) return imgEntry.transferSize || imgEntry.encodedBodySize || 0;
+    return 0;
+  }
+  function formatBytes(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = [ "Bytes", "KB", "MB", "GB" ];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+  }
+  const allViewportImages = Array.from(document.querySelectorAll("img")).filter(img => isInViewport(img) && img.getBoundingClientRect().width > 0);
+  let lcpCandidate = null;
+  let maxArea = 0;
+  allViewportImages.forEach(img => {
+    const rect = img.getBoundingClientRect();
+    const area = rect.width * rect.height;
+    if (area > maxArea) {
+      maxArea = area;
+      lcpCandidate = img;
+    }
+  });
+  const notLazyImages = document.querySelectorAll('img:not([data-src]):not([loading="lazy"])');
+  const results = {
+    belowFold: [],
+    hiddenContainers: [],
+    excluded: {
+      inViewport: 0,
+      lcpCandidate: null,
+      tooSmall: 0
+    },
+    elements: []
+  };
+  notLazyImages.forEach(img => {
+    const rect = img.getBoundingClientRect();
+    if (isInViewport(img)) {
+      if (img === lcpCandidate) results.excluded.lcpCandidate = getSelector(img); else results.excluded.inViewport++;
+      return;
+    }
+    if (rect.width < 50 || rect.height < 50) {
+      results.excluded.tooSmall++;
+      return;
+    }
+    const src = img.currentSrc || img.src;
+    const size = getImageSize(img);
+    const hiddenCheck = isInHiddenContainer(img);
+    const imageData = {
+      selector: getSelector(img),
+      src: src.length > 60 ? "..." + src.slice(-57) : src,
+      fullSrc: src,
+      dimensions: `${img.naturalWidth}×${img.naturalHeight}`,
+      size: size,
+      sizeFormatted: size > 0 ? formatBytes(size) : "unknown",
+      element: img
+    };
+    if (hiddenCheck.hidden) {
+      imageData.hiddenReason = hiddenCheck.reason;
+      imageData.container = hiddenCheck.container;
+      results.hiddenContainers.push(imageData);
+    } else {
+      imageData.distanceFromViewport = Math.round(rect.top - window.innerHeight) + "px";
+      results.belowFold.push(imageData);
+    }
+    results.elements.push(img);
+  });
+  results.belowFold.sort((a, b) => parseInt(b.distanceFromViewport) - parseInt(a.distanceFromViewport));
+  const totalImages = results.belowFold.length + results.hiddenContainers.length;
+  const totalSize = [ ...results.belowFold, ...results.hiddenContainers ].reduce((sum, img) => sum + img.size, 0);
+  if (totalImages === 0) void 0; else {
+    if (totalSize > 0) void 0;
+    if (results.belowFold.length > 0) {
+      results.belowFold.slice(0, 20).map(({element: element, fullSrc: fullSrc, ...rest}) => rest);
+      if (results.belowFold.length > 20) void 0;
+    }
+    if (results.hiddenContainers.length > 0) {
+      results.hiddenContainers.slice(0, 15).map(({element: element, fullSrc: fullSrc, distanceFromViewport: distanceFromViewport, ...rest}) => rest);
+      if (results.hiddenContainers.length > 15) void 0;
+    }
+    results.elements.slice(0, 15).forEach((img, i) => {});
+    if (results.elements.length > 15) void 0;
+  }
+  return {
+    script: "Find-non-Lazy-Loaded-Images-outside-of-the-viewport",
+    status: "ok",
+    count: totalImages,
+    details: {
+      belowFoldCount: results.belowFold.length,
+      hiddenContainerCount: results.hiddenContainers.length,
+      totalSizeBytes: totalSize,
+      excluded: {
+        inViewport: results.excluded.inViewport,
+        lcpCandidate: results.excluded.lcpCandidate,
+        tooSmall: results.excluded.tooSmall
+      }
+    },
+    items: [ ...results.belowFold.map(img => ({
+      selector: img.selector,
+      src: img.fullSrc,
+      sizeBytes: img.size,
+      category: "below-fold",
+      distancePx: parseInt(img.distanceFromViewport)
+    })), ...results.hiddenContainers.map(img => ({
+      selector: img.selector,
+      src: img.fullSrc,
+      sizeBytes: img.size,
+      category: "hidden-container",
+      hiddenReason: img.hiddenReason,
+      container: img.container
+    })) ],
+    issues: totalImages > 0 ? [ {
+      severity: "warning",
+      message: `${totalImages} image(s) outside the viewport are missing loading="lazy"`
+    } ] : []
+  };
+})();
