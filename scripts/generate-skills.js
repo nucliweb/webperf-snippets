@@ -278,6 +278,7 @@ async function generateCategorySkill(category, catConfig) {
   lines.push('---')
   lines.push(`name: ${catConfig.skill}`)
   lines.push(`description: ${catConfig.description}`)
+  lines.push('context: fork')
   lines.push(`license: ${SKILL_METADATA.license}`)
   lines.push('metadata:')
   for (const [key, value] of Object.entries(SKILL_METADATA.metadata)) {
@@ -342,6 +343,7 @@ function generateMetaSkill() {
   lines.push(
     'description: Web performance measurement and debugging toolkit. Use when the user asks about web performance, wants to audit a page, or says "analyze performance", "debug lcp", "check ttfb", "measure core web vitals", "audit images", or similar.'
   )
+  lines.push('context: fork')
   lines.push(`license: ${SKILL_METADATA.license}`)
   lines.push('metadata:')
   for (const [key, value] of Object.entries(SKILL_METADATA.metadata)) {
