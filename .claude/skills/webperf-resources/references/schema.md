@@ -186,6 +186,7 @@ Keep the existing `async () => {}` wrapper. Add a `return` statement with struct
 ```
 
 #### CLS
+Returns buffered CLS immediately and keeps tracking. Always call `getCLS()` after interactions to get an updated value.
 ```json
 {
   "script": "CLS",
@@ -194,9 +195,12 @@ Keep the existing `async () => {}` wrapper. Add a `return` statement with struct
   "value": 0.05,
   "unit": "score",
   "rating": "good",
-  "thresholds": { "good": 0.1, "needsImprovement": 0.25 }
+  "thresholds": { "good": 0.1, "needsImprovement": 0.25 },
+  "message": "CLS tracking active. Call getCLS() for updated value after page interactions.",
+  "getDataFn": "getCLS"
 }
 ```
+`getCLS()` returns the same shape with the latest accumulated value.
 
 #### INP (tracking)
 ```json
@@ -223,6 +227,15 @@ Keep the existing `async () => {}` wrapper. Add a `return` statement with struct
     "phases": { "inputDelay": 120, "processingTime": 180, "presentationDelay": 50 }
   }
 }
+```
+If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "getINP"` — retry after user interaction.
+
+`getINPDetails()` returns the full sorted interaction list (array of up to 15 entries). Use when `getINP()` shows poor INP and you need to identify patterns across multiple slow interactions:
+```json
+[
+  { "formattedName": "click → button.submit", "duration": 450, "startTime": 1200,
+    "phases": { "inputDelay": 120, "processingTime": 280, "presentationDelay": 50 } }
+]
 ```
 
 #### LCP-Sub-Parts
