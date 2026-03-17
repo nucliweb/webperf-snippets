@@ -2,6 +2,7 @@
 /**
  * Generates skill.md files from /snippets/ JS files + /pages/ MDX documentation.
  * Output: /skills/webperf-{category}/skill.md + scripts/*.js
+ *         /dist/webperf-{category}/*.js  (readable, no console, no headers — for external repos)
  *
  * Run: node scripts/generate-skills.js
  */
@@ -18,6 +19,7 @@ const SNIPPETS_DIR = path.join(ROOT, 'snippets')
 const PAGES_DIR = path.join(ROOT, 'pages')
 const SKILLS_DIR = path.join(ROOT, 'skills')
 const CLAUDE_SKILLS_DIR = path.join(ROOT, '.claude', 'skills')
+const DIST_DIR = path.join(ROOT, 'dist')
 
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'))
 
@@ -270,18 +272,18 @@ async function generateCategorySkill(category, catConfig) {
 
   const skillDir = path.join(SKILLS_DIR, catConfig.skill)
   const scriptsDir = path.join(skillDir, 'scripts')
-  const scriptsReadableDir = path.join(skillDir, 'scripts-readable')
   const refsDir = path.join(skillDir, 'references')
+  const distDir = path.join(DIST_DIR, catConfig.skill)
   fs.mkdirSync(scriptsDir, { recursive: true })
-  fs.mkdirSync(scriptsReadableDir, { recursive: true })
   fs.mkdirSync(refsDir, { recursive: true })
+  fs.mkdirSync(distDir, { recursive: true })
 
   for (const snippetFile of snippetFiles) {
     const src = path.join(SNIPPETS_DIR, category, snippetFile)
     await buildScript(src, path.join(scriptsDir, snippetFile), `snippets/${category}/${snippetFile}`)
-    await buildReadableScript(src, path.join(scriptsReadableDir, snippetFile))
+    await buildReadableScript(src, path.join(distDir, snippetFile))
   }
-  console.log(`  built ${snippetFiles.length} scripts to scripts/ and scripts-readable/`)
+  console.log(`  built ${snippetFiles.length} scripts to scripts/ and dist/`)
 
   // Write references/snippets.md (L3 — loaded on demand)
   const snippetLines = []
