@@ -58,15 +58,6 @@ When CSS is bloated or blocking rendering:
 3. **CSS-Media-Queries-Analysis.js** - Find unused responsive CSS
 4. **Find-render-blocking-resources.js** - Identify blocking stylesheets
 
-### Image Loading Audit
-
-When images are suspected to cause loading issues:
-
-1. **Find-Above-The-Fold-Lazy-Loaded-Images.js** - Check for lazy-loading anti-patterns
-2. **Find-non-Lazy-Loaded-Images-outside-of-the-viewport.js** - Find missed optimization opportunities
-3. **Find-Images-With-Lazy-and-Fetchpriority.js** - Detect contradictory attributes
-4. **Priority-Hints-Audit.js** - Verify LCP image has fetchpriority="high"
-
 ### SSR/Framework Performance
 
 When analyzing Next.js, Nuxt, Remix, or other SSR frameworks:

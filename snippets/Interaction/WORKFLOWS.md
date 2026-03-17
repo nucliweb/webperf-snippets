@@ -76,7 +76,7 @@ Use this decision tree to automatically run follow-up snippets based on results:
 
 ### After Interactions.js
 
-- **If any interaction > 200ms** → Run **Input-Latency-Breakdown.js** on slow interactions
+- **If any interaction > 200ms** → Run **Input-Latency-Breakdown.js** on slow interactions; also run **webperf-core-web-vitals:INP.js** for official INP measurement
 - **If many interactions > 200ms** → Main thread congestion, run:
   1. **Long-Animation-Frames.js** (blocking frames)
   2. **LongTask.js** (long tasks)
@@ -158,36 +158,6 @@ This is a utility snippet, use results to:
 - Identify precise script attribution
 - Measure style/layout/paint phases
 - No automatic follow-up, use data to inform next steps
-
-### Cross-Skill Triggers
-
-These triggers recommend using snippets from other skills:
-
-#### From Interaction to Core Web Vitals Skill
-
-- **If INP > 200ms detected** → Use **webperf-core-web-vitals** skill:
-  - INP.js (official INP measurement)
-  - LCP-Sub-Parts.js (if render delay is causing INP)
-
-- **If layout shifts during interaction** → Use **webperf-core-web-vitals** skill:
-  - CLS.js (measure cumulative impact)
-  - LCP-Trail.js (check if shifts affect LCP candidate)
-
-#### From Interaction to Loading Skill
-
-- **If long frames caused by script execution** → Use **webperf-loading** skill:
-  - JS-Execution-Time-Breakdown.js (parsing vs execution time)
-  - First-And-Third-Party-Script-Info.js (identify heavy scripts)
-  - Script-Loading.js (check for blocking patterns)
-
-- **If interactions slow during page load** → Use **webperf-loading** skill:
-  - Event-Processing-Time.js (page load phases)
-  - Find-render-blocking-resources.js (competing resources)
-
-#### From Interaction to Media Skill
-
-- **If layout shifts involve images** → Use **webperf-media** skill:
-  - Image-Element-Audit.js (check for missing dimensions)
 
 ### Performance Budget Thresholds
 

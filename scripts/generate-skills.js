@@ -301,7 +301,6 @@ async function generateCategorySkill(category, catConfig) {
     lines.push(`- \`scripts/${meta.basename}.js\` — ${meta.title}`)
   }
   lines.push('')
-  lines.push('Descriptions and thresholds: `references/snippets.md`')
   lines.push('')
 
   // Inject WORKFLOWS.md if exists (no trailing --- to avoid double separator)
@@ -317,8 +316,6 @@ async function generateCategorySkill(category, catConfig) {
   lines.push('')
   lines.push('- `references/snippets.md` — Descriptions and thresholds for each script')
   lines.push('- `references/schema.md` — Return value schema for interpreting script output')
-  lines.push('')
-  lines.push('> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.')
 
   const skillContent = lines.join('\n')
   const skillPath = path.join(skillDir, 'SKILL.md')
@@ -359,35 +356,20 @@ function generateMetaSkill() {
   )
   lines.push('')
 
-  lines.push('## Skills by Category')
-  lines.push('')
-  lines.push('| Skill | Snippets | Use when |')
-  lines.push('|-------|----------|----------|')
-  for (const [category, config] of Object.entries(CATEGORIES)) {
-    const count = getSnippetFiles(category).length
-    const useWhen = config.description.split('.')[0]
-    lines.push(`| ${config.skill} | ${count} | ${useWhen} |`)
-  }
-  lines.push('')
-
   lines.push('## Quick Reference')
   lines.push('')
-  lines.push('| User says | Skill to use |')
-  lines.push('|-----------|--------------|')
-  lines.push('| "debug LCP", "slow LCP", "largest contentful paint" | webperf-core-web-vitals |')
-  lines.push('| "check CLS", "layout shifts", "visual stability" | webperf-core-web-vitals |')
-  lines.push('| "INP", "interaction latency", "responsiveness" | webperf-core-web-vitals |')
-  lines.push('| "TTFB", "slow server", "time to first byte" | webperf-loading |')
-  lines.push('| "FCP", "first contentful paint", "render blocking" | webperf-loading |')
-  lines.push('| "font loading", "script loading", "resource hints", "service worker" | webperf-loading |')
-  lines.push('| "jank", "scroll performance", "long tasks", "animation frames", "INP debug" | webperf-interaction |')
-  lines.push('| "image audit", "lazy loading", "image optimization", "video audit" | webperf-media |')
-  lines.push('| "network quality", "bandwidth", "connection type", "save-data" | webperf-resources |')
+  lines.push('| Skill | Snippets | Trigger phrases |')
+  lines.push('|-------|----------|-----------------|')
+  lines.push(`| webperf-core-web-vitals | ${getSnippetFiles('CoreWebVitals').length} | "debug LCP", "slow LCP", "CLS", "layout shifts", "INP", "interaction latency", "responsiveness" |`)
+  lines.push(`| webperf-loading | ${getSnippetFiles('Loading').length} | "TTFB", "slow server", "FCP", "render blocking", "font loading", "script loading", "resource hints", "service worker" |`)
+  lines.push(`| webperf-interaction | ${getSnippetFiles('Interaction').length} | "jank", "scroll performance", "long tasks", "animation frames", "INP debug" |`)
+  lines.push(`| webperf-media | ${getSnippetFiles('Media').length} | "image audit", "lazy loading", "image optimization", "video audit" |`)
+  lines.push(`| webperf-resources | ${getSnippetFiles('Resources').length} | "network quality", "bandwidth", "connection type", "save-data" |`)
   lines.push('')
 
   lines.push('## Workflow')
   lines.push('')
-  lines.push('1. Identify the relevant skill based on the user\'s question (use Quick Reference above)')
+  lines.push('1. Identify the relevant skill based on the user\'s question (see Quick Reference above)')
   lines.push('2. Load the skill\'s skill.md to see available snippets and thresholds')
   lines.push('3. Execute with Chrome DevTools MCP:')
   lines.push('   - `mcp__chrome-devtools__navigate_page` → navigate to target URL')

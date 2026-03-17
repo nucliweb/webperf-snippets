@@ -25,7 +25,6 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 - `scripts/LCP-Video-Candidate.js` — LCP Video Candidate
 - `scripts/LCP.js` — Largest Contentful Paint (LCP)
 
-Descriptions and thresholds: `references/snippets.md`
 
 ## Common Workflows
 
@@ -235,5 +234,3 @@ When multiple CWV metrics are poor, prioritize investigation:
 
 - `references/snippets.md` — Descriptions and thresholds for each script
 - `references/schema.md` — Return value schema for interpreting script output
-
-> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.

@@ -19,7 +19,6 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 
 - `scripts/Network-Bandwidth-Connection-Quality.js` — Network Bandwidth & Connection Quality
 
-Descriptions and thresholds: `references/snippets.md`
 
 ## Common Workflows
 
@@ -74,13 +73,15 @@ Use this decision tree to automatically run follow-up snippets based on results:
   1. Run **webperf-loading:Critical-CSS-Detection.js** (inline critical CSS)
   2. Run **webperf-media:Image-Element-Audit.js** (implement aggressive lazy loading)
   3. Run **webperf-loading:Prefetch-Resource-Validation.js** (remove prefetch to save bandwidth)
-  4. Recommend minimal resource strategy
+  4. Run **webperf-core-web-vitals:LCP.js** (LCP is heavily impacted by slow connections)
+  5. Recommend minimal resource strategy
 
 - **If effectiveType is "3g"** → Moderate connection, recommend:
   1. Run **webperf-loading:Find-render-blocking-resources.js** (minimize blocking)
   2. Run **webperf-media:Image-Element-Audit.js** (responsive images)
   3. Run **webperf-loading:Resource-Hints-Validation.js** (optimize preconnect)
-  4. Implement adaptive image quality
+  4. Run **webperf-core-web-vitals:INP.js** (high latency can impact interaction responsiveness)
+  5. Implement adaptive image quality
 
 - **If effectiveType is "4g" or better** → Good connection, recommend:
   1. Standard optimization practices
@@ -96,9 +97,11 @@ Use this decision tree to automatically run follow-up snippets based on results:
 
 - **If RTT > 300ms** → High latency, recommend:
   1. Run **webperf-loading:TTFB.js** (latency impacts TTFB)
-  2. Run **webperf-loading:Resource-Hints-Validation.js** (preconnect critical for high RTT)
-  3. Minimize number of origins
-  4. Use HTTP/2 or HTTP/3 for multiplexing
+  2. Run **webperf-loading:TTFB-Sub-Parts.js** (break down latency components)
+  3. Run **webperf-loading:Resource-Hints-Validation.js** (preconnect critical for high RTT)
+  4. Run **webperf-loading:Service-Worker-Analysis.js** (caching is critical for high latency)
+  5. Minimize number of origins
+  6. Use HTTP/2 or HTTP/3 for multiplexing
 
 - **If downlink < 1 Mbps** → Very limited bandwidth, recommend:
   1. Run **webperf-media:Image-Element-Audit.js** (aggressive compression)
@@ -111,44 +114,11 @@ Use this decision tree to automatically run follow-up snippets based on results:
   - Strategic prefetch
   - Preloading next-page resources
 
-### Cross-Skill Triggers
-
-These triggers recommend using snippets from other skills:
-
-#### From Resources to Loading Skill
-
-- **If slow connection detected (2g/3g)** → Use **webperf-loading** skill:
-  - TTFB.js (latency is amplified on slow connections)
-  - Critical-CSS-Detection.js (reduce RTT by inlining critical CSS)
-  - Find-render-blocking-resources.js (minimize blocking resources)
-  - Resource-Hints-Validation.js (preconnect is critical for high RTT)
-  - Prefetch-Resource-Validation.js (avoid prefetch on slow connections)
-
-- **If high RTT detected (>200ms)** → Use **webperf-loading** skill:
-  - TTFB-Sub-Parts.js (break down latency components)
-  - Resource-Hints-Validation.js (preconnect to reduce RTT impact)
-  - Service-Worker-Analysis.js (caching is critical for high latency)
-
-#### From Resources to Media Skill
-
-- **If slow connection or save-data detected** → Use **webperf-media** skill:
-  - Image-Element-Audit.js (implement responsive images, aggressive compression)
-  - Video-Element-Audit.js (disable autoplay, reduce quality)
-
-#### From Resources to Core Web Vitals Skill
-
-- **If slow connection detected** → Check Core Web Vitals impact:
-  - Use **webperf-core-web-vitals:LCP.js** (LCP is heavily impacted by slow connections)
-  - Use **webperf-core-web-vitals:INP.js** (high latency can impact interaction responsiveness)
-
 ### Adaptive Loading Implementation Guide
 
 Based on Network Information API results, implement these strategies:
 
-**For slow-2g / 2g (< 50 Kbps):**
-```javascript
-// Detected by effectiveType: "slow-2g" or "2g"
-Strategies:
+**For slow-2g / 2g (< 50 Kbps):** (`effectiveType: "slow-2g"` or `"2g"`)
 - Serve low-res images (quality: 30-40)
 - Disable autoplay videos
 - Remove all prefetch hints
@@ -156,12 +126,8 @@ Strategies:
 - Defer all non-critical JavaScript
 - Use system fonts (no webfonts)
 - Aggressive lazy loading (load on scroll + buffer)
-```
 
-**For 3g (50-700 Kbps):**
-```javascript
-// Detected by effectiveType: "3g"
-Strategies:
+**For 3g (50-700 Kbps):** (`effectiveType: "3g"`)
 - Serve medium-res images (quality: 60-70)
 - Disable autoplay videos
 - Limited prefetch (critical only)
@@ -169,31 +135,21 @@ Strategies:
 - Defer non-critical JavaScript
 - Preload 1-2 critical fonts
 - Standard lazy loading
-```
 
-**For 4g+ (> 700 Kbps):**
-```javascript
-// Detected by effectiveType: "4g"
-Strategies:
+**For 4g+ (> 700 Kbps):** (`effectiveType: "4g"`)
 - Serve high-res images (quality: 80-90)
 - Allow autoplay videos (muted)
 - Strategic prefetch for navigation
-- Standard CSS loading
-- Standard JavaScript loading
+- Standard CSS loading and JavaScript loading
 - Preload critical fonts
 - Standard lazy loading
-```
 
-**For save-data mode:**
-```javascript
-// Detected by navigator.connection.saveData === true
-Strategies:
+**For save-data mode:** (`navigator.connection.saveData === true`)
 - Override connection type, treat as worse than actual
 - Show "Load high quality" toggle
 - Disable autoplay entirely
 - Minimal images, minimal quality
 - No prefetch, no preload (except critical)
-```
 
 ### Performance Budget by Connection Type
 
@@ -217,32 +173,6 @@ Adjust performance budgets based on connection quality:
 - JavaScript: < 1MB total
 - Videos: < 10MB
 
-### Real-World Scenarios
-
-**Scenario: User on 3G reports slow page load**
-1. Run Network-Bandwidth-Connection-Quality.js → confirms 3g
-2. Run webperf-loading:TTFB.js → high TTFB due to latency
-3. Run webperf-loading:Critical-CSS-Detection.js → CSS not inlined
-4. Recommendation: Inline critical CSS, implement adaptive loading
-
-**Scenario: User with save-data enabled complains about data usage**
-1. Run Network-Bandwidth-Connection-Quality.js → saveData: true
-2. Run webperf-media:Image-Element-Audit.js → high-res images served
-3. Run webperf-media:Video-Element-Audit.js → autoplay enabled
-4. Recommendation: Respect save-data, reduce quality, disable autoplay
-
-**Scenario: International users report slow LCP**
-1. Run Network-Bandwidth-Connection-Quality.js → high RTT (300ms+)
-2. Run webperf-core-web-vitals:LCP.js → LCP 4s+
-3. Run webperf-loading:TTFB-Sub-Parts.js → DNS + connection = 500ms
-4. Recommendation: Use CDN, implement preconnect, optimize for latency
-
-**Scenario: Mobile users in rural areas**
-1. Run Network-Bandwidth-Connection-Quality.js → 2g, high RTT, low downlink
-2. Run webperf-loading:Find-render-blocking-resources.js → many blocking
-3. Run webperf-media:Image-Element-Audit.js → all images eager-loaded
-4. Recommendation: Aggressive adaptive loading, inline critical CSS, lazy load all images
-
 ### Network Information API Limitations
 
 Be aware of API limitations and fallbacks:
@@ -263,27 +193,7 @@ Be aware of API limitations and fallbacks:
 - Values may be rounded or capped
 - Consider user privacy when making decisions
 
-### Testing Adaptive Loading
-
-To test adaptive loading implementations:
-
-1. Use Chrome DevTools Network Throttling
-2. Run Network-Bandwidth-Connection-Quality.js at each throttling level
-3. Verify adaptive strategies activate correctly
-4. Measure Core Web Vitals at each connection speed
-5. Adjust breakpoints and strategies based on results
-
-**Test matrix:**
-- Offline
-- slow-2g (50 Kbps, RTT 2000ms)
-- 2g (250 Kbps, RTT 300ms)
-- 3g (750 Kbps, RTT 100ms)
-- 4g (4 Mbps, RTT 20ms)
-- save-data enabled at each level
-
 ## References
 
 - `references/snippets.md` — Descriptions and thresholds for each script
 - `references/schema.md` — Return value schema for interpreting script output
-
-> Execute via `mcp__chrome-devtools__evaluate_script` → read with `mcp__chrome-devtools__get_console_message`.
