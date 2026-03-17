@@ -25,7 +25,7 @@ When LCP is slow or the user asks "debug LCP" or "why is LCP slow":
 When layout shifts are detected or the user asks "debug CLS" or "layout shift issues":
 
 1. **CLS.js** - Measure overall CLS score
-2. **Layout-Shift-Loading-and-Interaction.js** (from Interaction skill) - Separate loading vs interaction shifts
+2. **Layout-Shift-Loading-and-Interaction.js** _(pending — available in webperf-interaction skill)_
 3. Cross-reference with **webperf-loading** skill:
    - Find-Above-The-Fold-Lazy-Loaded-Images.js (lazy images causing shifts)
    - Fonts-Preloaded-Loaded-and-used-above-the-fold.js (font swap causing shifts)
@@ -34,11 +34,11 @@ When layout shifts are detected or the user asks "debug CLS" or "layout shift is
 
 When interactions feel slow or the user asks "debug INP" or "slow interactions":
 
-1. **INP.js** - Measure overall INP value
-2. **Interactions.js** (from Interaction skill) - List all interactions with timing
-3. **Input-Latency-Breakdown.js** (from Interaction skill) - Break down input delay, processing, presentation
-4. **Long-Animation-Frames.js** (from Interaction skill) - Identify blocking animation frames
-5. **Long-Animation-Frames-Script-Attribution.js** (from Interaction skill) - Find scripts causing delays
+1. **INP.js** - Measure overall INP value; call `getINP()` after interactions, `getINPDetails()` for full list
+2. **Interactions.js** _(pending — available in webperf-interaction skill)_
+3. **Input-Latency-Breakdown.js** _(pending — available in webperf-interaction skill)_
+4. **Long-Animation-Frames.js** _(pending — available in webperf-interaction skill)_
+5. **Long-Animation-Frames-Script-Attribution.js** _(pending — available in webperf-interaction skill)_
 
 ### Video as LCP Investigation
 
@@ -117,7 +117,7 @@ Use this decision tree to automatically run follow-up snippets based on results:
 
 ### After CLS.js
 
-- **If CLS > 0.1** → Run **webperf-interaction:Layout-Shift-Loading-and-Interaction.js** to separate causes
+- **If CLS > 0.1** → Run **webperf-interaction:Layout-Shift-Loading-and-Interaction.js** _(pending — available in webperf-interaction skill)_
 - **If CLS > 0.25 (poor)** → Run comprehensive shift investigation:
   1. **webperf-loading:Find-Above-The-Fold-Lazy-Loaded-Images.js** (images without dimensions)
   2. **webperf-loading:Fonts-Preloaded-Loaded-and-used-above-the-fold.js** (font loading strategy)
@@ -134,8 +134,19 @@ Use this decision tree to automatically run follow-up snippets based on results:
   3. **webperf-interaction:Long-Animation-Frames.js** (blocking frames)
   4. **webperf-interaction:Long-Animation-Frames-Script-Attribution.js** (culprit scripts)
 - **If specific interaction type is slow (e.g., keyboard)** → Focus analysis on that interaction type
+- **After INP data is collected** → call `getINPDetails()` for the full sorted interaction list (useful for identifying patterns across multiple slow interactions)
+
+### Error Recovery
+
+- **If any script returns `status: "error"`** → Check if the page has finished loading:
+  - If early in load: wait and re-run the script
+  - If page is an SPA: user may need to navigate to the target route first
+- **If LCP.js / LCP-Sub-Parts.js returns `status: "error"`** → Tell the user: "LCP data is not available yet. Please ensure the page has fully loaded, then run the analysis again."
+- **If INP.js `getINP()` returns `status: "error"`** → The `getDataFn: "getINP"` field signals the agent can retry after user interaction. Prompt the user to click, type, or scroll, then call `getINP()` again.
 
 ### Cross-Skill Triggers
+
+> **Context fork note:** This skill runs with `context: fork`. Cross-skill triggers below are **recommendations to report back to the parent agent**, not direct calls this subagent can execute. When a cross-skill trigger fires, tell the user which skill and script to run next. Scripts marked _(pending)_ are not yet available — skip them and note the limitation.
 
 These triggers recommend using snippets from other skills:
 

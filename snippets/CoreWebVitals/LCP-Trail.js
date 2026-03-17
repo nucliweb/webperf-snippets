@@ -39,7 +39,7 @@
     const tag = element.tagName.toLowerCase();
     if (tag === "img") return { type: "Image", url: entry.url || element.src };
     if (tag === "video") return { type: "Video poster", url: entry.url || element.poster };
-    if (element.style?.backgroundImage) return { type: "Background image", url: entry.url };
+    if (window.getComputedStyle(element).backgroundImage !== "none") return { type: "Background image", url: entry.url };
     return { type: tag === "h1" || tag === "p" ? "Text block" : tag };
   };
 
@@ -149,7 +149,16 @@
       selector,
       time,
       elementType: type,
-      ...(url ? { url: url.split("/").pop()?.split("?")[0] || url } : {}),
+      ...(url ? {
+        url: (() => {
+          try {
+            const u = new URL(url);
+            return u.hostname !== location.hostname
+              ? `${u.hostname}/…/${u.pathname.split("/").pop()?.split("?")[0]}`
+              : u.pathname.split("/").pop()?.split("?")[0] || url;
+          } catch { return url; }
+        })(),
+      } : {}),
     });
   }
   if (syncCandidates.length === 0) {

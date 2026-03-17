@@ -56,7 +56,7 @@
       } else if (tagName === "video") {
         console.log(`   Type: Video poster`);
         console.log(`   URL: ${lastEntry.url || element.poster}`);
-      } else if (element.style?.backgroundImage) {
+      } else if (window.getComputedStyle(element).backgroundImage !== "none") {
         console.log(`   Type: Background image`);
         console.log(`   URL: ${lastEntry.url}`);
       } else {
@@ -104,7 +104,7 @@
     }
     const tag = lcpEl.tagName.toLowerCase();
     lcpType = tag === "img" ? "Image" : tag === "video" ? "Video poster" :
-      lcpEl.style?.backgroundImage ? "Background image" :
+      window.getComputedStyle(lcpEl).backgroundImage !== "none" ? "Background image" :
       (tag === "h1" || tag === "p" ? "Text block" : tag);
   }
   return {

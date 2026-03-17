@@ -171,6 +171,10 @@
     .filter((img) => img.bpp > 0);
   const lowEntropyCount = imagesSync.filter((img) => img.isLowEntropy).length;
   const lcpImageSync = imagesSync.find((img) => img.isLCP);
+  if (lcpElementSync) {
+    lcpElementSync.style.outline = "3px dashed lime";
+    lcpElementSync.style.outlineOffset = "2px";
+  }
   const issuesSync = [];
   if (lowEntropyCount > 0) {
     issuesSync.push({ severity: "warning", message: `${lowEntropyCount} image(s) have low entropy and are LCP-ineligible in Chrome 112+` });
