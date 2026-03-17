@@ -471,6 +471,8 @@ async function main() {
       const destPath = path.join(dest, entry.name)
 
       if (entry.isDirectory()) {
+        // Replace dest subdirectory entirely to avoid stale files
+        if (fs.existsSync(destPath)) fs.rmSync(destPath, { recursive: true, force: true })
         copyRecursive(srcPath, destPath)
       } else {
         fs.copyFileSync(srcPath, destPath)
