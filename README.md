@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/nucliweb-webperf-snippets-badge.png)](https://mseep.ai/app/nucliweb-webperf-snippets)
+
 # WebPerf Snippets
 
 A curated collection of JavaScript snippets to measure and debug Web Performance directly in your browser's DevTools console.
