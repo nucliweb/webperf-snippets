@@ -37,7 +37,26 @@ preload/modulepreload → preconnect → dns-prefetch → prefetch → prerender
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`🔗 Resource Hints Analysis
+⚪ ⚡ preload: 0
+⚪ 📦 modulepreload: 0
+⚪ 🔌 preconnect: 0
+⚪ 🔍 dns-prefetch: 0
+⚪ 📥 prefetch: 0
+⚪ 🖼️ prerender: 0
+Total hints: 0
+✅ No issues found with resource hints.
+📝 Best Practices
+Preload (current page critical resources):
+<link rel="preload" href="/font.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/hero.webp" as="image" fetchpriority="high">
+Preconnect (third-party origins):
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+Prefetch (next page resources):
+<link rel="prefetch" href="/next-page.js" as="script">
+console.groupEnd
+console.groupEnd`} />
 
 ### Understanding the Results
 

@@ -39,7 +39,10 @@ When the main thread is blocked by a long task, the browser cannot respond to cl
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`⏱️ Long Tasks Tracking Active
+Tasks blocking the main thread for >50ms will be logged.
+Call getLongTaskSummary() for statistics.
+Deprecated API for given entry type.`} />
 
 ### Understanding the Results
 

@@ -1,0 +1,206 @@
+{
+  "CoreWebVitals/CLS": {
+    "output": "Call getCLS() anytime to check current value.",
+    "error": null
+  },
+  "CoreWebVitals/INP": {
+    "output": "⚡ INP Tracking Active\nInteractions with duration > 16ms will be tracked.\nCall getINP() to see current INP value.\nCall getINPDetails() for full interaction list.",
+    "error": null
+  },
+  "CoreWebVitals/LCP-Image-Entropy": {
+    "output": "Deprecated API for given entry type.\n🖼️ Image Entropy Analysis\nNo images with measurable entropy found.\n(Data URLs and cross-origin images without CORS are excluded)\nconsole.groupEnd",
+    "error": null
+  },
+  "CoreWebVitals/LCP-Subparts": {
+    "output": "📊 LCP Subparts Analysis Active\nWaiting for LCP...",
+    "error": null
+  },
+  "CoreWebVitals/LCP-Trail": {
+    "output": "⏱️ LCP Trail Active\nHighlights all LCP candidate elements with distinct colors.\nDeprecated API for given entry type.",
+    "error": null
+  },
+  "CoreWebVitals/LCP-Video-Candidate": {
+    "output": "Deprecated API for given entry type.\n⚠️ No LCP entries found. Run this snippet before interacting with the page, or reload and run it immediately.",
+    "error": null
+  },
+  "CoreWebVitals/LCP": {
+    "output": "⏱️ LCP Tracking Active\nLCP may update as larger elements load.",
+    "error": null
+  },
+  "DevTools-Overrides/Fetch-XHR-Timeline-inject": {
+    "output": "(no output)",
+    "error": null
+  },
+  "DevTools-Overrides/Fetch-XHR-Timeline-read": {
+    "output": "No data found. Make sure the inject snippet is active via DevTools Overrides and reload the page.",
+    "error": null
+  },
+  "Interaction/Forced-Synchronous-Layout": {
+    "output": "⚡ FSL Detector Active\nMonitoring class/style mutations and geometric property access.\nCall getFSLSummary() for the report or stopFSLDetector() to stop.",
+    "error": null
+  },
+  "Interaction/Input-Latency-Breakdown": {
+    "output": "⌨️ Input Latency Breakdown Active\nInteract with the page (click, type, etc.).\nCall getInputLatencyBreakdown() for the aggregated report.",
+    "error": null
+  },
+  "Interaction/Interactions": {
+    "output": "👆 Interaction Tracking Active\nInteract with the page to see interaction details.\nCall getInteractionSummary() for a summary.",
+    "error": null
+  },
+  "Interaction/Layout-Shift-Loading-and-Interaction": {
+    "output": "📐 Layout Shift Tracking Active\nCurrent CLS: 🟢 0.0000\nInteract with the page to see new shifts.\nCall getLayoutShiftSummary() for full analysis.\nDeprecated API for given entry type.\nDeprecated API for given entry type.\nDeprecated API for given entry type.",
+    "error": null
+  },
+  "Interaction/Long-Animation-Frames-Helpers": {
+    "output": "🔧 LoAF Helpers Loaded\nObserving long animation frames (>50ms)...\nQuick\nAll",
+    "error": null
+  },
+  "Interaction/Long-Animation-Frames-Script-Attribution": {
+    "output": "✅ No long frames detected",
+    "error": null
+  },
+  "Interaction/Long-Animation-Frames": {
+    "output": "🎬 Long Animation Frames Tracking Active\nFrames with blocking duration will be logged.\nCall getLoAFSummary() for full analysis.",
+    "error": null
+  },
+  "Interaction/LongTask": {
+    "output": "⏱️ Long Tasks Tracking Active\nTasks blocking the main thread for >50ms will be logged.\nCall getLongTaskSummary() for statistics.\nDeprecated API for given entry type.",
+    "error": null
+  },
+  "Interaction/Scroll-Performance": {
+    "output": "📜 Scroll Performance Analysis Active\nScroll to measure FPS. Non-passive listener registrations will be warned.\nCall getScrollSummary() for the full report.",
+    "error": null
+  },
+  "Loading/Back-Forward-Cache": {
+    "output": "🚀 bfcache Analysis Running...\nResults will appear shortly.\nCall checkBfcache() anytime to re-run analysis.\n🟡 bfcache\n📊\nℹ️  This page was NOT restored from bfcache\n(Either first visit or bfcache was blocked on previous navigation)\n🕐 Navigation\n🔍 Potential\n[Object, Object]\n💡\n1. Close WebSocket connections before page hide.\n🧪 How to\n1. Run this snippet (you already did this ✓)\n2. Navigate to another page\n3. Click browser Back button\n4. Check console for restoration message\nOr use Chrome DevTools → Application → Back/forward cache\nconsole.groupEnd\nℹ️  For detailed reasons, use Chrome 123+ and navigate back to this page.",
+    "error": null
+  },
+  "Loading/CSS-Media-Queries-Analysis": {
+    "output": "📊 CSS Media Queries Analysis (min-width > 768px)\nTotal @media rules found: 0\nTotal classes: 0\nTotal properties: 0\nconsole.groupEnd\n💾 POTENTIAL MOBILE SAVINGS\nEstimated CSS bytes that mobile doesn't\n└─ From inline CSS: 0 Bytes\n└─ From external files: 0 Bytes\n💡 By splitting these styles into separate files with media queries,\nmobile users won't need to download, parse, or process this CSS.\nconsole.groupEnd\n🔷 INLINE CSS (<style> tags)\nMedia queries: 0\nTotal size: 0 Bytes\nNo inline media queries found for viewports > 768px.\nconsole.groupEnd\n📁 EXTERNAL FILES (.css files)\nMedia queries: 0\nTotal size: 0 Bytes\nNo external file media queries found for viewports > 768px.\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Cache-Strategy-Analysis": {
+    "output": "🔍 Cache Strategy Analysis\n📊 Summary\nTotal resources: 0\nHeaders analyzed: 0 | CORS-restricted: 0 | Excluded (non-static/cross-origin): 0\nCache efficiency: 0%\nBandwidth saved by cache: N/A\n📋 Cache Strategy Distribution\n[]\nconsole.groupEnd\n💡 Additional Insights\nProtocol Distribution\n[]\nconsole.groupEnd\nconsole.groupEnd\n📌 Recommendations\n🔴 Cache efficiency is low (0%). Review caching strategy for all static assets.\nconsole.groupEnd\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Client-Side-Redirect-Detection": {
+    "output": "🔄 Client-Side Redirect Detection\n📍 Current\n🌐 Server-Side\n✅ No server-side redirects\n📱 Client-Side Navigation\n✅ No client-side redirect detected\n⏱️ Navigation\n{TTFB: 0.0ms, DOM Content Loaded: 4.5ms, Load Complete: 4.8ms, Redirect Time: N/A, DNS Lookup: 0.0ms, TCP Connect: 0.0ms, Request/Response: 4.4ms}\nℹ️\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Content-Visibility": {
+    "output": "🔍 Content-Visibility Detection\nNo content-visibility usage found.\n💡 Consider applying content-visibility: auto to:\n• Footer sections\n• Below-the-fold content\n• Long lists or card grids\n• Tab content that is not initially visible\n• Accordion/collapsible content\nconsole.groupEnd\nTo find optimization opportunities,",
+    "error": null
+  },
+  "Loading/Critical-CSS-Detection": {
+    "output": "🎯 Critical CSS Detection\nPage CSS\nExternal stylesheets:        0\nNon-blocking (media query):  0\nInline <style> blocks:       0\nTotal external CSS (wire):   0 B\nTotal inline CSS:            0 B\n✅ No render-blocking stylesheets detected.\n✅ No critical CSS issues detected.\n📖 Critical CSS Best Practices\n• Inline critical above-the-fold CSS in <head> (target: < 14 KB)\n• Defer non-critical CSS:\n<link rel=\"stylesheet\" href=\"styles.css\" media=\"print\" onload=\"this.media='all'\">\n• Preload critical external CSS: <link rel=\"preload\" as=\"style\" href=\"...\">\n• Use Chrome DevTools Coverage tab (Ctrl+Shift+P → Coverage) to find unused CSS\n• Automate critical CSS extraction with tools like critical or Critters\nconsole.groupEnd\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Event-Processing-Time": {
+    "output": "⏱️ Page\nNetwork time: 4ms (91%)\nProcessing time: 0ms (9%)\n🔄 Redirect                0.00 ms    0.0%  ░░░░░░░░░░░░░░░░░░░░\n📥 Response                4.30 ms   91.5%  █████████████████████████████████████\n🏗️ DOM Processing          0.10 ms    2.1%  █░░░░░░░░░░░░░░░░░░░\n📦 Resource Loading        0.30 ms    6.4%  ███░░░░░░░░░░░░░░░░░\nKey\nTTFB (Time to First Byte): 0ms\nLoad Complete: 5ms\n💡 Bottleneck\nResponse takes 91% of total load time\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/FCP": {
+    "output": "(no output)",
+    "error": null
+  },
+  "Loading/Find-Above-The-Fold-Lazy-Loaded-Images": {
+    "output": "🔍 Lazy Loading Detection - Above The Fold\n✅ Good job! No lazily loaded images found in the viewport.\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Find-Images-With-Lazy-and-Fetchpriority": {
+    "output": "🔍 Lazy + Fetchpriority Conflict Check\n✅ No conflicts found. No elements have both loading=\"lazy\" and fetchpriority=\"high\".\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport": {
+    "output": "💡 Lazy Loading Opportunities\n✅ Good job! All images outside the viewport have lazy loading. font-weight: bold\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Find-render-blocking-resources": {
+    "output": "🚧 Render-Blocking Resources\n✅ No render-blocking resources found!\nThe page has no resources blocking initial render.\n💡 This could\n• CSS is inlined or loaded asynchronously\n• Scripts use async or defer attributes\n• Critical resources are optimized\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/First-And-Third-Party-Script-Info": {
+    "output": "📊 Script\nOverall\nTotal scripts: 0\n🏠 First-Party Scripts (0)\nNo first-party scripts found.\nconsole.groupEnd\n🌐 Third-Party Scripts (0)\n✅ No third-party scripts found!\nconsole.groupEnd\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/First-And-Third-Party-Script-Timings": {
+    "output": "⏱️ Script Timing Analysis\nSummary (averages):\nFirst-Party    Third-Party\n───────────    ───────────\n🔍 DNS Lookup                  -                -\n🔌 TCP Connection              -                -\n🔒 TLS/SSL                     -                -\n📤 Request (TTFB)              -                -\n📥 Response                    -                -\n⏱️ Total                       -                -\n🏠 First-Party Scripts (0)\nNo first-party scripts found.\nconsole.groupEnd\n🌐 Third-Party Scripts (0)\n✅ No third-party scripts!\nconsole.groupEnd\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold": {
+    "output": "🔤 Font Loading Analysis\nPreloaded fonts: 0\nLoaded fonts: 0\nUsed above the fold: 0\n⬇️ Preloaded Fonts (0)\nNo fonts preloaded via <link rel='preload'>.\nconsole.groupEnd\n📦 Loaded Fonts (0)\nNo web fonts loaded (using system fonts only).\nconsole.groupEnd\n👁️ Fonts Used Above The Fold (0)\nNo text elements found above the fold.\nconsole.groupEnd\n📝 Font Loading Best Practices\n1. Preload critical fonts used above the fold\n2. Use font-display: swap or optional\n3. Always include crossorigin attribute on font preloads\n4. Self-host fonts when possible for better control\n5. Subset fonts to include only needed characters\n6. Use WOFF2 format for best compression\nconsole.groupEnd\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Inline-CSS-Info-and-Size": {
+    "output": "📝 Inline CSS Analysis\n✅ No inline <style> tags found.\nThe page uses external stylesheets only.\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Inline-Script-Info-and-Size": {
+    "output": "📜 Inline Script Analysis\n✅ No inline scripts found.\nThe page uses external scripts only.\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/JS-Execution-Time-Breakdown": {
+    "output": "⚡ JavaScript Execution Time Breakdown\n📅 Page Load\nDOM Interactive             5ms  ███████████████████░\nDOM Content Loaded          5ms  ███████████████████░\nLoad event                  5ms  ████████████████████\nJS blocking scripts contribute ~0% of domInteractive (- est.)\n📊 Script\nTotal scripts:          0\nTotal transfer size:    -\nTotal decoded size:     -\nCompression ratio:      -\nCost Estimates (download + parse):\nTotal download time:    -\nEst. total parse time:  - (~1ms/KB decoded)\nEst. total JS cost:     -\n📝 Recommendations\n✅ No critical JS issues found.\n💡 For measured execution time (not estimates):\nRun the Long Animation Frames Script Attribution snippet to measure\nactual execution time during user interactions.\nconsole.groupEnd\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Prefetch-Resource-Validation": {
+    "output": "✅ No prefetch hints found (rel=\"prefetch\").\nℹ️ Prefetch is for future navigation resources. Use it sparingly for predictable user journeys.",
+    "error": null
+  },
+  "Loading/Priority-Hints-Audit": {
+    "output": "🎯 Priority Hints Audit\nTotal elements with fetchpriority: 0\n• Images: 0 (see \"Find Images With Lazy and Fetchpriority\" for image-specific checks)\n• Non-image resources: 0\n• Preloads with fetchpriority: 0\nPriority breakdown: high=0, low=0, auto=0\nℹ️ No fetchpriority attributes found on this page.\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Resource-Hints-Validation": {
+    "output": "🔍 Resource Hints Validation\nPreload hints: 0\nPreconnect hints: 0\nDNS-prefetch hints: 0\nTotal resources loaded: 0\nUnique domains accessed: 1\n1. Preload Validation\nℹ️ No preload hints found.\nconsole.groupEnd\n2. Preconnect Validation\nℹ️ No preconnect hints found.\nconsole.groupEnd\n3. DNS-Prefetch Validation\nℹ️ No dns-prefetch hints found.\nconsole.groupEnd\n⚠️ Redundant Hints\n✅ No redundant hints found.\nconsole.groupEnd\n⚠️ Performance API Limitations\n✅ All DOM image domains are captured in Performance API.\nconsole.groupEnd\n4. Optimization Opportunities\n✅ All frequently-used domains have appropriate hints.\nconsole.groupEnd\n📝 Best Practices\n✅ Use for critical resources on current page\n❌ Don't preload resources not used on current page\n⚡ Limit to few most critical resources\n✅ Use for critical third-party domains\n✅ Best for domains with many requests\n❌ Don't use for domains not accessed\n⚡ Limit to few most important domains\n✅ Use for non-critical third-party domains\n✅ Good for domains with few requests\nℹ️ Less impact than preconnect\nconsole.groupEnd\n✅ Excellent! All resource hints are properly configured.\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Resource-Hints": {
+    "output": "🔗 Resource Hints Analysis\n⚪ ⚡ preload: 0\n⚪ 📦 modulepreload: 0\n⚪ 🔌 preconnect: 0\n⚪ 🔍 dns-prefetch: 0\n⚪ 📥 prefetch: 0\n⚪ 🖼️ prerender: 0\nTotal hints: 0\n✅ No issues found with resource hints.\n📝 Best Practices\nPreload (current page critical resources):\n<link rel=\"preload\" href=\"/font.woff2\" as=\"font\" type=\"font/woff2\" crossorigin>\n<link rel=\"preload\" href=\"/hero.webp\" as=\"image\" fetchpriority=\"high\">\nPreconnect (third-party origins):\n<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\nPrefetch (next page resources):\n<link rel=\"prefetch\" href=\"/next-page.js\" as=\"script\">\nconsole.groupEnd\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/SSR-Hydration-Data-Analysis": {
+    "output": "🚀 SSR Framework Hydration Analysis\n📭 No SSR framework hydration data detected.\nThis page may be:\n• A static HTML page\n• A client-side rendered SPA\n• Using a framework not yet supported by this snippet\nFound 0 other inline scripts (0 B)\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Script-Loading": {
+    "output": "📜 Script Loading Analysis\nTotal external scripts: 0\nTotal inline scripts: 0\nTotal size: -\nBy loading\n🔴 Blocking: 0 (-)\n⚡ Async: 0\n📋 Defer: 0\n📦 Module: 0\n📝 Best Practices\nFor most scripts (need DOM, run in order):\n<script src=\"app.js\" defer></script>\nFor independent scripts (analytics, ads):\n<script src=\"analytics.js\" async></script>\nFor ES\n<script type=\"module\" src=\"app.mjs\"></script>\nFor critical inline\n<script>/* Only essential initialization */</script>\nconsole.groupEnd\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/Service-Worker-Analysis": {
+    "output": "⚠️ Service Workers not supported in this browser",
+    "error": null
+  },
+  "Loading/TTFB-Resources": {
+    "output": "(no output)",
+    "error": null
+  },
+  "Loading/TTFB-Sub-Parts": {
+    "output": "⏱️\n────────────────────────────────────────────────────────────\n📊 Total TTFB                   0.00 ms\nconsole.groupEnd",
+    "error": null
+  },
+  "Loading/TTFB": {
+    "output": "(no output)",
+    "error": null
+  },
+  "Loading/Validate-Preload-Async-Defer-Scripts": {
+    "output": "✅ No script preloads found (rel=\"preload\" as=\"script\").\nℹ️ This is fine - only preload scripts if they're critical and blocking.",
+    "error": null
+  },
+  "Media/Image-Element-Audit": {
+    "output": "No <img> elements found on this page.",
+    "error": null
+  },
+  "Media/SVG-Embedded-Bitmap-Analysis": {
+    "output": "No SVG resources found on this page.",
+    "error": null
+  },
+  "Media/Video-Element-Audit": {
+    "output": "No <video> elements found on this page.",
+    "error": null
+  },
+  "Resources/Network-Bandwidth-Connection-Quality": {
+    "output": "📡 Network\nConnection\n{Connection Type: unknown, Effective Type: 4g, Downlink (Mbps): 10, RTT (ms): 0, Save-Data: Disabled}\n👂 Listening for connection changes... (navigate to trigger)\nconsole.groupEnd",
+    "error": null
+  }
+}

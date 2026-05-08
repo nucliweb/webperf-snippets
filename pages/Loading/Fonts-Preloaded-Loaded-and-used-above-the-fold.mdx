@@ -28,7 +28,28 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`🔤 Font Loading Analysis
+Preloaded fonts: 0
+Loaded fonts: 0
+Used above the fold: 0
+⬇️ Preloaded Fonts (0)
+No fonts preloaded via <link rel='preload'>.
+console.groupEnd
+📦 Loaded Fonts (0)
+No web fonts loaded (using system fonts only).
+console.groupEnd
+👁️ Fonts Used Above The Fold (0)
+No text elements found above the fold.
+console.groupEnd
+📝 Font Loading Best Practices
+1. Preload critical fonts used above the fold
+2. Use font-display: swap or optional
+3. Always include crossorigin attribute on font preloads
+4. Self-host fonts when possible for better control
+5. Subset fonts to include only needed characters
+6. Use WOFF2 format for best compression
+console.groupEnd
+console.groupEnd`} />
 
 ### Understanding the Results
 

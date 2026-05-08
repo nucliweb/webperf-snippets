@@ -7,9 +7,11 @@
     "dev": "next dev",
     "build": "next build",
     "postbuild": "next-sitemap",
-    "prebuild": "rm -rf .next && node scripts/generate-llms.js",
+    "prebuild": "rm -rf .next && node scripts/generate-llms.js && node scripts/capture-outputs.js && node scripts/inject-outputs.js",
     "check:consistency": "node scripts/check-consistency.js",
     "generate-skills": "node scripts/generate-skills.js",
+    "inject-outputs": "node scripts/inject-outputs.js",
+    "capture-outputs": "node scripts/capture-outputs.js",
     "generate-skills:check": "node scripts/generate-skills.js && git diff --exit-code -- skills dist",
     "install-skills": "node scripts/install-skills.js",
     "install-global": "node scripts/install-global.js",
@@ -38,6 +40,7 @@
   },
   "devDependencies": {
     "eslint": "^10.0.2",
+    "playwright": "^1.59.1",
     "terser": "^5.36.0",
     "vercel": "^32.4.1"
   },

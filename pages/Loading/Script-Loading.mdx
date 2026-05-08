@@ -80,7 +80,26 @@ sequenceDiagram
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`📜 Script Loading Analysis
+Total external scripts: 0
+Total inline scripts: 0
+Total size: -
+By loading
+🔴 Blocking: 0 (-)
+⚡ Async: 0
+📋 Defer: 0
+📦 Module: 0
+📝 Best Practices
+For most scripts (need DOM, run in order):
+<script src="app.js" defer></script>
+For independent scripts (analytics, ads):
+<script src="analytics.js" async></script>
+For ES
+<script type="module" src="app.mjs"></script>
+For critical inline
+<script>/* Only essential initialization */</script>
+console.groupEnd
+console.groupEnd`} />
 
 ### Understanding the Results
 

@@ -32,7 +32,14 @@ Audits all `fetchpriority` attribute usage across the page — covering non-imag
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`🎯 Priority Hints Audit
+Total elements with fetchpriority: 0
+• Images: 0 (see "Find Images With Lazy and Fetchpriority" for image-specific checks)
+• Non-image resources: 0
+• Preloads with fetchpriority: 0
+Priority breakdown: high=0, low=0, auto=0
+ℹ️ No fetchpriority attributes found on this page.
+console.groupEnd`} />
 
 ### Understanding the Results
 

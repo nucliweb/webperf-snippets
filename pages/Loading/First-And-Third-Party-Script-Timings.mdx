@@ -38,7 +38,23 @@ sequenceDiagram
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`⏱️ Script Timing Analysis
+Summary (averages):
+First-Party    Third-Party
+───────────    ───────────
+🔍 DNS Lookup                  -                -
+🔌 TCP Connection              -                -
+🔒 TLS/SSL                     -                -
+📤 Request (TTFB)              -                -
+📥 Response                    -                -
+⏱️ Total                       -                -
+🏠 First-Party Scripts (0)
+No first-party scripts found.
+console.groupEnd
+🌐 Third-Party Scripts (0)
+✅ No third-party scripts!
+console.groupEnd
+console.groupEnd`} />
 
 ### Understanding the Results
 

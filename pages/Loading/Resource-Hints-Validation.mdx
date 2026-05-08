@@ -44,7 +44,44 @@ The snippet includes a check that compares DOM elements (like `<img>` tags) agai
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`🔍 Resource Hints Validation
+Preload hints: 0
+Preconnect hints: 0
+DNS-prefetch hints: 0
+Total resources loaded: 0
+Unique domains accessed: 1
+1. Preload Validation
+ℹ️ No preload hints found.
+console.groupEnd
+2. Preconnect Validation
+ℹ️ No preconnect hints found.
+console.groupEnd
+3. DNS-Prefetch Validation
+ℹ️ No dns-prefetch hints found.
+console.groupEnd
+⚠️ Redundant Hints
+✅ No redundant hints found.
+console.groupEnd
+⚠️ Performance API Limitations
+✅ All DOM image domains are captured in Performance API.
+console.groupEnd
+4. Optimization Opportunities
+✅ All frequently-used domains have appropriate hints.
+console.groupEnd
+📝 Best Practices
+✅ Use for critical resources on current page
+❌ Don't preload resources not used on current page
+⚡ Limit to few most critical resources
+✅ Use for critical third-party domains
+✅ Best for domains with many requests
+❌ Don't use for domains not accessed
+⚡ Limit to few most important domains
+✅ Use for non-critical third-party domains
+✅ Good for domains with few requests
+ℹ️ Less impact than preconnect
+console.groupEnd
+✅ Excellent! All resource hints are properly configured.
+console.groupEnd`} />
 
 ### Understanding the Results
 

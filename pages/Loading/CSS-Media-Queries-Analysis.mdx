@@ -12,7 +12,28 @@ This page provides two complementary analysis functions:
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`📊 CSS Media Queries Analysis (min-width > 768px)
+Total @media rules found: 0
+Total classes: 0
+Total properties: 0
+console.groupEnd
+💾 POTENTIAL MOBILE SAVINGS
+Estimated CSS bytes that mobile doesn't
+└─ From inline CSS: 0 Bytes
+└─ From external files: 0 Bytes
+💡 By splitting these styles into separate files with media queries,
+mobile users won't need to download, parse, or process this CSS.
+console.groupEnd
+🔷 INLINE CSS (<style> tags)
+Media queries: 0
+Total size: 0 Bytes
+No inline media queries found for viewports > 768px.
+console.groupEnd
+📁 EXTERNAL FILES (.css files)
+Media queries: 0
+Total size: 0 Bytes
+No external file media queries found for viewports > 768px.
+console.groupEnd`} />
 
 ### Understanding the Results
 

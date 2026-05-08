@@ -25,7 +25,7 @@ Console snippets can only see requests that have already completed and are visib
 
 Add this inside a `<script>` tag before the closing `</head>` of the overridden HTML file. It runs before any other script and stores all captured calls in `window.__perfCalls`.
 
-<Snippet code={injectSnippet} />
+<Snippet code={injectSnippet} output={`(no output)`} />
 
 ---
 
@@ -33,7 +33,7 @@ Add this inside a `<script>` tag before the closing `</head>` of the overridden 
 
 Run this in the console after the page has loaded to see the captured data correlated with LCP.
 
-<Snippet code={readSnippet} />
+<Snippet code={readSnippet} output={`No data found. Make sure the inject snippet is active via DevTools Overrides and reload the page.`} />
 
 ---
 

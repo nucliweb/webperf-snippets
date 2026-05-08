@@ -53,7 +53,28 @@ V8 must parse every byte of JavaScript before executing it. Parse time scales ro
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`⚡ JavaScript Execution Time Breakdown
+📅 Page Load
+DOM Interactive             5ms  ███████████████████░
+DOM Content Loaded          5ms  ███████████████████░
+Load event                  5ms  ████████████████████
+JS blocking scripts contribute ~0% of domInteractive (- est.)
+📊 Script
+Total scripts:          0
+Total transfer size:    -
+Total decoded size:     -
+Compression ratio:      -
+Cost Estimates (download + parse):
+Total download time:    -
+Est. total parse time:  - (~1ms/KB decoded)
+Est. total JS cost:     -
+📝 Recommendations
+✅ No critical JS issues found.
+💡 For measured execution time (not estimates):
+Run the Long Animation Frames Script Attribution snippet to measure
+actual execution time during user interactions.
+console.groupEnd
+console.groupEnd`} />
 
 ### Understanding the Results
 

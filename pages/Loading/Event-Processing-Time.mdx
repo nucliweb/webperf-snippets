@@ -42,7 +42,19 @@ gantt
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`⏱️ Page
+Network time: 4ms (91%)
+Processing time: 0ms (9%)
+🔄 Redirect                0.00 ms    0.0%  ░░░░░░░░░░░░░░░░░░░░
+📥 Response                4.30 ms   91.5%  █████████████████████████████████████
+🏗️ DOM Processing          0.10 ms    2.1%  █░░░░░░░░░░░░░░░░░░░
+📦 Resource Loading        0.30 ms    6.4%  ███░░░░░░░░░░░░░░░░░
+Key
+TTFB (Time to First Byte): 0ms
+Load Complete: 5ms
+💡 Bottleneck
+Response takes 91% of total load time
+console.groupEnd`} />
 
 ### Understanding the Results
 

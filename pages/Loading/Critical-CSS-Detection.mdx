@@ -61,7 +61,24 @@ This is why the web performance community targets **HTML + critical CSS + critic
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} output={`🎯 Critical CSS Detection
+Page CSS
+External stylesheets:        0
+Non-blocking (media query):  0
+Inline <style> blocks:       0
+Total external CSS (wire):   0 B
+Total inline CSS:            0 B
+✅ No render-blocking stylesheets detected.
+✅ No critical CSS issues detected.
+📖 Critical CSS Best Practices
+• Inline critical above-the-fold CSS in <head> (target: < 14 KB)
+• Defer non-critical CSS:
+<link rel="stylesheet" href="styles.css" media="print" onload="this.media='all'">
+• Preload critical external CSS: <link rel="preload" as="style" href="...">
+• Use Chrome DevTools Coverage tab (Ctrl+Shift+P → Coverage) to find unused CSS
+• Automate critical CSS extraction with tools like critical or Critters
+console.groupEnd
+console.groupEnd`} />
 
 ### Understanding the Results
 
