@@ -9,6 +9,7 @@ export const VIEWPORT_PRESETS = {
 };
 
 const DEFAULT_NAV_TIMEOUT = 30000;
+const DEFAULT_EVALUATE_TIMEOUT = 10000;
 
 // Snippets are IIFEs. Playwright evaluates a string as an expression, so we
 // trim trailing semicolons to keep the IIFE call as a single expression and
@@ -17,11 +18,16 @@ function toExpression(source) {
   return source.trim().replace(/;\s*$/, "");
 }
 
-async function evaluateItems(page, items) {
+async function evaluateItems(page, items, timeout = DEFAULT_EVALUATE_TIMEOUT) {
   const results = [];
   for (const item of items) {
     try {
-      const result = await page.evaluate(toExpression(item.source));
+      const result = await Promise.race([
+        page.evaluate(toExpression(item.source)),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Snippet evaluation timed out")), timeout)
+        ),
+      ]);
       if (result && typeof result === "object") {
         results.push({ id: item.id, ...result });
       } else {
@@ -45,6 +51,7 @@ export async function runSnippets({
   headless = true,
   viewport = VIEWPORT_PRESETS.mobile,
   navTimeout = DEFAULT_NAV_TIMEOUT,
+  evaluateTimeout = DEFAULT_EVALUATE_TIMEOUT,
   interactScript,
 }) {
   const browser = await chromium.launch({ headless });
@@ -58,7 +65,7 @@ export async function runSnippets({
     if (waitMs > 0) await page.waitForTimeout(waitMs);
     const navMs = Date.now() - navStart;
     if (interactScript) await runInteractions(page, interactScript);
-    const results = await evaluateItems(page, items);
+    const results = await evaluateItems(page, items, evaluateTimeout);
     return { url, navMs, results, pageErrors };
   } finally {
     await browser.close();
@@ -73,6 +80,7 @@ export async function runMeasurement({
   headless = true,
   viewport = VIEWPORT_PRESETS.mobile,
   navTimeout = DEFAULT_NAV_TIMEOUT,
+  evaluateTimeout = DEFAULT_EVALUATE_TIMEOUT,
   interactScript,
 }) {
   const browser = await chromium.launch({ headless });
@@ -93,7 +101,7 @@ export async function runMeasurement({
       path: step.path,
       source: loadSnippet(step.path),
     }));
-    const initialResults = await evaluateItems(page, items);
+    const initialResults = await evaluateItems(page, items, evaluateTimeout);
 
     const followUps = [];
     for (const result of initialResults) {
@@ -109,7 +117,7 @@ export async function runMeasurement({
         path: f.path,
         source: loadSnippet(f.path),
       }));
-      const raw = await evaluateItems(page, followItems);
+      const raw = await evaluateItems(page, followItems, evaluateTimeout);
       followUpResults = raw.map((r) => {
         const f = followUps.find((x) => x.id === r.id);
         return f ? { ...r, reason: f.reason } : r;

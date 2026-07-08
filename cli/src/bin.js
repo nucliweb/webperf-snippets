@@ -67,6 +67,7 @@ Options:
   --markdown            Output GitHub-renderable markdown (for PR comments)
   --viewport <preset>   Viewport preset: mobile (default), tablet, desktop
   --wait <ms>           Post-load wait before evaluating (default: 3000)
+  --evaluate-timeout <ms> Post-load evaluation timeout (default: 10000)
   --budget-lcp <ms>     Exit 1 if LCP exceeds this value
   --budget-cls <score>  Exit 1 if CLS exceeds this value
   --interact-script <path>  JSON file with interactions to run before evaluation
@@ -127,6 +128,7 @@ async function main() {
         json: { type: "boolean" },
         markdown: { type: "boolean" },
         wait: { type: "string" },
+        "evaluate-timeout": { type: "string" },
         "budget-lcp": { type: "string" },
         "budget-cls": { type: "string" },
         viewport: { type: "string" },
@@ -155,6 +157,7 @@ async function main() {
   }
 
   const waitMs = values.wait ? Number(values.wait) : 3000;
+  const evaluateTimeout = values["evaluate-timeout"] ? Number(values["evaluate-timeout"]) : 10000;
   const viewportName = values.viewport ?? "mobile";
   const viewport = VIEWPORT_PRESETS[viewportName];
   if (!viewport) {
@@ -166,12 +169,12 @@ async function main() {
   let payload;
   if (values.snippet) {
     const items = buildSnippetItem(values);
-    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript });
+    payload = await runSnippets({ url, items, waitMs, evaluateTimeout, headless: !values.headed, viewport, interactScript });
   } else {
     const workflowName = values.workflow ?? "core-web-vitals";
     const workflow = WORKFLOWS[workflowName];
     if (!workflow) fail(`Unknown workflow: ${workflowName}`);
-    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript });
+    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, evaluateTimeout, headless: !values.headed, viewport, interactScript });
   }
 
   let output;
