@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How render-blocking resources delay first paint</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --c-js: #58a6ff;    --c-js-fg: #79b8ff;
+  --c-raf: #d2a8ff;   --c-raf-fg: #d2a8ff;
+  --c-dirty: #e3b341; --c-dirty-fg: #e3b341;
+  --c-fsl: #f85149;   --c-fsl-fg: #ff7b72;
+  --c-ok: #3fb950;    --c-ok-fg: #3fb950;
+  --c-paint: #39d353; --c-paint-fg: #56d364;
+  --tab-active-bg: #1c2a3f;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --c-js: #0969da;    --c-js-fg: #0969da;
+  --c-raf: #8250df;   --c-raf-fg: #8250df;
+  --c-dirty: #9a6700; --c-dirty-fg: #9a6700;
+  --c-fsl: #cf222e;   --c-fsl-fg: #cf222e;
+  --c-ok: #1a7f37;    --c-ok-fg: #1a7f37;
+  --c-paint: #1a7f37; --c-paint-fg: #1a7f37;
+  --tab-active-bg: #dbeafe;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Lane legend ───────────────────────────── */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg { font-size: 11px; padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
+.lg--parse { background: rgba(88,166,255,.12); border: 1px solid var(--c-js); color: var(--c-js-fg); }
+.lg--css   { background: rgba(210,168,255,.12); border: 1px solid var(--c-raf); color: var(--c-raf-fg); }
+.lg--js    { background: rgba(227,179,65,.12); border: 1px solid var(--c-dirty); color: var(--c-dirty-fg); }
+.lg--fcp   { background: rgba(57,211,83,.1); border: 1px solid var(--c-paint); color: var(--c-paint-fg); }
+.lg--block { background: rgba(248,81,73,.12); border: 1px solid var(--c-fsl); color: var(--c-fsl-fg); }
+
+/* ── Tabs ──────────────────────────────────── */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: border-color .15s, color .15s, background .15s;
+  line-height: 1.2;
+}
+.tab:hover { color: var(--text); border-color: var(--c-js); }
+.tab.active { color: var(--text); background: var(--tab-active-bg); border-color: var(--c-js); }
+
+/* ── Frames ────────────────────────────────── */
+.frames { display: flex; flex-direction: column; gap: 10px; }
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+/* ── Pipeline row ──────────────────────────── */
+.row { display: flex; align-items: flex-start; gap: 6px; }
+.row-label {
+  width: 74px;
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding-top: 6px;
+  text-align: right;
+}
+.row-items { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+
+/* ── Step boxes ────────────────────────────── */
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  opacity: .15;
+  transition: opacity .35s ease, transform .25s ease;
+}
+.step.shown { opacity: 1; }
+.step.active { transform: scale(1.06); }
+
+.step-box {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  border-width: 1px;
+  border-style: solid;
+}
+.step-note { font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+/* type colors */
+.t-parse .step-box { background: rgba(88,166,255,.12); border-color: var(--c-js); color: var(--c-js-fg); }
+.t-block .step-box { background: rgba(248,81,73,.15); border-color: var(--c-fsl); color: var(--c-fsl-fg); }
+.t-net   .step-box { background: rgba(210,168,255,.12); border-color: var(--c-raf); color: var(--c-raf-fg); }
+.t-exec  .step-box { background: rgba(227,179,65,.12); border-color: var(--c-dirty); color: var(--c-dirty-fg); }
+.t-ok    .step-box { background: rgba(63,185,80,.12); border-color: var(--c-ok); color: var(--c-ok-fg); }
+.t-done  .step-box { background: rgba(57,211,83,.1); border-color: var(--c-paint); color: var(--c-paint-fg); }
+
+.sep { color: var(--muted); font-size: 14px; margin-top: 4px; opacity: .5; }
+
+/* ── Badge ─────────────────────────────────── */
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: .15;
+  transition: opacity .35s ease;
+  margin-top: 1px;
+}
+.badge.shown { opacity: 1; }
+.badge-block { background: rgba(248,81,73,.2); color: var(--c-fsl-fg); border: 1px solid var(--c-fsl); }
+.badge-ok    { background: rgba(63,185,80,.2); color: var(--c-ok); border: 1px solid var(--c-ok); }
+
+/* ── Controls ──────────────────────────────── */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn:disabled { opacity: .4; cursor: default; }
+.btn-reset { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-next  { background: #1f6feb; color: #fff; }
+.btn-next:not(:disabled):hover { background: #388bfd; }
+.counter { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+/* ── Explanation ───────────────────────────── */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl strong { color: var(--text); }
+.expl code { font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; background: var(--surface2); padding: 1px 4px; border-radius: 3px; color: var(--c-raf); }
+.expl.t-block { border-left-color: var(--c-fsl); }
+.expl.t-ok  { border-left-color: var(--c-ok); }
+.expl.t-neutral { border-left-color: var(--c-js); }
+
+.b-block { display: inline-block; background: rgba(248,81,73,.18); color: var(--c-fsl-fg); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; vertical-align: middle; }
+.b-ok  { display: inline-block; background: rgba(63,185,80,.18); color: var(--c-ok); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<!-- Lane legend -->
+<div class="legend">
+  <span class="legend-label">Lanes</span>
+  <span class="lg lg--parse">HTML parser</span>
+  <span class="lg lg--css">CSS</span>
+  <span class="lg lg--js">JS</span>
+  <span class="lg lg--fcp">First paint</span>
+  <span class="lg lg--block">Render blocked</span>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" data-s="0">❌ Render-blocking</button>
+  <button class="tab" data-s="1">✅ Optimized</button>
+</div>
+
+<!-- Visualization -->
+<div id="viz" class="frames"></div>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="btn btn-reset" id="btnReset">↩ Reset</button>
+  <button class="btn btn-next" id="btnNext">Next step →</button>
+  <span class="counter" id="counter"></span>
+</div>
+
+<!-- Explanation -->
+<div class="expl t-neutral" id="expl">
+  Click <strong>Next step</strong> to see when the first paint can happen in each setup.
+</div>
+
+<script>
+// ─── Scenario data ────────────────────────────────────────────────────────────
+const S = [
+  // ─── Scenario 0: Render-blocking (default) ─────────────────────────────────
+  {
+    frames: [
+      {
+        label: 'Initial render',
+        rows: [
+          { label: 'Parser', items: [
+            { id: 'b-head', type: 'parse', text: 'parse &lt;head&gt;' },
+            { id: 'b-find', type: 'parse', text: 'find &lt;link&gt; + &lt;script&gt;', note: 'both in &lt;head&gt;' },
+          ]},
+          { label: 'Blocked', items: [
+            { id: 'b-css', type: 'net', text: '⬇ download + parse CSS', note: 'needed for CSSOM' },
+            { id: 'b-js', type: 'exec', text: '⬇ download + run JS', note: 'no defer / async' },
+            { id: 'b-blank', type: 'block', text: '⬜ blank screen', note: 'nothing painted yet' },
+          ]},
+          { label: 'Render', items: [
+            { id: 'b-ready', type: 'ok', text: '✓ all blockers done' },
+            { id: 'b-fcp', type: 'done', text: 'First Contentful Paint', note: 'late' },
+            { id: 'b-badge', type: 'badge-block', text: 'Blank until FCP ⚠️' },
+          ]},
+        ]
+      }
+    ],
+    steps: [
+      { ids: ['b-head'], cls: 't-neutral', expl: 'The browser starts parsing the HTML and building the DOM.' },
+      { ids: ['b-find'], cls: 't-neutral', expl: 'In <code>&lt;head&gt;</code> it finds a <code>&lt;link rel="stylesheet"&gt;</code> and a plain <code>&lt;script&gt;</code>. Both are <strong>render-blocking</strong> by default.' },
+      { ids: ['b-css'], cls: 't-block', expl: '<span class="b-block">BLOCK</span> The browser must download and parse the CSS before it can paint: it needs the <strong>CSSOM</strong> to know how anything looks. Nothing renders meanwhile.' },
+      { ids: ['b-js'], cls: 't-block', expl: '<span class="b-block">BLOCK</span> The blocking script also has to download and execute, pausing the parser. Scripts can query styles, so the browser waits for the pending CSS too.' },
+      { ids: ['b-blank'], cls: 't-block', expl: 'Throughout all of this the user stares at a <strong>blank white screen</strong>. Not a single pixel of content is painted until every blocker clears.' },
+      { ids: ['b-ready'], cls: 't-ok', expl: 'Only once <strong>every render-blocking resource</strong> has finished can the browser build the render tree and lay the page out.' },
+      { ids: ['b-fcp', 'b-badge'], cls: 't-block', expl: '<span class="b-block">Result</span> First Contentful Paint fires <strong>late</strong>. Every blocking resource in <code>&lt;head&gt;</code> pushed it back, directly hurting FCP and often LCP.' },
+    ]
+  },
+
+  // ─── Scenario 1: Optimized ─────────────────────────────────────────────────
+  {
+    frames: [
+      {
+        label: 'Initial render',
+        rows: [
+          { label: 'Parser', items: [
+            { id: 'o-head', type: 'parse', text: 'parse &lt;head&gt;', note: 'critical CSS inlined' },
+            { id: 'o-defer', type: 'parse', text: '&lt;script defer&gt;', note: 'non-blocking' },
+          ]},
+          { label: 'Parallel', items: [
+            { id: 'o-parse', type: 'ok', text: '▶ keep parsing', note: 'never blocks' },
+            { id: 'o-async', type: 'net', text: 'non-critical CSS async', note: 'preload + onload' },
+            { id: 'o-js', type: 'exec', text: 'JS downloads in background' },
+          ]},
+          { label: 'Render', items: [
+            { id: 'o-fcp', type: 'done', text: 'First Contentful Paint', note: 'early ✅' },
+            { id: 'o-badge', type: 'badge-ok', text: 'Content visible fast ✓' },
+          ]},
+        ]
+      }
+    ],
+    steps: [
+      { ids: ['o-head'], cls: 't-neutral', expl: 'The <strong>critical CSS</strong> is inlined directly in <code>&lt;head&gt;</code>, so there is no blocking stylesheet request on the critical path.' },
+      { ids: ['o-defer'], cls: 't-ok', expl: '<span class="b-ok">✓</span> The script uses <code>defer</code>, so it does not block parsing or the first paint.' },
+      { ids: ['o-parse'], cls: 't-ok', expl: '<span class="b-ok">✓</span> With nothing blocking it, the parser keeps going and the browser can paint as soon as it has content and the inlined styles.' },
+      { ids: ['o-async'], cls: 't-ok', expl: 'The <strong>non-critical CSS</strong> loads asynchronously (<code>preload</code> + <code>onload</code> swap), off the critical path, so it never delays first paint.' },
+      { ids: ['o-js'], cls: 't-ok', expl: 'The deferred script downloads in the <strong>background</strong> and will run after parsing, without holding up rendering.' },
+      { ids: ['o-fcp', 'o-badge'], cls: 't-ok', expl: '<span class="b-ok">Result</span> First Contentful Paint fires <strong>early</strong> because nothing blocked it. The goal: inline what is critical, and defer or async-load everything else.' },
+    ]
+  }
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let sIdx = 0;
+let stepIdx = 0;
+let revealed = new Set();
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  const sc = S[sIdx];
+  const viz = document.getElementById('viz');
+
+  viz.innerHTML = sc.frames.map(frame => `
+    <div class="frame">
+      <div class="frame-label">${frame.label}</div>
+      <div class="frame-body">
+        ${frame.rows.map(row => `
+          <div class="row">
+            <span class="row-label">${row.label}</span>
+            <div class="row-items">
+              ${row.items.map((item, i) => {
+                const sep = i < row.items.length - 1 ? '<span class="sep">→</span>' : '';
+                if (item.type.startsWith('badge-')) {
+                  return `<span class="badge ${item.type}" id="${item.id}">${item.text}</span>${sep}`;
+                }
+                return `
+                  <div class="step t-${item.type}" id="${item.id}">
+                    <span class="step-box">${item.text}</span>
+                    ${item.note ? `<span class="step-note">${item.note}</span>` : ''}
+                  </div>${sep}
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  updateState();
+}
+
+function updateState() {
+  const sc = S[sIdx];
+
+  sc.frames.forEach(frame => {
+    frame.rows.forEach(row => {
+      row.items.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (!el) return;
+        el.classList.toggle('shown', revealed.has(item.id));
+        el.classList.toggle('active', false);
+      });
+    });
+  });
+
+  if (stepIdx > 0) {
+    const cur = sc.steps[stepIdx - 1];
+    cur.ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    });
+  }
+
+  const expl = document.getElementById('expl');
+  if (stepIdx === 0) {
+    expl.innerHTML = 'Click <strong>Next step</strong> to see when the first paint can happen in each setup.';
+    expl.className = 'expl t-neutral';
+  } else {
+    const cur = sc.steps[stepIdx - 1];
+    expl.innerHTML = cur.expl;
+    expl.className = `expl ${cur.cls}`;
+  }
+
+  const total = sc.steps.length;
+  document.getElementById('counter').textContent = `Step ${stepIdx} / ${total}`;
+  document.getElementById('btnNext').disabled = stepIdx >= total;
+}
+
+function nextStep() {
+  const sc = S[sIdx];
+  if (stepIdx >= sc.steps.length) return;
+  const cur = sc.steps[stepIdx];
+  cur.ids.forEach(id => revealed.add(id));
+  stepIdx++;
+  updateState();
+}
+
+function reset() {
+  stepIdx = 0;
+  revealed.clear();
+  render();
+}
+
+function setScenario(i) {
+  sIdx = i;
+  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', i === j));
+  reset();
+}
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => setScenario(+t.dataset.s));
+});
+document.getElementById('btnNext').addEventListener('click', nextStep);
+document.getElementById('btnReset').addEventListener('click', reset);
+
+render();
+
+// ─── Theme ───────────────────────────────────────────────────────────────────
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t || 'dark');
+}
+(function initTheme() {
+  const stored = localStorage.getItem('theme');
+  if (stored) { applyTheme(stored); return; }
+  applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+})();
+window.addEventListener('storage', e => { if (e.key === 'theme') applyTheme(e.newValue); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!localStorage.getItem('theme')) applyTheme(e.matches ? 'dark' : 'light');
+});
+
+// ─── Height notification ───────────────────────────────────────────────────────
+function notifyHeight() {
+  window.parent.postMessage({ demoHeight: document.body.offsetHeight }, '*');
+}
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>
