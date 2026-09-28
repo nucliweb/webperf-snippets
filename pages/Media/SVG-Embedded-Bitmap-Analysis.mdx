@@ -67,7 +67,7 @@ The correct pattern is to reference bitmap assets as separate files:
 | `zstd`       | Compressed with Zstandard                                  |
 | `none`       | No content encoding applied                                |
 | `compressed` | Compressed (type not accessible — CORS restriction)        |
-| `cached`     | Resource was served from cache with no transfer size       |
+| `unknown`    | Size not accessible (cross-origin without `Timing-Allow-Origin`) |
 | `N/A`        | Not applicable (inline `<svg>` element — no HTTP transfer) |
 
 #### Embedded Bitmap Types

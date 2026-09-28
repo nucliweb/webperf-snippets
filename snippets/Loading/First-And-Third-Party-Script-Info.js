@@ -46,6 +46,8 @@
         firstParty,
         duration: r.duration,
         transferSize: r.transferSize || 0,
+        // Cross-origin scripts without Timing-Allow-Origin report every size as 0
+        sizeKnown: r.transferSize > 0 || r.encodedBodySize > 0 || r.decodedBodySize > 0,
         startTime: r.startTime,
         responseEnd: r.responseEnd,
         renderBlocking: r.renderBlockingStatus === "blocking",
@@ -230,16 +232,21 @@
       thirdPartySizeBytes: thirdMetrics.totalSize,
       thirdPartyBlockingCount: thirdMetrics.blocking,
       thirdPartyHostCount: thirdMetrics.hosts.length,
+      sizeUnknownCount: scripts.filter((s) => !s.sizeKnown).length,
     },
     items: scripts.map((s) => ({
       shortName: s.shortName,
       host: s.host,
       firstParty: s.firstParty,
       transferBytes: s.transferSize,
+      sizeKnown: s.sizeKnown,
       durationMs: Math.round(s.duration),
       renderBlocking: s.renderBlocking,
     })),
     issues: [
+      ...(scripts.some((s) => !s.sizeKnown)
+        ? [{ severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound` }]
+        : []),
       ...(thirdMetrics.blocking > 0
         ? [
             {

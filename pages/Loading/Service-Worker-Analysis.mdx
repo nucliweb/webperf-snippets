@@ -138,6 +138,8 @@ A low hit rate on first visit is expected since the cache hasn't been populated 
 
 `transferSize = 0` for SW-intercepted resources means no bytes came from the network — the response came from **Cache Storage or the HTTP cache**. It does **not** distinguish between the two. To confirm a response came specifically from Cache Storage, check your SW fetch handler logic or use the **Application → Cache Storage** panel in DevTools.
 
+Cross-origin resources without a `Timing-Allow-Origin` header report `transferSize = 0` and `encodedBodySize = 0`. The snippet cannot tell where these came from, so it lists them as **Unknown source** and leaves them out of the hit rate.
+
 ### Resources NOT intercepted by SW
 
 Resources with `workerStart = 0` were not intercepted. Common reasons:

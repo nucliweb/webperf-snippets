@@ -1,11 +1,20 @@
 (() => {
+  const waitTime = entry => entry.responseStart - entry.requestStart;
+  const hasTiming = entry => entry.responseStart > 0;
+  const isThirdPartyUrl = name => {
+    try {
+      return new URL(name).hostname !== location.hostname;
+    } catch {
+      return false;
+    }
+  };
   new PerformanceObserver(entryList => {
     const entries = entryList.getEntries();
-    const resourcesData = entries.filter(entry => entry.responseStart > 0).map(entry => {
-      const url = new URL(entry.name);
-      const isThirdParty = url.hostname !== location.hostname;
+    const restrictedCount = entries.filter(entry => !hasTiming(entry)).length;
+    const resourcesData = entries.filter(hasTiming).map(entry => {
+      const isThirdParty = isThirdPartyUrl(entry.name);
       return {
-        ttfb: entry.responseStart,
+        ttfb: waitTime(entry),
         duration: entry.duration,
         type: entry.initiatorType,
         thirdParty: isThirdParty,
@@ -22,6 +31,7 @@
     Math.min(...ttfbValues);
     resourcesData.filter(r => r.thirdParty).length;
     const slowResources = resourcesData.filter(r => r.ttfb > 500).length;
+    if (restrictedCount > 0) void 0;
     if (slowResources > 0) void 0;
     resourcesData.slice(0, 25).map(resource => ({
       "TTFB (ms)": resource.ttfb.toFixed(0),
@@ -41,20 +51,22 @@
     type: "resource",
     buffered: true
   });
-  const resourcesSync = performance.getEntriesByType("resource").filter(entry => entry.responseStart > 0).map(entry => {
-    const url = new URL(entry.name);
-    return {
-      url: entry.name,
-      ttfbMs: Math.round(entry.responseStart),
-      durationMs: Math.round(entry.duration),
-      type: entry.initiatorType,
-      isThirdParty: url.hostname !== location.hostname
-    };
-  }).sort((a, b) => b.ttfbMs - a.ttfbMs);
+  const allResources = performance.getEntriesByType("resource");
+  const corsRestrictedCount = allResources.filter(entry => !hasTiming(entry)).length;
+  const resourcesSync = allResources.filter(hasTiming).map(entry => ({
+    url: entry.name,
+    ttfbMs: Math.round(waitTime(entry)),
+    durationMs: Math.round(entry.duration),
+    type: entry.initiatorType,
+    isThirdParty: isThirdPartyUrl(entry.name)
+  })).sort((a, b) => b.ttfbMs - a.ttfbMs);
   if (resourcesSync.length === 0) return {
     script: "TTFB-Resources",
     status: "error",
-    error: "No resources with TTFB data available"
+    error: "No resources with TTFB data available",
+    details: {
+      corsRestrictedCount: corsRestrictedCount
+    }
   };
   const ttfbVals = resourcesSync.map(r => r.ttfbMs);
   return {
@@ -66,7 +78,8 @@
       maxTtfbMs: Math.max(...ttfbVals),
       minTtfbMs: Math.min(...ttfbVals),
       thirdPartyCount: resourcesSync.filter(r => r.isThirdParty).length,
-      slowCount: resourcesSync.filter(r => r.ttfbMs > 500).length
+      slowCount: resourcesSync.filter(r => r.ttfbMs > 500).length,
+      corsRestrictedCount: corsRestrictedCount
     },
     items: resourcesSync
   };

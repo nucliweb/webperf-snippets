@@ -17,8 +17,11 @@
 
   // Resources intercepted by SW (workerStart > 0)
   const swResources = resources.filter((r) => r.workerStart > 0);
-  const fromCache = swResources.filter((r) => r.transferSize === 0);
+  // transferSize 0 with a body means served from cache. With no body size either, the
+  // resource is cross-origin without Timing-Allow-Origin and its source is unknown.
+  const fromCache = swResources.filter((r) => r.transferSize === 0 && r.encodedBodySize > 0);
   const fromNetwork = swResources.filter((r) => r.transferSize > 0);
+  const unknownSource = swResources.filter((r) => r.transferSize === 0 && r.encodedBodySize === 0);
   const notIntercepted = resources.filter((r) => r.workerStart === 0);
 
   console.group(
@@ -131,7 +134,8 @@
   console.log(`   Not intercepted:     ${notIntercepted.length}`);
 
   if (swResources.length > 0) {
-    const hitRate = ((fromCache.length / swResources.length) * 100).toFixed(1);
+    const knownSource = fromCache.length + fromNetwork.length;
+    const hitRate = knownSource > 0 ? ((fromCache.length / knownSource) * 100).toFixed(1) : '0.0';
     const savedKB = (
       fromCache.reduce((sum, r) => sum + (r.encodedBodySize || 0), 0) / 1024
     ).toFixed(1);
@@ -139,7 +143,10 @@
     console.log('');
     console.log('   SW-intercepted breakdown:');
     console.log(`   ├─ Served from cache:   ${fromCache.length} (${hitRate}% hit rate)`);
-    console.log(`   └─ Fetched from network: ${fromNetwork.length}`);
+    console.log(`   ${unknownSource.length > 0 ? '├' : '└'}─ Fetched from network: ${fromNetwork.length}`);
+    if (unknownSource.length > 0) {
+      console.log(`   └─ Unknown source:      ${unknownSource.length} (cross-origin, missing Timing-Allow-Origin)`);
+    }
     console.log(`   Network bytes saved: ~${savedKB} KB`);
 
     const rate = parseFloat(hitRate);
@@ -158,7 +165,7 @@
     console.log('%c📋 SW-intercepted Resources (top 20):', 'font-weight: bold;');
     console.table(
       swResources.slice(0, 20).map((r) => ({
-        'Cache': r.transferSize === 0 ? '✅ Cache' : '🌐 Network',
+        'Cache': r.transferSize > 0 ? '🌐 Network' : r.encodedBodySize > 0 ? '✅ Cache' : '❓ Unknown',
         'Transfer (KB)': r.transferSize > 0 ? (r.transferSize / 1024).toFixed(1) : '0',
         'Duration (ms)': r.duration.toFixed(0),
         'Type': r.initiatorType,

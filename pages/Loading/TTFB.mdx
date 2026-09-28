@@ -72,7 +72,7 @@ sequenceDiagram
 
 Analyzes TTFB for every resource loaded on the page (scripts, stylesheets, images, fonts, etc.). Helps identify slow third-party resources or backend endpoints.
 
-> **Note**: Resources with TTFB of 0 are excluded (cached or cross-origin without `Timing-Allow-Origin` header).
+> **Note**: Each value is the wait between sending the request and receiving the first byte (`responseStart - requestStart`). Cross-origin resources without a `Timing-Allow-Origin` header expose no timing; they are excluded from the table and counted in `corsRestrictedCount`.
 
 ### Snippet
 

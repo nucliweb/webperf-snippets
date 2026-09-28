@@ -4588,6 +4588,12 @@ Analyzes the time spent in each phase of page navigation, from initial redirect 
   new PerformanceObserver((list) => {
     const [entry] = list.getEntries();
 
+    // loadEventEnd is 0 until the load event finishes: the phases would be meaningless
+    if (!entry.loadEventEnd) {
+      console.log("%c⏳ The page is still loading. Run this snippet again after the load event.", "color: #f59e0b;");
+      return;
+    }
+
     const formatMs = (ms) => ms.toFixed(2) + " ms";
     const formatBar = (ms, total) => {
       const pct = total > 0 ? (ms / total) * 100 : 0;
@@ -4674,7 +4680,7 @@ Analyzes the time spent in each phase of page navigation, from initial redirect 
     // Key milestones
     console.log("");
     console.log("%cKey Milestones:", "font-weight: bold;");
-    console.log(`   TTFB (Time to First Byte): ${entry.responseStart.toFixed(0)}ms`);
+    console.log(`   TTFB (Time to First Byte): ${Math.max(0, entry.responseStart - (entry.activationStart || 0)).toFixed(0)}ms`);
     console.log(`   DOMContentLoaded: ${entry.domContentLoadedEventEnd.toFixed(0)}ms`);
     console.log(`   Load Complete: ${entry.loadEventEnd.toFixed(0)}ms`);
 
@@ -4712,6 +4718,13 @@ Analyzes the time spent in each phase of page navigation, from initial redirect 
   // Synchronous return for agent
   const [navSync] = performance.getEntriesByType("navigation");
   if (!navSync) return { script: "Event-Processing-Time", status: "error", error: "No navigation entry" };
+  if (!navSync.loadEventEnd) {
+    return {
+      script: "Event-Processing-Time",
+      status: "tracking",
+      message: "The page is still loading. Run this snippet again after the load event.",
+    };
+  }
   const totalTimeSync = navSync.loadEventEnd - navSync.startTime;
   const networkTimeSync = (navSync.responseEnd || 0) - navSync.startTime;
   const ratingSync = totalTimeSync <= 2500 ? "good" : totalTimeSync <= 4000 ? "needs-improvement" : "poor";
@@ -4739,7 +4752,7 @@ Analyzes the time spent in each phase of page navigation, from initial redirect 
     details: {
       networkTimeMs: Math.round(networkTimeSync),
       processingTimeMs: Math.round(totalTimeSync - networkTimeSync),
-      ttfbMs: Math.round(navSync.responseStart),
+      ttfbMs: Math.round(Math.max(0, navSync.responseStart - (navSync.activationStart || 0))),
       domContentLoadedMs: Math.round(navSync.domContentLoadedEventEnd),
       loadCompleteMs: Math.round(navSync.loadEventEnd),
       phases: Object.fromEntries(phasesSync.map((p) => [p.key, { value: Math.round(p.duration), unit: "ms" }])),
@@ -4777,12 +4790,14 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
     const fcpEntry = list.getEntriesByName("first-contentful-paint")[0];
     if (!fcpEntry) return;
 
-    const fcpTime = fcpEntry.startTime;
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    // Prerendered pages: measure from activation, not from the start of the prerender
+    const activationStart = navEntry?.activationStart || 0;
+    const fcpTime = Math.max(0, fcpEntry.startTime - activationStart);
     const rating = valueToRating(fcpTime);
     const { icon, color } = RATING[rating];
 
-    const navEntry = performance.getEntriesByType("navigation")[0];
-    const ttfb = navEntry?.responseStart ?? 0;
+    const ttfb = Math.max(0, (navEntry?.responseStart ?? 0) - activationStart);
 
     // Render-blocking resources (Chrome 107+, requires renderBlockingStatus API)
     const resources = performance.getEntriesByType("resource");
@@ -4791,7 +4806,7 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
     );
 
     const lastBlockingEnd = blockingResources.length
-      ? Math.max(...blockingResources.map((r) => r.responseEnd))
+      ? Math.max(...blockingResources.map((r) => r.responseEnd)) - activationStart
       : ttfb;
 
     console.group(
@@ -4846,7 +4861,8 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
   // Synchronous return for agent
   const fcpEntrySync = performance.getEntriesByName("first-contentful-paint")[0];
   if (!fcpEntrySync) return { script: "FCP", status: "error", error: "No FCP entry yet" };
-  const fcpTimeSync = fcpEntrySync.startTime;
+  const activationStartSync = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+  const fcpTimeSync = Math.max(0, fcpEntrySync.startTime - activationStartSync);
   const ratingSync = valueToRating(fcpTimeSync);
   return {
     script: "FCP",
@@ -5834,6 +5850,8 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
         firstParty,
         duration: r.duration,
         transferSize: r.transferSize || 0,
+        // Cross-origin scripts without Timing-Allow-Origin report every size as 0
+        sizeKnown: r.transferSize > 0 || r.encodedBodySize > 0 || r.decodedBodySize > 0,
         startTime: r.startTime,
         responseEnd: r.responseEnd,
         renderBlocking: r.renderBlockingStatus === "blocking",
@@ -6018,16 +6036,21 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
       thirdPartySizeBytes: thirdMetrics.totalSize,
       thirdPartyBlockingCount: thirdMetrics.blocking,
       thirdPartyHostCount: thirdMetrics.hosts.length,
+      sizeUnknownCount: scripts.filter((s) => !s.sizeKnown).length,
     },
     items: scripts.map((s) => ({
       shortName: s.shortName,
       host: s.host,
       firstParty: s.firstParty,
       transferBytes: s.transferSize,
+      sizeKnown: s.sizeKnown,
       durationMs: Math.round(s.duration),
       renderBlocking: s.renderBlocking,
     })),
     issues: [
+      ...(scripts.some((s) => !s.sizeKnown)
+        ? [{ severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound` }]
+        : []),
       ...(thirdMetrics.blocking > 0
         ? [
             {
@@ -9776,6 +9799,8 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
     if (r.initiatorType === "script") {
       resourceTiming.set(r.name, {
         size: r.transferSize || 0,
+        // Cross-origin scripts without Timing-Allow-Origin report every size as 0
+        sizeKnown: r.transferSize > 0 || r.encodedBodySize > 0 || r.decodedBodySize > 0,
         duration: r.duration,
         startTime: r.startTime,
       });
@@ -9823,6 +9848,7 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
       isAsync,
       isDefer,
       size: timing.size || 0,
+      sizeKnown: !!timing.sizeKnown,
       duration: timing.duration || 0,
       startTime: timing.startTime || 0,
       element: script,
@@ -10042,6 +10068,7 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
     rating: agentRating,
     details: {
       totalSizeBytes: totalSize,
+      sizeUnknownCount: scripts.filter((s) => !s.sizeKnown).length,
       byStrategy: {
         blocking: blocking.length,
         async: asyncScripts.length,
@@ -10061,9 +10088,15 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
       location: s.inHead ? "head" : "body",
       party: s.firstParty ? "first" : "third",
       sizeBytes: s.size,
+      sizeKnown: s.sizeKnown,
       durationMs: Math.round(s.duration),
     })),
-    issues: issues.map((i) => ({ severity: i.severity, message: i.message })),
+    issues: [
+      ...issues.map((i) => ({ severity: i.severity, message: i.message })),
+      ...(scripts.some((s) => !s.sizeKnown)
+        ? [{ severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); total size is a lower bound` }]
+        : []),
+    ],
   };
 })();
 ```
@@ -10095,8 +10128,11 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 
   // Resources intercepted by SW (workerStart > 0)
   const swResources = resources.filter((r) => r.workerStart > 0);
-  const fromCache = swResources.filter((r) => r.transferSize === 0);
+  // transferSize 0 with a body means served from cache. With no body size either, the
+  // resource is cross-origin without Timing-Allow-Origin and its source is unknown.
+  const fromCache = swResources.filter((r) => r.transferSize === 0 && r.encodedBodySize > 0);
   const fromNetwork = swResources.filter((r) => r.transferSize > 0);
+  const unknownSource = swResources.filter((r) => r.transferSize === 0 && r.encodedBodySize === 0);
   const notIntercepted = resources.filter((r) => r.workerStart === 0);
 
   console.group(
@@ -10209,7 +10245,8 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
   console.log(`   Not intercepted:     ${notIntercepted.length}`);
 
   if (swResources.length > 0) {
-    const hitRate = ((fromCache.length / swResources.length) * 100).toFixed(1);
+    const knownSource = fromCache.length + fromNetwork.length;
+    const hitRate = knownSource > 0 ? ((fromCache.length / knownSource) * 100).toFixed(1) : '0.0';
     const savedKB = (
       fromCache.reduce((sum, r) => sum + (r.encodedBodySize || 0), 0) / 1024
     ).toFixed(1);
@@ -10217,7 +10254,10 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
     console.log('');
     console.log('   SW-intercepted breakdown:');
     console.log(`   ├─ Served from cache:   ${fromCache.length} (${hitRate}% hit rate)`);
-    console.log(`   └─ Fetched from network: ${fromNetwork.length}`);
+    console.log(`   ${unknownSource.length > 0 ? '├' : '└'}─ Fetched from network: ${fromNetwork.length}`);
+    if (unknownSource.length > 0) {
+      console.log(`   └─ Unknown source:      ${unknownSource.length} (cross-origin, missing Timing-Allow-Origin)`);
+    }
     console.log(`   Network bytes saved: ~${savedKB} KB`);
 
     const rate = parseFloat(hitRate);
@@ -10236,7 +10276,7 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
     console.log('%c📋 SW-intercepted Resources (top 20):', 'font-weight: bold;');
     console.table(
       swResources.slice(0, 20).map((r) => ({
-        'Cache': r.transferSize === 0 ? '✅ Cache' : '🌐 Network',
+        'Cache': r.transferSize > 0 ? '🌐 Network' : r.encodedBodySize > 0 ? '✅ Cache' : '❓ Unknown',
         'Transfer (KB)': r.transferSize > 0 ? (r.transferSize / 1024).toFixed(1) : '0',
         'Duration (ms)': r.duration.toFixed(0),
         'Type': r.initiatorType,
@@ -10284,7 +10324,8 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 (() => {
   new PerformanceObserver((entryList) => {
     const [pageNav] = entryList.getEntriesByType("navigation");
-    const ttfb = pageNav.responseStart;
+    // Prerendered pages: measure from activation, not from the start of the prerender
+    const ttfb = Math.max(0, pageNav.responseStart - (pageNav.activationStart || 0));
 
     let rating, color;
     if (ttfb <= 800) {
@@ -10310,7 +10351,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
   // Synchronous return for agent
   const [nav] = performance.getEntriesByType("navigation");
   if (!nav) return { script: "TTFB", status: "error", error: "No navigation entry" };
-  const value = Math.round(nav.responseStart);
+  const value = Math.round(Math.max(0, nav.responseStart - (nav.activationStart || 0)));
   const rating = value <= 800 ? "good" : value <= 1800 ? "needs-improvement" : "poor";
   return { script: "TTFB", status: "ok", metric: "TTFB", value, unit: "ms", rating,
     thresholds: { good: 800, needsImprovement: 1800 } };
@@ -10329,8 +10370,12 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
     const waitEnd = Math.max((pageNav.workerStart || pageNav.fetchStart) - activationStart, 0);
     const dnsStart = Math.max(pageNav.domainLookupStart - activationStart, 0);
     const tcpStart = Math.max(pageNav.connectStart - activationStart, 0);
-    const sslStart = Math.max(pageNav.secureConnectionStart - activationStart, 0);
     const tcpEnd = Math.max(pageNav.connectEnd - activationStart, 0);
+    // secureConnectionStart is 0 on plain HTTP and reused connections: no TLS phase
+    const sslStart =
+      pageNav.secureConnectionStart > 0
+        ? Math.max(pageNav.secureConnectionStart - activationStart, 0)
+        : tcpEnd;
     const responseStart = Math.max(pageNav.responseStart - activationStart, 0);
 
     const formatMs = (ms) => ms.toFixed(2) + " ms";
@@ -10410,8 +10455,11 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
   const waitEndSync = Math.max((navSync.workerStart || navSync.fetchStart) - activStartSync, 0);
   const dnsStartSync = Math.max(navSync.domainLookupStart - activStartSync, 0);
   const tcpStartSync = Math.max(navSync.connectStart - activStartSync, 0);
-  const sslStartSync = Math.max(navSync.secureConnectionStart - activStartSync, 0);
   const tcpEndSync = Math.max(navSync.connectEnd - activStartSync, 0);
+  const sslStartSync =
+    navSync.secureConnectionStart > 0
+      ? Math.max(navSync.secureConnectionStart - activStartSync, 0)
+      : tcpEndSync;
   const subPartsSync = [
     { key: "redirectWait", duration: waitEndSync },
     { key: "serviceWorkerCache", duration: dnsStartSync - waitEndSync },
@@ -10442,17 +10490,30 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Waiting time for the first byte of a resource: responseStart is measured from the
+  // start of the page, so subtract requestStart. Cross-origin resources without a
+  // Timing-Allow-Origin header report 0 for both and cannot be measured.
+  const waitTime = (entry) => entry.responseStart - entry.requestStart;
+  const hasTiming = (entry) => entry.responseStart > 0;
+  const isThirdPartyUrl = (name) => {
+    try {
+      return new URL(name).hostname !== location.hostname;
+    } catch {
+      return false;
+    }
+  };
+
   new PerformanceObserver((entryList) => {
   const entries = entryList.getEntries();
+  const restrictedCount = entries.filter((entry) => !hasTiming(entry)).length;
 
   const resourcesData = entries
-    .filter((entry) => entry.responseStart > 0)
+    .filter(hasTiming)
     .map((entry) => {
-      const url = new URL(entry.name);
-      const isThirdParty = url.hostname !== location.hostname;
+      const isThirdParty = isThirdPartyUrl(entry.name);
 
       return {
-        ttfb: entry.responseStart,
+        ttfb: waitTime(entry),
         duration: entry.duration,
         type: entry.initiatorType,
         thirdParty: isThirdParty,
@@ -10484,6 +10545,9 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
   console.log(`   Average TTFB: ${avgTtfb.toFixed(0)}ms`);
   console.log(`   Fastest: ${minTtfb.toFixed(0)}ms | Slowest: ${maxTtfb.toFixed(0)}ms`);
   console.log(`   Third-party resources: ${thirdPartyCount}`);
+  if (restrictedCount > 0) {
+    console.log(`%c   ⚠️ ${restrictedCount} resource(s) not measured: missing Timing-Allow-Origin header`, "color: #f59e0b;");
+  }
   if (slowResources > 0) {
     console.log(`%c   ⚠️ Slow resources (>500ms): ${slowResources}`, "color: #f59e0b;");
   }
@@ -10522,21 +10586,20 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
   });
 
   // Synchronous return for agent
-  const resourcesSync = performance.getEntriesByType("resource")
-    .filter((entry) => entry.responseStart > 0)
-    .map((entry) => {
-      const url = new URL(entry.name);
-      return {
-        url: entry.name,
-        ttfbMs: Math.round(entry.responseStart),
-        durationMs: Math.round(entry.duration),
-        type: entry.initiatorType,
-        isThirdParty: url.hostname !== location.hostname,
-      };
-    })
+  const allResources = performance.getEntriesByType("resource");
+  const corsRestrictedCount = allResources.filter((entry) => !hasTiming(entry)).length;
+  const resourcesSync = allResources
+    .filter(hasTiming)
+    .map((entry) => ({
+      url: entry.name,
+      ttfbMs: Math.round(waitTime(entry)),
+      durationMs: Math.round(entry.duration),
+      type: entry.initiatorType,
+      isThirdParty: isThirdPartyUrl(entry.name),
+    }))
     .sort((a, b) => b.ttfbMs - a.ttfbMs);
   if (resourcesSync.length === 0) {
-    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available" };
+    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available", details: { corsRestrictedCount } };
   }
   const ttfbVals = resourcesSync.map((r) => r.ttfbMs);
   return {
@@ -10549,6 +10612,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
       minTtfbMs: Math.min(...ttfbVals),
       thirdPartyCount: resourcesSync.filter((r) => r.isThirdParty).length,
       slowCount: resourcesSync.filter((r) => r.ttfbMs > 500).length,
+      corsRestrictedCount,
     },
     items: resourcesSync,
   };
@@ -13836,7 +13900,7 @@ void (async () => {
   }
 
   function compressionFromEntry(entry) {
-    if (entry.transferSize === 0 && entry.encodedBodySize === 0) return "cached";
+    // Cross-origin resources without Timing-Allow-Origin report every size as 0
     if (entry.encodedBodySize === 0) return "unknown";
     if (entry.encodedBodySize < entry.decodedBodySize) return "compressed";
     return "none";

@@ -20,7 +20,7 @@ void (async () => {
   }
 
   function compressionFromEntry(entry) {
-    if (entry.transferSize === 0 && entry.encodedBodySize === 0) return "cached";
+    // Cross-origin resources without Timing-Allow-Origin report every size as 0
     if (entry.encodedBodySize === 0) return "unknown";
     if (entry.encodedBodySize < entry.decodedBodySize) return "compressed";
     return "none";
