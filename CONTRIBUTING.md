@@ -28,7 +28,8 @@ snippets/
 ├── Loading/         # TTFB, FCP, scripts, fonts, images, hints
 ├── Interaction/     # Long tasks, animation frames, scroll
 ├── Media/           # Images, videos, SVGs
-└── Resources/       # Network bandwidth, connection quality
+├── Resources/       # Network bandwidth, connection quality
+└── DevTools-Overrides/  # Scripts meant for DevTools Local Overrides
 ```
 
 Use kebab-case for the filename (e.g., `My-New-Snippet.js`).
@@ -55,20 +56,29 @@ Add a corresponding `.mdx` file in `pages/<Category>/My-New-Snippet.mdx`:
 import snippet from '../../snippets/<Category>/My-New-Snippet.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# My New Snippet
+# My new snippet
 
-Brief description of what it measures and why it matters.
+Brief description of what it measures and why it matters, in one or two sentences.
 
-<Snippet snippet={snippet} />
+### Snippet
 
-## Results
+<Snippet code={snippet} />
 
-Explain what the output means.
+### Understanding the results
 
-## Further reading
+Explain what the output means. Use `###` subsections for structure, never bold text as a header.
 
-- [Relevant web.dev article](https://web.dev/...)
+### Further reading
+
+- [Relevant web.dev article](https://web.dev/...) | web.dev
 ```
+
+Conventions:
+
+- Headings use sentence case (`# My new snippet`, `### Further reading`).
+- The `<Snippet>` component takes the code through the `code` prop; it renders its own copy button.
+- Each Further reading link ends with `| source`.
+- Use `>` blockquotes for tips and warnings, not bold text.
 
 Use the `copy` prop in code blocks to enable easy copying to DevTools:
 

@@ -187,25 +187,44 @@ function verifyPublishedCounts(errors) {
   const skillsDoc = readFile(SKILLS_DOC_PATH)
   const metaSkill = readFile(META_SKILL_PATH)
 
+  const tableRow = (pattern, count) => new RegExp(`${pattern}\\s*\\|\\s*${count}\\s*\\|`)
+  const sectionCount = (skill) => {
+    const start = skillsDoc.indexOf(`### ${skill}\n`)
+    if (start === -1) return null
+    const match = skillsDoc.slice(start).match(/\*\*Snippets \((\d+)\):\*\*/)
+    return match ? Number(match[1]) : null
+  }
+
+  const perCategory = Object.entries(CATEGORY_SKILLS).map(([category, skill]) => ({
+    skill,
+    count: categoryCounts[category],
+  }))
+
   const expectedChecks = [
     {
       file: 'README.md',
       ok:
         readme.includes(`| \`webperf\`                 | ${total}`) &&
-        readme.includes(`| \`webperf-loading\`         | ${categoryCounts.Loading}`),
+        perCategory.every(({ skill, count }) => tableRow(`\\|\\s*\`${skill}\`\\s*`, count).test(readme)),
     },
     {
       file: 'SKILLS.md',
       ok:
         skillsDoc.includes(`These skills transform ${total} battle-tested JavaScript snippets`) &&
-        skillsDoc.includes(`| **[webperf-loading](#webperf-loading)**                 | ${categoryCounts.Loading}`) &&
-        skillsDoc.includes(`Provides overview of all ${total} available snippets`),
+        skillsDoc.includes(`Provides overview of all ${total} available snippets`) &&
+        perCategory.every(({ skill, count }) =>
+          tableRow(`\\[${skill}\\]\\(#${skill}\\)\\*\\*`, count).test(skillsDoc)
+        ),
+    },
+    {
+      file: 'SKILLS.md (per-skill "Snippets (N)" sections)',
+      ok: perCategory.every(({ skill, count }) => sectionCount(skill) === count),
     },
     {
       file: 'skills/webperf/SKILL.md',
       ok:
         metaSkill.includes(`A collection of ${total} JavaScript snippets`) &&
-        metaSkill.includes(`| webperf-loading | ${categoryCounts.Loading} |`),
+        perCategory.every(({ skill, count }) => metaSkill.includes(`| ${skill} | ${count} |`)),
     },
   ]
 

@@ -23,7 +23,7 @@ These skills transform 49 battle-tested JavaScript snippets into agent capabilit
 | **[webperf](#webperf)**                                 | Meta-skill | "Audit performance", "check web vitals", "analyze this page" |
 | **[webperf-core-web-vitals](#webperf-core-web-vitals)** | 7          | "Debug LCP", "check CLS", "measure INP"                      |
 | **[webperf-loading](#webperf-loading)**                 | 29         | "Analyze TTFB", "check render-blocking", "audit scripts"     |
-| **[webperf-interaction](#webperf-interaction)**         | 8          | "Debug jank", "long tasks", "animation frames"               |
+| **[webperf-interaction](#webperf-interaction)**         | 9          | "Debug jank", "long tasks", "animation frames"               |
 | **[webperf-media](#webperf-media)**                     | 3          | "Audit images", "optimize video", "lazy loading"             |
 | **[webperf-resources](#webperf-resources)**             | 1          | "Check bandwidth", "network quality"                         |
 
@@ -135,7 +135,7 @@ Comprehensive loading performance analysis and optimization with built-in workfl
 
 **Trigger phrases:** "TTFB", "FCP", "render-blocking", "script loading", "font loading", "resource hints"
 
-**Snippets (28):**
+**Snippets (29):**
 
 - TTFB (Time to First Byte) with sub-parts
 - FCP (First Contentful Paint)
@@ -149,6 +149,8 @@ Comprehensive loading performance analysis and optimization with built-in workfl
 - Back/Forward Cache compatibility
 - Priority hints audit
 - Client-side redirect detection
+- Cache strategy analysis
+- Event processing time
 
 **Intelligent Features:**
 
@@ -176,15 +178,17 @@ Measure and debug user interaction responsiveness.
 
 **Trigger phrases:** "jank", "long tasks", "animation frames", "scroll performance", "interaction latency"
 
-**Snippets (8):**
+**Snippets (9):**
 
 - Long Animation Frames (LoAF) detection
 - Long Animation Frames with script attribution
+- Long Animation Frames helpers
 - Long Tasks tracking
+- Interaction tracking (INP debugging)
 - Interaction latency breakdown
 - Scroll performance analysis
 - Layout shifts during interaction
-- Event processing time
+- Forced synchronous layout
 
 ### webperf-media
 

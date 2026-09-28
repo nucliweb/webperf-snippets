@@ -9,7 +9,7 @@ Run curated [WebPerf Snippets](https://webperf-snippets.nucliweb.net) headlessly
 
 ## Why
 
-Lighthouse gives you a score. The DevTools snippets give you the *diagnosis* — TTFB / Resource Load Delay / Element Render Delay sub-parts, LoAF script attribution, render-blocking resources, etc. This CLI runs the same curated snippets in a headless browser so you can:
+Lighthouse gives you a score. The DevTools snippets give you the *diagnosis*, such as TTFB / Resource Load Delay / Element Render Delay sub-parts, LoAF script attribution, and render-blocking resources. This CLI runs the same curated snippets in a headless browser so you can:
 
 - Diagnose LCP regressions in CI without copy-pasting into DevTools.
 - Gate pull requests on real performance budgets.
@@ -138,7 +138,7 @@ GitHub Actions, fail the PR if LCP exceeds 2.5s:
 
 ## Publishing
 
-The CLI package is published to npm via a tag-based workflow. Publishing is explicit and intentional — it only happens when a `cli-v*` tag is pushed.
+The CLI package is published to npm via a tag-based workflow. Publishing is explicit and intentional; it only happens when a `cli-v*` tag is pushed.
 
 ### Release steps
 
@@ -153,7 +153,7 @@ The CLI package is published to npm via a tag-based workflow. Publishing is expl
 
 ### Why tag-based and not path-based
 
-An alternative is to publish automatically on every push to `main` that touches `cli/`, using a version check to skip republishes. Tag-based publishing was chosen instead because it keeps releases deliberate — a passing CI on `main` does not mean the package is ready to ship, and a tag communicates that intent explicitly.
+An alternative is to publish automatically on every push to `main` that touches `cli/`, using a version check to skip republishes. Tag-based publishing was chosen instead because it keeps releases deliberate; a passing CI on `main` does not mean the package is ready to ship, and a tag communicates that intent explicitly.
 
 ### Access control
 
@@ -167,7 +167,7 @@ The `NPM_TOKEN` secret must be set in the repository settings with publish acces
 
 - **CLS in headless is conservative**: layout shifts that only happen on scroll are missed unless you script the scroll.
 - **First navigation only**: each `webperf-snippets` invocation runs one URL. SPAs need the post-route URL passed directly.
-- **Synthetic INP ≠ field INP**: `--interact-script` measures handler latency for a single scripted event. Real INP reflects the worst interaction across all user sessions — use RUM for field data.
+- **Synthetic INP ≠ field INP**: `--interact-script` measures handler latency for a single scripted event. Real INP reflects the worst interaction across all user sessions; use RUM for field data.
 
 ## Roadmap
 
@@ -186,4 +186,4 @@ The `NPM_TOKEN` secret must be set in the repository settings with publish acces
 
 ## License
 
-MIT — see [LICENSE](../LICENSE).
+MIT, see [LICENSE](../LICENSE).

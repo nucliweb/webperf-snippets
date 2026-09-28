@@ -2,9 +2,9 @@
 
 ## Pre-release Checklist
 
-1. Update the version in [package.json](/Users/joanleon/projects/nucliweb/GitHub/webperf-snippets/package.json).
+1. Update the version in [package.json](../package.json).
 2. Regenerate derived artifacts with `npm run generate-skills`.
-3. Verify the generated version in [skills/webperf/SKILL.md](/Users/joanleon/projects/nucliweb/GitHub/webperf-snippets/skills/webperf/SKILL.md).
+3. Verify the generated version in [skills/webperf/SKILL.md](../skills/webperf/SKILL.md).
 4. Run:
 
 ```bash
