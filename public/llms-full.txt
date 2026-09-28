@@ -18,6 +18,10 @@ Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual s
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
+    console.warn("⚠️ layout-shift entries are not supported in this browser.");
+    return { script: "CLS", status: "unsupported", error: "layout-shift entries not supported in this browser" };
+  }
   let cls = 0;
 
   const valueToRating = (score) =>
@@ -116,6 +120,10 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("event")) {
+    console.warn("⚠️ event entries are not supported in this browser.");
+    return { script: "INP", status: "unsupported", error: "event entries not supported in this browser" };
+  }
   const interactions = [];
   let inpValue = 0;
   let inpEntry = null;
@@ -557,7 +565,7 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
 // LCP Image Entropy Check
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
   const formatBytes = (bytes) => {
     if (!bytes) return "-";
     const k = 1024;
@@ -698,8 +706,15 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
     console.groupEnd();
   }, 100);
 
-  // Synchronous return for agent (buffered entries + DOM)
-  const lcpEntriesSync = performance.getEntriesByType("largest-contentful-paint");
+  // Return for agent (buffered entries + DOM)
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver,
+  // so performance.getEntriesByType() returns [] here. Collect via a buffered observer.
+  const lcpEntriesSync = await new Promise((resolve) => {
+    const entries = [];
+    const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+    obs.observe({ type: "largest-contentful-paint", buffered: true });
+    setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
+  });
   const lcpEntrySync = lcpEntriesSync.at(-1);
   const lcpElementSync = lcpEntrySync?.element ?? null;
   const lcpUrlSync = lcpEntrySync?.url ?? null;
@@ -1062,7 +1077,7 @@ Tracks every LCP candidate element during page load and highlights each one with
 // Tracks all LCP candidate elements during page load
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
   const PALETTE = [
     { color: "#EF4444", name: "Red" },
     { color: "#F97316", name: "Orange" },
@@ -1189,8 +1204,15 @@ Tracks every LCP candidate element during page load and highlights each one with
   console.log("%c⏱️ LCP Trail Active", "font-weight: bold; font-size: 14px;");
   console.log("   Highlights all LCP candidate elements with distinct colors.");
 
-  // Synchronous return for agent (buffered entries)
-  const trailEntries = performance.getEntriesByType("largest-contentful-paint");
+  // Return for agent (buffered entries)
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver,
+  // so performance.getEntriesByType() returns [] here. Collect via a buffered observer.
+  const trailEntries = await new Promise((resolve) => {
+    const entries = [];
+    const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+    obs.observe({ type: "largest-contentful-paint", buffered: true });
+    setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
+  });
   if (trailEntries.length === 0) {
     return { script: "LCP-Trail", status: "error", error: "No LCP entries yet" };
   }
@@ -1255,8 +1277,22 @@ Detects whether the LCP element is a `<video>` and audits the poster image confi
 // LCP Video Candidate
 // https://webperf-snippets.nucliweb.net
 
-(() => {
-  const lcpEntries = performance.getEntriesByType("largest-contentful-paint");
+(async () => {
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver, so
+  // performance.getEntriesByType() returns [] here. Collect via a buffered observer.
+  const collectBuffered = (type, timeoutMs = 100) =>
+    new Promise((resolve) => {
+      const entries = [];
+      try {
+        const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+        obs.observe({ type, buffered: true });
+        setTimeout(() => { obs.disconnect(); resolve(entries); }, timeoutMs);
+      } catch {
+        resolve(entries);
+      }
+    });
+
+  const lcpEntries = await collectBuffered("largest-contentful-paint");
 
   if (lcpEntries.length === 0) {
     console.warn(
@@ -1494,6 +1530,10 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   const valueToRating = (ms) =>
     ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";
 
@@ -5063,7 +5103,7 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
       selector: image.selector,
       lazyType: image.lazyType,
       dimensions: image.dimensions,
-      position: image.position,
+      position: `${image.position.top}px, ${image.position.left}px`,
       distanceFromEdge: image.distanceFromEdge,
       src: image.src,
       srcset: image.srcset,
@@ -9678,7 +9718,7 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
 ## Scripts Loading
 URL: https://webperf-snippets.nucliweb.net/Loading/Script-Loading
 
-Analyzes all scripts on the page, showing their loading strategy and identifying potential performance issues. Scripts are often the biggest cause of main thread blocking and delayed rendering. This snippet helps you audit which scripts are blocking the critical rendering path. Why this matters: Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsing while they download and execute. This delays First Contentful Paint (FCP) and Largest Contentful Paint (LCP). Even a single blocking script can add hundreds of milliseconds to your load time, especially on slower connections. How scripts affect HTML parsing: ```mermaid sequenceDiagram     participant Browser     participant Parser as HTML Parser     participant Script as Script     Note over Browser,Script: Normal <script> - Blocks Everything     Parser->>Script: Encounter <script>     Note over Parser: ⏸️ PAUSE parsing     Script->>Script: Download     Script->>Script: Execute     Note over Parser: ⏸️ Still waiting...     Script-->>Parser: Done     Note over Parser: ▶️ RESUME parsing     Note over Browser,Script: <script async> - Execute When Ready     Parser->>Script: Encounter <script async>     Note over Parser: ✅ Continue parsing     par Parallel Operations         Parser->>Parser: Keep parsing HTML     and         Script->>Script: Download in background     end     Script->>Parser: Ready to execute     Note over Parser: ⏸️ Brief pause     Script->>Script: Execute     Note over Parser: ▶️ Resume parsing     Note over Browser,Script: <script defer> - Execute After Parsing     Parser->>Script: Encounter <script defer>     Note over Parser: ✅ Continue parsing     par Parallel Operations         Parser->>Parser: Keep parsing HTML     and         Script->>Script: Download in background     end     Parser->>Parser: Finish parsing     Script->>Script: Execute (in order)     Note over Script: All defer scripts run before DOMContentLoaded ``` Loading strategy comparison:
+Analyzes all scripts on the page, showing their loading strategy and identifying potential performance issues. Scripts are often the biggest cause of main thread blocking and delayed rendering. This snippet helps you audit which scripts are blocking the critical rendering path. Why this matters: Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsing while they download and execute. This delays First Contentful Paint (FCP) and Largest Contentful Paint (LCP). Even a single blocking script can add hundreds of milliseconds to your load time, especially on slower connections. How scripts affect HTML parsing:
 
 ```js
 // Script Loading Analysis
@@ -10913,7 +10953,7 @@ Detects preload resource hints for scripts that use `async` or `defer` attribute
 ## Forced Synchronous Layout Detector
 URL: https://webperf-snippets.nucliweb.net/Interaction/Forced-Synchronous-Layout
 
-Detects the Forced Synchronous Layout (FSL) pattern at runtime — when JavaScript reads geometric properties from the DOM immediately after mutating styles, forcing the browser to perform layout synchronously on the main thread. Why this matters: Normally the browser batches style recalculations and layout at the end of each frame. FSL breaks this contract: reading a geometric property after a style mutation forces the browser to flush pending style changes and recalculate layout _right now_, before the current task finishes. This blocks the main thread and contributes directly to long tasks, poor INP, and jank. A typical FSL pattern: ```js container.classList.toggle('state-a'); // invalidates styles container.scrollTop = 0;              // forces layout synchronously → FSL ``` The fix — double rAF: ```js container.classList.toggle('state-a'); requestAnimationFrame(() => {         // 1st rAF: browser processes styles   requestAnimationFrame(() => {       // 2nd rAF: layout tree is clean     container.scrollTop = 0;          // no FSL   }); }); ``` What this snippet intercepts: Mutation sources — detected synchronously:
+Detects the Forced Synchronous Layout (FSL) pattern at runtime — when JavaScript reads geometric properties from the DOM immediately after mutating styles, forcing the browser to perform layout synchronously on the main thread. Why this matters: Normally the browser batches style recalculations and layout at the end of each frame. FSL breaks this contract: reading a geometric property after a style mutation forces the browser to flush pending style changes and recalculate layout _right now_, before the current task finishes. This blocks the main thread and contributes directly to long tasks, poor INP, and jank. A typical FSL pattern: ```js container.classList.toggle('state-a'); // invalidates styles container.scrollTop = 0;              // forces layout synchronously → FSL ``` The fix — double rAF: ```js container.classList.toggle('state-a'); requestAnimationFrame(() => {         // 1st rAF: browser processes styles   requestAnimationFrame(() => {       // 2nd rAF: layout tree is clean     container.scrollTop = 0;          // no FSL   }); }); ``` Step through the render pipeline to see _why_ the double `requestAnimationFrame` avoids the forced layout:
 
 ```js
 // Forced Synchronous Layout Detector
@@ -11654,7 +11694,11 @@ Tracks all layout shifts during page load and user interaction, identifying the 
 // Layout Shift Tracking
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
+    console.warn("⚠️ layout-shift entries are not supported in this browser.");
+    return { script: "Layout-Shift-Loading-and-Interaction", status: "unsupported", error: "layout-shift entries not supported in this browser" };
+  }
   // CLS thresholds
   const valueToRating = (score) =>
     score <= 0.1 ? "good" : score <= 0.25 ? "needs-improvement" : "poor";
@@ -11880,6 +11924,10 @@ Tracks all layout shifts during page load and user interaction, identifying the 
     };
   };
 
+  // Buffered entries reach the observer callback asynchronously; wait for them so the
+  // summary below (and the return value) reflect shifts that happened before this ran.
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   // Initial message
   const rating = valueToRating(totalCLS);
   const icon = RATING_ICONS[rating];
@@ -11893,11 +11941,10 @@ Tracks all layout shifts during page load and user interaction, identifying the 
     ""
   );
 
-  // Synchronous return for agent (buffered layout-shift entries)
-  const clsBufferedSync = performance.getEntriesByType("layout-shift")
-    .reduce((sum, e) => !e.hadRecentInput ? sum + e.value : sum, 0);
-  const countedSync = performance.getEntriesByType("layout-shift").filter((e) => !e.hadRecentInput).length;
-  const excludedSync = performance.getEntriesByType("layout-shift").filter((e) => e.hadRecentInput).length;
+  // Return for agent (shifts collected by the buffered observer above)
+  const clsBufferedSync = totalCLS;
+  const countedSync = allShifts.filter((s) => s.countedForCLS).length;
+  const excludedSync = allShifts.length - countedSync;
   const clsRatingSync = valueToRating(clsBufferedSync);
   return {
     script: "Layout-Shift-Loading-and-Interaction",
@@ -12792,7 +12839,11 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
 // Long Tasks Tracking
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("longtask")) {
+    console.warn("⚠️ longtask entries are not supported in this browser.");
+    return { script: "LongTask", status: "unsupported", error: "longtask entries not supported in this browser" };
+  }
   const formatMs = (ms) => `${Math.round(ms)}ms`;
 
   // Severity helpers
@@ -12963,8 +13014,10 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
       ""
     );
 
-    // Synchronous return for agent (buffered entries)
-    const longtaskBuffered = performance.getEntriesByType("longtask");
+    // Return for agent. Chrome only exposes longtask entries through a PerformanceObserver,
+    // so wait for the buffered observer above to deliver them.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const longtaskBuffered = allTasks;
     const totalBlockingSync = longtaskBuffered.reduce((sum, t) => sum + Math.max(0, t.duration - 50), 0);
     const worstTaskSync = longtaskBuffered.length > 0 ? Math.max(...longtaskBuffered.map((t) => t.duration)) : 0;
     const bySeveritySync = {
@@ -14456,7 +14509,7 @@ Intercepts every `fetch()` and `XMLHttpRequest` call made during the page lifecy
 // Fetch & XHR Timeline — Run in console after page load
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
   const calls = window.__perfCalls;
 
   if (!calls) {
@@ -14466,7 +14519,14 @@ Intercepts every `fetch()` and `XMLHttpRequest` call made during the page lifecy
     return;
   }
 
-  const lcpEntries = performance.getEntriesByType("largest-contentful-paint");
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver,
+  // so performance.getEntriesByType() returns [] here. Collect via a buffered observer.
+  const lcpEntries = await new Promise((resolve) => {
+    const entries = [];
+    const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+    obs.observe({ type: "largest-contentful-paint", buffered: true });
+    setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
+  });
   const lcpTime = lcpEntries.length
     ? Math.round(lcpEntries[lcpEntries.length - 1].startTime)
     : window.__lcpTime ?? null;

@@ -90,7 +90,7 @@ This installs skills to `~/.claude/skills/` for use across any project.
 | `webperf`                 | 49       | Main entry point for all web performance analysis                |
 | `webperf-core-web-vitals` | 7        | LCP, CLS, INP measurements with detailed breakdowns              |
 | `webperf-loading`         | 29       | TTFB, FCP, script/font analysis, resource hints, service workers |
-| `webperf-interaction`     | 8        | Long tasks, animation frames, scroll jank, INP debugging         |
+| `webperf-interaction`     | 9        | Long tasks, animation frames, scroll jank, INP debugging         |
 | `webperf-media`           | 3        | Image/video audits, lazy loading validation, SVG analysis        |
 | `webperf-resources`       | 1        | Network bandwidth, connection quality, adaptive loading          |
 
