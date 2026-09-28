@@ -9,7 +9,6 @@ void (async () => {
     }
   }
   function compressionFromEntry(entry) {
-    if (entry.transferSize === 0 && entry.encodedBodySize === 0) return "cached";
     if (entry.encodedBodySize === 0) return "unknown";
     if (entry.encodedBodySize < entry.decodedBodySize) return "compressed";
     return "none";

@@ -66,7 +66,7 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 | Strategy | Loading strategy with indicator |
 | Location | head or body |
 | Party | 1st (your domain) or 3rd (external) |
-| Size | Transfer size |
+| Size | Transfer size; unknown for cross-origin scripts without `Timing-Allow-Origin` (`sizeKnown: false` in the returned items) |
 | Duration | Time to load |
 
 **Issues Detected:**

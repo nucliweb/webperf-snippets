@@ -18,12 +18,14 @@
     const fcpEntry = list.getEntriesByName("first-contentful-paint")[0];
     if (!fcpEntry) return;
 
-    const fcpTime = fcpEntry.startTime;
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    // Prerendered pages: measure from activation, not from the start of the prerender
+    const activationStart = navEntry?.activationStart || 0;
+    const fcpTime = Math.max(0, fcpEntry.startTime - activationStart);
     const rating = valueToRating(fcpTime);
     const { icon, color } = RATING[rating];
 
-    const navEntry = performance.getEntriesByType("navigation")[0];
-    const ttfb = navEntry?.responseStart ?? 0;
+    const ttfb = Math.max(0, (navEntry?.responseStart ?? 0) - activationStart);
 
     // Render-blocking resources (Chrome 107+, requires renderBlockingStatus API)
     const resources = performance.getEntriesByType("resource");
@@ -32,7 +34,7 @@
     );
 
     const lastBlockingEnd = blockingResources.length
-      ? Math.max(...blockingResources.map((r) => r.responseEnd))
+      ? Math.max(...blockingResources.map((r) => r.responseEnd)) - activationStart
       : ttfb;
 
     console.group(
@@ -87,7 +89,8 @@
   // Synchronous return for agent
   const fcpEntrySync = performance.getEntriesByName("first-contentful-paint")[0];
   if (!fcpEntrySync) return { script: "FCP", status: "error", error: "No FCP entry yet" };
-  const fcpTimeSync = fcpEntrySync.startTime;
+  const activationStartSync = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+  const fcpTimeSync = Math.max(0, fcpEntrySync.startTime - activationStartSync);
   const ratingSync = valueToRating(fcpTimeSync);
   return {
     script: "FCP",

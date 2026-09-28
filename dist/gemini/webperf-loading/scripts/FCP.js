@@ -17,14 +17,15 @@
   new PerformanceObserver(list => {
     const fcpEntry = list.getEntriesByName("first-contentful-paint")[0];
     if (!fcpEntry) return;
-    const fcpTime = fcpEntry.startTime;
+    const navEntry = performance.getEntriesByType("navigation")[0];
+    const activationStart = navEntry?.activationStart || 0;
+    const fcpTime = Math.max(0, fcpEntry.startTime - activationStart);
     const rating = valueToRating(fcpTime);
     const {icon: icon, color: color} = RATING[rating];
-    const navEntry = performance.getEntriesByType("navigation")[0];
-    const ttfb = navEntry?.responseStart ?? 0;
+    const ttfb = Math.max(0, (navEntry?.responseStart ?? 0) - activationStart);
     const resources = performance.getEntriesByType("resource");
     const blockingResources = resources.filter(r => r.renderBlockingStatus === "blocking");
-    const lastBlockingEnd = blockingResources.length ? Math.max(...blockingResources.map(r => r.responseEnd)) : ttfb;
+    const lastBlockingEnd = blockingResources.length ? Math.max(...blockingResources.map(r => r.responseEnd)) - activationStart : ttfb;
     if (blockingResources.length > 0) void 0;
     if (blockingResources.length > 0) {
       Math.max(0, lastBlockingEnd - ttfb);
@@ -43,7 +44,8 @@
     status: "error",
     error: "No FCP entry yet"
   };
-  const fcpTimeSync = fcpEntrySync.startTime;
+  const activationStartSync = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+  const fcpTimeSync = Math.max(0, fcpEntrySync.startTime - activationStartSync);
   const ratingSync = valueToRating(fcpTimeSync);
   return {
     script: "FCP",

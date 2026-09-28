@@ -53,7 +53,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 | -------- | --------------------------- |
 | Script   | Filename                    |
 | Host     | Domain serving the script   |
-| Size     | Transfer size (compressed)  |
+| Size     | Transfer size (compressed); unknown for cross-origin scripts without `Timing-Allow-Origin` |
 | Duration | Total time to load          |
 | Blocking | Whether it blocks rendering |
 

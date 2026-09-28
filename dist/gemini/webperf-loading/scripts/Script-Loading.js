@@ -28,6 +28,7 @@
   performance.getEntriesByType("resource").forEach(r => {
     if (r.initiatorType === "script") resourceTiming.set(r.name, {
       size: r.transferSize || 0,
+      sizeKnown: r.transferSize > 0 || r.encodedBodySize > 0 || r.decodedBodySize > 0,
       duration: r.duration,
       startTime: r.startTime
     });
@@ -56,6 +57,7 @@
       isAsync: isAsync,
       isDefer: isDefer,
       size: timing.size || 0,
+      sizeKnown: !!timing.sizeKnown,
       duration: timing.duration || 0,
       startTime: timing.startTime || 0,
       element: script
@@ -167,6 +169,7 @@
     rating: agentRating,
     details: {
       totalSizeBytes: totalSize,
+      sizeUnknownCount: scripts.filter(s => !s.sizeKnown).length,
       byStrategy: {
         blocking: blocking.length,
         async: asyncScripts.length,
@@ -186,11 +189,15 @@
       location: s.inHead ? "head" : "body",
       party: s.firstParty ? "first" : "third",
       sizeBytes: s.size,
+      sizeKnown: s.sizeKnown,
       durationMs: Math.round(s.duration)
     })),
-    issues: issues.map(i => ({
+    issues: [ ...issues.map(i => ({
       severity: i.severity,
       message: i.message
-    }))
+    })), ...scripts.some(s => !s.sizeKnown) ? [ {
+      severity: "info",
+      message: `${scripts.filter(s => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); total size is a lower bound`
+    } ] : [] ]
   };
 })();

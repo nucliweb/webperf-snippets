@@ -2,17 +2,30 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Waiting time for the first byte of a resource: responseStart is measured from the
+  // start of the page, so subtract requestStart. Cross-origin resources without a
+  // Timing-Allow-Origin header report 0 for both and cannot be measured.
+  const waitTime = (entry) => entry.responseStart - entry.requestStart;
+  const hasTiming = (entry) => entry.responseStart > 0;
+  const isThirdPartyUrl = (name) => {
+    try {
+      return new URL(name).hostname !== location.hostname;
+    } catch {
+      return false;
+    }
+  };
+
   new PerformanceObserver((entryList) => {
   const entries = entryList.getEntries();
+  const restrictedCount = entries.filter((entry) => !hasTiming(entry)).length;
 
   const resourcesData = entries
-    .filter((entry) => entry.responseStart > 0)
+    .filter(hasTiming)
     .map((entry) => {
-      const url = new URL(entry.name);
-      const isThirdParty = url.hostname !== location.hostname;
+      const isThirdParty = isThirdPartyUrl(entry.name);
 
       return {
-        ttfb: entry.responseStart,
+        ttfb: waitTime(entry),
         duration: entry.duration,
         type: entry.initiatorType,
         thirdParty: isThirdParty,
@@ -44,6 +57,9 @@
   console.log(`   Average TTFB: ${avgTtfb.toFixed(0)}ms`);
   console.log(`   Fastest: ${minTtfb.toFixed(0)}ms | Slowest: ${maxTtfb.toFixed(0)}ms`);
   console.log(`   Third-party resources: ${thirdPartyCount}`);
+  if (restrictedCount > 0) {
+    console.log(`%c   ⚠️ ${restrictedCount} resource(s) not measured: missing Timing-Allow-Origin header`, "color: #f59e0b;");
+  }
   if (slowResources > 0) {
     console.log(`%c   ⚠️ Slow resources (>500ms): ${slowResources}`, "color: #f59e0b;");
   }
@@ -82,21 +98,20 @@
   });
 
   // Synchronous return for agent
-  const resourcesSync = performance.getEntriesByType("resource")
-    .filter((entry) => entry.responseStart > 0)
-    .map((entry) => {
-      const url = new URL(entry.name);
-      return {
-        url: entry.name,
-        ttfbMs: Math.round(entry.responseStart),
-        durationMs: Math.round(entry.duration),
-        type: entry.initiatorType,
-        isThirdParty: url.hostname !== location.hostname,
-      };
-    })
+  const allResources = performance.getEntriesByType("resource");
+  const corsRestrictedCount = allResources.filter((entry) => !hasTiming(entry)).length;
+  const resourcesSync = allResources
+    .filter(hasTiming)
+    .map((entry) => ({
+      url: entry.name,
+      ttfbMs: Math.round(waitTime(entry)),
+      durationMs: Math.round(entry.duration),
+      type: entry.initiatorType,
+      isThirdParty: isThirdPartyUrl(entry.name),
+    }))
     .sort((a, b) => b.ttfbMs - a.ttfbMs);
   if (resourcesSync.length === 0) {
-    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available" };
+    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available", details: { corsRestrictedCount } };
   }
   const ttfbVals = resourcesSync.map((r) => r.ttfbMs);
   return {
@@ -109,6 +124,7 @@
       minTtfbMs: Math.min(...ttfbVals),
       thirdPartyCount: resourcesSync.filter((r) => r.isThirdParty).length,
       slowCount: resourcesSync.filter((r) => r.ttfbMs > 500).length,
+      corsRestrictedCount,
     },
     items: resourcesSync,
   };

@@ -4,7 +4,8 @@
 (() => {
   new PerformanceObserver((entryList) => {
     const [pageNav] = entryList.getEntriesByType("navigation");
-    const ttfb = pageNav.responseStart;
+    // Prerendered pages: measure from activation, not from the start of the prerender
+    const ttfb = Math.max(0, pageNav.responseStart - (pageNav.activationStart || 0));
 
     let rating, color;
     if (ttfb <= 800) {
@@ -30,7 +31,7 @@
   // Synchronous return for agent
   const [nav] = performance.getEntriesByType("navigation");
   if (!nav) return { script: "TTFB", status: "error", error: "No navigation entry" };
-  const value = Math.round(nav.responseStart);
+  const value = Math.round(Math.max(0, nav.responseStart - (nav.activationStart || 0)));
   const rating = value <= 800 ? "good" : value <= 1800 ? "needs-improvement" : "poor";
   return { script: "TTFB", status: "ok", metric: "TTFB", value, unit: "ms", rating,
     thresholds: { good: 800, needsImprovement: 1800 } };

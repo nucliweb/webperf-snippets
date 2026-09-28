@@ -7,8 +7,9 @@
   const navEntry = performance.getEntriesByType("navigation")[0];
   const resources = performance.getEntriesByType("resource");
   const swResources = resources.filter(r => r.workerStart > 0);
-  const fromCache = swResources.filter(r => r.transferSize === 0);
-  swResources.filter(r => r.transferSize > 0);
+  const fromCache = swResources.filter(r => r.transferSize === 0 && r.encodedBodySize > 0);
+  const fromNetwork = swResources.filter(r => r.transferSize > 0);
+  const unknownSource = swResources.filter(r => r.transferSize === 0 && r.encodedBodySize === 0);
   resources.filter(r => r.workerStart === 0);
   if (registrations.length === 0) {
     return;
@@ -36,8 +37,10 @@
     if (swOverhead > 100) void 0; else if (swOverhead > 50) void 0; else void 0;
   }
   if (swResources.length > 0) {
-    const hitRate = (fromCache.length / swResources.length * 100).toFixed(1);
+    const knownSource = fromCache.length + fromNetwork.length;
+    const hitRate = knownSource > 0 ? (fromCache.length / knownSource * 100).toFixed(1) : "0.0";
     (fromCache.reduce((sum, r) => sum + (r.encodedBodySize || 0), 0) / 1024).toFixed(1);
+    if (unknownSource.length > 0) void 0;
     const rate = parseFloat(hitRate);
     if (rate >= 80) void 0; else if (rate >= 50) void 0; else void 0;
   }

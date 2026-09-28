@@ -33,6 +33,8 @@ The three phases explain where time is spent before the first pixel is painted:
 | **Render-blocking load** | Time blocked waiting for CSS/JS before the browser can paint | Defer/async scripts, inline critical CSS |
 | **Render delay** | Time from resources ready to actual paint | CSS complexity, main thread contention |
 
+On prerendered pages, every phase is measured from `activationStart` (the moment the page was shown), not from the start of the prerender.
+
 > **Browser support:** The render-blocking phase requires the `renderBlockingStatus` API (Chrome 107+, Edge 107+). In other browsers the render-blocking section will show no resources even if they exist.
 
 ### Further Reading

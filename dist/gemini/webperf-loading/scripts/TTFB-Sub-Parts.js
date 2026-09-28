@@ -5,8 +5,8 @@
     const waitEnd = Math.max((pageNav.workerStart || pageNav.fetchStart) - activationStart, 0);
     const dnsStart = Math.max(pageNav.domainLookupStart - activationStart, 0);
     const tcpStart = Math.max(pageNav.connectStart - activationStart, 0);
-    const sslStart = Math.max(pageNav.secureConnectionStart - activationStart, 0);
     const tcpEnd = Math.max(pageNav.connectEnd - activationStart, 0);
+    const sslStart = pageNav.secureConnectionStart > 0 ? Math.max(pageNav.secureConnectionStart - activationStart, 0) : tcpEnd;
     const responseStart = Math.max(pageNav.responseStart - activationStart, 0);
     let rating, color;
     if (responseStart <= 800) {
@@ -67,8 +67,8 @@
   const waitEndSync = Math.max((navSync.workerStart || navSync.fetchStart) - activStartSync, 0);
   const dnsStartSync = Math.max(navSync.domainLookupStart - activStartSync, 0);
   const tcpStartSync = Math.max(navSync.connectStart - activStartSync, 0);
-  const sslStartSync = Math.max(navSync.secureConnectionStart - activStartSync, 0);
   const tcpEndSync = Math.max(navSync.connectEnd - activStartSync, 0);
+  const sslStartSync = navSync.secureConnectionStart > 0 ? Math.max(navSync.secureConnectionStart - activStartSync, 0) : tcpEndSync;
   const subPartsSync = [ {
     key: "redirectWait",
     duration: waitEndSync

@@ -18,6 +18,12 @@
   new PerformanceObserver((list) => {
     const [entry] = list.getEntries();
 
+    // loadEventEnd is 0 until the load event finishes: the phases would be meaningless
+    if (!entry.loadEventEnd) {
+      console.log("%c⏳ The page is still loading. Run this snippet again after the load event.", "color: #f59e0b;");
+      return;
+    }
+
     const formatMs = (ms) => ms.toFixed(2) + " ms";
     const formatBar = (ms, total) => {
       const pct = total > 0 ? (ms / total) * 100 : 0;
@@ -104,7 +110,7 @@
     // Key milestones
     console.log("");
     console.log("%cKey Milestones:", "font-weight: bold;");
-    console.log(`   TTFB (Time to First Byte): ${entry.responseStart.toFixed(0)}ms`);
+    console.log(`   TTFB (Time to First Byte): ${Math.max(0, entry.responseStart - (entry.activationStart || 0)).toFixed(0)}ms`);
     console.log(`   DOMContentLoaded: ${entry.domContentLoadedEventEnd.toFixed(0)}ms`);
     console.log(`   Load Complete: ${entry.loadEventEnd.toFixed(0)}ms`);
 
@@ -142,6 +148,13 @@
   // Synchronous return for agent
   const [navSync] = performance.getEntriesByType("navigation");
   if (!navSync) return { script: "Event-Processing-Time", status: "error", error: "No navigation entry" };
+  if (!navSync.loadEventEnd) {
+    return {
+      script: "Event-Processing-Time",
+      status: "tracking",
+      message: "The page is still loading. Run this snippet again after the load event.",
+    };
+  }
   const totalTimeSync = navSync.loadEventEnd - navSync.startTime;
   const networkTimeSync = (navSync.responseEnd || 0) - navSync.startTime;
   const ratingSync = totalTimeSync <= 2500 ? "good" : totalTimeSync <= 4000 ? "needs-improvement" : "poor";
@@ -169,7 +182,7 @@
     details: {
       networkTimeMs: Math.round(networkTimeSync),
       processingTimeMs: Math.round(totalTimeSync - networkTimeSync),
-      ttfbMs: Math.round(navSync.responseStart),
+      ttfbMs: Math.round(Math.max(0, navSync.responseStart - (navSync.activationStart || 0))),
       domContentLoadedMs: Math.round(navSync.domContentLoadedEventEnd),
       loadCompleteMs: Math.round(navSync.loadEventEnd),
       phases: Object.fromEntries(phasesSync.map((p) => [p.key, { value: Math.round(p.duration), unit: "ms" }])),

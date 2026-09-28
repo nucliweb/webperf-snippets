@@ -52,6 +52,9 @@
   } ];
   new PerformanceObserver(list => {
     const [entry] = list.getEntries();
+    if (!entry.loadEventEnd) {
+      return;
+    }
     const formatMs = ms => ms.toFixed(2) + " ms";
     const formatBar = (ms, total) => {
       const pct = total > 0 ? ms / total * 100 : 0;
@@ -104,6 +107,11 @@
     status: "error",
     error: "No navigation entry"
   };
+  if (!navSync.loadEventEnd) return {
+    script: "Event-Processing-Time",
+    status: "tracking",
+    message: "The page is still loading. Run this snippet again after the load event."
+  };
   const totalTimeSync = navSync.loadEventEnd - navSync.startTime;
   const networkTimeSync = (navSync.responseEnd || 0) - navSync.startTime;
   const ratingSync = totalTimeSync <= 2500 ? "good" : totalTimeSync <= 4000 ? "needs-improvement" : "poor";
@@ -153,7 +161,7 @@
     details: {
       networkTimeMs: Math.round(networkTimeSync),
       processingTimeMs: Math.round(totalTimeSync - networkTimeSync),
-      ttfbMs: Math.round(navSync.responseStart),
+      ttfbMs: Math.round(Math.max(0, navSync.responseStart - (navSync.activationStart || 0))),
       domContentLoadedMs: Math.round(navSync.domContentLoadedEventEnd),
       loadCompleteMs: Math.round(navSync.loadEventEnd),
       phases: Object.fromEntries(phasesSync.map(p => [ p.key, {
