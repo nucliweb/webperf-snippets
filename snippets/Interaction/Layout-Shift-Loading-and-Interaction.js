@@ -22,8 +22,12 @@
     poor: "🔴",
   };
 
-  // Track all shifts
+  // Track all shifts. CLS is the largest session window: shifts less than 1s apart,
+  // in a window of at most 5s.
   let totalCLS = 0;
+  let sessionValue = 0;
+  let sessionFirst = null;
+  let sessionLast = null;
   const allShifts = [];
   const elementShifts = new Map(); // Track shifts per element
 
@@ -43,7 +47,18 @@
       const countedForCLS = !entry.hadRecentInput;
 
       if (countedForCLS) {
-        totalCLS += entry.value;
+        if (
+          sessionLast &&
+          entry.startTime - sessionLast.startTime < 1000 &&
+          entry.startTime - sessionFirst.startTime < 5000
+        ) {
+          sessionValue += entry.value;
+        } else {
+          sessionValue = entry.value;
+          sessionFirst = entry;
+        }
+        sessionLast = entry;
+        totalCLS = Math.max(totalCLS, sessionValue);
       }
 
       // Get affected elements
@@ -85,7 +100,7 @@
           `font-weight: bold; color: ${countedForCLS ? clsColor : "#888"};`
         );
 
-        console.log(`%cCumulative CLS: ${totalCLS.toFixed(4)}`, `color: ${clsColor}; font-weight: bold;`);
+        console.log(`%cCurrent CLS: ${totalCLS.toFixed(4)}`, `color: ${clsColor}; font-weight: bold;`);
         console.log(`   Time: ${Math.round(entry.startTime)}ms`);
         console.log(`   Had recent input: ${entry.hadRecentInput ? "Yes (excluded from CLS)" : "No"}`);
 

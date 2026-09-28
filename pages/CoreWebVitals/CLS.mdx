@@ -5,7 +5,7 @@ import { Snippet } from '../../components/Snippet'
 
 ### Overview
 
-Quick check for [Cumulative Layout Shift](https://web.dev/articles/cls), a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the cumulative impact of all unexpected layout shifts.
+Quick check for [Cumulative Layout Shift](https://web.dev/articles/cls), a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the largest burst of unexpected layout shifts.
 
 **Why this matters:**
 
@@ -27,10 +27,11 @@ Unexpected layout shifts are frustrating and can cause users to click the wrong 
 
 ### Understanding CLS
 
-CLS measures the sum of all unexpected layout shifts that occur during the page's lifetime:
+CLS groups unexpected layout shifts into session windows and reports the largest window. A window starts at a shift and continues while each new shift arrives less than 1 second after the previous one, up to 5 seconds in total. The score of a window is the sum of its shift scores:
 
 ```
-CLS = Σ (impact fraction × distance fraction)
+shift score = impact fraction × distance fraction
+CLS = max over session windows of Σ shift scores
 ```
 
 - **Impact fraction**: How much of the viewport was affected
@@ -52,7 +53,7 @@ flowchart TD
     Calculate --> Impact[Calculate Impact Fraction<br/>% of viewport affected]
     Impact --> Distance[Calculate Distance Fraction<br/>distance moved / viewport]
     Distance --> Score[Shift Score = Impact × Distance]
-    Score --> Accumulate[Add to CLS total<br/>CLS += score]
+    Score --> Accumulate[Add to the current session window<br/>CLS = largest window]
 
     style Exclude fill:#FFE5E5
     style Calculate fill:#E5FFE5
@@ -65,7 +66,7 @@ flowchart TD
 stateDiagram-v2
     [*] --> PageLoad: Navigation Start
     PageLoad --> Accumulating: First Shift
-    Accumulating --> Accumulating: More Shifts<br/>(CLS += score)
+    Accumulating --> Accumulating: More Shifts<br/>(window += score, CLS = largest window)
     Accumulating --> Final: Page Hidden
     Final --> [*]
 

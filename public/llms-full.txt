@@ -11,7 +11,7 @@ Source: https://webperf-snippets.nucliweb.net
 ## Cumulative Layout Shift (CLS)
 URL: https://webperf-snippets.nucliweb.net/CoreWebVitals/CLS
 
-Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the cumulative impact of all unexpected layout shifts. Why this matters: Unexpected layout shifts are frustrating and can cause users to click the wrong element or lose their reading position. CLS directly impacts user experience and is a ranking factor for Google Search. Common causes include images without dimensions, web fonts, and dynamically injected content. CLS Rating Thresholds:
+Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the largest burst of unexpected layout shifts. Why this matters: Unexpected layout shifts are frustrating and can cause users to click the wrong element or lose their reading position. CLS directly impacts user experience and is a ranking factor for Google Search. Common causes include images without dimensions, web fonts, and dynamically injected content. CLS Rating Thresholds:
 
 ```js
 // CLS Quick Check
@@ -22,7 +22,27 @@ Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual s
     console.warn("⚠️ layout-shift entries are not supported in this browser.");
     return { script: "CLS", status: "unsupported", error: "layout-shift entries not supported in this browser" };
   }
+  // CLS is the largest session window: shifts less than 1s apart, in a window of at most 5s.
   let cls = 0;
+  let sessionValue = 0;
+  let sessionFirst = null;
+  let sessionLast = null;
+
+  const addShift = (entry) => {
+    if (entry.hadRecentInput) return;
+    if (
+      sessionLast &&
+      entry.startTime - sessionLast.startTime < 1000 &&
+      entry.startTime - sessionFirst.startTime < 5000
+    ) {
+      sessionValue += entry.value;
+    } else {
+      sessionValue = entry.value;
+      sessionFirst = entry;
+    }
+    sessionLast = entry;
+    cls = Math.max(cls, sessionValue);
+  };
 
   const valueToRating = (score) =>
     score <= 0.1 ? "good" : score <= 0.25 ? "needs-improvement" : "poor";
@@ -43,11 +63,7 @@ Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual s
   };
 
   const observer = new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) {
-      if (!entry.hadRecentInput) {
-        cls += entry.value;
-      }
-    }
+    for (const entry of list.getEntries()) addShift(entry);
     logCLS();
   });
 
@@ -83,16 +99,10 @@ Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual s
     ""
   );
 
-  // Return for agent — collect via buffered observer (getEntriesByType does not
-  // expose layout-shift entries in Chrome without an active observer).
-  const clsSync = await new Promise((resolve) => {
-    let sum = 0;
-    const obs = new PerformanceObserver((list) => {
-      for (const e of list.getEntries()) if (!e.hadRecentInput) sum += e.value;
-    });
-    obs.observe({ type: "layout-shift", buffered: true });
-    setTimeout(() => { obs.disconnect(); resolve(sum); }, 100);
-  });
+  // Return for agent. Chrome only exposes layout-shift entries through a PerformanceObserver,
+  // so wait for the buffered observer above to deliver them.
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const clsSync = cls;
   const clsRating = valueToRating(clsSync);
   return {
     script: "CLS",
@@ -146,10 +156,10 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
     // Sort by duration
     const sorted = [...interactions].sort((a, b) => b.duration - a.duration);
 
-    // Get 98th percentile (or worst if < 50 interactions)
-    const index = interactions.length < 50
-      ? 0
-      : Math.floor(interactions.length * 0.02);
+    // Skip one interaction for every 50. Use the browser's total interaction count when
+    // available: `interactions` only holds those above the duration threshold.
+    const totalInteractions = performance.interactionCount || interactions.length;
+    const index = Math.min(sorted.length - 1, Math.floor(totalInteractions / 50));
 
     return {
       value: sorted[index].duration,
@@ -172,7 +182,7 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
     return `${entry.name} → ${selector}`;
   };
 
-  // Get phase breakdown (requires LoAF support)
+  // Get phase breakdown from the Event Timing entry
   const getPhaseBreakdown = (entry) => {
     const phases = {
       inputDelay: 0,
@@ -183,7 +193,10 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
     if (entry.processingStart && entry.processingEnd) {
       phases.inputDelay = entry.processingStart - entry.startTime;
       phases.processingTime = entry.processingEnd - entry.processingStart;
-      phases.presentationDelay = entry.duration - phases.inputDelay - phases.processingTime;
+      phases.presentationDelay = Math.max(
+        0,
+        entry.duration - phases.inputDelay - phases.processingTime
+      );
     }
 
     return phases;
@@ -252,7 +265,7 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
 
     if (inpEntry) {
       console.log("");
-      console.log(`%c🎯 Worst Interaction (INP):`, "font-weight: bold; color: ${color};");
+      console.log(`%c🎯 Worst Interaction (INP):`, `font-weight: bold; color: ${color};`);
       console.log(`   Event: ${inpEntry.formattedName}`);
       console.log(`   Duration: ${formatMs(inpEntry.duration)}`);
 
@@ -11715,8 +11728,12 @@ Tracks all layout shifts during page load and user interaction, identifying the 
     poor: "🔴",
   };
 
-  // Track all shifts
+  // Track all shifts. CLS is the largest session window: shifts less than 1s apart,
+  // in a window of at most 5s.
   let totalCLS = 0;
+  let sessionValue = 0;
+  let sessionFirst = null;
+  let sessionLast = null;
   const allShifts = [];
   const elementShifts = new Map(); // Track shifts per element
 
@@ -11736,7 +11753,18 @@ Tracks all layout shifts during page load and user interaction, identifying the 
       const countedForCLS = !entry.hadRecentInput;
 
       if (countedForCLS) {
-        totalCLS += entry.value;
+        if (
+          sessionLast &&
+          entry.startTime - sessionLast.startTime < 1000 &&
+          entry.startTime - sessionFirst.startTime < 5000
+        ) {
+          sessionValue += entry.value;
+        } else {
+          sessionValue = entry.value;
+          sessionFirst = entry;
+        }
+        sessionLast = entry;
+        totalCLS = Math.max(totalCLS, sessionValue);
       }
 
       // Get affected elements
@@ -11778,7 +11806,7 @@ Tracks all layout shifts during page load and user interaction, identifying the 
           `font-weight: bold; color: ${countedForCLS ? clsColor : "#888"};`
         );
 
-        console.log(`%cCumulative CLS: ${totalCLS.toFixed(4)}`, `color: ${clsColor}; font-weight: bold;`);
+        console.log(`%cCurrent CLS: ${totalCLS.toFixed(4)}`, `color: ${clsColor}; font-weight: bold;`);
         console.log(`   Time: ${Math.round(entry.startTime)}ms`);
         console.log(`   Had recent input: ${entry.hadRecentInput ? "Yes (excluded from CLS)" : "No"}`);
 
@@ -12694,7 +12722,7 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
   });
 
   loafObserver.observe({ type: "long-animation-frame", buffered: true });
-  eventObserver.observe({ type: "event", buffered: true });
+  eventObserver.observe({ type: "event", buffered: true, durationThreshold: 16 });
 
   // Summary function
   window.getLoAFSummary = () => {

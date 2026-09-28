@@ -6,7 +6,27 @@
     console.warn("⚠️ layout-shift entries are not supported in this browser.");
     return { script: "CLS", status: "unsupported", error: "layout-shift entries not supported in this browser" };
   }
+  // CLS is the largest session window: shifts less than 1s apart, in a window of at most 5s.
   let cls = 0;
+  let sessionValue = 0;
+  let sessionFirst = null;
+  let sessionLast = null;
+
+  const addShift = (entry) => {
+    if (entry.hadRecentInput) return;
+    if (
+      sessionLast &&
+      entry.startTime - sessionLast.startTime < 1000 &&
+      entry.startTime - sessionFirst.startTime < 5000
+    ) {
+      sessionValue += entry.value;
+    } else {
+      sessionValue = entry.value;
+      sessionFirst = entry;
+    }
+    sessionLast = entry;
+    cls = Math.max(cls, sessionValue);
+  };
 
   const valueToRating = (score) =>
     score <= 0.1 ? "good" : score <= 0.25 ? "needs-improvement" : "poor";
@@ -27,11 +47,7 @@
   };
 
   const observer = new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) {
-      if (!entry.hadRecentInput) {
-        cls += entry.value;
-      }
-    }
+    for (const entry of list.getEntries()) addShift(entry);
     logCLS();
   });
 
@@ -67,16 +83,10 @@
     ""
   );
 
-  // Return for agent — collect via buffered observer (getEntriesByType does not
-  // expose layout-shift entries in Chrome without an active observer).
-  const clsSync = await new Promise((resolve) => {
-    let sum = 0;
-    const obs = new PerformanceObserver((list) => {
-      for (const e of list.getEntries()) if (!e.hadRecentInput) sum += e.value;
-    });
-    obs.observe({ type: "layout-shift", buffered: true });
-    setTimeout(() => { obs.disconnect(); resolve(sum); }, 100);
-  });
+  // Return for agent. Chrome only exposes layout-shift entries through a PerformanceObserver,
+  // so wait for the buffered observer above to deliver them.
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  const clsSync = cls;
   const clsRating = valueToRating(clsSync);
   return {
     script: "CLS",

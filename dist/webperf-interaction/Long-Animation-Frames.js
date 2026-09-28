@@ -89,7 +89,8 @@
   });
   eventObserver.observe({
     type: "event",
-    buffered: true
+    buffered: true,
+    durationThreshold: 16
   });
   window.getLoAFSummary = () => {
     if (allLoAFs.length === 0) {

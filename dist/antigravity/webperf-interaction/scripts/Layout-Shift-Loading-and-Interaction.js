@@ -18,6 +18,9 @@
     poor: "🔴"
   };
   let totalCLS = 0;
+  let sessionValue = 0;
+  let sessionFirst = null;
+  let sessionLast = null;
   const allShifts = [];
   const elementShifts = new Map;
   const getElementSelector = element => {
@@ -32,7 +35,14 @@
   const observer = new PerformanceObserver(list => {
     for (const entry of list.getEntries()) {
       const countedForCLS = !entry.hadRecentInput;
-      if (countedForCLS) totalCLS += entry.value;
+      if (countedForCLS) {
+        if (sessionLast && entry.startTime - sessionLast.startTime < 1000 && entry.startTime - sessionFirst.startTime < 5000) sessionValue += entry.value; else {
+          sessionValue = entry.value;
+          sessionFirst = entry;
+        }
+        sessionLast = entry;
+        totalCLS = Math.max(totalCLS, sessionValue);
+      }
       const sources = entry.sources || [];
       const elements = sources.map(source => ({
         element: source.node,

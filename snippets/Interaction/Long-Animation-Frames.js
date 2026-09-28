@@ -164,7 +164,7 @@
   });
 
   loafObserver.observe({ type: "long-animation-frame", buffered: true });
-  eventObserver.observe({ type: "event", buffered: true });
+  eventObserver.observe({ type: "event", buffered: true, durationThreshold: 16 });
 
   // Summary function
   window.getLoAFSummary = () => {

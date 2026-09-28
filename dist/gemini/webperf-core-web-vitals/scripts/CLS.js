@@ -7,6 +7,18 @@
     };
   }
   let cls = 0;
+  let sessionValue = 0;
+  let sessionFirst = null;
+  let sessionLast = null;
+  const addShift = entry => {
+    if (entry.hadRecentInput) return;
+    if (sessionLast && entry.startTime - sessionLast.startTime < 1000 && entry.startTime - sessionFirst.startTime < 5000) sessionValue += entry.value; else {
+      sessionValue = entry.value;
+      sessionFirst = entry;
+    }
+    sessionLast = entry;
+    cls = Math.max(cls, sessionValue);
+  };
   const valueToRating = score => score <= 0.1 ? "good" : score <= 0.25 ? "needs-improvement" : "poor";
   const RATING = {
     good: {
@@ -27,7 +39,7 @@
     const {icon: icon, color: color} = RATING[rating];
   };
   const observer = new PerformanceObserver(list => {
-    for (const entry of list.getEntries()) if (!entry.hadRecentInput) cls += entry.value;
+    for (const entry of list.getEntries()) addShift(entry);
     logCLS();
   });
   observer.observe({
@@ -56,20 +68,8 @@
       }
     };
   };
-  const clsSync = await new Promise(resolve => {
-    let sum = 0;
-    const obs = new PerformanceObserver(list => {
-      for (const e of list.getEntries()) if (!e.hadRecentInput) sum += e.value;
-    });
-    obs.observe({
-      type: "layout-shift",
-      buffered: true
-    });
-    setTimeout(() => {
-      obs.disconnect();
-      resolve(sum);
-    }, 100);
-  });
+  await new Promise(resolve => setTimeout(resolve, 100));
+  const clsSync = cls;
   const clsRating = valueToRating(clsSync);
   return {
     script: "CLS",

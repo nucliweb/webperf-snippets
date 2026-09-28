@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CLS bursts fixture</title>
+</head>
+<body style="margin:0">
+  <div id="banner" style="height:20px;background:#eee">banner</div>
+  <p id="content">Content pushed down by the banner.</p>
+  <div id="late" style="height:20px;background:#ddd">late block</div>
+  <p id="footer">Footer pushed down by the late block.</p>
+  <script>
+    // Burst 1 at ~300ms, burst 2 at ~2000ms: more than 1s apart, so two session windows.
+    setTimeout(() => { document.getElementById("banner").style.height = "200px"; }, 300);
+    setTimeout(() => { document.getElementById("late").style.height = "120px"; }, 2000);
+  </script>
+</body>
+</html>

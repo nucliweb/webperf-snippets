@@ -71,7 +71,7 @@ flowchart TD
 **Real-time Output:**
 
 Each significant layout shift (> 0.001) logs:
-- Shift value with cumulative CLS and rating
+- Shift value with the current CLS (largest session window) and rating
 - Whether it counts toward CLS (excluded if user input within 500ms)
 - Elements that shifted with their movement details
 - Clickable element references for inspection
@@ -82,7 +82,7 @@ Call `getLayoutShiftSummary()` in the console to see:
 
 | Section | Description |
 |---------|-------------|
-| CLS Score | Final cumulative score with rating |
+| CLS Score | Final score (largest session window) with rating |
 | Statistics | Total shifts, counted vs excluded |
 | Top Shifting Elements | Elements causing the most shift, sorted by impact |
 | Shift Timeline | When shifts occurred and what caused them |
