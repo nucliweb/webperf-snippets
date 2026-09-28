@@ -2,7 +2,7 @@
 // Tracks all LCP candidate elements during page load
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
   const PALETTE = [
     { color: "#EF4444", name: "Red" },
     { color: "#F97316", name: "Orange" },
@@ -129,8 +129,15 @@
   console.log("%c⏱️ LCP Trail Active", "font-weight: bold; font-size: 14px;");
   console.log("   Highlights all LCP candidate elements with distinct colors.");
 
-  // Synchronous return for agent (buffered entries)
-  const trailEntries = performance.getEntriesByType("largest-contentful-paint");
+  // Return for agent (buffered entries)
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver,
+  // so performance.getEntriesByType() returns [] here. Collect via a buffered observer.
+  const trailEntries = await new Promise((resolve) => {
+    const entries = [];
+    const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+    obs.observe({ type: "largest-contentful-paint", buffered: true });
+    setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
+  });
   if (trailEntries.length === 0) {
     return { script: "LCP-Trail", status: "error", error: "No LCP entries yet" };
   }

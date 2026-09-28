@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Observer Long Task Fixture</title>
+</head>
+<body>
+  <h1>Long task fixture</h1>
+  <script>
+    const start = performance.now();
+    while (performance.now() - start < 200) {}
+  </script>
+</body>
+</html>

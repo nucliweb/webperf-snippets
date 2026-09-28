@@ -1,7 +1,11 @@
 // Layout Shift Tracking
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
+    console.warn("⚠️ layout-shift entries are not supported in this browser.");
+    return { script: "Layout-Shift-Loading-and-Interaction", status: "unsupported", error: "layout-shift entries not supported in this browser" };
+  }
   // CLS thresholds
   const valueToRating = (score) =>
     score <= 0.1 ? "good" : score <= 0.25 ? "needs-improvement" : "poor";
@@ -227,6 +231,10 @@
     };
   };
 
+  // Buffered entries reach the observer callback asynchronously; wait for them so the
+  // summary below (and the return value) reflect shifts that happened before this ran.
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   // Initial message
   const rating = valueToRating(totalCLS);
   const icon = RATING_ICONS[rating];
@@ -240,11 +248,10 @@
     ""
   );
 
-  // Synchronous return for agent (buffered layout-shift entries)
-  const clsBufferedSync = performance.getEntriesByType("layout-shift")
-    .reduce((sum, e) => !e.hadRecentInput ? sum + e.value : sum, 0);
-  const countedSync = performance.getEntriesByType("layout-shift").filter((e) => !e.hadRecentInput).length;
-  const excludedSync = performance.getEntriesByType("layout-shift").filter((e) => e.hadRecentInput).length;
+  // Return for agent (shifts collected by the buffered observer above)
+  const clsBufferedSync = totalCLS;
+  const countedSync = allShifts.filter((s) => s.countedForCLS).length;
+  const excludedSync = allShifts.length - countedSync;
   const clsRatingSync = valueToRating(clsBufferedSync);
   return {
     script: "Layout-Shift-Loading-and-Interaction",

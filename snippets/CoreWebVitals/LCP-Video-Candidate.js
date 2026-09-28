@@ -1,8 +1,22 @@
 // LCP Video Candidate
 // https://webperf-snippets.nucliweb.net
 
-(() => {
-  const lcpEntries = performance.getEntriesByType("largest-contentful-paint");
+(async () => {
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver, so
+  // performance.getEntriesByType() returns [] here. Collect via a buffered observer.
+  const collectBuffered = (type, timeoutMs = 100) =>
+    new Promise((resolve) => {
+      const entries = [];
+      try {
+        const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+        obs.observe({ type, buffered: true });
+        setTimeout(() => { obs.disconnect(); resolve(entries); }, timeoutMs);
+      } catch {
+        resolve(entries);
+      }
+    });
+
+  const lcpEntries = await collectBuffered("largest-contentful-paint");
 
   if (lcpEntries.length === 0) {
     console.warn(

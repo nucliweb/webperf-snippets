@@ -1,4 +1,11 @@
-(() => {
+(async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
+    return {
+      script: "Layout-Shift-Loading-and-Interaction",
+      status: "unsupported",
+      error: "layout-shift entries not supported in this browser"
+    };
+  }
   const valueToRating = score => score <= 0.1 ? "good" : score <= 0.25 ? "needs-improvement" : "poor";
   const RATING_COLORS = {
     good: "#0CCE6A",
@@ -134,11 +141,12 @@
       }
     };
   };
+  await new Promise(resolve => setTimeout(resolve, 100));
   const rating = valueToRating(totalCLS);
   RATING_ICONS[rating];
-  const clsBufferedSync = performance.getEntriesByType("layout-shift").reduce((sum, e) => !e.hadRecentInput ? sum + e.value : sum, 0);
-  const countedSync = performance.getEntriesByType("layout-shift").filter(e => !e.hadRecentInput).length;
-  const excludedSync = performance.getEntriesByType("layout-shift").filter(e => e.hadRecentInput).length;
+  const clsBufferedSync = totalCLS;
+  const countedSync = allShifts.filter(s => s.countedForCLS).length;
+  const excludedSync = allShifts.length - countedSync;
   const clsRatingSync = valueToRating(clsBufferedSync);
   return {
     script: "Layout-Shift-Loading-and-Interaction",

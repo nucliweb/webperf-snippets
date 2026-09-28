@@ -2,6 +2,10 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
+    console.warn("⚠️ layout-shift entries are not supported in this browser.");
+    return { script: "CLS", status: "unsupported", error: "layout-shift entries not supported in this browser" };
+  }
   let cls = 0;
 
   const valueToRating = (score) =>

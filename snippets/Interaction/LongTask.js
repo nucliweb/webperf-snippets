@@ -1,7 +1,11 @@
 // Long Tasks Tracking
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("longtask")) {
+    console.warn("⚠️ longtask entries are not supported in this browser.");
+    return { script: "LongTask", status: "unsupported", error: "longtask entries not supported in this browser" };
+  }
   const formatMs = (ms) => `${Math.round(ms)}ms`;
 
   // Severity helpers
@@ -172,8 +176,10 @@
       ""
     );
 
-    // Synchronous return for agent (buffered entries)
-    const longtaskBuffered = performance.getEntriesByType("longtask");
+    // Return for agent. Chrome only exposes longtask entries through a PerformanceObserver,
+    // so wait for the buffered observer above to deliver them.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const longtaskBuffered = allTasks;
     const totalBlockingSync = longtaskBuffered.reduce((sum, t) => sum + Math.max(0, t.duration - 50), 0);
     const worstTaskSync = longtaskBuffered.length > 0 ? Math.max(...longtaskBuffered.map((t) => t.duration)) : 0;
     const bySeveritySync = {

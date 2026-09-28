@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Observer Layout Shift Fixture</title>
+</head>
+<body>
+  <div id="banner" style="height: 20px; background: #eee">banner</div>
+  <p id="content">Content that moves when the banner grows.</p>
+  <script>
+    setTimeout(() => {
+      document.getElementById("banner").style.height = "300px";
+    }, 300);
+  </script>
+</body>
+</html>
