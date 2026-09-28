@@ -28,10 +28,10 @@
     // Sort by duration
     const sorted = [...interactions].sort((a, b) => b.duration - a.duration);
 
-    // Get 98th percentile (or worst if < 50 interactions)
-    const index = interactions.length < 50
-      ? 0
-      : Math.floor(interactions.length * 0.02);
+    // Skip one interaction for every 50. Use the browser's total interaction count when
+    // available: `interactions` only holds those above the duration threshold.
+    const totalInteractions = performance.interactionCount || interactions.length;
+    const index = Math.min(sorted.length - 1, Math.floor(totalInteractions / 50));
 
     return {
       value: sorted[index].duration,
@@ -54,7 +54,7 @@
     return `${entry.name} → ${selector}`;
   };
 
-  // Get phase breakdown (requires LoAF support)
+  // Get phase breakdown from the Event Timing entry
   const getPhaseBreakdown = (entry) => {
     const phases = {
       inputDelay: 0,
@@ -65,7 +65,10 @@
     if (entry.processingStart && entry.processingEnd) {
       phases.inputDelay = entry.processingStart - entry.startTime;
       phases.processingTime = entry.processingEnd - entry.processingStart;
-      phases.presentationDelay = entry.duration - phases.inputDelay - phases.processingTime;
+      phases.presentationDelay = Math.max(
+        0,
+        entry.duration - phases.inputDelay - phases.processingTime
+      );
     }
 
     return phases;
@@ -134,7 +137,7 @@
 
     if (inpEntry) {
       console.log("");
-      console.log(`%c🎯 Worst Interaction (INP):`, "font-weight: bold; color: ${color};");
+      console.log(`%c🎯 Worst Interaction (INP):`, `font-weight: bold; color: ${color};`);
       console.log(`   Event: ${inpEntry.formattedName}`);
       console.log(`   Duration: ${formatMs(inpEntry.duration)}`);
 

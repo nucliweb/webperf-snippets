@@ -30,7 +30,8 @@
       entry: null
     };
     const sorted = [ ...interactions ].sort((a, b) => b.duration - a.duration);
-    const index = interactions.length < 50 ? 0 : Math.floor(interactions.length * 0.02);
+    const totalInteractions = performance.interactionCount || interactions.length;
+    const index = Math.min(sorted.length - 1, Math.floor(totalInteractions / 50));
     return {
       value: sorted[index].duration,
       entry: sorted[index]
@@ -55,7 +56,7 @@
     if (entry.processingStart && entry.processingEnd) {
       phases.inputDelay = entry.processingStart - entry.startTime;
       phases.processingTime = entry.processingEnd - entry.processingStart;
-      phases.presentationDelay = entry.duration - phases.inputDelay - phases.processingTime;
+      phases.presentationDelay = Math.max(0, entry.duration - phases.inputDelay - phases.processingTime);
     }
     return phases;
   };

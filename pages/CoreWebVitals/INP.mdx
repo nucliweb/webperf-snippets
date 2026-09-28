@@ -82,7 +82,7 @@ INP measures the latency of ALL user interactions during the page's lifetime. Un
 
 - INP is calculated from all interactions
 - Takes the 98th percentile duration
-- For pages with < 50 interactions, uses the worst interaction
+- Skips one interaction for every 50 the page has received (`performance.interactionCount`), so pages with fewer than 50 interactions use the worst one
 - Final INP reported when page is hidden
 
 ### Common Causes of Poor INP

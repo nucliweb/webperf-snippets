@@ -1,7 +1,7 @@
 ---
 ## Cumulative Layout Shift (CLS)
 
-Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the cumulative impact of all unexpected layout shifts.
+Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the largest burst of unexpected layout shifts.
 
 **Script:** `scripts/CLS.js`
 
