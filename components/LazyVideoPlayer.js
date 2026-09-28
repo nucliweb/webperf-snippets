@@ -1,11 +1,21 @@
 import { useState } from 'react'
-import { CldVideoPlayer } from 'next-cloudinary'
+const CLOUD_NAME = 'nucliweb'
 
 export function LazyVideoPlayer({ src, width, height, poster }) {
   const [playing, setPlaying] = useState(false)
 
   if (playing) {
-    return <CldVideoPlayer width={width} height={height} src={src} autoPlay="always" />
+    return (
+      <video
+        width={width}
+        height={height}
+        src={`https://res.cloudinary.com/${CLOUD_NAME}/video/upload/f_auto,q_auto/${src}`}
+        style={{ width: '100%', height: 'auto', display: 'block' }}
+        controls
+        autoPlay
+        playsInline
+      />
+    )
   }
 
   return (
