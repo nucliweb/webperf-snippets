@@ -1,4 +1,11 @@
 (() => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("event")) {
+    return {
+      script: "INP",
+      status: "unsupported",
+      error: "event entries not supported in this browser"
+    };
+  }
   const interactions = [];
   let inpValue = 0;
   let inpEntry = null;

@@ -1,5 +1,21 @@
-(() => {
-  const lcpEntries = performance.getEntriesByType("largest-contentful-paint");
+(async () => {
+  const collectBuffered = (type, timeoutMs = 100) => new Promise(resolve => {
+    const entries = [];
+    try {
+      const obs = new PerformanceObserver(list => entries.push(...list.getEntries()));
+      obs.observe({
+        type: type,
+        buffered: true
+      });
+      setTimeout(() => {
+        obs.disconnect();
+        resolve(entries);
+      }, timeoutMs);
+    } catch {
+      resolve(entries);
+    }
+  });
+  const lcpEntries = await collectBuffered("largest-contentful-paint");
   if (lcpEntries.length === 0) {
     return {
       script: "LCP-Video-Candidate",

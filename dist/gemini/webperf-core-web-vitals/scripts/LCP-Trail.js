@@ -1,4 +1,4 @@
-(() => {
+(async () => {
   const PALETTE = [ {
     color: "#EF4444",
     name: "Red"
@@ -103,7 +103,18 @@
     type: "largest-contentful-paint",
     buffered: true
   });
-  const trailEntries = performance.getEntriesByType("largest-contentful-paint");
+  const trailEntries = await new Promise(resolve => {
+    const entries = [];
+    const obs = new PerformanceObserver(list => entries.push(...list.getEntries()));
+    obs.observe({
+      type: "largest-contentful-paint",
+      buffered: true
+    });
+    setTimeout(() => {
+      obs.disconnect();
+      resolve(entries);
+    }, 100);
+  });
   if (trailEntries.length === 0) return {
     script: "LCP-Trail",
     status: "error",

@@ -1,4 +1,11 @@
-(() => {
+(async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("longtask")) {
+    return {
+      script: "LongTask",
+      status: "unsupported",
+      error: "longtask entries not supported in this browser"
+    };
+  }
   const formatMs = ms => `${Math.round(ms)}ms`;
   const getSeverity = duration => {
     if (duration > 250) return {
@@ -94,7 +101,8 @@
         }
       };
     };
-    const longtaskBuffered = performance.getEntriesByType("longtask");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const longtaskBuffered = allTasks;
     const totalBlockingSync = longtaskBuffered.reduce((sum, t) => sum + Math.max(0, t.duration - 50), 0);
     const worstTaskSync = longtaskBuffered.length > 0 ? Math.max(...longtaskBuffered.map(t => t.duration)) : 0;
     const bySeveritySync = {

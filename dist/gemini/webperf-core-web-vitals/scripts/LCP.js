@@ -1,4 +1,11 @@
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    return {
+      script: "LCP",
+      status: "unsupported",
+      error: "largest-contentful-paint entries not supported in this browser"
+    };
+  }
   const valueToRating = ms => ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";
   const RATING = {
     good: {

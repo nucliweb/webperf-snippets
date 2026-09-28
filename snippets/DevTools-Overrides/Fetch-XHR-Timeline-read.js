@@ -1,7 +1,7 @@
 // Fetch & XHR Timeline — Run in console after page load
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
   const calls = window.__perfCalls;
 
   if (!calls) {
@@ -11,7 +11,14 @@
     return;
   }
 
-  const lcpEntries = performance.getEntriesByType("largest-contentful-paint");
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver,
+  // so performance.getEntriesByType() returns [] here. Collect via a buffered observer.
+  const lcpEntries = await new Promise((resolve) => {
+    const entries = [];
+    const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+    obs.observe({ type: "largest-contentful-paint", buffered: true });
+    setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
+  });
   const lcpTime = lcpEntries.length
     ? Math.round(lcpEntries[lcpEntries.length - 1].startTime)
     : window.__lcpTime ?? null;

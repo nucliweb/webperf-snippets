@@ -1,4 +1,4 @@
-(() => {
+(async () => {
   const formatBytes = bytes => {
     if (!bytes) return "-";
     const k = 1024;
@@ -76,7 +76,18 @@
       img.isLCP;
     });
   }, 100);
-  const lcpEntriesSync = performance.getEntriesByType("largest-contentful-paint");
+  const lcpEntriesSync = await new Promise(resolve => {
+    const entries = [];
+    const obs = new PerformanceObserver(list => entries.push(...list.getEntries()));
+    obs.observe({
+      type: "largest-contentful-paint",
+      buffered: true
+    });
+    setTimeout(() => {
+      obs.disconnect();
+      resolve(entries);
+    }, 100);
+  });
   const lcpEntrySync = lcpEntriesSync.at(-1);
   const lcpElementSync = lcpEntrySync?.element ?? null;
   const lcpUrlSync = lcpEntrySync?.url ?? null;

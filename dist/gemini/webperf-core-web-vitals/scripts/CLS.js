@@ -1,4 +1,11 @@
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
+    return {
+      script: "CLS",
+      status: "unsupported",
+      error: "layout-shift entries not supported in this browser"
+    };
+  }
   let cls = 0;
   const valueToRating = score => score <= 0.1 ? "good" : score <= 0.25 ? "needs-improvement" : "poor";
   const RATING = {

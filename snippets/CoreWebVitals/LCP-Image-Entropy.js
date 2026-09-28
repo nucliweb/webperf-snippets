@@ -1,7 +1,7 @@
 // LCP Image Entropy Check
 // https://webperf-snippets.nucliweb.net
 
-(() => {
+(async () => {
   const formatBytes = (bytes) => {
     if (!bytes) return "-";
     const k = 1024;
@@ -142,8 +142,15 @@
     console.groupEnd();
   }, 100);
 
-  // Synchronous return for agent (buffered entries + DOM)
-  const lcpEntriesSync = performance.getEntriesByType("largest-contentful-paint");
+  // Return for agent (buffered entries + DOM)
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver,
+  // so performance.getEntriesByType() returns [] here. Collect via a buffered observer.
+  const lcpEntriesSync = await new Promise((resolve) => {
+    const entries = [];
+    const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+    obs.observe({ type: "largest-contentful-paint", buffered: true });
+    setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
+  });
   const lcpEntrySync = lcpEntriesSync.at(-1);
   const lcpElementSync = lcpEntrySync?.element ?? null;
   const lcpUrlSync = lcpEntrySync?.url ?? null;
