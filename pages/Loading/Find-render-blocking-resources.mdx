@@ -1,5 +1,6 @@
 import snippet from '../../snippets/Loading/Find-render-blocking-resources.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Demo } from '../../components/Demo'
 
 # Find render-blocking resources
 
@@ -26,36 +27,11 @@ Render-blocking resources are the primary cause of slow initial page renders. Us
 
 ### Render-blocking timeline
 
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant HTML as HTML Parser
-    participant CSS as CSS File
-    participant JS as JavaScript
-    participant Render as Renderer
-
-    Browser->>HTML: Start parsing HTML
-    HTML->>CSS: Discover <link rel="stylesheet">
-    Note over HTML: ⏸️ PAUSE parsing
-    CSS->>CSS: Download CSS
-    CSS->>CSS: Parse CSS
-    CSS-->>HTML: CSS ready
-    Note over HTML: ▶️ RESUME parsing
-
-    HTML->>JS: Discover <script> (no defer/async)
-    Note over HTML: ⏸️ PAUSE parsing
-    JS->>JS: Download JS
-    JS->>JS: Execute JS
-    JS-->>HTML: Script complete
-    Note over HTML: ▶️ RESUME parsing
-
-    HTML->>Render: Parsing complete
-    Note over Render: ✅ Can start rendering
-    Render->>Render: Layout + Paint
-    Render-->>Browser: First Contentful Paint (FCP)
-
-    Note over Browser,Render: User sees content
-```
+<Demo
+  src="/demos/render-blocking-timeline.html"
+  title="Interactive timeline comparing how render-blocking resources delay First Contentful Paint against an optimized setup with inlined critical CSS and deferred scripts"
+  caption="Switch between the render-blocking and optimized setups, then step through to see when the first paint can happen in each."
+/>
 
 > **Browser support:** The `renderBlockingStatus` property is currently Chromium-only (Chrome 107+, Edge 107+, Opera 93+). Firefox and Safari don't support this API yet.
 
