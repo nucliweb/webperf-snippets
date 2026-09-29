@@ -188,6 +188,38 @@
     return results;
   };
 
+  // Findings as homogeneous items and actionable issues (same value at start and in the summary)
+  const buildFindings = (css) => {
+    const seen = new Set();
+    const items = [];
+    const add = (kind, target, detail) => {
+      const key = `${kind}|${target}|${detail}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      items.push({ kind, target, detail });
+    };
+    nonPassiveListeners.forEach((l) =>
+      add("non-passive-listener", `${l.element}${l.id ? `#${l.id}` : ""}`, l.type)
+    );
+    css.willChangeElements.forEach((e) => add("will-change", e.element, e.value));
+    css.overscrollElements.forEach((e) => add("overscroll", e.element, e.value));
+
+    const issues = [];
+    if (nonPassiveListeners.length > 0) {
+      issues.push({
+        severity: "warning",
+        message: `${nonPassiveListeners.length} non-passive scroll or touch listener(s). Add { passive: true } so scrolling does not wait for JavaScript.`,
+      });
+    }
+    if (css.willChangeElements.length > 0) {
+      issues.push({
+        severity: "info",
+        message: `will-change is set on ${css.willChangeElements.length} element(s). Remove it from elements that do not animate, since each one keeps a compositor layer.`,
+      });
+    }
+    return { items: items.slice(0, 50), issues };
+  };
+
   // ─── 4. SUMMARY ─────────────────────────────────────────────────────────────
 
   window.getScrollSummary = () => {
@@ -306,6 +338,7 @@
     console.groupEnd();
 
     const cssAuditResult = auditScrollCSS();
+    const findings = buildFindings(cssAuditResult);
     return {
       script: "Scroll-Performance",
       status: "ok",
@@ -315,6 +348,7 @@
           smoothScrollElements: cssAuditResult.smoothScrollElements.length,
           willChangeElements: cssAuditResult.willChangeElements.length,
           contentVisibilityElements: cssAuditResult.contentVisibilityElements.length,
+          overscrollElements: cssAuditResult.overscrollElements.length,
         },
         sessionCount: sessions.length,
         ...(sessions.length > 0 ? {
@@ -323,6 +357,8 @@
           totalDrops: sessions.reduce((a, s) => a + s.drops, 0),
         } : {}),
       },
+      items: findings.items,
+      issues: findings.issues,
     };
   };
 
@@ -342,6 +378,7 @@
   );
 
   const cssSnapshot = auditScrollCSS();
+  const initialFindings = buildFindings(cssSnapshot);
   return {
     script: "Scroll-Performance",
     status: "tracking",
@@ -351,8 +388,11 @@
         smoothScrollElements: cssSnapshot.smoothScrollElements.length,
         willChangeElements: cssSnapshot.willChangeElements.length,
         contentVisibilityElements: cssSnapshot.contentVisibilityElements.length,
+        overscrollElements: cssSnapshot.overscrollElements.length,
       },
     },
+    items: initialFindings.items,
+    issues: initialFindings.issues,
     message: "Scroll performance tracking active. Scroll the page then call getScrollSummary() for FPS data.",
     getDataFn: "getScrollSummary",
   };

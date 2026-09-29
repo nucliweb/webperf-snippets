@@ -199,11 +199,22 @@
         p75Ms: Math.round(p75),
         byRating,
       },
-      items: allInteractions.map((i) => ({
-        type: i.type,
-        durationMs: Math.round(i.duration),
-        rating: i.rating,
-      })),
+      // Slowest first, at most 50
+      items: [...allInteractions]
+        .sort((a, b) => b.duration - a.duration)
+        .slice(0, 50)
+        .map((i) => ({
+          type: i.type,
+          durationMs: Math.round(i.duration),
+          rating: i.rating,
+        })),
+      issues: [...slowInteractions]
+        .sort((a, b) => b.duration - a.duration)
+        .slice(0, 10)
+        .map((i) => ({
+          severity: i.rating === "poor" ? "error" : "warning",
+          message: `${i.type} interaction took ${Math.round(i.duration)}ms (${i.rating}), above the ${i.rating === "poor" ? "500ms" : "200ms"} threshold`,
+        })),
     };
   };
 

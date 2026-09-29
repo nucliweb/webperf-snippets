@@ -18,6 +18,19 @@
 
   // Track all long tasks
   const allTasks = [];
+
+  // Item returned for agents: the same shape at start and in the summary. Slowest first, at most 50.
+  const toItems = (tasks) =>
+    [...tasks]
+      .sort((a, b) => b.duration - a.duration)
+      .slice(0, 50)
+      .map((t) => ({
+        startTimeMs: Math.round(t.startTime),
+        durationMs: Math.round(t.duration),
+        blockingTimeMs: Math.round(t.blockingTime),
+        severity: t.severity,
+        attribution: t.attribution,
+      }));
   let totalBlockingTime = 0;
 
   try {
@@ -93,6 +106,7 @@
             avgDurationMs: 0,
             bySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
           },
+          items: [],
         };
       }
 
@@ -133,7 +147,7 @@
         console.log("");
         console.log("%c⏱️ Timeline:", "font-weight: bold;");
 
-        const tableData = allTasks
+        const tableData = [...allTasks]
           .sort((a, b) => b.duration - a.duration)
           .slice(0, 10)
           .map((t) => {
@@ -174,6 +188,7 @@
           avgDurationMs: Math.round(avg),
           bySeverity,
         },
+        items: toItems(allTasks),
       };
     };
 
@@ -207,6 +222,7 @@
         worstTaskMs: Math.round(worstTaskSync),
         bySeverity: bySeveritySync,
       },
+      items: toItems(allTasks),
       message: "Tracking long tasks. Call getLongTaskSummary() for statistics.",
       getDataFn: "getLongTaskSummary",
     };

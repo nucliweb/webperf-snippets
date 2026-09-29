@@ -176,11 +176,50 @@
       };
     }
     console.groupEnd();
+
+    const BOTTLENECK_FIXES = {
+      "Input Delay": "break up the long tasks that block the main thread (scheduler.yield(), setTimeout)",
+      Processing: "optimize the event handlers or debounce them",
+      Presentation: "reduce the DOM changes after the handler and avoid layout thrashing",
+    };
+
+    const items = types.map((type) => {
+      const b = byEventType[type];
+      return {
+        type,
+        count: b.count,
+        p75Ms: Math.round(p75(b.durations)),
+        inputDelayMs: Math.round(p75(b.inputDelays)),
+        processingMs: Math.round(p75(b.processingTimes)),
+        presentationMs: Math.round(p75(b.presentationDelays)),
+        rating: valueToRating(p75(b.durations)),
+      };
+    });
+
+    const issues = types
+      .filter((type) => valueToRating(p75(byEventType[type].durations)) !== "good")
+      .map((type) => {
+        const b = byEventType[type];
+        const phases = [
+          { name: "Input Delay", value: p75(b.inputDelays) },
+          { name: "Processing", value: p75(b.processingTimes) },
+          { name: "Presentation", value: p75(b.presentationDelays) },
+        ];
+        const bottleneck = phases.reduce((a, c) => (a.value > c.value ? a : c));
+        const rating = valueToRating(p75(b.durations));
+        return {
+          severity: rating === "poor" ? "error" : "warning",
+          message: `${type} P75 is ${Math.round(p75(b.durations))}ms (${rating}). Bottleneck: ${bottleneck.name}. Fix: ${BOTTLENECK_FIXES[bottleneck.name]}.`,
+        };
+      });
+
     return {
       script: "Input-Latency-Breakdown",
       status: "ok",
       count: types.length,
       details: { eventTypes: typeSummary },
+      items,
+      issues,
     };
   };
 

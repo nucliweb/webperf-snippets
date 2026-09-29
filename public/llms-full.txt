@@ -11011,7 +11011,9 @@ Detects the Forced Synchronous Layout (FSL) pattern at runtime — when JavaScri
         script: "Forced-Synchronous-Layout",
         status: "ok",
         count: 0,
-        details: { fslEvents: [] },
+        details: {},
+        items: [],
+        issues: [],
       };
     }
 
@@ -11067,13 +11069,37 @@ Detects the Forced Synchronous Layout (FSL) pattern at runtime — when JavaScri
         fastestSinceLastMutationMs: Math.min(
           ...fslEvents.map((e) => e.sinceLastMutationMs)
         ),
-        fslEvents: fslEvents.map(({ property, accessType, element, sinceLastMutationMs }) => ({
-          property,
-          accessType,
-          element,
-          sinceLastMutationMs,
-        })),
       },
+      // One item per property and element, most frequent first (at most 50)
+      items: Object.values(
+        fslEvents.reduce((acc, e) => {
+          const key = `${e.property}|${e.accessType}|${e.element}`;
+          if (!acc[key]) {
+            acc[key] = {
+              property: e.property,
+              accessType: e.accessType,
+              element: e.element,
+              count: 0,
+              fastestSinceLastMutationMs: e.sinceLastMutationMs,
+            };
+          }
+          acc[key].count++;
+          acc[key].fastestSinceLastMutationMs = Math.min(
+            acc[key].fastestSinceLastMutationMs,
+            e.sinceLastMutationMs
+          );
+          return acc;
+        }, {})
+      )
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 50),
+      issues: Object.entries(byProperty)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([property, count]) => ({
+          severity: count > 5 ? "error" : "warning",
+          message: `${property} triggered ${count} forced synchronous layout${count > 1 ? "s" : ""}. Read layout properties before writing to the DOM.`,
+        })),
     };
   };
 
@@ -11304,11 +11330,50 @@ Aggregates interaction latency by event type to reveal which phase causes slowne
       };
     }
     console.groupEnd();
+
+    const BOTTLENECK_FIXES = {
+      "Input Delay": "break up the long tasks that block the main thread (scheduler.yield(), setTimeout)",
+      Processing: "optimize the event handlers or debounce them",
+      Presentation: "reduce the DOM changes after the handler and avoid layout thrashing",
+    };
+
+    const items = types.map((type) => {
+      const b = byEventType[type];
+      return {
+        type,
+        count: b.count,
+        p75Ms: Math.round(p75(b.durations)),
+        inputDelayMs: Math.round(p75(b.inputDelays)),
+        processingMs: Math.round(p75(b.processingTimes)),
+        presentationMs: Math.round(p75(b.presentationDelays)),
+        rating: valueToRating(p75(b.durations)),
+      };
+    });
+
+    const issues = types
+      .filter((type) => valueToRating(p75(byEventType[type].durations)) !== "good")
+      .map((type) => {
+        const b = byEventType[type];
+        const phases = [
+          { name: "Input Delay", value: p75(b.inputDelays) },
+          { name: "Processing", value: p75(b.processingTimes) },
+          { name: "Presentation", value: p75(b.presentationDelays) },
+        ];
+        const bottleneck = phases.reduce((a, c) => (a.value > c.value ? a : c));
+        const rating = valueToRating(p75(b.durations));
+        return {
+          severity: rating === "poor" ? "error" : "warning",
+          message: `${type} P75 is ${Math.round(p75(b.durations))}ms (${rating}). Bottleneck: ${bottleneck.name}. Fix: ${BOTTLENECK_FIXES[bottleneck.name]}.`,
+        };
+      });
+
     return {
       script: "Input-Latency-Breakdown",
       status: "ok",
       count: types.length,
       details: { eventTypes: typeSummary },
+      items,
+      issues,
     };
   };
 
@@ -11541,11 +11606,22 @@ Tracks all user interactions in real-time to help debug and improve Interaction 
         p75Ms: Math.round(p75),
         byRating,
       },
-      items: allInteractions.map((i) => ({
-        type: i.type,
-        durationMs: Math.round(i.duration),
-        rating: i.rating,
-      })),
+      // Slowest first, at most 50
+      items: [...allInteractions]
+        .sort((a, b) => b.duration - a.duration)
+        .slice(0, 50)
+        .map((i) => ({
+          type: i.type,
+          durationMs: Math.round(i.duration),
+          rating: i.rating,
+        })),
+      issues: [...slowInteractions]
+        .sort((a, b) => b.duration - a.duration)
+        .slice(0, 10)
+        .map((i) => ({
+          severity: i.rating === "poor" ? "error" : "warning",
+          message: `${i.type} interaction took ${Math.round(i.duration)}ms (${i.rating}), above the ${i.rating === "poor" ? "500ms" : "200ms"} threshold`,
+        })),
     };
   };
 
@@ -11602,6 +11678,17 @@ Tracks all layout shifts during page load and user interaction, identifying the 
   let sessionLast = null;
   const allShifts = [];
   const elementShifts = new Map(); // Track shifts per element
+
+  // The five elements that shifted the most (same value at start and in the summary)
+  const getTopElements = () =>
+    Array.from(elementShifts.entries())
+      .sort((a, b) => b[1].totalShift - a[1].totalShift)
+      .slice(0, 5)
+      .map(([selector, data]) => ({
+        selector,
+        shiftCount: data.count,
+        totalImpact: Math.round(data.totalShift * 10000) / 10000,
+      }));
 
   const getElementSelector = (element) => {
     if (!element) return "(unknown)";
@@ -11796,10 +11883,7 @@ Tracks all layout shifts during page load and user interaction, identifying the 
 
     console.groupEnd();
 
-    const topElementsData = Array.from(elementShifts.entries())
-      .sort((a, b) => b[1].totalShift - a[1].totalShift)
-      .slice(0, 5)
-      .map(([selector, data]) => ({ selector, shiftCount: data.count, totalImpact: Math.round(data.totalShift * 10000) / 10000 }));
+    const topElementsData = getTopElements();
     return {
       script: "Layout-Shift-Loading-and-Interaction",
       status: "ok",
@@ -11853,6 +11937,7 @@ Tracks all layout shifts during page load and user interaction, identifying the 
       shiftCount: countedSync + excludedSync,
       countedShifts: countedSync,
       excludedShifts: excludedSync,
+      topElements: getTopElements(),
     },
     message: "Layout shift tracking active. Call getLayoutShiftSummary() for full element attribution.",
     getDataFn: "getLayoutShiftSummary",
@@ -12436,6 +12521,14 @@ Analyzes and visualizes which scripts are responsible for blocking the main thre
       category: data.category,
       durationMs: Math.round(data.duration),
       count: data.count,
+      functions: [...data.functions]
+        .sort((a, b) => b.duration - a.duration)
+        .slice(0, 5)
+        .map((fn) => ({
+          name: fn.name,
+          invoker: fn.invoker,
+          durationMs: Math.round(fn.duration),
+        })),
     })),
   };
 })();
@@ -12527,6 +12620,27 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
       entry,
     };
   };
+
+  // Item returned for agents: the same shape at start and in the summary
+  const toItem = (frame) => ({
+    startTimeMs: frame.startTime,
+    durationMs: frame.duration,
+    blockingDurationMs: frame.blockingDuration,
+    scripts: [...frame.scripts]
+      .sort((a, b) => b.duration - a.duration)
+      .slice(0, 10)
+      .map((s) => ({
+        invoker: s.invoker,
+        source: s.source,
+        durationMs: s.duration,
+        forcedStyleAndLayoutMs: s.forcedStyleAndLayout,
+      })),
+  });
+  const topFrames = (frames) =>
+    [...frames]
+      .sort((a, b) => b.blockingDuration - a.blockingDuration)
+      .slice(0, 20)
+      .map(toItem);
 
   const overlap = (e1, e2) =>
     e1.startTime < e2.startTime + e2.duration &&
@@ -12629,6 +12743,7 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
         status: "ok",
         count: 0,
         details: { totalLoAFs: 0, withBlockingTime: 0, totalBlockingTimeMs: 0, worstBlockingMs: 0, topScripts: [] },
+        items: [],
       };
     }
 
@@ -12722,6 +12837,7 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
           .slice(0, 5)
           .map((s) => ({ invoker: s.invoker, source: s.source, totalDurationMs: Math.round(s.totalDuration), count: s.count })),
       },
+      items: topFrames(allLoAFs),
     };
   };
 
@@ -12748,6 +12864,7 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
       totalBlockingTimeMs: Math.round(totalBlockingSync),
       worstBlockingMs: Math.round(worstBlockingSync),
     },
+    items: topFrames(loafBuffered.map(processLoAF)),
     message: "Tracking long animation frames. Call getLoAFSummary() for full script attribution.",
     getDataFn: "getLoAFSummary",
   };
@@ -12782,6 +12899,19 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
 
   // Track all long tasks
   const allTasks = [];
+
+  // Item returned for agents: the same shape at start and in the summary. Slowest first, at most 50.
+  const toItems = (tasks) =>
+    [...tasks]
+      .sort((a, b) => b.duration - a.duration)
+      .slice(0, 50)
+      .map((t) => ({
+        startTimeMs: Math.round(t.startTime),
+        durationMs: Math.round(t.duration),
+        blockingTimeMs: Math.round(t.blockingTime),
+        severity: t.severity,
+        attribution: t.attribution,
+      }));
   let totalBlockingTime = 0;
 
   try {
@@ -12857,6 +12987,7 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
             avgDurationMs: 0,
             bySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
           },
+          items: [],
         };
       }
 
@@ -12897,7 +13028,7 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
         console.log("");
         console.log("%c⏱️ Timeline:", "font-weight: bold;");
 
-        const tableData = allTasks
+        const tableData = [...allTasks]
           .sort((a, b) => b.duration - a.duration)
           .slice(0, 10)
           .map((t) => {
@@ -12938,6 +13069,7 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
           avgDurationMs: Math.round(avg),
           bySeverity,
         },
+        items: toItems(allTasks),
       };
     };
 
@@ -12971,6 +13103,7 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
         worstTaskMs: Math.round(worstTaskSync),
         bySeverity: bySeveritySync,
       },
+      items: toItems(allTasks),
       message: "Tracking long tasks. Call getLongTaskSummary() for statistics.",
       getDataFn: "getLongTaskSummary",
     };
@@ -13181,6 +13314,38 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
     return results;
   };
 
+  // Findings as homogeneous items and actionable issues (same value at start and in the summary)
+  const buildFindings = (css) => {
+    const seen = new Set();
+    const items = [];
+    const add = (kind, target, detail) => {
+      const key = `${kind}|${target}|${detail}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      items.push({ kind, target, detail });
+    };
+    nonPassiveListeners.forEach((l) =>
+      add("non-passive-listener", `${l.element}${l.id ? `#${l.id}` : ""}`, l.type)
+    );
+    css.willChangeElements.forEach((e) => add("will-change", e.element, e.value));
+    css.overscrollElements.forEach((e) => add("overscroll", e.element, e.value));
+
+    const issues = [];
+    if (nonPassiveListeners.length > 0) {
+      issues.push({
+        severity: "warning",
+        message: `${nonPassiveListeners.length} non-passive scroll or touch listener(s). Add { passive: true } so scrolling does not wait for JavaScript.`,
+      });
+    }
+    if (css.willChangeElements.length > 0) {
+      issues.push({
+        severity: "info",
+        message: `will-change is set on ${css.willChangeElements.length} element(s). Remove it from elements that do not animate, since each one keeps a compositor layer.`,
+      });
+    }
+    return { items: items.slice(0, 50), issues };
+  };
+
   // ─── 4. SUMMARY ─────────────────────────────────────────────────────────────
 
   window.getScrollSummary = () => {
@@ -13299,6 +13464,7 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
     console.groupEnd();
 
     const cssAuditResult = auditScrollCSS();
+    const findings = buildFindings(cssAuditResult);
     return {
       script: "Scroll-Performance",
       status: "ok",
@@ -13308,6 +13474,7 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
           smoothScrollElements: cssAuditResult.smoothScrollElements.length,
           willChangeElements: cssAuditResult.willChangeElements.length,
           contentVisibilityElements: cssAuditResult.contentVisibilityElements.length,
+          overscrollElements: cssAuditResult.overscrollElements.length,
         },
         sessionCount: sessions.length,
         ...(sessions.length > 0 ? {
@@ -13316,6 +13483,8 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
           totalDrops: sessions.reduce((a, s) => a + s.drops, 0),
         } : {}),
       },
+      items: findings.items,
+      issues: findings.issues,
     };
   };
 
@@ -13335,6 +13504,7 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
   );
 
   const cssSnapshot = auditScrollCSS();
+  const initialFindings = buildFindings(cssSnapshot);
   return {
     script: "Scroll-Performance",
     status: "tracking",
@@ -13344,8 +13514,11 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
         smoothScrollElements: cssSnapshot.smoothScrollElements.length,
         willChangeElements: cssSnapshot.willChangeElements.length,
         contentVisibilityElements: cssSnapshot.contentVisibilityElements.length,
+        overscrollElements: cssSnapshot.overscrollElements.length,
       },
     },
+    items: initialFindings.items,
+    issues: initialFindings.issues,
     message: "Scroll performance tracking active. Scroll the page then call getScrollSummary() for FPS data.",
     getDataFn: "getScrollSummary",
   };

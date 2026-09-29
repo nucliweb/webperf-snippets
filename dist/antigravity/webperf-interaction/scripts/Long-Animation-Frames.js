@@ -47,6 +47,18 @@
       entry: entry
     };
   };
+  const toItem = frame => ({
+    startTimeMs: frame.startTime,
+    durationMs: frame.duration,
+    blockingDurationMs: frame.blockingDuration,
+    scripts: [ ...frame.scripts ].sort((a, b) => b.duration - a.duration).slice(0, 10).map(s => ({
+      invoker: s.invoker,
+      source: s.source,
+      durationMs: s.duration,
+      forcedStyleAndLayoutMs: s.forcedStyleAndLayout
+    }))
+  });
+  const topFrames = frames => [ ...frames ].sort((a, b) => b.blockingDuration - a.blockingDuration).slice(0, 20).map(toItem);
   const overlap = (e1, e2) => e1.startTime < e2.startTime + e2.duration && e2.startTime < e1.startTime + e1.duration;
   const loafObserver = new PerformanceObserver(list => {
     for (const entry of list.getEntries()) {
@@ -104,7 +116,8 @@
           totalBlockingTimeMs: 0,
           worstBlockingMs: 0,
           topScripts: []
-        }
+        },
+        items: []
       };
     }
     const blocking = allLoAFs.filter(l => l.blockingDuration > 0);
@@ -158,7 +171,8 @@
           totalDurationMs: Math.round(s.totalDuration),
           count: s.count
         }))
-      }
+      },
+      items: topFrames(allLoAFs)
     };
   };
   const loafBuffered = performance.getEntriesByType("long-animation-frame");
@@ -175,6 +189,7 @@
       totalBlockingTimeMs: Math.round(totalBlockingSync),
       worstBlockingMs: Math.round(worstBlockingSync)
     },
+    items: topFrames(loafBuffered.map(processLoAF)),
     message: "Tracking long animation frames. Call getLoAFSummary() for full script attribution.",
     getDataFn: "getLoAFSummary"
   };

@@ -30,6 +30,13 @@
     };
   };
   const allTasks = [];
+  const toItems = tasks => [ ...tasks ].sort((a, b) => b.duration - a.duration).slice(0, 50).map(t => ({
+    startTimeMs: Math.round(t.startTime),
+    durationMs: Math.round(t.duration),
+    blockingTimeMs: Math.round(t.blockingTime),
+    severity: t.severity,
+    attribution: t.attribution
+  }));
   let totalBlockingTime = 0;
   try {
     const observer = new PerformanceObserver(list => {
@@ -77,7 +84,8 @@
               medium: 0,
               low: 0
             }
-          }
+          },
+          items: []
         };
       }
       const durations = allTasks.map(t => t.duration);
@@ -91,7 +99,7 @@
         low: allTasks.filter(t => t.severity === "low").length
       };
       if (allTasks.length > 0) {
-        allTasks.sort((a, b) => b.duration - a.duration).slice(0, 10).map(t => {
+        [ ...allTasks ].sort((a, b) => b.duration - a.duration).slice(0, 10).map(t => {
           const sev = getSeverity(t.duration);
           return {
             "": sev.icon,
@@ -113,7 +121,8 @@
           worstTaskMs: Math.round(worst),
           avgDurationMs: Math.round(avg),
           bySeverity: bySeverity
-        }
+        },
+        items: toItems(allTasks)
       };
     };
     await new Promise(resolve => setTimeout(resolve, 100));
@@ -135,6 +144,7 @@
         worstTaskMs: Math.round(worstTaskSync),
         bySeverity: bySeveritySync
       },
+      items: toItems(allTasks),
       message: "Tracking long tasks. Call getLongTaskSummary() for statistics.",
       getDataFn: "getLongTaskSummary"
     };

@@ -31,6 +31,17 @@
   const allShifts = [];
   const elementShifts = new Map(); // Track shifts per element
 
+  // The five elements that shifted the most (same value at start and in the summary)
+  const getTopElements = () =>
+    Array.from(elementShifts.entries())
+      .sort((a, b) => b[1].totalShift - a[1].totalShift)
+      .slice(0, 5)
+      .map(([selector, data]) => ({
+        selector,
+        shiftCount: data.count,
+        totalImpact: Math.round(data.totalShift * 10000) / 10000,
+      }));
+
   const getElementSelector = (element) => {
     if (!element) return "(unknown)";
     if (element.id) return `#${element.id}`;
@@ -224,10 +235,7 @@
 
     console.groupEnd();
 
-    const topElementsData = Array.from(elementShifts.entries())
-      .sort((a, b) => b[1].totalShift - a[1].totalShift)
-      .slice(0, 5)
-      .map(([selector, data]) => ({ selector, shiftCount: data.count, totalImpact: Math.round(data.totalShift * 10000) / 10000 }));
+    const topElementsData = getTopElements();
     return {
       script: "Layout-Shift-Loading-and-Interaction",
       status: "ok",
@@ -281,6 +289,7 @@
       shiftCount: countedSync + excludedSync,
       countedShifts: countedSync,
       excludedShifts: excludedSync,
+      topElements: getTopElements(),
     },
     message: "Layout shift tracking active. Call getLayoutShiftSummary() for full element attribution.",
     getDataFn: "getLayoutShiftSummary",
