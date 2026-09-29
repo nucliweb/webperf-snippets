@@ -265,8 +265,8 @@
   if (entries.length === 0) {
     return {
       script: "Cache-Strategy-Analysis",
-      status: "no-data",
-      count: 0
+      status: "error",
+      error: "No resources in the Performance API buffer (performance.clearResourceTimings() may have been called). Reload the page and run the snippet again."
     };
   }
   const allAntiPatterns = entries.flatMap(e => e.antiPatterns.map(ap => ({

@@ -1,7 +1,7 @@
 // SVG Embedded Bitmap Analysis
 // https://webperf-snippets.nucliweb.net
 
-void (async () => {
+(async () => {
   function formatSize(bytes) {
     if (!bytes || bytes === 0) return "—";
     if (bytes < 1024) return `${bytes} B`;

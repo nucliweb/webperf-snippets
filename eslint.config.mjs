@@ -114,6 +114,17 @@ export default [
       "no-unused-vars": "warn",
       "no-undef": "error",
       "no-console": "off",
+      // Chrome only exposes these entry types through a PerformanceObserver, so
+      // getEntriesByType() returns [] for them. Collect them with a buffered observer.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "CallExpression[callee.property.name='getEntriesByType'][arguments.0.value=/^(largest-contentful-paint|layout-shift|longtask|event|first-input)$/]",
+          message:
+            "getEntriesByType() returns [] for observer-only entry types. Use a PerformanceObserver with buffered: true.",
+        },
+      ],
     },
     languageOptions: {
       globals: browserGlobals,

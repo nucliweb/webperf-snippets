@@ -94,7 +94,18 @@
   });
   window.getLoAFSummary = () => {
     if (allLoAFs.length === 0) {
-      return;
+      return {
+        script: "Long-Animation-Frames",
+        status: "ok",
+        count: 0,
+        details: {
+          totalLoAFs: 0,
+          withBlockingTime: 0,
+          totalBlockingTimeMs: 0,
+          worstBlockingMs: 0,
+          topScripts: []
+        }
+      };
     }
     const blocking = allLoAFs.filter(l => l.blockingDuration > 0);
     const totalBlocking = blocking.reduce((sum, l) => sum + l.blockingDuration, 0);

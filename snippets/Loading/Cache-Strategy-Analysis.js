@@ -430,7 +430,11 @@
     console.log("   This usually means the site called performance.clearResourceTimings() to manage memory.");
     console.log("   Try: reload the page and run this snippet immediately after load.");
     console.groupEnd();
-    return { script: "Cache-Strategy-Analysis", status: "no-data", count: 0 };
+    return {
+      script: "Cache-Strategy-Analysis",
+      status: "error",
+      error: "No resources in the Performance API buffer (performance.clearResourceTimings() may have been called). Reload the page and run the snippet again.",
+    };
   }
 
   const allAntiPatterns = entries.flatMap((e) =>

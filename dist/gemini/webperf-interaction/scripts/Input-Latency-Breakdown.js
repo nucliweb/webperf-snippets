@@ -50,7 +50,12 @@
   window.getInputLatencyBreakdown = () => {
     const types = Object.keys(byEventType);
     if (types.length === 0) {
-      return;
+      return {
+        script: "Input-Latency-Breakdown",
+        status: "error",
+        error: "No interactions recorded yet. Interact with the page (click, type, etc.) and call getInputLatencyBreakdown() again.",
+        getDataFn: "getInputLatencyBreakdown"
+      };
     }
     for (const eventType of types.sort()) {
       const b = byEventType[eventType];

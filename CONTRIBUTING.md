@@ -41,12 +41,17 @@ Each snippet must return a structured object so Agent Skills can consume its out
 
 return {
   script: "My-New-Snippet",
-  status: "ok",           // "ok" | "error"
+  status: "ok",           // "ok" | "tracking" | "error" | "unsupported"
   count: results.length,
   details: { /* structured data */ },
-  items: results,
+  items: results,         // homogeneous, at most 50
 };
 ```
+
+The full contract is in [`snippets/SCHEMA.md`](snippets/SCHEMA.md), which is also the source of the `schema.md` file of every generated skill. `cli/tests/e2e/snippet-contract.test.js` runs every snippet, and the function it exposes for tracking data, and checks that contract. Two rules cause most failures:
+
+- Chrome only exposes `largest-contentful-paint`, `layout-shift`, `longtask`, `event` and `first-input` entries through a `PerformanceObserver`. `performance.getEntriesByType()` returns `[]` for them, and ESLint rejects it. Use a buffered observer.
+- Never wrap the IIFE in `void`, which discards the return value.
 
 ### 2. Create the MDX documentation page
 
