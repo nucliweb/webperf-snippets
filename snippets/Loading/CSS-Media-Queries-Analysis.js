@@ -254,8 +254,60 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
 // CSS Performance Impact Analyzer
 // Estimates the real-world performance cost of unnecessary CSS on mobile devices
 
+// Device profiles based on real Chrome UX Report data. A function, not a top-level const, so
+// the snippet can be run again in the same console.
+function getDeviceProfiles() {
+  return {
+    "High-end (Pixel 7, iPhone 14)": {
+      cssParsingSpeed: 1.5, // MB/s
+      cssSelectorMatchingMultiplier: 1.0,
+      networkSpeed: 10, // Mbps (4G LTE)
+      description: "Top 25% devices",
+    },
+    "Mid-range (Moto G Power, iPhone SE)": {
+      cssParsingSpeed: 0.8, // MB/s
+      cssSelectorMatchingMultiplier: 1.8,
+      networkSpeed: 5, // Mbps (4G)
+      description: "Median mobile device",
+    },
+    "Low-end (Moto E, older devices)": {
+      cssParsingSpeed: 0.3, // MB/s
+      cssSelectorMatchingMultiplier: 3.5,
+      networkSpeed: 2, // Mbps (3G/slow 4G)
+      description: "Bottom 25% devices",
+    },
+  };
+}
+
+// Estimated cost of the desktop-only CSS on each device profile. No console output.
+function estimateCSSImpact(summary) {
+  const deviceProfiles = getDeviceProfiles();
+  const unnecessaryBytes = summary.total.bytes;
+  const totalClasses = summary.total.classes;
+  const totalProperties = summary.total.properties;
+  const deviceImpact = Object.entries(deviceProfiles).reduce((acc, [name, profile]) => {
+    const download = (unnecessaryBytes * 8) / (profile.networkSpeed * 1000);
+    const parsing = (unnecessaryBytes / (1024 * 1024) / profile.cssParsingSpeed) * 1000;
+    const cssom = totalProperties * 0.01 * profile.cssSelectorMatchingMultiplier;
+    const totalBlocking = download + parsing + cssom;
+    const runtime =
+      (totalClasses * 0.005 + totalProperties * 0.002) * profile.cssSelectorMatchingMultiplier;
+
+    acc[name] = {
+      renderBlockingTimeMs: totalBlocking,
+      runtimeOverheadMs: runtime,
+      fcpImpactMs: totalBlocking * 0.6,
+      lcpImpactMs: totalBlocking * 0.4,
+      inpOverheadMs: runtime,
+    };
+    return acc;
+  }, {});
+  return { unnecessaryBytes, totalClasses, totalProperties, deviceImpact };
+}
+
 async function analyzeCSSPerformanceImpact(minWidth = 768) {
   console.log("🔍 Analyzing CSS performance impact...\n");
+  const deviceProfiles = getDeviceProfiles();
 
   // First, run the media queries analysis
   const mediaQueryResults = await analyzeCSSMediaQueries(minWidth);
@@ -285,28 +337,6 @@ async function analyzeCSSPerformanceImpact(minWidth = 768) {
     console.log("This site appears to be optimized for mobile-first delivery.");
     return null;
   }
-
-  // Device profiles based on real Chrome UX Report data
-  const deviceProfiles = {
-    "High-end (Pixel 7, iPhone 14)": {
-      cssParsingSpeed: 1.5, // MB/s
-      cssSelectorMatchingMultiplier: 1.0,
-      networkSpeed: 10, // Mbps (4G LTE)
-      description: "Top 25% devices",
-    },
-    "Mid-range (Moto G Power, iPhone SE)": {
-      cssParsingSpeed: 0.8, // MB/s
-      cssSelectorMatchingMultiplier: 1.8,
-      networkSpeed: 5, // Mbps (4G)
-      description: "Median mobile device",
-    },
-    "Low-end (Moto E, older devices)": {
-      cssParsingSpeed: 0.3, // MB/s
-      cssSelectorMatchingMultiplier: 3.5,
-      networkSpeed: 2, // Mbps (3G/slow 4G)
-      description: "Bottom 25% devices",
-    },
-  };
 
   const totalClasses = mediaQueryResults.summary.total.classes;
   const totalProperties = mediaQueryResults.summary.total.properties;
@@ -464,23 +494,7 @@ async function analyzeCSSPerformanceImpact(minWidth = 768) {
     totalClasses,
     totalProperties,
     corsBlockedCount: mediaQueryResults.summary.corsBlocked,
-    deviceImpact: Object.entries(deviceProfiles).reduce((acc, [name, profile]) => {
-      const download = (unnecessaryBytes * 8) / (profile.networkSpeed * 1000);
-      const parsing = (unnecessaryBytes / (1024 * 1024) / profile.cssParsingSpeed) * 1000;
-      const cssom = totalProperties * 0.01 * profile.cssSelectorMatchingMultiplier;
-      const totalBlocking = download + parsing + cssom;
-      const runtime =
-        (totalClasses * 0.005 + totalProperties * 0.002) * profile.cssSelectorMatchingMultiplier;
-
-      acc[name] = {
-        renderBlockingTimeMs: totalBlocking,
-        runtimeOverheadMs: runtime,
-        fcpImpactMs: totalBlocking * 0.6,
-        lcpImpactMs: totalBlocking * 0.4,
-        inpOverheadMs: runtime,
-      };
-      return acc;
-    }, {}),
+    deviceImpact: estimateCSSImpact(mediaQueryResults.summary).deviceImpact,
     estimatedConversionLift: ((midRangeTotalBlocking * 0.6) / 100).toFixed(2) + "%",
   };
 }
@@ -502,6 +516,22 @@ window.analyzeCSSPerformanceImpact = analyzeCSSPerformanceImpact;
       inline: result.summary.inline,
       files: result.summary.files,
       corsBlockedCount: result.summary.corsBlocked,
+      // Estimated cost of the desktop-only CSS, computed silently (the console report stays
+      // opt-in through analyzeCSSPerformanceImpact()). null when there is none.
+      performanceImpact: (() => {
+        const impact = estimateCSSImpact(result.summary);
+        if (impact.unnecessaryBytes === 0) return null;
+        const round1 = (n) => Math.round(n * 10) / 10;
+        return {
+          ...impact,
+          deviceImpact: Object.fromEntries(
+            Object.entries(impact.deviceImpact).map(([device, d]) => [
+              device,
+              Object.fromEntries(Object.entries(d).map(([k, v]) => [k, round1(v)])),
+            ])
+          ),
+        };
+      })(),
     },
     items: [...result.details.inline, ...result.details.files],
   };

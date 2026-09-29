@@ -210,6 +210,17 @@
       missingPreconnects: missingHints.length,
       redundantHints: redundantDomains.length
     },
+    items: [ ...missingHints.map(([domain, count]) => ({
+      domain: domain,
+      requestCount: count,
+      action: count >= 5 ? "add-preconnect" : "add-dns-prefetch",
+      recommendedHint: count >= 5 ? "preconnect" : "dns-prefetch"
+    })), ...redundantDomains.map(domain => ({
+      domain: domain,
+      requestCount: domainRequestCounts[domain] || 0,
+      action: "remove-dns-prefetch",
+      recommendedHint: "preconnect"
+    })) ].slice(0, 50),
     issues: [ ...totalIssues > 0 ? [ {
       severity: "warning",
       message: `${totalIssues} unused hint(s) waste bandwidth`

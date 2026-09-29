@@ -72,6 +72,13 @@
       script: "SVG-Embedded-Bitmap-Analysis",
       status: "ok",
       count: 0,
+      details: {
+        externalSvgCount: 0,
+        inlineSvgTotal: 0,
+        svgsWithUse: 0,
+        standaloneInlineSvgs: 0,
+        spriteOpportunity: false
+      },
       items: [],
       issues: []
     };
@@ -92,6 +99,13 @@
     script: "SVG-Embedded-Bitmap-Analysis",
     status: "ok",
     count: withBitmaps.length,
+    details: {
+      externalSvgCount: svgEntries.length,
+      inlineSvgTotal: inlineSvgTotal,
+      svgsWithUse: svgsWithUse,
+      standaloneInlineSvgs: standaloneInlineSvgs,
+      spriteOpportunity: standaloneInlineSvgs >= 5
+    },
     items: withBitmaps.map(r => ({
       url: r.url || r.name,
       name: r.name,

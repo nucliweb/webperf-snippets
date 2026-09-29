@@ -553,6 +553,154 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 }
 ```
 
+#### FCP
+
+`value` is measured from `activationStart` on prerendered pages. `details` splits it into three phases that add up to `value`: TTFB, the wait for the last render-blocking resource, and the rest until the paint. `items` lists the render-blocking resources, the last to finish first (at most 50).
+
+```json
+{
+  "script": "FCP",
+  "status": "ok",
+  "metric": "FCP",
+  "value": 1240,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": { "good": 1800, "needsImprovement": 3000 },
+  "details": { "ttfbMs": 180, "renderBlockingLoadMs": 620, "renderDelayMs": 440, "blockingResourceCount": 2 },
+  "items": [{ "url": "app.css", "type": "CSS", "durationMs": 310 }]
+}
+```
+
+#### Resource-Hints
+
+`details.missingPreconnects` lists the third-party origins without a preconnect (at most 20). `details.missingPreconnectsCount` is the total.
+
+```json
+{
+  "script": "Resource-Hints",
+  "status": "ok",
+  "details": {
+    "byType": { "preload": 2, "preconnect": 1 },
+    "missingPreconnectsCount": 1,
+    "missingPreconnects": [
+      { "origin": "https://cdn.example", "requestCount": 6, "sizeBytes": 84000, "resourceTypes": ["script", "img"], "recommendedHint": "preconnect" }
+    ]
+  }
+}
+```
+
+#### Resource-Hints-Validation
+
+`items` lists the origins that need a hint and the origins that have both `preconnect` and `dns-prefetch` (at most 50).
+
+```json
+{
+  "script": "Resource-Hints-Validation",
+  "status": "ok",
+  "items": [
+    { "domain": "https://cdn.example", "requestCount": 6, "action": "add-preconnect", "recommendedHint": "preconnect" },
+    { "domain": "https://fonts.example", "requestCount": 2, "action": "remove-dns-prefetch", "recommendedHint": "preconnect" }
+  ]
+}
+```
+
+#### Priority-Hints-Audit and Validate-Preload-Async-Defer-Scripts
+
+Issues keep `{ severity, message }`. The fix is the last sentence of the message, after `Fix:`. `Validate-Preload-Async-Defer-Scripts` returns one item per script, an issue replacing the valid entry of the same URL (at most 50).
+
+```json
+{
+  "script": "Validate-Preload-Async-Defer-Scripts",
+  "status": "ok",
+  "items": [{ "url": "app.js", "type": "blocking", "strategy": "defer", "location": "head", "reviewNote": "" }],
+  "issues": [{ "severity": "warning", "message": "app.js is preloaded and loaded with defer. Fix: remove the preload or the defer." }]
+}
+```
+
+#### Fonts-Preloaded-Loaded-and-used-above-the-fold
+
+`items` lists the loaded fonts and `usedFonts` the fonts used above the fold, the two lists the Visualizer reads. `details.preloadedFonts` lists the preload links (at most 20).
+
+```json
+{
+  "script": "Fonts-Preloaded-Loaded-and-used-above-the-fold",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "preloadedCount": 1,
+    "loadedCount": 1,
+    "usedAboveFoldCount": 1,
+    "preloadedNotUsedCount": 0,
+    "usedNotPreloadedCount": 0,
+    "preloadedFonts": [{ "family": "inter", "href": "https://cdn.example/inter.woff2", "fontType": "font/woff2", "crossorigin": "anonymous", "thirdParty": true }]
+  },
+  "items": [{ "family": "Inter", "weight": "400", "style": "normal", "display": "swap" }],
+  "usedFonts": [{ "family": "Inter", "weight": "400", "style": "normal", "elements": 12 }]
+}
+```
+
+#### SSR-Hydration-Data-Analysis
+
+`details.frameworks` summarizes each detected framework. `items` lists the Next.js props and the Astro islands with one shape, the biggest first (at most 30). `flags` holds `large-array`, `deeply-nested` or `sensitive-key`, and `detail` is the client directive of an island. Only key names are checked for sensitive data, so a value that contains the word "token" is not flagged.
+
+```json
+{
+  "script": "SSR-Hydration-Data-Analysis",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "frameworksFound": 1,
+    "totalHydrationBytes": 4200,
+    "otherInlineBytes": 900,
+    "hasExceedingThreshold": false,
+    "frameworks": [{ "name": "Next.js", "sizeBytes": 4200, "thresholdBytes": 51200, "exceedsThreshold": false }]
+  },
+  "items": [
+    { "framework": "Next.js", "kind": "prop", "name": "rows", "sizeBytes": 3100, "flags": ["large-array"], "detail": null },
+    { "framework": "Astro", "kind": "island", "name": "Counter.js", "sizeBytes": 20, "flags": [], "detail": "load" }
+  ],
+  "issues": [{ "severity": "warning", "message": "pageProps has keys that look sensitive (session.token). Everything in pageProps is sent to every visitor." }]
+}
+```
+
+#### CSS-Media-Queries-Analysis
+
+`details.performanceImpact` estimates the cost of the desktop-only CSS for each device profile, in numbers rounded to one decimal. It is `null` when there is no desktop-only CSS. The detailed console report stays opt-in through `analyzeCSSPerformanceImpact()`.
+
+```json
+{
+  "script": "CSS-Media-Queries-Analysis",
+  "status": "ok",
+  "count": 2,
+  "details": {
+    "corsBlockedCount": 0,
+    "performanceImpact": {
+      "unnecessaryBytes": 1200,
+      "totalClasses": 4,
+      "totalProperties": 9,
+      "deviceImpact": {
+        "Mid-range (Moto G Power, iPhone SE)": { "renderBlockingTimeMs": 3.1, "runtimeOverheadMs": 0.1, "fcpImpactMs": 1.9, "lcpImpactMs": 1.2, "inpOverheadMs": 0.1 }
+      }
+    }
+  }
+}
+```
+
+#### Content-Visibility
+
+With no usage the script returns `count: 0`, no items and an `info` issue.
+
+```json
+{
+  "script": "Content-Visibility",
+  "status": "ok",
+  "count": 0,
+  "details": { "autoCount": 0, "hiddenCount": 0 },
+  "items": [],
+  "issues": [{ "severity": "info", "message": "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost." }]
+}
+```
+
 ### Interaction
 
 Tracking scripts return `status: "tracking"` first. The function named by `getDataFn` returns the full result. Items are capped at 50 (20 for frames) and sorted by relevance; `count` holds the total.
@@ -843,11 +991,14 @@ Same shape as Image-Element-Audit but for video elements.
 
 #### SVG-Embedded-Bitmap-Analysis
 
+`details` counts the SVGs, also on a page with none. `spriteOpportunity` is `true` when five or more standalone inline SVGs could share one `<symbol>` sprite.
+
 ```json
 {
   "script": "SVG-Embedded-Bitmap-Analysis",
   "status": "ok",
   "count": 2,
+  "details": { "externalSvgCount": 3, "inlineSvgTotal": 7, "svgsWithUse": 1, "standaloneInlineSvgs": 6, "spriteOpportunity": true },
   "items": [{ "url": "icon.svg", "hasBitmap": true, "bitmapType": "image/png", "sizeBytes": 4500 }],
   "issues": [{ "severity": "warning", "message": "2 SVG files contain embedded bitmaps" }]
 }
@@ -857,10 +1008,13 @@ Same shape as Image-Element-Audit but for video elements.
 
 #### Network-Bandwidth-Connection-Quality
 
+`rating` follows `effectiveType`: `4g` is `good`, `3g` is `needs-improvement`, `2g` and `slow-2g` are `poor`. It is absent when the type is unknown.
+
 ```json
 {
   "script": "Network-Bandwidth-Connection-Quality",
   "status": "ok",
+  "rating": "good",
   "details": {
     "effectiveType": "4g",
     "downlink": 10,

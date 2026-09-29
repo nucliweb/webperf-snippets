@@ -89,9 +89,16 @@
 
   console.groupEnd();
 
+  const connectionRating =
+    effectiveType === "4g" ? "good"
+    : effectiveType === "3g" ? "needs-improvement"
+    : effectiveType === "2g" || effectiveType === "slow-2g" ? "poor"
+    : undefined;
+
   return {
     script: "Network-Bandwidth-Connection-Quality",
     status: "ok",
+    ...(connectionRating !== undefined ? { rating: connectionRating } : {}),
     details: {
       effectiveType,
       downlink: connection.downlink,

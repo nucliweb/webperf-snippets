@@ -89,9 +89,25 @@
   // Synchronous return for agent
   const fcpEntrySync = performance.getEntriesByName("first-contentful-paint")[0];
   if (!fcpEntrySync) return { script: "FCP", status: "error", error: "No FCP entry yet" };
-  const activationStartSync = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+  const navEntrySync = performance.getEntriesByType("navigation")[0];
+  const activationStartSync = navEntrySync?.activationStart || 0;
   const fcpTimeSync = Math.max(0, fcpEntrySync.startTime - activationStartSync);
   const ratingSync = valueToRating(fcpTimeSync);
+
+  // Phases, measured from activation like the value: TTFB, then the wait for the last
+  // render-blocking resource, then the rest until the paint
+  const ttfbSync = Math.max(0, (navEntrySync?.responseStart ?? 0) - activationStartSync);
+  const blockingSync = performance
+    .getEntriesByType("resource")
+    .filter((r) => r.renderBlockingStatus === "blocking");
+  const lastBlockingEndSync = Math.max(
+    ttfbSync,
+    ...blockingSync.map((r) => r.responseEnd - activationStartSync)
+  );
+  const ttfbMs = Math.round(ttfbSync);
+  const renderBlockingLoadMs = Math.round(lastBlockingEndSync - ttfbSync);
+  const renderDelayMs = Math.max(0, Math.round(fcpTimeSync) - ttfbMs - renderBlockingLoadMs);
+
   return {
     script: "FCP",
     status: "ok",
@@ -100,5 +116,20 @@
     unit: "ms",
     rating: ratingSync,
     thresholds: { good: 1800, needsImprovement: 3000 },
+    details: {
+      ttfbMs,
+      renderBlockingLoadMs,
+      renderDelayMs,
+      blockingResourceCount: blockingSync.length,
+    },
+    // Render-blocking resources, the last to finish first (at most 50)
+    items: [...blockingSync]
+      .sort((a, b) => b.responseEnd - a.responseEnd)
+      .slice(0, 50)
+      .map((r) => ({
+        url: r.name.split("/").pop().split("?")[0] || r.name,
+        type: r.initiatorType === "link" ? "CSS" : "JS",
+        durationMs: Math.round(r.duration),
+      })),
   };
 })();

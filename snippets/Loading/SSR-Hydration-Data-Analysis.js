@@ -168,8 +168,18 @@
   console.log(`   Total hydration data: ${formatBytes(totalHydrationSize)}`);
   console.log(`   Other inline scripts: ${formatBytes(otherSize)}`);
 
+  // Structured findings for the return value
+  const itemsData = [];
+  const issuesData = [];
+
   // Detailed analysis for each framework
   detected.forEach((fw) => {
+    if (fw.exceedsThreshold) {
+      issuesData.push({
+        severity: "warning",
+        message: `${fw.name} hydration data (${Math.round(fw.size / 1024)} KB) exceeds ${Math.round(fw.threshold / 1024)} KB threshold`,
+      });
+    }
     console.log("");
     console.group(
       `%c${fw.exceedsThreshold ? "🔴" : "🟢"} ${fw.name} Analysis`,
@@ -256,6 +266,46 @@
             );
           }
 
+          // Key paths that look sensitive. Only keys are checked: a value that contains
+          // the word "token" is not a sign of leaked data.
+          const sensitiveKeys = [];
+          const findSensitiveKeys = (obj, path, depth) => {
+            if (typeof obj !== "object" || obj === null || depth > 4) return;
+            for (const key of Object.keys(obj)) {
+              const fullPath = path ? `${path}.${key}` : key;
+              if (sensitivePatterns.test(key)) sensitiveKeys.push(fullPath);
+              findSensitiveKeys(obj[key], fullPath, depth + 1);
+            }
+          };
+          findSensitiveKeys(pageProps, "", 0);
+
+          propsKeys.forEach((key) => {
+            const flags = [];
+            if (largeArrays.includes(key)) flags.push("large-array");
+            if (checkDepth(pageProps[key])) flags.push("deeply-nested");
+            if (sensitiveKeys.some((k) => k === key || k.startsWith(`${key}.`))) flags.push("sensitive-key");
+            itemsData.push({
+              framework: "Next.js",
+              kind: "prop",
+              name: key,
+              sizeBytes: new Blob([JSON.stringify(pageProps[key])]).size,
+              flags,
+              detail: null,
+            });
+          });
+          if (largeArrays.length > 0) {
+            issuesData.push({ severity: "warning", message: `pageProps has large arrays (${largeArrays.join(", ")}). Consider pagination.` });
+          }
+          if (checkDepth(pageProps)) {
+            issuesData.push({ severity: "warning", message: "pageProps contains deeply nested data (more than 5 levels)." });
+          }
+          if (sensitiveKeys.length > 0) {
+            issuesData.push({
+              severity: "warning",
+              message: `pageProps has keys that look sensitive (${sensitiveKeys.slice(0, 5).join(", ")}). Everything in pageProps is sent to every visitor.`,
+            });
+          }
+
           if (
             largeArrays.length === 0 &&
             !checkDepth(pageProps) &&
@@ -293,6 +343,21 @@
         };
       });
       console.table(islandTable);
+
+      fw.elements.forEach((island) => {
+        const props = island.getAttribute("props");
+        itemsData.push({
+          framework: "Astro",
+          kind: "island",
+          name: island.getAttribute("component-url")?.split("/").pop() || "Unknown",
+          sizeBytes: props ? new Blob([props]).size : 0,
+          flags: [],
+          detail:
+            island.getAttribute("client") ||
+            Array.from(island.attributes).find((a) => a.name.startsWith("client:"))?.name.replace("client:", "") ||
+            "unknown",
+        });
+      });
     }
 
     // Element reference
@@ -357,8 +422,10 @@
       totalHydrationBytes: totalHydrationSize,
       otherInlineBytes: otherSize,
       hasExceedingThreshold: detected.some(d => d.exceedsThreshold),
+      frameworks: detected.map(fw => ({ name: fw.name, sizeBytes: fw.size, thresholdBytes: fw.threshold, exceedsThreshold: fw.exceedsThreshold })),
     },
-    items: detected.map(fw => ({ name: fw.name, sizeBytes: fw.size, thresholdBytes: fw.threshold, exceedsThreshold: fw.exceedsThreshold })),
-    issues: detected.filter(fw => fw.exceedsThreshold).map(fw => ({ severity: "warning", message: `${fw.name} hydration data (${Math.round(fw.size / 1024)} KB) exceeds ${Math.round(fw.threshold / 1024)} KB threshold` })),
+    // Props and islands, the biggest first (at most 30)
+    items: itemsData.sort((a, b) => b.sizeBytes - a.sizeBytes).slice(0, 30),
+    issues: issuesData,
   };
 })();
