@@ -305,9 +305,18 @@
       usedAboveFoldCount: usedFonts.length,
       preloadedNotUsedCount: preloadedNotUsed.length,
       usedNotPreloadedCount: usedNotPreloaded.length,
+      // The preload links themselves (at most 20)
+      preloadedFonts: preloadedFonts.slice(0, 20).map(f => ({
+        family: f.name.replace(/\.(woff2?|ttf|otf|eot)$/i, ""),
+        href: f.href,
+        fontType: f.type,
+        crossorigin: f.crossorigin || "",
+        thirdParty: f.thirdParty,
+      })),
     },
-    items: uniqueLoadedFonts.map(f => ({ family: f.family, weight: f.weight, style: f.style, display: f.display })),
-  usedFonts: usedFonts.map(f => ({ family: f.family, weight: f.weight, style: f.style, elements: f.elements })),
+    // The Visualizer reads items (loaded fonts) and usedFonts
+    items: uniqueLoadedFonts.slice(0, 50).map(f => ({ family: f.family, weight: f.weight, style: f.style, display: f.display })),
+    usedFonts: usedFonts.slice(0, 50).map(f => ({ family: f.family, weight: f.weight, style: f.style, elements: f.elements })),
     issues: [
       ...preloadedNotUsed.map(f => ({ severity: "warning", message: `Preloaded but not used above fold: ${f.name}` })),
       ...usedNotPreloaded.map(f => ({ severity: "warning", message: `Used above fold but not preloaded: ${f.family} (${f.weight})` })),

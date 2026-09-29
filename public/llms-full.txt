@@ -2220,8 +2220,60 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
 // CSS Performance Impact Analyzer
 // Estimates the real-world performance cost of unnecessary CSS on mobile devices
 
+// Device profiles based on real Chrome UX Report data. A function, not a top-level const, so
+// the snippet can be run again in the same console.
+function getDeviceProfiles() {
+  return {
+    "High-end (Pixel 7, iPhone 14)": {
+      cssParsingSpeed: 1.5, // MB/s
+      cssSelectorMatchingMultiplier: 1.0,
+      networkSpeed: 10, // Mbps (4G LTE)
+      description: "Top 25% devices",
+    },
+    "Mid-range (Moto G Power, iPhone SE)": {
+      cssParsingSpeed: 0.8, // MB/s
+      cssSelectorMatchingMultiplier: 1.8,
+      networkSpeed: 5, // Mbps (4G)
+      description: "Median mobile device",
+    },
+    "Low-end (Moto E, older devices)": {
+      cssParsingSpeed: 0.3, // MB/s
+      cssSelectorMatchingMultiplier: 3.5,
+      networkSpeed: 2, // Mbps (3G/slow 4G)
+      description: "Bottom 25% devices",
+    },
+  };
+}
+
+// Estimated cost of the desktop-only CSS on each device profile. No console output.
+function estimateCSSImpact(summary) {
+  const deviceProfiles = getDeviceProfiles();
+  const unnecessaryBytes = summary.total.bytes;
+  const totalClasses = summary.total.classes;
+  const totalProperties = summary.total.properties;
+  const deviceImpact = Object.entries(deviceProfiles).reduce((acc, [name, profile]) => {
+    const download = (unnecessaryBytes * 8) / (profile.networkSpeed * 1000);
+    const parsing = (unnecessaryBytes / (1024 * 1024) / profile.cssParsingSpeed) * 1000;
+    const cssom = totalProperties * 0.01 * profile.cssSelectorMatchingMultiplier;
+    const totalBlocking = download + parsing + cssom;
+    const runtime =
+      (totalClasses * 0.005 + totalProperties * 0.002) * profile.cssSelectorMatchingMultiplier;
+
+    acc[name] = {
+      renderBlockingTimeMs: totalBlocking,
+      runtimeOverheadMs: runtime,
+      fcpImpactMs: totalBlocking * 0.6,
+      lcpImpactMs: totalBlocking * 0.4,
+      inpOverheadMs: runtime,
+    };
+    return acc;
+  }, {});
+  return { unnecessaryBytes, totalClasses, totalProperties, deviceImpact };
+}
+
 async function analyzeCSSPerformanceImpact(minWidth = 768) {
   console.log("🔍 Analyzing CSS performance impact...\n");
+  const deviceProfiles = getDeviceProfiles();
 
   // First, run the media queries analysis
   const mediaQueryResults = await analyzeCSSMediaQueries(minWidth);
@@ -2251,28 +2303,6 @@ async function analyzeCSSPerformanceImpact(minWidth = 768) {
     console.log("This site appears to be optimized for mobile-first delivery.");
     return null;
   }
-
-  // Device profiles based on real Chrome UX Report data
-  const deviceProfiles = {
-    "High-end (Pixel 7, iPhone 14)": {
-      cssParsingSpeed: 1.5, // MB/s
-      cssSelectorMatchingMultiplier: 1.0,
-      networkSpeed: 10, // Mbps (4G LTE)
-      description: "Top 25% devices",
-    },
-    "Mid-range (Moto G Power, iPhone SE)": {
-      cssParsingSpeed: 0.8, // MB/s
-      cssSelectorMatchingMultiplier: 1.8,
-      networkSpeed: 5, // Mbps (4G)
-      description: "Median mobile device",
-    },
-    "Low-end (Moto E, older devices)": {
-      cssParsingSpeed: 0.3, // MB/s
-      cssSelectorMatchingMultiplier: 3.5,
-      networkSpeed: 2, // Mbps (3G/slow 4G)
-      description: "Bottom 25% devices",
-    },
-  };
 
   const totalClasses = mediaQueryResults.summary.total.classes;
   const totalProperties = mediaQueryResults.summary.total.properties;
@@ -2430,23 +2460,7 @@ async function analyzeCSSPerformanceImpact(minWidth = 768) {
     totalClasses,
     totalProperties,
     corsBlockedCount: mediaQueryResults.summary.corsBlocked,
-    deviceImpact: Object.entries(deviceProfiles).reduce((acc, [name, profile]) => {
-      const download = (unnecessaryBytes * 8) / (profile.networkSpeed * 1000);
-      const parsing = (unnecessaryBytes / (1024 * 1024) / profile.cssParsingSpeed) * 1000;
-      const cssom = totalProperties * 0.01 * profile.cssSelectorMatchingMultiplier;
-      const totalBlocking = download + parsing + cssom;
-      const runtime =
-        (totalClasses * 0.005 + totalProperties * 0.002) * profile.cssSelectorMatchingMultiplier;
-
-      acc[name] = {
-        renderBlockingTimeMs: totalBlocking,
-        runtimeOverheadMs: runtime,
-        fcpImpactMs: totalBlocking * 0.6,
-        lcpImpactMs: totalBlocking * 0.4,
-        inpOverheadMs: runtime,
-      };
-      return acc;
-    }, {}),
+    deviceImpact: estimateCSSImpact(mediaQueryResults.summary).deviceImpact,
     estimatedConversionLift: ((midRangeTotalBlocking * 0.6) / 100).toFixed(2) + "%",
   };
 }
@@ -2468,6 +2482,22 @@ window.analyzeCSSPerformanceImpact = analyzeCSSPerformanceImpact;
       inline: result.summary.inline,
       files: result.summary.files,
       corsBlockedCount: result.summary.corsBlocked,
+      // Estimated cost of the desktop-only CSS, computed silently (the console report stays
+      // opt-in through analyzeCSSPerformanceImpact()). null when there is none.
+      performanceImpact: (() => {
+        const impact = estimateCSSImpact(result.summary);
+        if (impact.unnecessaryBytes === 0) return null;
+        const round1 = (n) => Math.round(n * 10) / 10;
+        return {
+          ...impact,
+          deviceImpact: Object.fromEntries(
+            Object.entries(impact.deviceImpact).map(([device, d]) => [
+              device,
+              Object.fromEntries(Object.entries(d).map(([k, v]) => [k, round1(v)])),
+            ])
+          ),
+        };
+      })(),
     },
     items: [...result.details.inline, ...result.details.files],
   };
@@ -4011,9 +4041,14 @@ window.analyzeContentVisibilityOpportunities = analyzeContentVisibilityOpportuni
       ...cvResults.autoElements.map(el => ({ ...el, type: "auto" })),
       ...cvResults.hiddenElements.map(el => ({ ...el, type: "hidden" })),
     ],
-    issues: cvResults.autoElements
-      .filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none")
-      .map(el => ({ severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)` })),
+    issues: [
+      ...cvResults.autoElements
+        .filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none")
+        .map(el => ({ severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)` })),
+      ...(cvResults.autoElements.length + cvResults.hiddenElements.length === 0
+        ? [{ severity: "info", message: "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost." }]
+        : []),
+    ],
   };
 })();
 ```
@@ -4658,9 +4693,25 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
   // Synchronous return for agent
   const fcpEntrySync = performance.getEntriesByName("first-contentful-paint")[0];
   if (!fcpEntrySync) return { script: "FCP", status: "error", error: "No FCP entry yet" };
-  const activationStartSync = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+  const navEntrySync = performance.getEntriesByType("navigation")[0];
+  const activationStartSync = navEntrySync?.activationStart || 0;
   const fcpTimeSync = Math.max(0, fcpEntrySync.startTime - activationStartSync);
   const ratingSync = valueToRating(fcpTimeSync);
+
+  // Phases, measured from activation like the value: TTFB, then the wait for the last
+  // render-blocking resource, then the rest until the paint
+  const ttfbSync = Math.max(0, (navEntrySync?.responseStart ?? 0) - activationStartSync);
+  const blockingSync = performance
+    .getEntriesByType("resource")
+    .filter((r) => r.renderBlockingStatus === "blocking");
+  const lastBlockingEndSync = Math.max(
+    ttfbSync,
+    ...blockingSync.map((r) => r.responseEnd - activationStartSync)
+  );
+  const ttfbMs = Math.round(ttfbSync);
+  const renderBlockingLoadMs = Math.round(lastBlockingEndSync - ttfbSync);
+  const renderDelayMs = Math.max(0, Math.round(fcpTimeSync) - ttfbMs - renderBlockingLoadMs);
+
   return {
     script: "FCP",
     status: "ok",
@@ -4669,6 +4720,21 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
     unit: "ms",
     rating: ratingSync,
     thresholds: { good: 1800, needsImprovement: 3000 },
+    details: {
+      ttfbMs,
+      renderBlockingLoadMs,
+      renderDelayMs,
+      blockingResourceCount: blockingSync.length,
+    },
+    // Render-blocking resources, the last to finish first (at most 50)
+    items: [...blockingSync]
+      .sort((a, b) => b.responseEnd - a.responseEnd)
+      .slice(0, 50)
+      .map((r) => ({
+        url: r.name.split("/").pop().split("?")[0] || r.name,
+        type: r.initiatorType === "link" ? "CSS" : "JS",
+        durationMs: Math.round(r.duration),
+      })),
   };
 })();
 ```
@@ -6497,9 +6563,18 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
       usedAboveFoldCount: usedFonts.length,
       preloadedNotUsedCount: preloadedNotUsed.length,
       usedNotPreloadedCount: usedNotPreloaded.length,
+      // The preload links themselves (at most 20)
+      preloadedFonts: preloadedFonts.slice(0, 20).map(f => ({
+        family: f.name.replace(/\.(woff2?|ttf|otf|eot)$/i, ""),
+        href: f.href,
+        fontType: f.type,
+        crossorigin: f.crossorigin || "",
+        thirdParty: f.thirdParty,
+      })),
     },
-    items: uniqueLoadedFonts.map(f => ({ family: f.family, weight: f.weight, style: f.style, display: f.display })),
-  usedFonts: usedFonts.map(f => ({ family: f.family, weight: f.weight, style: f.style, elements: f.elements })),
+    // The Visualizer reads items (loaded fonts) and usedFonts
+    items: uniqueLoadedFonts.slice(0, 50).map(f => ({ family: f.family, weight: f.weight, style: f.style, display: f.display })),
+    usedFonts: usedFonts.slice(0, 50).map(f => ({ family: f.family, weight: f.weight, style: f.style, elements: f.elements })),
     issues: [
       ...preloadedNotUsed.map(f => ({ severity: "warning", message: `Preloaded but not used above fold: ${f.name}` })),
       ...usedNotPreloaded.map(f => ({ severity: "warning", message: `Used above fold but not preloaded: ${f.family} (${f.weight})` })),
@@ -8254,7 +8329,10 @@ Audits all `fetchpriority` attribute usage across the page — covering non-imag
       fetchpriority: el.getAttribute("fetchpriority"),
       resource: (el.src || el.href || el.getAttribute("href") || "").split("/").pop()?.split("?")[0] || "",
     })),
-    issues: issues.map(i => ({ severity: i.severity, message: i.message })),
+    issues: issues.map(i => ({
+      severity: i.severity,
+      message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message,
+    })),
   };
 })();
 ```
@@ -8763,6 +8841,21 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
       missingPreconnects: missingHints.length,
       redundantHints: redundantDomains.length,
     },
+    // Origins that need a hint, and those with a redundant dns-prefetch (at most 50)
+    items: [
+      ...missingHints.map(([domain, count]) => ({
+        domain,
+        requestCount: count,
+        action: count >= 5 ? "add-preconnect" : "add-dns-prefetch",
+        recommendedHint: count >= 5 ? "preconnect" : "dns-prefetch",
+      })),
+      ...redundantDomains.map((domain) => ({
+        domain,
+        requestCount: domainRequestCounts[domain] || 0,
+        action: "remove-dns-prefetch",
+        recommendedHint: "preconnect",
+      })),
+    ].slice(0, 50),
     issues: [
       ...(totalIssues > 0 ? [{ severity: "warning", message: `${totalIssues} unused hint(s) waste bandwidth` }] : []),
       ...(missingHints.length > 0 ? [{ severity: "info", message: `${missingHints.length} domain(s) could benefit from connection hints` }] : []),
@@ -9175,6 +9268,13 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
     details: {
       byType: Object.fromEntries(hintTypes.map(t => [t.rel, allHints.filter(h => h.rel === t.rel).length])),
       missingPreconnectsCount: missingPreconnects.length,
+      missingPreconnects: missingPreconnects.slice(0, 20).map((o) => ({
+        origin: o.origin,
+        requestCount: o.count,
+        sizeBytes: o.size,
+        resourceTypes: Array.from(o.types),
+        recommendedHint: "preconnect",
+      })),
     },
     items: allHints.map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
     issues: issues.map(i => ({ severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}` })),
@@ -9360,8 +9460,18 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
   console.log(`   Total hydration data: ${formatBytes(totalHydrationSize)}`);
   console.log(`   Other inline scripts: ${formatBytes(otherSize)}`);
 
+  // Structured findings for the return value
+  const itemsData = [];
+  const issuesData = [];
+
   // Detailed analysis for each framework
   detected.forEach((fw) => {
+    if (fw.exceedsThreshold) {
+      issuesData.push({
+        severity: "warning",
+        message: `${fw.name} hydration data (${Math.round(fw.size / 1024)} KB) exceeds ${Math.round(fw.threshold / 1024)} KB threshold`,
+      });
+    }
     console.log("");
     console.group(
       `%c${fw.exceedsThreshold ? "🔴" : "🟢"} ${fw.name} Analysis`,
@@ -9448,6 +9558,46 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
             );
           }
 
+          // Key paths that look sensitive. Only keys are checked: a value that contains
+          // the word "token" is not a sign of leaked data.
+          const sensitiveKeys = [];
+          const findSensitiveKeys = (obj, path, depth) => {
+            if (typeof obj !== "object" || obj === null || depth > 4) return;
+            for (const key of Object.keys(obj)) {
+              const fullPath = path ? `${path}.${key}` : key;
+              if (sensitivePatterns.test(key)) sensitiveKeys.push(fullPath);
+              findSensitiveKeys(obj[key], fullPath, depth + 1);
+            }
+          };
+          findSensitiveKeys(pageProps, "", 0);
+
+          propsKeys.forEach((key) => {
+            const flags = [];
+            if (largeArrays.includes(key)) flags.push("large-array");
+            if (checkDepth(pageProps[key])) flags.push("deeply-nested");
+            if (sensitiveKeys.some((k) => k === key || k.startsWith(`${key}.`))) flags.push("sensitive-key");
+            itemsData.push({
+              framework: "Next.js",
+              kind: "prop",
+              name: key,
+              sizeBytes: new Blob([JSON.stringify(pageProps[key])]).size,
+              flags,
+              detail: null,
+            });
+          });
+          if (largeArrays.length > 0) {
+            issuesData.push({ severity: "warning", message: `pageProps has large arrays (${largeArrays.join(", ")}). Consider pagination.` });
+          }
+          if (checkDepth(pageProps)) {
+            issuesData.push({ severity: "warning", message: "pageProps contains deeply nested data (more than 5 levels)." });
+          }
+          if (sensitiveKeys.length > 0) {
+            issuesData.push({
+              severity: "warning",
+              message: `pageProps has keys that look sensitive (${sensitiveKeys.slice(0, 5).join(", ")}). Everything in pageProps is sent to every visitor.`,
+            });
+          }
+
           if (
             largeArrays.length === 0 &&
             !checkDepth(pageProps) &&
@@ -9485,6 +9635,21 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
         };
       });
       console.table(islandTable);
+
+      fw.elements.forEach((island) => {
+        const props = island.getAttribute("props");
+        itemsData.push({
+          framework: "Astro",
+          kind: "island",
+          name: island.getAttribute("component-url")?.split("/").pop() || "Unknown",
+          sizeBytes: props ? new Blob([props]).size : 0,
+          flags: [],
+          detail:
+            island.getAttribute("client") ||
+            Array.from(island.attributes).find((a) => a.name.startsWith("client:"))?.name.replace("client:", "") ||
+            "unknown",
+        });
+      });
     }
 
     // Element reference
@@ -9549,9 +9714,11 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
       totalHydrationBytes: totalHydrationSize,
       otherInlineBytes: otherSize,
       hasExceedingThreshold: detected.some(d => d.exceedsThreshold),
+      frameworks: detected.map(fw => ({ name: fw.name, sizeBytes: fw.size, thresholdBytes: fw.threshold, exceedsThreshold: fw.exceedsThreshold })),
     },
-    items: detected.map(fw => ({ name: fw.name, sizeBytes: fw.size, thresholdBytes: fw.threshold, exceedsThreshold: fw.exceedsThreshold })),
-    issues: detected.filter(fw => fw.exceedsThreshold).map(fw => ({ severity: "warning", message: `${fw.name} hydration data (${Math.round(fw.size / 1024)} KB) exceeds ${Math.round(fw.threshold / 1024)} KB threshold` })),
+    // Props and islands, the biggest first (at most 30)
+    items: itemsData.sort((a, b) => b.sizeBytes - a.sizeBytes).slice(0, 30),
+    issues: issuesData,
   };
 })();
 ```
@@ -10983,6 +11150,23 @@ Detects preload resource hints for scripts that use `async` or `defer` attribute
 
   console.groupEnd();
 
+  // One item per script (an issue replaces the valid entry of the same URL), at most 50
+  const itemsByUrl = new Map();
+  validPreloads.forEach((v) => itemsByUrl.set(v.url, {
+    url: v.shortUrl,
+    type: v.type === "dynamic" ? "dynamic" : v.type === "mitigated" ? "mitigated" : "blocking",
+    strategy: v.attributes || "blocking-script",
+    location: v.location || "unknown",
+    reviewNote: v.reviewNote || v.note || "",
+  }));
+  issues.forEach((i) => itemsByUrl.set(i.url, {
+    url: i.shortUrl,
+    type: "issue",
+    strategy: i.attributes || i.type,
+    location: i.location || "unknown",
+    reviewNote: i.fix || "",
+  }));
+
   return {
     script: "Validate-Preload-Async-Defer-Scripts",
     status: "ok",
@@ -10991,10 +11175,11 @@ Detects preload resource hints for scripts that use `async` or `defer` attribute
       validCount: validPreloads.length,
       issueCount: issues.length,
     },
-    items: preloadedScripts.map(p => ({
-      url: p.href.split("/").pop()?.split("?")[0] || p.href,
+    items: Array.from(itemsByUrl.values()).slice(0, 50),
+    issues: issues.map(i => ({
+      severity: i.severity,
+      message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message,
     })),
-    issues: issues.map(i => ({ severity: i.severity, message: i.message })),
   };
 })();
 ```
@@ -14185,7 +14370,14 @@ Scans all SVG resources on the page — both external files and inline `<svg>` e
 
   if (svgEntries.length === 0 && inlineSvgTotal === 0) {
     console.log("No SVG resources found on this page.");
-    return { script: "SVG-Embedded-Bitmap-Analysis", status: "ok", count: 0, items: [], issues: [] };
+    return {
+      script: "SVG-Embedded-Bitmap-Analysis",
+      status: "ok",
+      count: 0,
+      details: { externalSvgCount: 0, inlineSvgTotal: 0, svgsWithUse: 0, standaloneInlineSvgs: 0, spriteOpportunity: false },
+      items: [],
+      issues: [],
+    };
   }
 
   console.group("%c🖼️ SVG Embedded Bitmap Analysis", "font-weight: bold; font-size: 14px;");
@@ -14286,6 +14478,14 @@ Scans all SVG resources on the page — both external files and inline `<svg>` e
     script: "SVG-Embedded-Bitmap-Analysis",
     status: "ok",
     count: withBitmaps.length,
+    details: {
+      externalSvgCount: svgEntries.length,
+      inlineSvgTotal,
+      svgsWithUse,
+      standaloneInlineSvgs,
+      // Five or more standalone inline SVGs are worth moving into a <symbol> sprite
+      spriteOpportunity: standaloneInlineSvgs >= 5,
+    },
     items: withBitmaps.map((r) => ({
       url: r.url || r.name,
       name: r.name,
@@ -14694,9 +14894,16 @@ Network quality directly affects web performance. Segmenting metrics by connecti
 
   console.groupEnd();
 
+  const connectionRating =
+    effectiveType === "4g" ? "good"
+    : effectiveType === "3g" ? "needs-improvement"
+    : effectiveType === "2g" || effectiveType === "slow-2g" ? "poor"
+    : undefined;
+
   return {
     script: "Network-Bandwidth-Connection-Quality",
     status: "ok",
+    ...(connectionRating !== undefined ? { rating: connectionRating } : {}),
     details: {
       effectiveType,
       downlink: connection.downlink,

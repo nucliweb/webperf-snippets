@@ -132,7 +132,7 @@
     })),
     issues: issues.map(i => ({
       severity: i.severity,
-      message: i.message
+      message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message
     }))
   };
 })();

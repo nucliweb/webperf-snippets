@@ -109,7 +109,14 @@
 
   if (svgEntries.length === 0 && inlineSvgTotal === 0) {
     console.log("No SVG resources found on this page.");
-    return { script: "SVG-Embedded-Bitmap-Analysis", status: "ok", count: 0, items: [], issues: [] };
+    return {
+      script: "SVG-Embedded-Bitmap-Analysis",
+      status: "ok",
+      count: 0,
+      details: { externalSvgCount: 0, inlineSvgTotal: 0, svgsWithUse: 0, standaloneInlineSvgs: 0, spriteOpportunity: false },
+      items: [],
+      issues: [],
+    };
   }
 
   console.group("%c🖼️ SVG Embedded Bitmap Analysis", "font-weight: bold; font-size: 14px;");
@@ -210,6 +217,14 @@
     script: "SVG-Embedded-Bitmap-Analysis",
     status: "ok",
     count: withBitmaps.length,
+    details: {
+      externalSvgCount: svgEntries.length,
+      inlineSvgTotal,
+      svgsWithUse,
+      standaloneInlineSvgs,
+      // Five or more standalone inline SVGs are worth moving into a <symbol> sprite
+      spriteOpportunity: standaloneInlineSvgs >= 5,
+    },
     items: withBitmaps.map((r) => ({
       url: r.url || r.name,
       name: r.name,

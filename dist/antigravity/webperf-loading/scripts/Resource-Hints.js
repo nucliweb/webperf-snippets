@@ -223,7 +223,14 @@
     count: allHints.length,
     details: {
       byType: Object.fromEntries(hintTypes.map(t => [ t.rel, allHints.filter(h => h.rel === t.rel).length ])),
-      missingPreconnectsCount: missingPreconnects.length
+      missingPreconnectsCount: missingPreconnects.length,
+      missingPreconnects: missingPreconnects.slice(0, 20).map(o => ({
+        origin: o.origin,
+        requestCount: o.count,
+        sizeBytes: o.size,
+        resourceTypes: Array.from(o.types),
+        recommendedHint: "preconnect"
+      }))
     },
     items: allHints.map(h => ({
       rel: h.rel,

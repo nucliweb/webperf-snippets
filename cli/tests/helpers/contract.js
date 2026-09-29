@@ -109,6 +109,66 @@ const SW_REGISTER_PAGE = `<!DOCTYPE html><html><head><title>sw</title></head><bo
 const SW_APP_PAGE = (other) => `<!DOCTYPE html><html><head><title>app</title></head><body><h1>app</h1>
 <script src="/cached.js"></script><script src="/net.js"></script><script src="${other}/x.js"></script></body></html>`;
 
+// Small pages, one per behaviour that the Loading tests check.
+const page = (head, body) =>
+  `<!DOCTYPE html><html><head><meta charset="utf-8"><title>t</title>${head}</head><body>${body}</body></html>`;
+const SMALL_PAGES = (other) => ({
+  // Six requests to another origin, with no connection hint
+  "/hints": page("", Array.from({ length: 6 }, (_, i) => `<script src="${other}/h${i}.js"></script>`).join("")),
+  // preconnect and dns-prefetch for the same origin
+  // Three requests to a host name that is not the page's (localhost), for snippets that
+  // tell third-party origins apart by host name
+  "/hints-host": page(
+    "",
+    Array.from({ length: 3 }, (_, i) => `<script src="${other.replace("127.0.0.1", "localhost")}/h${i}.js"></script>`).join("")
+  ),
+  "/hints-redundant": page(
+    `<link rel="preconnect" href="${other}"><link rel="dns-prefetch" href="${other}">`,
+    `<script src="${other}/h0.js"></script><script src="${other}/h1.js"></script>`
+  ),
+  // The largest image above the fold asks for low priority
+  "/priority": page("", '<h1>p</h1><img src="/hero.png" width="600" height="400" alt="hero" fetchpriority="low">'),
+  "/fonts": page(
+    `<link rel="preload" href="/a.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="${other.replace("127.0.0.1", "localhost")}/b.woff2" as="font" type="font/woff2" crossorigin>`,
+    "<h1>Fonts</h1>"
+  ),
+  "/svgs": page(
+    "",
+    Array.from({ length: 6 }, (_, i) => `<svg id="s${i}" width="10" height="10"><rect width="10" height="10"/></svg>`).join("") +
+      '<svg id="sprite-user" width="10" height="10"><use href="#s0"/></svg>'
+  ),
+  "/mq": page(
+    '<link rel="stylesheet" href="/mq.css">',
+    '<div class="desk">desktop</div><div class="wide">wide</div>'
+  ),
+  "/cv": page(
+    "<style>.late{content-visibility:auto;contain-intrinsic-size:auto 500px}</style>",
+    '<section class="late">a</section><section class="late">b</section>'
+  ),
+  // Next.js data with a large array and a key that looks sensitive
+  "/ssr": page(
+    `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+      props: { pageProps: { rows: Array.from({ length: 60 }, (_, i) => ({ id: i, label: `row ${i}` })), session: { token: "abc" }, small: 1 } },
+      page: "/",
+      buildId: "x",
+    })}</script>`,
+    "<h1>ssr</h1>"
+  ),
+  // The word "token" appears only in a value, never in a key
+  "/ssr-clean": page(
+    `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+      props: { pageProps: { description: "a token of appreciation", small: 1 } },
+      page: "/",
+      buildId: "x",
+    })}</script>`,
+    "<h1>ssr</h1>"
+  ),
+  "/astro": page(
+    "",
+    '<astro-island component-url="/Counter.js" client="load" props="{&quot;n&quot;:[0,1]}"></astro-island><astro-island component-url="/Menu.js" client="idle" props="{}"></astro-island>'
+  ),
+});
+
 // Many elements and requests, to expose snippets that return unbounded lists.
 const HEAVY_PAGE = (other) => `<!DOCTYPE html>
 <html lang="en">
@@ -231,6 +291,9 @@ export async function startContractServers() {
     };
     if (path === "/empty") return send("text/html", "<!DOCTYPE html><html><head><title>e</title></head><body><h1>Empty</h1></body></html>");
     if (path === "/seeded") return send("text/html", SEEDED_PAGE(otherUrl));
+    const small = SMALL_PAGES(otherUrl)[path];
+    if (small) return send("text/html", small);
+    if (path === "/mq.css") return send("text/css", "@media (min-width: 900px){.desk{color:red;margin:1px}.wide{padding:2px}}");
     if (path === "/sw.js") return send("application/javascript", SW_SCRIPT);
     if (path === "/sw-register") return send("text/html", SW_REGISTER_PAGE);
     if (path === "/sw-app") return send("text/html", SW_APP_PAGE(otherUrl));

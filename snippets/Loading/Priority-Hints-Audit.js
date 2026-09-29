@@ -331,6 +331,9 @@
       fetchpriority: el.getAttribute("fetchpriority"),
       resource: (el.src || el.href || el.getAttribute("href") || "").split("/").pop()?.split("?")[0] || "",
     })),
-    issues: issues.map(i => ({ severity: i.severity, message: i.message })),
+    issues: issues.map(i => ({
+      severity: i.severity,
+      message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message,
+    })),
   };
 })();

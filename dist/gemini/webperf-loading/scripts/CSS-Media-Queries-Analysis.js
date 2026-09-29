@@ -154,16 +154,8 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
   };
 }
 
-async function analyzeCSSPerformanceImpact(minWidth = 768) {
-  const mediaQueryResults = await analyzeCSSMediaQueries(minWidth);
-  const unnecessaryBytes = mediaQueryResults.summary.total.bytes;
-  if (unnecessaryBytes === 0 && mediaQueryResults.summary.corsBlocked > 0) {
-    return null;
-  }
-  if (unnecessaryBytes === 0) {
-    return null;
-  }
-  const deviceProfiles = {
+function getDeviceProfiles() {
+  return {
     "High-end (Pixel 7, iPhone 14)": {
       cssParsingSpeed: 1.5,
       cssSelectorMatchingMultiplier: 1,
@@ -183,6 +175,46 @@ async function analyzeCSSPerformanceImpact(minWidth = 768) {
       description: "Bottom 25% devices"
     }
   };
+}
+
+function estimateCSSImpact(summary) {
+  const deviceProfiles = getDeviceProfiles();
+  const unnecessaryBytes = summary.total.bytes;
+  const totalClasses = summary.total.classes;
+  const totalProperties = summary.total.properties;
+  const deviceImpact = Object.entries(deviceProfiles).reduce((acc, [name, profile]) => {
+    const download = unnecessaryBytes * 8 / (profile.networkSpeed * 1000);
+    const parsing = unnecessaryBytes / (1024 * 1024) / profile.cssParsingSpeed * 1000;
+    const cssom = totalProperties * 0.01 * profile.cssSelectorMatchingMultiplier;
+    const totalBlocking = download + parsing + cssom;
+    const runtime = (totalClasses * 0.005 + totalProperties * 0.002) * profile.cssSelectorMatchingMultiplier;
+    acc[name] = {
+      renderBlockingTimeMs: totalBlocking,
+      runtimeOverheadMs: runtime,
+      fcpImpactMs: totalBlocking * 0.6,
+      lcpImpactMs: totalBlocking * 0.4,
+      inpOverheadMs: runtime
+    };
+    return acc;
+  }, {});
+  return {
+    unnecessaryBytes: unnecessaryBytes,
+    totalClasses: totalClasses,
+    totalProperties: totalProperties,
+    deviceImpact: deviceImpact
+  };
+}
+
+async function analyzeCSSPerformanceImpact(minWidth = 768) {
+  const deviceProfiles = getDeviceProfiles();
+  const mediaQueryResults = await analyzeCSSMediaQueries(minWidth);
+  const unnecessaryBytes = mediaQueryResults.summary.total.bytes;
+  if (unnecessaryBytes === 0 && mediaQueryResults.summary.corsBlocked > 0) {
+    return null;
+  }
+  if (unnecessaryBytes === 0) {
+    return null;
+  }
   const totalClasses = mediaQueryResults.summary.total.classes;
   const totalProperties = mediaQueryResults.summary.total.properties;
   Object.entries(deviceProfiles).forEach(([deviceName, profile]) => {
@@ -208,21 +240,7 @@ async function analyzeCSSPerformanceImpact(minWidth = 768) {
     totalClasses: totalClasses,
     totalProperties: totalProperties,
     corsBlockedCount: mediaQueryResults.summary.corsBlocked,
-    deviceImpact: Object.entries(deviceProfiles).reduce((acc, [name, profile]) => {
-      const download = unnecessaryBytes * 8 / (profile.networkSpeed * 1000);
-      const parsing = unnecessaryBytes / (1024 * 1024) / profile.cssParsingSpeed * 1000;
-      const cssom = totalProperties * 0.01 * profile.cssSelectorMatchingMultiplier;
-      const totalBlocking = download + parsing + cssom;
-      const runtime = (totalClasses * 0.005 + totalProperties * 0.002) * profile.cssSelectorMatchingMultiplier;
-      acc[name] = {
-        renderBlockingTimeMs: totalBlocking,
-        runtimeOverheadMs: runtime,
-        fcpImpactMs: totalBlocking * 0.6,
-        lcpImpactMs: totalBlocking * 0.4,
-        inpOverheadMs: runtime
-      };
-      return acc;
-    }, {}),
+    deviceImpact: estimateCSSImpact(mediaQueryResults.summary).deviceImpact,
     estimatedConversionLift: (midRangeTotalBlocking * 0.6 / 100).toFixed(2) + "%"
   };
 }
@@ -244,7 +262,16 @@ window.analyzeCSSPerformanceImpact = analyzeCSSPerformanceImpact;
       total: result.summary.total,
       inline: result.summary.inline,
       files: result.summary.files,
-      corsBlockedCount: result.summary.corsBlocked
+      corsBlockedCount: result.summary.corsBlocked,
+      performanceImpact: (() => {
+        const impact = estimateCSSImpact(result.summary);
+        if (impact.unnecessaryBytes === 0) return null;
+        const round1 = n => Math.round(n * 10) / 10;
+        return {
+          ...impact,
+          deviceImpact: Object.fromEntries(Object.entries(impact.deviceImpact).map(([device, d]) => [ device, Object.fromEntries(Object.entries(d).map(([k, v]) => [ k, round1(v) ])) ]))
+        };
+      })()
     },
     items: [ ...result.details.inline, ...result.details.files ]
   };

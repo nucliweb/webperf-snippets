@@ -115,15 +115,22 @@
       loadedCount: uniqueLoadedFonts.length,
       usedAboveFoldCount: usedFonts.length,
       preloadedNotUsedCount: preloadedNotUsed.length,
-      usedNotPreloadedCount: usedNotPreloaded.length
+      usedNotPreloadedCount: usedNotPreloaded.length,
+      preloadedFonts: preloadedFonts.slice(0, 20).map(f => ({
+        family: f.name.replace(/\.(woff2?|ttf|otf|eot)$/i, ""),
+        href: f.href,
+        fontType: f.type,
+        crossorigin: f.crossorigin || "",
+        thirdParty: f.thirdParty
+      }))
     },
-    items: uniqueLoadedFonts.map(f => ({
+    items: uniqueLoadedFonts.slice(0, 50).map(f => ({
       family: f.family,
       weight: f.weight,
       style: f.style,
       display: f.display
     })),
-    usedFonts: usedFonts.map(f => ({
+    usedFonts: usedFonts.slice(0, 50).map(f => ({
       family: f.family,
       weight: f.weight,
       style: f.style,

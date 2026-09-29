@@ -167,6 +167,21 @@
   if (errors.length === 0 && warnings.length === 0) {
   } else {
   }
+  const itemsByUrl = new Map;
+  validPreloads.forEach(v => itemsByUrl.set(v.url, {
+    url: v.shortUrl,
+    type: v.type === "dynamic" ? "dynamic" : v.type === "mitigated" ? "mitigated" : "blocking",
+    strategy: v.attributes || "blocking-script",
+    location: v.location || "unknown",
+    reviewNote: v.reviewNote || v.note || ""
+  }));
+  issues.forEach(i => itemsByUrl.set(i.url, {
+    url: i.shortUrl,
+    type: "issue",
+    strategy: i.attributes || i.type,
+    location: i.location || "unknown",
+    reviewNote: i.fix || ""
+  }));
   return {
     script: "Validate-Preload-Async-Defer-Scripts",
     status: "ok",
@@ -175,12 +190,10 @@
       validCount: validPreloads.length,
       issueCount: issues.length
     },
-    items: preloadedScripts.map(p => ({
-      url: p.href.split("/").pop()?.split("?")[0] || p.href
-    })),
+    items: Array.from(itemsByUrl.values()).slice(0, 50),
     issues: issues.map(i => ({
       severity: i.severity,
-      message: i.message
+      message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message
     }))
   };
 })();

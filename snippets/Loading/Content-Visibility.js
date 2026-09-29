@@ -345,8 +345,13 @@ window.analyzeContentVisibilityOpportunities = analyzeContentVisibilityOpportuni
       ...cvResults.autoElements.map(el => ({ ...el, type: "auto" })),
       ...cvResults.hiddenElements.map(el => ({ ...el, type: "hidden" })),
     ],
-    issues: cvResults.autoElements
-      .filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none")
-      .map(el => ({ severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)` })),
+    issues: [
+      ...cvResults.autoElements
+        .filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none")
+        .map(el => ({ severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)` })),
+      ...(cvResults.autoElements.length + cvResults.hiddenElements.length === 0
+        ? [{ severity: "info", message: "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost." }]
+        : []),
+    ],
   };
 })();
