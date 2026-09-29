@@ -173,7 +173,12 @@
     if (allLoAFs.length === 0) {
       console.log("   No long animation frames recorded.");
       console.groupEnd();
-      return;
+      return {
+        script: "Long-Animation-Frames",
+        status: "ok",
+        count: 0,
+        details: { totalLoAFs: 0, withBlockingTime: 0, totalBlockingTimeMs: 0, worstBlockingMs: 0, topScripts: [] },
+      };
     }
 
     const blocking = allLoAFs.filter((l) => l.blockingDuration > 0);

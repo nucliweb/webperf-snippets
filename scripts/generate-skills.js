@@ -391,12 +391,13 @@ async function generateCategorySkill(category, catConfig) {
   fs.writeFileSync(path.join(refsDir, 'snippets.md'), snippetLines.join('\n') + '\n')
   console.log(`  written: references/snippets.md`)
 
-  // Copy SCHEMA.md to references/schema.md
-  const schemaSrc = path.join(CLAUDE_SKILLS_DIR, 'SCHEMA.md')
-  if (fs.existsSync(schemaSrc)) {
-    fs.copyFileSync(schemaSrc, path.join(refsDir, 'schema.md'))
-    console.log(`  copied: references/schema.md`)
+  // Copy the return value schema (single source: snippets/SCHEMA.md) to references/schema.md
+  const schemaSrc = path.join(SNIPPETS_DIR, 'SCHEMA.md')
+  if (!fs.existsSync(schemaSrc)) {
+    throw new Error('snippets/SCHEMA.md not found: it is the source of every references/schema.md')
   }
+  fs.copyFileSync(schemaSrc, path.join(refsDir, 'schema.md'))
+  console.log(`  copied: references/schema.md`)
 
   const bodyLines = []
   bodyLines.push(`# WebPerf: ${catConfig.name}`)

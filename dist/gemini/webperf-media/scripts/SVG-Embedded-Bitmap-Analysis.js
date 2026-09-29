@@ -1,4 +1,4 @@
-void (async () => {
+(async () => {
   function shortName(url) {
     try {
       const path = new URL(url).pathname;

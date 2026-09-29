@@ -355,6 +355,33 @@
     },
 
     /**
+     * Get a structured summary (the value agents read through getDataFn)
+     */
+    getData() {
+      const blocking = capturedFrames.filter((f) => f.blockingDuration > 0);
+      const worst = capturedFrames.reduce((max, f) => Math.max(max, f.blockingDuration), 0);
+      return {
+        script: "Long-Animation-Frames-Helpers",
+        status: "ok",
+        count: capturedFrames.length,
+        details: {
+          withBlockingTime: blocking.length,
+          totalBlockingTimeMs: Math.round(blocking.reduce((sum, f) => sum + f.blockingDuration, 0)),
+          worstBlockingMs: Math.round(worst),
+        },
+        items: [...capturedFrames]
+          .sort((a, b) => b.duration - a.duration)
+          .slice(0, 20)
+          .map((f) => ({
+            startTimeMs: Math.round(f.startTime),
+            durationMs: Math.round(f.duration),
+            blockingDurationMs: Math.round(f.blockingDuration),
+            scriptCount: f.scripts.length,
+          })),
+      };
+    },
+
+    /**
      * Clear all captured data
      */
     clear() {
@@ -392,6 +419,6 @@
     script: "Long-Animation-Frames-Helpers",
     status: "tracking",
     message: "LoAF Helpers loaded. Use loafHelpers.summary(), loafHelpers.topScripts(), etc. Call loafHelpers.getRawData() to get raw frame data.",
-    getDataFn: "loafHelpers.getRawData",
+    getDataFn: "loafHelpers.getData",
   };
 })();

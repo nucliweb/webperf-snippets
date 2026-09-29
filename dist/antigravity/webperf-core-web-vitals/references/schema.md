@@ -57,7 +57,7 @@ Every script must return an object matching this shape:
 
   // Tracking scripts (status: "tracking")
   message?: string;      // Human-readable status message
-  getDataFn?: string;    // window function name to call for data: evaluate_script(`${getDataFn}()`)
+  getDataFn?: string;    // window function to call for data: evaluate_script(`${getDataFn}()`). May be a dotted path such as "loafHelpers.getData"
 
   // Error info (status: "error" or "unsupported")
   error?: string;
@@ -99,31 +99,32 @@ Scripts that read DOM or `performance.getEntriesByType()` directly. Return JSON 
 
 **Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Resource-Hints, Resource-Hints-Validation, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
 
-### Pattern 2: PerformanceObserver → getEntriesByType
+### Pattern 2: Buffered observer
 
-Scripts using `PerformanceObserver` with `buffered: true` can read the same data synchronously via `performance.getEntriesByType()`. The observer stays for human console display; the return value is computed synchronously.
+Chrome exposes some entry types only through a `PerformanceObserver`: `largest-contentful-paint`, `layout-shift`, `longtask`, `event` and `first-input`. `performance.getEntriesByType()` returns `[]` for them, so a synchronous read gives an empty result. Collect them with a buffered observer and wait briefly for it to deliver, which makes the script async (Pattern 4).
+
+Entry types that `getEntriesByType()` does return can be read synchronously: `navigation`, `resource`, `paint`, `mark`, `measure` and `long-animation-frame`.
 
 ```js
 // Example: LCP.js
-(() => {
-  // Synchronous data for agent (computed at top)
-  const entries = performance.getEntriesByType("largest-contentful-paint");
-  const lastEntry = entries.at(-1);
-  if (!lastEntry) {
-    // Still set up the observer for human display
-    // observer.observe(...)
-    return { script: "LCP", status: "error", error: "No LCP entries yet" };
+(async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    return { script: "LCP", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
   }
+
+  // Collect buffered entries; 100ms lets the observer process them on busy pages
+  const lastEntry = await new Promise((resolve) => {
+    const entries = [];
+    const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+    obs.observe({ type: "largest-contentful-paint", buffered: true });
+    setTimeout(() => { obs.disconnect(); resolve(entries.at(-1) ?? null); }, 100);
+  });
+  if (!lastEntry) return { script: "LCP", status: "error", error: "No LCP entries yet" };
 
   const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart ?? 0;
   const value = Math.round(Math.max(0, lastEntry.startTime - activationStart));
   const rating = value <= 2500 ? "good" : value <= 4000 ? "needs-improvement" : "poor";
 
-  // Human output via PerformanceObserver (unchanged)
-  const observer = new PerformanceObserver(...);
-  observer.observe({ type: "largest-contentful-paint", buffered: true });
-
-  // Agent return value
   return {
     script: "LCP", status: "ok", metric: "LCP", value, unit: "ms", rating,
     thresholds: { good: 2500, needsImprovement: 4000 },
@@ -132,7 +133,11 @@ Scripts using `PerformanceObserver` with `buffered: true` can read the same data
 })();
 ```
 
-**Scripts using this pattern:** LCP, CLS, LCP-Subparts, LCP-Trail, LCP-Image-Entropy, Event-Processing-Time, Long-Animation-Frames (buffered LoAFs), LongTask (buffered tasks).
+Always check `PerformanceObserver.supportedEntryTypes` first. On browsers without the entry type a script must return `status: "unsupported"`, not a value that looks like a passing result.
+
+The repository enforces this with an ESLint rule (`no-restricted-syntax` in `eslint.config.mjs`) that rejects `getEntriesByType()` for the observer-only types.
+
+**Scripts using this pattern:** LCP, CLS, LCP-Subparts, LCP-Trail, LCP-Image-Entropy, LongTask, Layout-Shift-Loading-and-Interaction.
 
 ### Pattern 3: Tracking observers
 
@@ -156,7 +161,10 @@ return {
 3. evaluate_script("getINP()")      → { script: "INP", status: "ok", value: 350, rating: "needs-improvement", ... }
 ```
 
-**The window function must also return a structured object** matching the same schema.
+**The window function must also return a structured object** matching the same schema, including when nothing has been recorded yet:
+
+- `status: "ok"` with `count: 0` when zero is a valid result (no long tasks, no long animation frames).
+- `status: "error"` with an `error` message when there is nothing to report yet and the agent needs to act first (no interactions recorded).
 
 **Scripts using this pattern:** INP, Interactions, Input-Latency-Breakdown, Layout-Shift-Loading-and-Interaction, Scroll-Performance, Long-Animation-Frames (ongoing tracking), LongTask (ongoing tracking), Long-Animation-Frames-Script-Attribution.
 
@@ -166,7 +174,9 @@ Scripts that use `async/await` or `setTimeout`. The IIFE returns a Promise, whic
 
 Keep the existing `async () => {}` wrapper. Add a `return` statement with structured data at the end. The agent receives the resolved value.
 
-**Scripts using this pattern:** Image-Element-Audit (fetches content-type headers), Video-Element-Audit, Long-Animation-Frames-Script-Attribution (should be converted to return buffered data immediately instead of waiting 10s).
+A script wrapped in `void (async () => {...})()` discards its return value. Never use `void` on the IIFE.
+
+**Scripts using this pattern:** Image-Element-Audit (fetches content-type headers), Video-Element-Audit, SVG-Embedded-Bitmap-Analysis, Service-Worker-Analysis, and every script that collects observer-only entry types (Pattern 2).
 
 ---
 
@@ -445,6 +455,7 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
   "rating": "needs-improvement",
   "details": {
     "totalSizeBytes": 245000,
+    "sizeUnknownCount": 0,
     "byStrategy": { "blocking": 2, "async": 4, "defer": 1, "module": 1 },
     "byParty": { "firstParty": 5, "thirdParty": 3 },
     "thirdPartyBlockingCount": 1
@@ -457,6 +468,7 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
       "location": "head",
       "party": "first",
       "sizeBytes": 85000,
+      "sizeKnown": true,
       "durationMs": 120
     }
   ],
@@ -724,4 +736,10 @@ data = evaluate_script("getINP()")
 4. **Items are homogeneous** — all objects in `items[]` have the same fields.
 5. **No DOM references in return value** — elements can't be serialized to JSON.
 6. **Keep console output unchanged** — the return value is additive, not a replacement.
-7. **Window functions match the schema** — `getINP()`, `getLoAFSummary()`, etc. return the same structured shape.
+7. **Window functions match the schema** — `getINP()`, `getLoAFSummary()`, etc. return the same structured shape, and never `undefined`.
+8. **Bounded output** — `items[]` holds at most 50 entries, sorted by relevance, and the whole return stays under 50 KB. Put the total in `count`.
+9. **Nested detail stays nested** — phases and groups are objects such as `{ "dnsLookup": { "value": 12, "unit": "ms" } }`, not flattened into `dnsLookupMs`. Renderers adapt to the schema, not the other way around.
+10. **Valid statuses only** — `ok`, `tracking`, `error` or `unsupported`, with an `error` message when the status is `error` or `unsupported`.
+11. **Hidden cross-origin data is reported, not guessed** — a resource whose timing or size is hidden (no `Timing-Allow-Origin`) reports zeros for every size and timing. Count it (`sizeKnown: false`, `corsRestrictedCount`) instead of treating the zero as a measurement.
+
+The rules are checked by `cli/tests/e2e/snippet-contract.test.js`, which runs every script, and every `getDataFn`, on an empty page, a seeded page and a heavy page.

@@ -2918,7 +2918,11 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     console.log("   This usually means the site called performance.clearResourceTimings() to manage memory.");
     console.log("   Try: reload the page and run this snippet immediately after load.");
     console.groupEnd();
-    return { script: "Cache-Strategy-Analysis", status: "no-data", count: 0 };
+    return {
+      script: "Cache-Strategy-Analysis",
+      status: "error",
+      error: "No resources in the Performance API buffer (performance.clearResourceTimings() may have been called). Reload the page and run the snippet again.",
+    };
   }
 
   const allAntiPatterns = entries.flatMap((e) =>
@@ -11205,7 +11209,12 @@ Aggregates interaction latency by event type to reveal which phase causes slowne
       console.log(
         "   Interact with the page (click, type, etc.) and call this again."
       );
-      return;
+      return {
+        script: "Input-Latency-Breakdown",
+        status: "error",
+        error: "No interactions recorded yet. Interact with the page (click, type, etc.) and call getInputLatencyBreakdown() again.",
+        getDataFn: "getInputLatencyBreakdown",
+      };
     }
 
     console.group(
@@ -12216,6 +12225,33 @@ Advanced debugging utilities for Long Animation Frames. While the basic LoAF sni
     },
 
     /**
+     * Get a structured summary (the value agents read through getDataFn)
+     */
+    getData() {
+      const blocking = capturedFrames.filter((f) => f.blockingDuration > 0);
+      const worst = capturedFrames.reduce((max, f) => Math.max(max, f.blockingDuration), 0);
+      return {
+        script: "Long-Animation-Frames-Helpers",
+        status: "ok",
+        count: capturedFrames.length,
+        details: {
+          withBlockingTime: blocking.length,
+          totalBlockingTimeMs: Math.round(blocking.reduce((sum, f) => sum + f.blockingDuration, 0)),
+          worstBlockingMs: Math.round(worst),
+        },
+        items: [...capturedFrames]
+          .sort((a, b) => b.duration - a.duration)
+          .slice(0, 20)
+          .map((f) => ({
+            startTimeMs: Math.round(f.startTime),
+            durationMs: Math.round(f.duration),
+            blockingDurationMs: Math.round(f.blockingDuration),
+            scriptCount: f.scripts.length,
+          })),
+      };
+    },
+
+    /**
      * Clear all captured data
      */
     clear() {
@@ -12253,7 +12289,7 @@ Advanced debugging utilities for Long Animation Frames. While the basic LoAF sni
     script: "Long-Animation-Frames-Helpers",
     status: "tracking",
     message: "LoAF Helpers loaded. Use loafHelpers.summary(), loafHelpers.topScripts(), etc. Call loafHelpers.getRawData() to get raw frame data.",
-    getDataFn: "loafHelpers.getRawData",
+    getDataFn: "loafHelpers.getData",
   };
 })();
 ```
@@ -12588,7 +12624,12 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
     if (allLoAFs.length === 0) {
       console.log("   No long animation frames recorded.");
       console.groupEnd();
-      return;
+      return {
+        script: "Long-Animation-Frames",
+        status: "ok",
+        count: 0,
+        details: { totalLoAFs: 0, withBlockingTime: 0, totalBlockingTimeMs: 0, worstBlockingMs: 0, topScripts: [] },
+      };
     }
 
     const blocking = allLoAFs.filter((l) => l.blockingDuration > 0);
@@ -12806,7 +12847,17 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
         console.log("   No long tasks recorded.");
         console.log("   This is good! The main thread has been responsive.");
         console.groupEnd();
-        return;
+        return {
+          script: "LongTask",
+          status: "ok",
+          count: 0,
+          details: {
+            totalBlockingTimeMs: 0,
+            worstTaskMs: 0,
+            avgDurationMs: 0,
+            bySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
+          },
+        };
       }
 
       const durations = allTasks.map((t) => t.duration);
@@ -13674,7 +13725,7 @@ Scans all SVG resources on the page — both external files and inline `<svg>` e
 // SVG Embedded Bitmap Analysis
 // https://webperf-snippets.nucliweb.net
 
-void (async () => {
+(async () => {
   function formatSize(bytes) {
     if (!bytes || bytes === 0) return "—";
     if (bytes < 1024) return `${bytes} B`;

@@ -83,7 +83,17 @@
         console.log("   No long tasks recorded.");
         console.log("   This is good! The main thread has been responsive.");
         console.groupEnd();
-        return;
+        return {
+          script: "LongTask",
+          status: "ok",
+          count: 0,
+          details: {
+            totalBlockingTimeMs: 0,
+            worstTaskMs: 0,
+            avgDurationMs: 0,
+            bySeverity: { critical: 0, high: 0, medium: 0, low: 0 },
+          },
+        };
       }
 
       const durations = allTasks.map((t) => t.duration);
