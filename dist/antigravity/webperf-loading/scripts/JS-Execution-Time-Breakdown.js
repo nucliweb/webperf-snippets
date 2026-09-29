@@ -66,6 +66,7 @@
   const jsBlockingDelay = blocking.length > 0 && domInteractive > 0 ? Math.min(blockingCriticalPathEnd, domInteractive) : 0;
   const SPLIT_THRESHOLD = 50 * 1024;
   const splitCandidates = scripts.filter(s => s.decodedSize > SPLIT_THRESHOLD);
+  const criticalBundles = scripts.filter(s => !s.corsRestricted && s.decodedSize > 1024 * 1024).sort((a, b) => b.decodedSize - a.decodedSize);
   if (domInteractive > 0) {
     const timelineMax = loadEvent || domContentLoaded || domInteractive;
     const rows = [ {
@@ -107,7 +108,6 @@
       };
     });
     if (scripts.length > 20) void 0;
-    const criticalBundles = scripts.filter(s => !s.corsRestricted && s.decodedSize > 1024 * 1024);
     if (criticalBundles.length > 0) {
       criticalBundles.sort((a, b) => b.decodedSize - a.decodedSize).forEach(s => {
       });
@@ -148,7 +148,14 @@
       splitCandidatesCount: splitCandidates.length,
       domInteractiveMs: Math.round(domInteractive),
       domContentLoadedMs: Math.round(domContentLoaded),
-      loadEventMs: Math.round(loadEvent)
+      loadEventMs: Math.round(loadEvent),
+      criticalBundles: criticalBundles.slice(0, 20).map(s => ({
+        shortName: s.shortName,
+        decodedBytes: s.decodedSize,
+        transferBytes: s.transferSize,
+        estimatedParseMobileMs: s.estimatedParseMobile,
+        estimatedParseDesktopMs: s.estimatedParseDesktop
+      }))
     },
     items: scripts.slice(0, 50).map(s => ({
       shortName: s.shortName,
@@ -167,10 +174,10 @@
       message: `High estimated parse cost (~${Math.round(totalEstParse)}ms on mobile)`
     } ] : [], ...splitCandidates.length > 0 ? [ {
       severity: "warning",
-      message: `${splitCandidates.length} script(s) over 50KB decoded — consider code splitting`
+      message: `${splitCandidates.length} script(s) over 50KB decoded. Consider code splitting.`
     } ] : [], ...poorCompression ? [ {
       severity: "warning",
-      message: `Low compression ratio (${compressionRatio.toFixed(1)}x) — enable Brotli/gzip`
+      message: `Low compression ratio (${compressionRatio.toFixed(1)}x). Enable Brotli or gzip.`
     } ] : [] ]
   };
 })();

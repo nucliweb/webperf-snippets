@@ -479,6 +479,80 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
 }
 ```
 
+#### Service-Worker-Analysis
+
+Async. Returns one item per registration. `cacheHitRate` is computed over the resources whose source is known: a cross-origin resource without `Timing-Allow-Origin` reports zero for every size, so it is counted in `fromUnknown` and left out of the rate. `rating` is present only when a rate exists, and `cacheStorage` lists the 20 largest caches (`cacheStorageCount` is the total). With no registration the script returns `status: "ok"`, `count: 0` and an info issue.
+
+```json
+{
+  "script": "Service-Worker-Analysis",
+  "status": "ok",
+  "count": 1,
+  "rating": "needs-improvement",
+  "details": {
+    "controlled": true,
+    "controllerState": "activated",
+    "swOverheadMs": 0.8,
+    "totalResources": 12,
+    "swIntercepted": 3,
+    "notIntercepted": 9,
+    "fromCache": 1,
+    "fromNetwork": 1,
+    "fromUnknown": 1,
+    "cacheHitRate": 50,
+    "savedBytes": 650,
+    "cacheStorageCount": 1,
+    "cacheStorage": [{ "name": "precache", "entries": 1 }]
+  },
+  "items": [
+    {
+      "scope": "https://web.dev/",
+      "scriptURL": "https://web.dev/sw.js",
+      "state": "active",
+      "hasWaiting": false,
+      "hasInstalling": false,
+      "navigationPreloadEnabled": false,
+      "navigationPreloadHeaderValue": "true"
+    }
+  ],
+  "issues": [
+    { "severity": "warning", "message": "Moderate SW cache hit rate (50%). Review the caching strategy for more resources." },
+    { "severity": "info", "message": "1 intercepted resource(s) are cross-origin without Timing-Allow-Origin, so their source is unknown. The hit rate excludes them." }
+  ]
+}
+```
+
+#### JS-Execution-Time-Breakdown
+
+`criticalBundles` lists the scripts over 1 MB decoded (at most 20, largest first). `items` holds the first 50 scripts, and a script whose size is hidden by a missing `Timing-Allow-Origin` header has `corsRestricted: true`.
+
+```json
+{
+  "script": "JS-Execution-Time-Breakdown",
+  "status": "ok",
+  "count": 2,
+  "details": {
+    "blockingCount": 1,
+    "nonBlockingCount": 1,
+    "totalTransferBytes": 1300644,
+    "totalDecodedBytes": 1300044,
+    "totalDownloadMs": 6,
+    "totalEstParseMobileMs": 1270,
+    "splitCandidatesCount": 1,
+    "domInteractiveMs": 9,
+    "domContentLoadedMs": 9,
+    "loadEventMs": 9,
+    "criticalBundles": [
+      { "shortName": "big.js", "decodedBytes": 1300024, "transferBytes": 1300324, "estimatedParseMobileMs": 1270, "estimatedParseDesktopMs": 423 }
+    ]
+  },
+  "items": [
+    { "shortName": "big.js", "isBlocking": true, "downloadMs": 3, "estimatedParseMobileMs": 1270, "transferBytes": 1300324, "decodedBytes": 1300024, "corsRestricted": false }
+  ],
+  "issues": [{ "severity": "error", "message": "1 render-blocking script(s) delay HTML parsing" }]
+}
+```
+
 ### Interaction
 
 Tracking scripts return `status: "tracking"` first. The function named by `getDataFn` returns the full result. Items are capped at 50 (20 for frames) and sorted by relevance; `count` holds the total.

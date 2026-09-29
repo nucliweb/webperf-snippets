@@ -18,8 +18,6 @@ const KNOWN_VIOLATIONS = {
   "Loading/Script-Loading": ["items-uncapped"],
   "Loading/TTFB-Resources": ["items-uncapped"],
   "Media/Image-Element-Audit": ["items-uncapped"],
-  // Has no return value yet.
-  "Loading/Service-Worker-Analysis": ["undefined-return"],
 };
 
 let browser;

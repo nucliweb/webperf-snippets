@@ -100,6 +100,10 @@
   // Large script threshold (50KB compressed = good candidate for splitting)
   const SPLIT_THRESHOLD = 50 * 1024;
   const splitCandidates = scripts.filter((s) => s.decodedSize > SPLIT_THRESHOLD);
+  // Bundles over 1 MB decoded; declared here because the console output and the return use it
+  const criticalBundles = scripts
+    .filter((s) => !s.corsRestricted && s.decodedSize > 1024 * 1024)
+    .sort((a, b) => b.decodedSize - a.decodedSize);
 
   // 5. Output
   console.group(
@@ -195,7 +199,6 @@
     }
 
     // Critical bundle warning (> 1 MB decoded)
-    const criticalBundles = scripts.filter((s) => !s.corsRestricted && s.decodedSize > 1024 * 1024);
     if (criticalBundles.length > 0) {
       console.log("");
       console.log("%c🚨 Critically large bundles (> 1 MB decoded):", "color: #ef4444; font-weight: bold;");
@@ -324,13 +327,20 @@
       domInteractiveMs: Math.round(domInteractive),
       domContentLoadedMs: Math.round(domContentLoaded),
       loadEventMs: Math.round(loadEvent),
+      criticalBundles: criticalBundles.slice(0, 20).map((s) => ({
+        shortName: s.shortName,
+        decodedBytes: s.decodedSize,
+        transferBytes: s.transferSize,
+        estimatedParseMobileMs: s.estimatedParseMobile,
+        estimatedParseDesktopMs: s.estimatedParseDesktop,
+      })),
     },
     items: scripts.slice(0, 50).map(s => ({ shortName: s.shortName, isBlocking: s.isBlocking, downloadMs: Math.round(s.downloadDuration), estimatedParseMobileMs: s.estimatedParseMobile, transferBytes: s.transferSize, decodedBytes: s.decodedSize, corsRestricted: s.corsRestricted })),
     issues: [
       ...(blocking.length > 0 ? [{ severity: "error", message: `${blocking.length} render-blocking script(s) delay HTML parsing` }] : []),
       ...(hasHighParseTime ? [{ severity: "warning", message: `High estimated parse cost (~${Math.round(totalEstParse)}ms on mobile)` }] : []),
-      ...(splitCandidates.length > 0 ? [{ severity: "warning", message: `${splitCandidates.length} script(s) over 50KB decoded — consider code splitting` }] : []),
-      ...(poorCompression ? [{ severity: "warning", message: `Low compression ratio (${compressionRatio.toFixed(1)}x) — enable Brotli/gzip` }] : []),
+      ...(splitCandidates.length > 0 ? [{ severity: "warning", message: `${splitCandidates.length} script(s) over 50KB decoded. Consider code splitting.` }] : []),
+      ...(poorCompression ? [{ severity: "warning", message: `Low compression ratio (${compressionRatio.toFixed(1)}x). Enable Brotli or gzip.` }] : []),
     ],
   };
 })();

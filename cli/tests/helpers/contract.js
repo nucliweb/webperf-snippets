@@ -92,6 +92,23 @@ const BEHAVIORS_PAGE = (query) => `<!DOCTYPE html>
 </body>
 </html>`;
 
+// A page controlled by a service worker that serves one script from Cache Storage, lets one
+// through to the network, and fetches a cross-origin script without Timing-Allow-Origin.
+const SW_SCRIPT = `
+self.addEventListener("install", (e) => e.waitUntil(
+  caches.open("precache").then((c) => c.put("/cached.js", new Response("window.__c=1;".repeat(50), { headers: { "Content-Type": "application/javascript" } }))).then(() => self.skipWaiting())
+));
+self.addEventListener("activate", (e) => e.waitUntil(clients.claim()));
+self.addEventListener("fetch", (e) => {
+  const url = new URL(e.request.url);
+  if (url.pathname === "/cached.js") e.respondWith(caches.match("/cached.js"));
+  else if (url.origin !== location.origin) e.respondWith(fetch(e.request));
+});`;
+const SW_REGISTER_PAGE = `<!DOCTYPE html><html><head><title>sw</title></head><body><h1>sw</h1>
+<script>navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready).then(() => { window.__swReady = true; });</script></body></html>`;
+const SW_APP_PAGE = (other) => `<!DOCTYPE html><html><head><title>app</title></head><body><h1>app</h1>
+<script src="/cached.js"></script><script src="/net.js"></script><script src="${other}/x.js"></script></body></html>`;
+
 // Many elements and requests, to expose snippets that return unbounded lists.
 const HEAVY_PAGE = (other) => `<!DOCTYPE html>
 <html lang="en">
@@ -214,6 +231,12 @@ export async function startContractServers() {
     };
     if (path === "/empty") return send("text/html", "<!DOCTYPE html><html><head><title>e</title></head><body><h1>Empty</h1></body></html>");
     if (path === "/seeded") return send("text/html", SEEDED_PAGE(otherUrl));
+    if (path === "/sw.js") return send("application/javascript", SW_SCRIPT);
+    if (path === "/sw-register") return send("text/html", SW_REGISTER_PAGE);
+    if (path === "/sw-app") return send("text/html", SW_APP_PAGE(otherUrl));
+    if (path === "/net.js") return send("application/javascript", "window.__net = true;");
+    if (path === "/big") return send("text/html", `<!DOCTYPE html><html><head><title>big</title><script src="/big.js"></script><script src="/app.js" defer></script></head><body><h1>big</h1></body></html>`);
+    if (path === "/big.js") return send("application/javascript", "/*" + "x".repeat(1_300_000) + "*/window.__big = true;");
     if (path === "/behaviors") return send("text/html", BEHAVIORS_PAGE(query));
     if (path === "/heavy") return send("text/html", HEAVY_PAGE(otherUrl));
     if (path === "/frame") return send("text/html", "<p>frame</p>");
@@ -226,6 +249,7 @@ export async function startContractServers() {
   const base = `http://127.0.0.1:${main.address().port}`;
   return {
     base,
+    otherBase: otherUrl,
     close: () => Promise.all([main, other].map((s) => new Promise((r) => s.close(r)))),
   };
 }
