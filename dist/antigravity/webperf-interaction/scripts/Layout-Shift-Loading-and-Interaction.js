@@ -23,6 +23,11 @@
   let sessionLast = null;
   const allShifts = [];
   const elementShifts = new Map;
+  const getTopElements = () => Array.from(elementShifts.entries()).sort((a, b) => b[1].totalShift - a[1].totalShift).slice(0, 5).map(([selector, data]) => ({
+    selector: selector,
+    shiftCount: data.count,
+    totalImpact: Math.round(data.totalShift * 10000) / 10000
+  }));
   const getElementSelector = element => {
     if (!element) return "(unknown)";
     if (element.id) return `#${element.id}`;
@@ -126,11 +131,7 @@
     }
     if (rating !== "good") {
     }
-    const topElementsData = Array.from(elementShifts.entries()).sort((a, b) => b[1].totalShift - a[1].totalShift).slice(0, 5).map(([selector, data]) => ({
-      selector: selector,
-      shiftCount: data.count,
-      totalImpact: Math.round(data.totalShift * 10000) / 10000
-    }));
+    const topElementsData = getTopElements();
     return {
       script: "Layout-Shift-Loading-and-Interaction",
       status: "ok",
@@ -173,7 +174,8 @@
       currentCLS: Math.round(clsBufferedSync * 10000) / 10000,
       shiftCount: countedSync + excludedSync,
       countedShifts: countedSync,
-      excludedShifts: excludedSync
+      excludedShifts: excludedSync,
+      topElements: getTopElements()
     },
     message: "Layout shift tracking active. Call getLayoutShiftSummary() for full element attribution.",
     getDataFn: "getLayoutShiftSummary"

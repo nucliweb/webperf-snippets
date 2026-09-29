@@ -179,7 +179,9 @@
         script: "Forced-Synchronous-Layout",
         status: "ok",
         count: 0,
-        details: { fslEvents: [] },
+        details: {},
+        items: [],
+        issues: [],
       };
     }
 
@@ -235,13 +237,37 @@
         fastestSinceLastMutationMs: Math.min(
           ...fslEvents.map((e) => e.sinceLastMutationMs)
         ),
-        fslEvents: fslEvents.map(({ property, accessType, element, sinceLastMutationMs }) => ({
-          property,
-          accessType,
-          element,
-          sinceLastMutationMs,
-        })),
       },
+      // One item per property and element, most frequent first (at most 50)
+      items: Object.values(
+        fslEvents.reduce((acc, e) => {
+          const key = `${e.property}|${e.accessType}|${e.element}`;
+          if (!acc[key]) {
+            acc[key] = {
+              property: e.property,
+              accessType: e.accessType,
+              element: e.element,
+              count: 0,
+              fastestSinceLastMutationMs: e.sinceLastMutationMs,
+            };
+          }
+          acc[key].count++;
+          acc[key].fastestSinceLastMutationMs = Math.min(
+            acc[key].fastestSinceLastMutationMs,
+            e.sinceLastMutationMs
+          );
+          return acc;
+        }, {})
+      )
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 50),
+      issues: Object.entries(byProperty)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([property, count]) => ({
+          severity: count > 5 ? "error" : "warning",
+          message: `${property} triggered ${count} forced synchronous layout${count > 1 ? "s" : ""}. Read layout properties before writing to the DOM.`,
+        })),
     };
   };
 

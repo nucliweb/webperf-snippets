@@ -127,7 +127,12 @@
       file: file,
       category: data.category,
       durationMs: Math.round(data.duration),
-      count: data.count
+      count: data.count,
+      functions: [ ...data.functions ].sort((a, b) => b.duration - a.duration).slice(0, 5).map(fn => ({
+        name: fn.name,
+        invoker: fn.invoker,
+        durationMs: Math.round(fn.duration)
+      }))
     }))
   };
 })();

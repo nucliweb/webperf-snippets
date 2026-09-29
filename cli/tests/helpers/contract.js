@@ -56,6 +56,42 @@ const SEEDED_PAGE = (other) => `<!DOCTYPE html>
 </body>
 </html>`;
 
+// A page with named work and elements to interact with, for tests of what interaction
+// snippets return. `?tasks=N` adds N extra long tasks.
+const BEHAVIORS_PAGE = (query) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Behaviors fixture</title>
+  <style>#willy{will-change:transform;width:50px;height:50px}#ov{overscroll-behavior:contain;overflow:auto;height:50px}</style>
+</head>
+<body style="margin:0">
+  <div id="banner" style="height:20px;background:#eee">banner</div>
+  <div id="late" style="height:20px;background:#ddd">late</div>
+  <button id="slow">slow</button>
+  <button id="mid">mid</button>
+  <button id="fsl">fsl</button>
+  <div id="willy">w</div>
+  <div id="ov"><div style="height:200px">o</div></div>
+  <div id="box" style="width:10px;height:10px"></div>
+  <div style="height:1500px"></div>
+  <script>
+    function heavyWork(ms) { const t = performance.now(); while (performance.now() - t < ms) {} }
+    document.getElementById("slow").addEventListener("click", function slowClick() { heavyWork(260); });
+    document.getElementById("mid").addEventListener("click", function midClick() { heavyWork(25); });
+    document.getElementById("fsl").addEventListener("click", function forceLayouts() {
+      const b = document.getElementById("box");
+      for (let i = 0; i < 30; i++) { b.style.setProperty("width", (10 + i) + "px"); void b.offsetWidth; void b.getBoundingClientRect(); }
+    });
+    setTimeout(function startupWork() { heavyWork(150); }, 500);
+    setTimeout(() => { document.getElementById("banner").style.height = "120px"; }, 300);
+    setTimeout(() => { document.getElementById("late").style.height = "80px"; }, 700);
+    const extra = Number(new URLSearchParams(${JSON.stringify(query)}).get("tasks") || 0);
+    for (let i = 0; i < extra; i++) setTimeout(() => heavyWork(60), 1000 + i * 80);
+  </script>
+</body>
+</html>`;
+
 // Many elements and requests, to expose snippets that return unbounded lists.
 const HEAVY_PAGE = (other) => `<!DOCTYPE html>
 <html lang="en">
@@ -171,12 +207,14 @@ export async function startContractServers() {
   const otherUrl = `http://127.0.0.1:${other.address().port}`;
   const main = await listen((req, res) => {
     const path = req.url.split("?")[0];
+    const query = req.url.split("?")[1] ?? "";
     const send = (type, body) => {
       res.writeHead(200, { "Content-Type": type });
       res.end(body);
     };
     if (path === "/empty") return send("text/html", "<!DOCTYPE html><html><head><title>e</title></head><body><h1>Empty</h1></body></html>");
     if (path === "/seeded") return send("text/html", SEEDED_PAGE(otherUrl));
+    if (path === "/behaviors") return send("text/html", BEHAVIORS_PAGE(query));
     if (path === "/heavy") return send("text/html", HEAVY_PAGE(otherUrl));
     if (path === "/frame") return send("text/html", "<p>frame</p>");
     if (path === "/hero.png") return send("image/png", png);

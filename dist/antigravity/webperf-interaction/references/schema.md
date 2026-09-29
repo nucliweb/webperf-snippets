@@ -481,6 +481,8 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
 
 ### Interaction
 
+Tracking scripts return `status: "tracking"` first. The function named by `getDataFn` returns the full result. Items are capped at 50 (20 for frames) and sorted by relevance; `count` holds the total.
+
 #### Interactions (tracking)
 
 ```json
@@ -491,6 +493,27 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
   "getDataFn": "getInteractionSummary"
 }
 ```
+
+`getInteractionSummary()`:
+
+```json
+{
+  "script": "Interactions",
+  "status": "ok",
+  "count": 5,
+  "details": {
+    "totalInteractions": 5,
+    "worstMs": 312,
+    "avgMs": 140,
+    "p75Ms": 210,
+    "byRating": { "good": 3, "needs-improvement": 1, "poor": 1 }
+  },
+  "items": [{ "type": "click", "durationMs": 312, "rating": "needs-improvement" }],
+  "issues": [{ "severity": "warning", "message": "click interaction took 312ms (needs-improvement), above the 200ms threshold" }]
+}
+```
+
+`items` is sorted slowest first, and `issues` lists at most the 10 slowest interactions that are not good.
 
 #### Input-Latency-Breakdown (tracking)
 
@@ -503,9 +526,50 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
 }
 ```
 
+`getInputLatencyBreakdown()` returns `status: "error"` until an interaction is recorded. Then:
+
+```json
+{
+  "script": "Input-Latency-Breakdown",
+  "status": "ok",
+  "count": 2,
+  "details": { "eventTypes": { "click": { "count": 3, "p75Ms": 260, "inputDelayMs": 4, "processingMs": 240, "presentationMs": 16 } } },
+  "items": [{ "type": "click", "count": 3, "p75Ms": 260, "inputDelayMs": 4, "processingMs": 240, "presentationMs": 16, "rating": "needs-improvement" }],
+  "issues": [{ "severity": "warning", "message": "click P75 is 260ms (needs-improvement). Bottleneck: Processing. Fix: optimize the event handlers or debounce them." }]
+}
+```
+
+#### Forced-Synchronous-Layout (tracking)
+
+```json
+{
+  "script": "Forced-Synchronous-Layout",
+  "status": "tracking",
+  "count": 0,
+  "message": "FSL Detector active. Reproduce the interaction then call getFSLSummary() to inspect results.",
+  "getDataFn": "getFSLSummary",
+  "stopFn": "stopFSLDetector"
+}
+```
+
+`getFSLSummary()` groups the events by property, access type and element:
+
+```json
+{
+  "script": "Forced-Synchronous-Layout",
+  "status": "ok",
+  "count": 30,
+  "details": { "byProperty": { "offsetWidth": 15, "getBoundingClientRect()": 15 }, "byElement": { "div#box": 30 }, "fastestSinceLastMutationMs": 0.02 },
+  "items": [{ "property": "offsetWidth", "accessType": "read", "element": "div#box", "count": 15, "fastestSinceLastMutationMs": 0.02 }],
+  "issues": [{ "severity": "error", "message": "offsetWidth triggered 15 forced synchronous layouts. Read layout properties before writing to the DOM." }]
+}
+```
+
+The detector sees mutations made through `classList`, `setAttribute`, `style.setProperty` and `style.cssText`.
+
 #### Layout-Shift-Loading-and-Interaction
 
-Immediately returns buffered CLS data, plus exposes summary function for ongoing tracking.
+Immediately returns the buffered CLS (the largest session window), plus a summary function for ongoing tracking. `details.topElements` lists the five elements that shifted the most, and `getLayoutShiftSummary()` returns the same value.
 
 ```json
 {
@@ -520,7 +584,8 @@ Immediately returns buffered CLS data, plus exposes summary function for ongoing
     "currentCLS": 0.08,
     "shiftCount": 3,
     "countedShifts": 3,
-    "excludedShifts": 0
+    "excludedShifts": 0,
+    "topElements": [{ "selector": "#banner", "shiftCount": 2, "totalImpact": 0.06 }]
   },
   "message": "Layout shift tracking active. Call getLayoutShiftSummary() for full element attribution.",
   "getDataFn": "getLayoutShiftSummary"
@@ -529,7 +594,7 @@ Immediately returns buffered CLS data, plus exposes summary function for ongoing
 
 #### Long-Animation-Frames
 
-Returns buffered LoAF data immediately. Ongoing tracking continues.
+Returns buffered LoAF data immediately. Ongoing tracking continues. `items` holds the 20 frames with the most blocking time, in the same shape at start and in `getLoAFSummary()`, each with its 10 slowest scripts.
 
 ```json
 {
@@ -542,6 +607,14 @@ Returns buffered LoAF data immediately. Ongoing tracking continues.
     "totalBlockingTimeMs": 280,
     "worstBlockingMs": 180
   },
+  "items": [
+    {
+      "startTimeMs": 512,
+      "durationMs": 230,
+      "blockingDurationMs": 180,
+      "scripts": [{ "invoker": "TimerHandler:setTimeout", "source": "app.js", "durationMs": 150, "forcedStyleAndLayoutMs": 0 }]
+    }
+  ],
   "message": "Tracking long animation frames. Call getLoAFSummary() for full script attribution.",
   "getDataFn": "getLoAFSummary"
 }
@@ -549,7 +622,7 @@ Returns buffered LoAF data immediately. Ongoing tracking continues.
 
 #### Long-Animation-Frames-Script-Attribution
 
-Returns buffered LoAF data immediately (do not wait for a timer):
+Returns buffered LoAF data immediately (do not wait for a timer). `functions` lists the five slowest functions of each file.
 
 ```json
 {
@@ -564,11 +637,34 @@ Returns buffered LoAF data immediately (do not wait for a timer):
       "framework": { "durationMs": 30, "count": 1 }
     }
   },
-  "items": [{ "file": "app.js", "category": "first-party", "durationMs": 180, "count": 3 }]
+  "items": [
+    {
+      "file": "app.js",
+      "category": "first-party",
+      "durationMs": 180,
+      "count": 3,
+      "functions": [{ "name": "startupWork", "invoker": "TimerHandler:setTimeout", "durationMs": 150 }]
+    }
+  ]
+}
+```
+
+#### Long-Animation-Frames-Helpers (tracking)
+
+Installs `window.loafHelpers`. `getDataFn` is the dotted path `loafHelpers.getData`, which returns a summary with the 20 longest frames. `loafHelpers.getRawData()` returns the raw frame array for custom analysis.
+
+```json
+{
+  "script": "Long-Animation-Frames-Helpers",
+  "status": "tracking",
+  "message": "LoAF Helpers loaded. Use loafHelpers.summary(), loafHelpers.topScripts(), etc.",
+  "getDataFn": "loafHelpers.getData"
 }
 ```
 
 #### Scroll-Performance (tracking)
+
+`details` keeps the counts as numbers. `items` lists the non-passive listeners and the CSS findings with the same fields, without duplicates.
 
 ```json
 {
@@ -578,10 +674,20 @@ Returns buffered LoAF data immediately (do not wait for a timer):
     "nonPassiveListeners": 2,
     "cssAudit": {
       "smoothScrollElements": 1,
-      "willChangeElements": 0,
-      "contentVisibilityElements": 3
+      "willChangeElements": 1,
+      "contentVisibilityElements": 3,
+      "overscrollElements": 1
     }
   },
+  "items": [
+    { "kind": "non-passive-listener", "target": "WINDOW", "detail": "wheel" },
+    { "kind": "will-change", "target": "div#card", "detail": "transform" },
+    { "kind": "overscroll", "target": "div#panel", "detail": "contain" }
+  ],
+  "issues": [
+    { "severity": "warning", "message": "2 non-passive scroll or touch listener(s). Add { passive: true } so scrolling does not wait for JavaScript." },
+    { "severity": "info", "message": "will-change is set on 1 element(s). Remove it from elements that do not animate, since each one keeps a compositor layer." }
+  ],
   "message": "Scroll performance tracking active. Scroll the page then call getScrollSummary() for FPS data.",
   "getDataFn": "getScrollSummary"
 }
@@ -589,7 +695,7 @@ Returns buffered LoAF data immediately (do not wait for a timer):
 
 #### LongTask
 
-Returns buffered long tasks immediately. Ongoing tracking continues.
+Returns buffered long tasks immediately. Ongoing tracking continues. `items` lists the 50 slowest tasks, in the same shape at start and in `getLongTaskSummary()`. With no long tasks the summary returns `status: "ok"` and `count: 0`.
 
 ```json
 {
@@ -601,6 +707,7 @@ Returns buffered long tasks immediately. Ongoing tracking continues.
     "worstTaskMs": 220,
     "bySeverity": { "critical": 1, "high": 1, "medium": 2, "low": 0 }
   },
+  "items": [{ "startTimeMs": 512, "durationMs": 220, "blockingTimeMs": 170, "severity": "high", "attribution": "window" }],
   "message": "Tracking long tasks. Call getLongTaskSummary() for statistics.",
   "getDataFn": "getLongTaskSummary"
 }
