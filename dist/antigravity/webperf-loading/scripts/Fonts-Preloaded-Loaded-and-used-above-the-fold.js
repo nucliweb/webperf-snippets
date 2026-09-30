@@ -7,9 +7,23 @@
       return url;
     }
   }
+  function getRootDomain(hostname) {
+    const host = hostname.replace(/\.$/, "");
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    const secondLevelSuffixes = [ "ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch" ];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
+  }
+  function isFirstParty(hostname) {
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
+  }
   function isThirdParty(url) {
     try {
-      return new URL(url).hostname !== location.hostname;
+      return !isFirstParty(new URL(url).hostname);
     } catch {
       return false;
     }

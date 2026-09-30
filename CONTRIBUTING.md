@@ -53,6 +53,8 @@ The full contract is in [`snippets/SCHEMA.md`](snippets/SCHEMA.md), which is als
 - Chrome only exposes `largest-contentful-paint`, `layout-shift`, `longtask`, `event` and `first-input` entries through a `PerformanceObserver`. `performance.getEntriesByType()` returns `[]` for them, and ESLint rejects it. Use a buffered observer.
 - Never wrap the IIFE in `void`, which discards the return value.
 
+A snippet runs pasted into the console, so it cannot import a helper. The helpers several snippets share (`getRootDomain`, `isFirstParty`, `formatBytes`) live in [`snippets/_shared/helpers.js`](snippets/_shared/helpers.js). Copy the block between the `// @shared <name>` and `// @end-shared <name>` markers into the snippet, markers included. `npm run check:consistency` fails when a copy differs from the canonical block, or when a snippet defines one of these helpers without the markers.
+
 ### 2. Create the MDX documentation page
 
 Add a corresponding `.mdx` file in `pages/<Category>/My-New-Snippet.mdx`:

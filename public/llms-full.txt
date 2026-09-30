@@ -579,13 +579,15 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
-  const formatBytes = (bytes) => {
-    if (!bytes) return "-";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
-  };
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
 
   const LCP_THRESHOLD = 0.05; // Chrome's threshold for low-entropy
 
@@ -2020,13 +2022,15 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
   }
 
   // Helper to format bytes
+  // @shared formatBytes
   function formatBytes(bytes) {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
+  // @end-shared formatBytes
 
   // Parse CSS text to find @media rules
   function parseMediaQueriesFromCSS(cssText, source, isInline) {
@@ -2523,34 +2527,37 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 (async () => {
   // --- Helpers ---
 
+  // @shared getRootDomain
   function getRootDomain(hostname) {
-    const parts = hostname.split(".");
-    if (parts.length > 2) {
-      const sld = parts[parts.length - 2];
-      if (
-        sld.length <= 3 &&
-        ["co", "com", "org", "net", "gov", "edu"].includes(sld)
-      ) {
-        return parts.slice(-3).join(".");
-      }
-      return parts.slice(-2).join(".");
-    }
-    return hostname;
+    const host = hostname.replace(/\.$/, "");
+    // An IP address has no registrable domain, so each address is its own root
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    // Country-code domains with a second-level suffix: example.co.uk, example.com.au, example.ac.jp
+    const secondLevelSuffixes = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch"];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
   }
+  // @end-shared getRootDomain
 
-  const currentRootDomain = getRootDomain(location.hostname);
-
+  // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === currentRootDomain;
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
   }
+  // @end-shared isFirstParty
 
+  // @shared formatBytes
   function formatBytes(bytes) {
-    if (!bytes || bytes === 0) return "N/A";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
+  // @end-shared formatBytes
 
   function getResourceType(entry) {
     // Use file extension as primary signal — initiatorType reflects the loader
@@ -4066,13 +4073,15 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
 // https://webperf-snippets.nucliweb.net
 
 (() => {
-  const formatBytes = (bytes) => {
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
-  };
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
 
   const criticalBudget = 14 * 1024; // 14 KB (first TCP round-trip)
 
@@ -5266,13 +5275,15 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
     return 0;
   }
 
+  // @shared formatBytes
   function formatBytes(bytes) {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
+  // @end-shared formatBytes
 
   // Find LCP candidate (largest visible image) to exclude from recommendations
   const allViewportImages = Array.from(document.querySelectorAll("img")).filter(
@@ -5670,33 +5681,37 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 
 (() => {
   // Auto-detect first-party: same root domain (handles subdomains)
+  // @shared getRootDomain
   function getRootDomain(hostname) {
-    const parts = hostname.split(".");
-    // Handle cases like co.uk, com.au, etc.
-    if (parts.length > 2) {
-      // Simple heuristic: if second-to-last part is short (co, com, org, net), take 3 parts
-      const sld = parts[parts.length - 2];
-      if (sld.length <= 3 && ["co", "com", "org", "net", "gov", "edu"].includes(sld)) {
-        return parts.slice(-3).join(".");
-      }
-      return parts.slice(-2).join(".");
-    }
-    return hostname;
+    const host = hostname.replace(/\.$/, "");
+    // An IP address has no registrable domain, so each address is its own root
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    // Country-code domains with a second-level suffix: example.co.uk, example.com.au, example.ac.jp
+    const secondLevelSuffixes = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch"];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
   }
+  // @end-shared getRootDomain
 
-  const currentRootDomain = getRootDomain(location.hostname);
-
+  // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === currentRootDomain;
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
   }
+  // @end-shared isFirstParty
 
+  // @shared formatBytes
   function formatBytes(bytes) {
-    if (!bytes || bytes === 0) return "N/A";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
+  // @end-shared formatBytes
 
   // Gather script data
   const scripts = performance
@@ -5956,23 +5971,27 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
 
 (() => {
   // Auto-detect first-party by root domain
+  // @shared getRootDomain
   function getRootDomain(hostname) {
-    const parts = hostname.split(".");
-    if (parts.length > 2) {
-      const sld = parts[parts.length - 2];
-      if (sld.length <= 3 && ["co", "com", "org", "net", "gov", "edu"].includes(sld)) {
-        return parts.slice(-3).join(".");
-      }
-      return parts.slice(-2).join(".");
-    }
-    return hostname;
+    const host = hostname.replace(/\.$/, "");
+    // An IP address has no registrable domain, so each address is its own root
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    // Country-code domains with a second-level suffix: example.co.uk, example.com.au, example.ac.jp
+    const secondLevelSuffixes = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch"];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
   }
+  // @end-shared getRootDomain
 
-  const currentRootDomain = getRootDomain(location.hostname);
-
+  // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === currentRootDomain;
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
   }
+  // @end-shared isFirstParty
 
   // Gather script timing data
   const scripts = performance
@@ -6270,10 +6289,32 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
     }
   }
 
-  // Check if URL is third-party
+  // @shared getRootDomain
+  function getRootDomain(hostname) {
+    const host = hostname.replace(/\.$/, "");
+    // An IP address has no registrable domain, so each address is its own root
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    // Country-code domains with a second-level suffix: example.co.uk, example.com.au, example.ac.jp
+    const secondLevelSuffixes = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch"];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
+  }
+  // @end-shared getRootDomain
+
+  // @shared isFirstParty
+  function isFirstParty(hostname) {
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
+  }
+  // @end-shared isFirstParty
+
+  // Check if URL is third-party (a different root domain)
   function isThirdParty(url) {
     try {
-      return new URL(url).hostname !== location.hostname;
+      return !isFirstParty(new URL(url).hostname);
     } catch {
       return false;
     }
@@ -6603,13 +6644,15 @@ Analyzes all inline `<style>` tags on the page, measuring their size and identif
 // https://webperf-snippets.nucliweb.net
 
 (() => {
-  const formatBytes = (bytes) => {
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
-  };
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
 
   const formatKB = (bytes) => (bytes / 1024).toFixed(2);
 
@@ -6847,13 +6890,15 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
 // https://webperf-snippets.nucliweb.net
 
 (() => {
-  const formatBytes = (bytes) => {
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
-  };
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
 
   const formatKB = (bytes) => (bytes / 1024).toFixed(2);
 
@@ -7181,13 +7226,15 @@ Identifies where JavaScript time goes during page load: network download vs brow
 
 (() => {
   const formatMs = (ms) => (ms > 0 ? ms.toFixed(0) + "ms" : "-");
-  const formatBytes = (bytes) => {
-    if (!bytes || bytes === 0) return "-";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(Math.max(bytes, 1)) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
-  };
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
   const formatBar = (value, max, width = 16) => {
     if (value <= 0 || max <= 0) return "░".repeat(width);
     const filled = Math.min(Math.round((value / max) * width), width);
@@ -8879,13 +8926,15 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
 // https://webperf-snippets.nucliweb.net
 
 (() => {
-  const formatBytes = (bytes) => {
-    if (!bytes || bytes === 0) return "-";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
-  };
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
 
   // Resource hint definitions
   const hintTypes = [
@@ -9296,13 +9345,15 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
 // https://webperf-snippets.nucliweb.net
 
 (() => {
-  const formatBytes = (bytes) => {
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
-  };
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
 
   // Framework detection patterns
   const frameworks = [
@@ -9737,33 +9788,44 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 // https://webperf-snippets.nucliweb.net
 
 (() => {
-  const formatBytes = (bytes) => {
-    if (!bytes || bytes === 0) return "-";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
-  };
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
 
   const formatMs = (ms) => (ms > 0 ? ms.toFixed(0) + "ms" : "-");
 
-  // Get current page's root domain for first/third party detection
-  const getRootDomain = (hostname) => {
-    const parts = hostname.split(".");
-    if (parts.length > 2) {
-      const sld = parts[parts.length - 2];
-      if (["co", "com", "org", "net", "gov", "edu"].includes(sld) && sld.length <= 3) {
-        return parts.slice(-3).join(".");
-      }
-      return parts.slice(-2).join(".");
-    }
-    return hostname;
-  };
+  // @shared getRootDomain
+  function getRootDomain(hostname) {
+    const host = hostname.replace(/\.$/, "");
+    // An IP address has no registrable domain, so each address is its own root
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    // Country-code domains with a second-level suffix: example.co.uk, example.com.au, example.ac.jp
+    const secondLevelSuffixes = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch"];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
+  }
+  // @end-shared getRootDomain
 
-  const currentDomain = getRootDomain(location.hostname);
-  const isFirstParty = (url) => {
+  // @shared isFirstParty
+  function isFirstParty(hostname) {
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
+  }
+  // @end-shared isFirstParty
+
+  // A script whose URL cannot be parsed counts as first party
+  const isFirstPartyUrl = (url) => {
     try {
-      return getRootDomain(new URL(url).hostname) === currentDomain;
+      return isFirstParty(new URL(url).hostname);
     } catch {
       return true;
     }
@@ -9811,7 +9873,7 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
     }
 
     const isBlocking = strategy === "blocking";
-    const firstParty = isFirstParty(src);
+    const firstParty = isFirstPartyUrl(src);
 
     return {
       src,
@@ -10640,9 +10702,31 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
   // Timing-Allow-Origin header report 0 for both and cannot be measured.
   const waitTime = (entry) => entry.responseStart - entry.requestStart;
   const hasTiming = (entry) => entry.responseStart > 0;
+  // @shared getRootDomain
+  function getRootDomain(hostname) {
+    const host = hostname.replace(/\.$/, "");
+    // An IP address has no registrable domain, so each address is its own root
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    // Country-code domains with a second-level suffix: example.co.uk, example.com.au, example.ac.jp
+    const secondLevelSuffixes = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch"];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
+  }
+  // @end-shared getRootDomain
+
+  // @shared isFirstParty
+  function isFirstParty(hostname) {
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
+  }
+  // @end-shared isFirstParty
+
   const isThirdPartyUrl = (name) => {
     try {
-      return new URL(name).hostname !== location.hostname;
+      return !isFirstParty(new URL(name).hostname);
     } catch {
       return false;
     }

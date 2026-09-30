@@ -54,13 +54,15 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
   }
 
   // Helper to format bytes
+  // @shared formatBytes
   function formatBytes(bytes) {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
+  // @end-shared formatBytes
 
   // Parse CSS text to find @media rules
   function parseMediaQueriesFromCSS(cssText, source, isInline) {

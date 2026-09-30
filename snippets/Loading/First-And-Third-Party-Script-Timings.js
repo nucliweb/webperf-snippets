@@ -3,23 +3,27 @@
 
 (() => {
   // Auto-detect first-party by root domain
+  // @shared getRootDomain
   function getRootDomain(hostname) {
-    const parts = hostname.split(".");
-    if (parts.length > 2) {
-      const sld = parts[parts.length - 2];
-      if (sld.length <= 3 && ["co", "com", "org", "net", "gov", "edu"].includes(sld)) {
-        return parts.slice(-3).join(".");
-      }
-      return parts.slice(-2).join(".");
-    }
-    return hostname;
+    const host = hostname.replace(/\.$/, "");
+    // An IP address has no registrable domain, so each address is its own root
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    // Country-code domains with a second-level suffix: example.co.uk, example.com.au, example.ac.jp
+    const secondLevelSuffixes = ["ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch"];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
   }
+  // @end-shared getRootDomain
 
-  const currentRootDomain = getRootDomain(location.hostname);
-
+  // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === currentRootDomain;
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
   }
+  // @end-shared isFirstParty
 
   // Gather script timing data
   const scripts = performance

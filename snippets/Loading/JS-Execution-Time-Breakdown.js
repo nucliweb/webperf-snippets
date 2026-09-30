@@ -3,13 +3,15 @@
 
 (() => {
   const formatMs = (ms) => (ms > 0 ? ms.toFixed(0) + "ms" : "-");
-  const formatBytes = (bytes) => {
-    if (!bytes || bytes === 0) return "-";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(Math.max(bytes, 1)) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
-  };
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
   const formatBar = (value, max, width = 16) => {
     if (value <= 0 || max <= 0) return "░".repeat(width);
     const filled = Math.min(Math.round((value / max) * width), width);

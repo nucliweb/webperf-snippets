@@ -2,6 +2,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const { verifySharedHelpers } = require('./shared-helpers')
 
 const ROOT = path.join(__dirname, '..')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
@@ -242,6 +243,7 @@ function main() {
   verifyPageToSourceMapping(errors)
   verifyMetaAlignment(errors)
   verifyPublishedCounts(errors)
+  verifySharedHelpers(errors)
 
   if (errors.length > 0) {
     console.error('Consistency check failed:\n')

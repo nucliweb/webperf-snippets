@@ -1,11 +1,11 @@
 (() => {
-  const formatBytes = bytes => {
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = [ "B", "KB", "MB" ];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
-  };
+    const units = [ "B", "KB", "MB", "GB" ];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
   const formatKB = bytes => (bytes / 1024).toFixed(2);
   const scriptTags = Array.from(document.querySelectorAll("script:not([src])")).filter(s => s.innerHTML.trim().length > 0);
   if (scriptTags.length === 0) {
