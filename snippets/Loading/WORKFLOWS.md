@@ -28,6 +28,14 @@ When the user asks about fonts, FOIT, FOUT, or font performance:
 2. **Resource-Hints-Validation.js** - Verify font preloads are correct
 3. **Find-render-blocking-resources.js** - Check if fonts block rendering
 
+### Text Compression Audit
+
+When the user asks about compression, gzip, brotli, or large transfer sizes for text resources:
+
+1. **Compression-Audit.js** - Find text resources served without compression and estimate savings
+2. **Find-render-blocking-resources.js** - Prioritize uncompressed CSS/JS that block rendering
+3. **TTFB-Resources.js** - Check server response of the uncompressed resources
+
 ### Script Performance Deep Dive
 
 When scripts are suspected to slow down the page:
@@ -108,6 +116,12 @@ Use this decision tree to automatically run follow-up snippets based on results:
   1. **Fonts-Preloaded-Loaded-and-used-above-the-fold.js** (fonts)
   2. **Priority-Hints-Audit.js** (LCP candidate)
 - **If preloads on async/defer scripts** → Run **Validate-Preload-Async-Defer-Scripts.js**
+
+### After Compression-Audit.js
+
+- **If uncompressed CSS/JS found** → Run **Find-render-blocking-resources.js** to see if they block rendering
+- **If estimated savings > 100KB** → Recommend enabling gzip or brotli on the server or CDN
+- **If corsLimitedAnalysis is true** → Report the result as a lower bound and suggest `Timing-Allow-Origin` on resources you control
 
 ### After Service-Worker-Analysis.js
 

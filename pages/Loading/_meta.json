@@ -82,5 +82,8 @@
   },
   "Cache-Strategy-Analysis": {
     "title": "Cache Strategy Analysis"
+  },
+  "Compression-Audit": {
+    "title": "Compression Audit"
   }
 }
