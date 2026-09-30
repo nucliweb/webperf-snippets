@@ -2,6 +2,7 @@ import snippet from '../../snippets/Loading/TTFB.js?raw'
 import snippet2 from '../../snippets/Loading/TTFB-Sub-Parts.js?raw'
 import snippet3 from '../../snippets/Loading/TTFB-Resources.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Demo } from '../../components/Demo'
 import { Callout } from 'nextra/components'
 
 # Time to first byte
@@ -64,6 +65,12 @@ sequenceDiagram
 | **TCP** | TCP connection establishment | Geographic distance, no connection reuse |
 | **SSL/TLS** | Secure connection negotiation | No TLS session resumption, slow handshake |
 | **Request** | Time to first byte after connection | Slow server, database queries, no caching |
+
+<Demo
+  src="/demos/ttfb-subparts.html"
+  title="Timeline of the TTFB sub-parts for five scenarios: cold visit, warm connection, redirect chain, service worker cold start and slow server"
+  caption="Switch scenarios to see how each sub-part adds to the total, and select a sub-part to highlight it."
+/>
 
 ### Snippet
 

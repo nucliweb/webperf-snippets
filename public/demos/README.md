@@ -11,7 +11,7 @@ trees stay as mermaid in the MDX page.
 
 ## The contract
 
-A demo must satisfy three things for the embed to behave.
+A demo must satisfy the first three things for the embed to behave, and the last two so every demo is usable by everyone.
 
 ### 1. Report its height
 
@@ -57,6 +57,49 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
 No external scripts, styles, fonts, or network requests. Inline everything. The
 file must render identically whether opened directly (the "Open demo in a new
 tab" fallback link) or embedded.
+
+### 4. Respect reduced motion
+
+Turn off transitions and animations when the reader asks for less motion. The
+same block works for every demo. A demo that animates on its own (a cursor, a
+progress bar) must also jump straight to its final state.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+```
+
+### 5. Be usable without a mouse or a sighted reader
+
+- Every choice that switches the view is a `<button>` inside a
+  `role="group"` with an `aria-label`, and sets `aria-pressed` to `true` on the
+  active one.
+- The explanation box has `aria-live="polite"`, so a change of scenario or step is
+  announced. When a value is only drawn (a total, a bar), write it in the text of
+  the explanation too.
+- Tabs and buttons show a visible focus ring:
+  `.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--c-js); outline-offset: 2px; }`
+
+## Visual language
+
+All demos share the same components, so they read as one set. Copy them from an
+existing demo (`raf-pipeline.html` is the reference for step-by-step demos and
+`ttfb-subparts.html` for scenario demos) instead of restyling them.
+
+| Component | Class | Notes |
+|-----------|-------|-------|
+| Base | `body` | 13 px system font, 16 px padding, 14 px gap. Palette tokens `--bg`, `--surface`, `--surface2`, `--border`, `--text`, `--muted`, `--tab-active-bg` |
+| Legend strip | `.legend`, `.legend-label`, `.lg` | First element. An uppercase label followed by one pill per lane, phase or piece. Pill color matches the color used in the diagram. `raf-pipeline` and `yield-pipeline` use the same component under the name `.pipeline-order` |
+| Scenario tabs | `.tabs`, `.tab` | 7 px 14 px padding, 6 px radius, 12 px text at weight 500. The active tab gets `--tab-active-bg` and an accent border. Emojis only mark a bad, doubtful and good variant of the same code |
+| Frame | `.frame`, `.frame-label`, `.frame-body` | The diagram or timeline lives in a frame with an uppercase title bar |
+| Controls | `.controls`, `.btn`, `.btn-reset`, `.btn-next` | Primary action is the blue `.btn-next` (`#1f6feb`, hover `#388bfd`); `.btn-reset` is the secondary one. A counter goes on the right (`Step n / N`) |
+| Explanation | `.expl` | A box with a 3 px left border. The border color follows the state: `t-ok` green, `t-warn` yellow, `t-block` red, `t-neutral` blue |
+
+Two interaction models are in use, and both are fine. Use **step by step**
+(`Next step` and `Reset`) for a mechanism that happens in order inside the
+browser. Use **scenarios with an animated result** (a `Replay` button) to
+compare configurations. Whichever you pick, keep the components above.
 
 ## Minimal template
 

@@ -102,6 +102,7 @@ body {
 }
 .tab:hover { color: var(--text); border-color: #58a6ff; }
 .tab.active { color: var(--text); background: var(--tab-active-bg); border-color: var(--c-js); }
+.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--c-js); outline-offset: 2px; }
 
 /* ── Frames ────────────────────────────────── */
 .frames { display: flex; flex-direction: column; gap: 10px; }
@@ -242,6 +243,11 @@ body {
 
 .b-fsl { display: inline-block; background: rgba(248,81,73,.18); color: var(--c-fsl-fg); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; vertical-align: middle; }
 .b-ok  { display: inline-block; background: rgba(63,185,80,.18); color: var(--c-ok); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; vertical-align: middle; }
+
+/* ── Reduced motion ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
 </style>
 </head>
 <body>
@@ -261,10 +267,10 @@ body {
 </div>
 
 <!-- Tabs -->
-<div class="tabs">
-  <button class="tab active" data-s="0">❌ No fix</button>
-  <button class="tab" data-s="1">⚠️ Single rAF</button>
-  <button class="tab" data-s="2">✅ Double rAF</button>
+<div class="tabs" role="group" aria-label="Fix strategies">
+  <button class="tab active" data-s="0" aria-pressed="true">❌ No fix</button>
+  <button class="tab" data-s="1" aria-pressed="false">⚠️ Single rAF</button>
+  <button class="tab" data-s="2" aria-pressed="false">✅ Double rAF</button>
 </div>
 
 <!-- Visualization -->
@@ -278,7 +284,7 @@ body {
 </div>
 
 <!-- Explanation -->
-<div class="expl t-neutral" id="expl">
+<div class="expl t-neutral" id="expl" aria-live="polite">
   Click <strong>Next step</strong> to see how the browser processes each operation.
 </div>
 
@@ -505,7 +511,10 @@ function reset() {
 
 function setScenario(i) {
   sIdx = i;
-  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', i === j));
+  document.querySelectorAll('.tab').forEach((t, j) => {
+    t.classList.toggle('active', i === j);
+    t.setAttribute('aria-pressed', String(i === j));
+  });
   reset();
 }
 
