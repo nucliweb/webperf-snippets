@@ -1,0 +1,58 @@
+import snippet from '../../snippets/Media/Oversized-Images.js?raw'
+import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
+
+# Oversized images
+
+Compares the pixels of each downloaded image file with the pixels the page draws it at (rendered size × `devicePixelRatio`), and reports the images that are much larger than needed, which waste bytes, and the images that are smaller than needed, which look blurry.
+
+### What the snippet checks
+
+| Check                                                  | Scope                          |
+| ------------------------------------------------------ | ------------------------------ |
+| File at least 1.5x larger than the slot on each axis   | Loaded `<img>` elements        |
+| File under 90% of the pixels the slot needs (blurry)   | Loaded `<img>` elements        |
+| Wasted pixels and estimated wasted bytes               | Oversized images               |
+| The file chosen through `srcset` and `sizes`           | `currentSrc` of each image     |
+| `object-fit` scaling (`cover`, `contain`, `none`, ...) | Images with a fixed-size box   |
+
+### Snippet
+
+<Snippet code={snippet} />
+
+### Understanding the results
+
+The console shows a summary and a table of the worst offenders. The returned object has the same data in a structured form.
+
+#### How the size is computed
+
+- The file size in pixels is read from the file itself, not from `naturalWidth`, which the browser divides by the `srcset` density (a 400px file chosen as `2x` reports 200).
+- The needed size is the content box of the element times `devicePixelRatio`, scaled by `object-fit`. A `cover` image needs to cover the box, a `contain` image needs to fit inside it.
+- `ratio` is the pixels of the file per pixel drawn, on the tighter axis. Above 1.5 the image is `oversized`; below 0.9 it is `undersized`.
+
+#### Estimated wasted bytes
+
+`wastedBytes` is the transfer size multiplied by the share of the pixels that are not needed. It is an estimate: compression does not scale linearly with pixels, so a resized file is usually a little larger than the estimate suggests. The transfer size comes from the Resource Timing API, so it is `null` for a cross-origin image served without `Timing-Allow-Origin`. An image used several times counts once in the total.
+
+#### What is skipped
+
+Images with a zero-size box (`display: none`, or `width: 0`), images that have not loaded yet (for example, a `loading="lazy"` image far below the fold) and SVG images are not measured. `details` counts each group. CSS background images are not inspected.
+
+<Callout type="warning">
+  Scroll the page to the end before running the snippet, or images with `loading="lazy"` are not measured.
+</Callout>
+
+#### Fixing an oversized image
+
+- Serve several widths with `srcset` and describe the slot with an accurate `sizes` attribute; a wrong `sizes` (for example `100vw` for a small thumbnail) makes the browser choose a large file.
+- Resize at build time or with an image CDN instead of scaling in CSS.
+- For an undersized image, serve a file with at least the needed pixels, and add a `2x` candidate for high-density screens.
+
+The result depends on the viewport and on `devicePixelRatio`. Run it in the device mode you care about.
+
+### Further reading
+
+- [Serve images with correct dimensions](https://web.dev/articles/serve-images-with-correct-dimensions) | web.dev
+- [Responsive images](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images#responsive_images) | MDN
+- [`object-fit`](https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit) | MDN
+- [Image Element Audit](/Media/Image-Element-Audit) | webperf-snippets

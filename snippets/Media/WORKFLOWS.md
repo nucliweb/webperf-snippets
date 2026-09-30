@@ -19,6 +19,15 @@ When the user asks "optimize images" or "check image performance":
    - Find-Images-With-Lazy-and-Fetchpriority.js (contradictory attributes)
    - Priority-Hints-Audit.js (LCP image should have fetchpriority="high")
 
+### Oversized Images Audit
+
+When the user asks about images larger than needed, wasted bytes, blurry images, or `srcset`/`sizes` problems:
+
+1. **Oversized-Images.js** - Compare each image file with the pixels drawn (oversized and undersized)
+2. **Image-Element-Audit.js** - Check format, lazy loading and `srcset` usage of the flagged images
+3. Cross-reference with **webperf-core-web-vitals** skill:
+   - LCP.js (check whether an oversized image is the LCP element)
+
 ### Video Performance Audit
 
 When the user asks "optimize videos" or "check video performance":
@@ -105,6 +114,19 @@ Use this decision tree to automatically run follow-up snippets based on results:
   2. **webperf-loading:TTFB-Resources.js** (identify slow image CDN)
 
 - **If images missing alt text** → Accessibility issue, recommend adding descriptive alt text
+
+### After Oversized-Images.js
+
+- **If oversized images found** → Recommend:
+  - `srcset` with several widths and an accurate `sizes` attribute
+  - Resizing at build time or with an image CDN
+  - Run **Image-Element-Audit.js** to check format and lazy loading of the same images
+
+- **If an oversized image is the LCP element** → Run **webperf-core-web-vitals:LCP.js** and **LCP-Subparts.js** (large files inflate resource load duration)
+
+- **If undersized (blurry) images found** → Recommend a source with at least the needed pixels and a `2x` candidate for high-density screens
+
+- **If skipped images are lazy-loaded** → Scroll to the end of the page and run the snippet again
 
 ### After Video-Element-Audit.js
 
