@@ -57,6 +57,7 @@ When the user wants to optimize resource loading priorities:
 3. **Priority-Hints-Audit.js** - Check fetchpriority usage
 4. **Prefetch-Resource-Validation.js** - Validate prefetch strategy
 5. **Validate-Preload-Async-Defer-Scripts.js** - Find conflicts
+6. **Speculation-Rules-Inspector.js** - Inspect prefetch/prerender rules and prerender activation
 
 ### CSS Optimization Workflow
 
@@ -167,6 +168,13 @@ Use this decision tree to automatically run follow-up snippets based on results:
 - **If >10 prefetch hints** → Recommend reducing to critical resources
 - **If individual prefetch > 500KB** → Question necessity
 - **If total prefetch > 2MB** → Flag as mobile bandwidth concern
+- **If few or no prefetch hints for likely next navigations** → Run **Speculation-Rules-Inspector.js** to check for prefetch/prerender rules
+
+### After Speculation-Rules-Inspector.js
+
+- **If no speculation rules found but the site has predictable navigations** → Recommend adding prefetch or prerender rules
+- **If invalid JSON or wasteful rules (eager prerender of many URLs)** → Recommend fixing or lowering eagerness to `moderate` or `conservative`
+- **If the page was prerendered (`activationStart` > 0)** → Subtract `activationStart` when interpreting **TTFB.js**, **FCP.js** and LCP results
 
 ### After Critical-CSS-Detection.js
 

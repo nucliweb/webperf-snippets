@@ -185,6 +185,12 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 | 🟡 Needs attention | 50–100ms | Consider Navigation Preload |
 | 🔴 Poor | > 100ms | SW cold start adds visible latency to TTFB |
 ---
+## Speculation rules inspector
+
+Inspects how a page uses the Speculation Rules API to prefetch and prerender future navigations, and whether the current page was itself prerendered. A prerendered page can activate instantly, which makes navigations feel immediate and changes how load metrics are measured.
+
+**Script:** `scripts/Speculation-Rules-Inspector.js`
+---
 ## Time to first byte: Measure TTFB for all resources
 
 Analyzes TTFB for every resource loaded on the page (scripts, stylesheets, images, fonts, etc.). Helps identify slow third-party resources or backend endpoints.

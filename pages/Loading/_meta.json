@@ -88,5 +88,8 @@
   },
   "Server-Timing-Early-Hints": {
     "title": "Server-Timing and Early Hints"
+  },
+  "Speculation-Rules-Inspector": {
+    "title": "Speculation Rules Inspector"
   }
 }

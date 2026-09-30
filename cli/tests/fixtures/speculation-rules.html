@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Speculation rules fixture</title>
+  <script type="speculationrules">
+  {
+    "prerender": [
+      { "source": "list", "urls": ["/next", "/other"], "eagerness": "moderate" }
+    ],
+    "prefetch": [
+      { "where": { "href_matches": "/products/*" }, "eagerness": "conservative" },
+      { "urls": ["/a", "/b", "/c"] }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <h1>Speculation rules fixture</h1>
+  <a href="/next">next</a>
+</body>
+</html>
