@@ -1,6 +1,7 @@
 import snippet from '../../snippets/Loading/Find-render-blocking-resources.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
+import { Callout } from 'nextra/components'
 
 # Find render-blocking resources
 
@@ -33,7 +34,9 @@ Render-blocking resources are the primary cause of slow initial page renders. Us
   caption="Switch between the render-blocking and optimized setups, then step through to see when the first paint can happen in each."
 />
 
-> **Browser support:** The `renderBlockingStatus` property is currently Chromium-only (Chrome 107+, Edge 107+, Opera 93+). Firefox and Safari don't support this API yet.
+<Callout type="warning">
+**Browser support:** The `renderBlockingStatus` property is currently Chromium-only (Chrome 107+, Edge 107+, Opera 93+). Firefox and Safari don't support this API yet.
+</Callout>
 
 ### Snippet
 

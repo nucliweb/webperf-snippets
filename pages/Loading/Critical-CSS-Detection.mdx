@@ -1,13 +1,11 @@
 import snippet from '../../snippets/Loading/Critical-CSS-Detection.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# Critical CSS Detection
+# Critical CSS detection
 
-### Overview
+Analyzes the CSS loading strategy of a page, identifying render-blocking stylesheets, measuring their size against the critical 14 KB budget, and detecting whether critical CSS is properly inlined for above-the-fold content.
 
-Analyzes the CSS loading strategy of a page — identifying render-blocking stylesheets, measuring their size against the critical 14 KB budget, and detecting whether critical CSS is properly inlined for above-the-fold content.
-
-**What makes CSS "critical":**
+### What makes CSS "critical"
 
 | Type | Description | Performance Impact |
 |------|-------------|-------------------|
@@ -15,7 +13,7 @@ Analyzes the CSS loading strategy of a page — identifying render-blocking styl
 | **Non-critical CSS** | Styles for below-the-fold or interactive content | Can be deferred |
 | **Render-blocking CSS** | External `<link>` stylesheets without media targeting | Blocks FCP and LCP |
 
-**Render-blocking CSS impact:**
+### Render-blocking CSS impact
 
 | Stylesheet Status | FCP Impact | Recommendation |
 |-------------------|-----------|----------------|
@@ -24,9 +22,9 @@ Analyzes the CSS loading strategy of a page — identifying render-blocking styl
 | Non-blocking (media query) | No blocking | Ideal pattern |
 | Inline `<style>` | Eliminates request | Keep under 14 KB |
 
-### The 14 KB Rule and TCP Slow Start
+### The 14 KB rule and TCP slow start
 
-The 14 KB budget is not arbitrary — it comes from how TCP connections work at the network level.
+The 14 KB budget is not arbitrary, it comes from how TCP connections work at the network level.
 
 When a browser opens a new TCP connection to a server, it cannot send all data at once. TCP starts in **Slow Start** mode: it begins with a small **initial congestion window (initcwnd)** and doubles it each round-trip until it reaches the network's capacity.
 
@@ -55,7 +53,7 @@ sequenceDiagram
     Note over B,S: Congestion window doubles each RTT (Slow Start)
 ```
 
-This is why the web performance community targets **HTML + critical CSS + critical JS under 14 KB** for the fastest possible First Contentful Paint — it means the browser can render above-the-fold content after just one network round-trip.
+This is why the web performance community targets **HTML + critical CSS + critical JS under 14 KB** for the fastest possible First Contentful Paint, it means the browser can render above-the-fold content after just one network round-trip.
 
 > The 14 KB figure is a practical approximation. IPv6 connections use a slightly smaller MSS (~1,440 bytes), and Path MTU Discovery can vary this further. But 14 KB is the widely adopted reference value in web performance.
 
@@ -63,15 +61,15 @@ This is why the web performance community targets **HTML + critical CSS + critic
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 
 - External stylesheets count, split by render-blocking vs non-blocking
 - Inline `<style>` block count and combined size
 - Total external CSS wire size
 
-**Render-Blocking Stylesheets Table:**
+### Render-blocking stylesheets table
 
 | Column | Description |
 |--------|-------------|
@@ -82,11 +80,11 @@ This is why the web performance community targets **HTML + critical CSS + critic
 | Rules | Number of CSS rules (CORS-blocked files cannot be read) |
 | Preloaded | Whether a matching `<link rel="preload">` exists |
 
-**Budget Bar:**
+### Budget bar
 
 Shows total render-blocking CSS decoded size as a percentage of the 14 KB critical budget. Values over 100% indicate the budget is exceeded.
 
-**Inline CSS Rating:**
+### Inline CSS rating
 
 | Rating | Threshold |
 |--------|-----------|
@@ -94,7 +92,7 @@ Shows total render-blocking CSS decoded size as a percentage of the 14 KB critic
 | Acceptable | 7–14 KB |
 | Too Large | Over 14 KB |
 
-**Issues Detected:**
+### Issues detected
 
 | Issue | Severity | Impact |
 |-------|----------|--------|
@@ -104,7 +102,7 @@ Shows total render-blocking CSS decoded size as a percentage of the 14 KB critic
 | Inline CSS > 14 KB | High | Bloats HTML, increases TTFB |
 | Inline styles in `<body>` | Medium | Risk of reflows during HTML parsing |
 
-### Deferring Non-Critical CSS
+### Deferring non-critical CSS
 
 The recommended pattern to load CSS without blocking rendering:
 
@@ -120,7 +118,7 @@ The recommended pattern to load CSS without blocking rendering:
 
 This loads the stylesheet in the background (since `media="print"` does not block rendering) and switches it to `all` once loaded.
 
-### Further Reading
+### Further reading
 
 - [Extract critical CSS](https://web.dev/articles/extract-critical-css) | web.dev
 - [Defer non-critical CSS](https://web.dev/articles/defer-non-critical-css) | web.dev

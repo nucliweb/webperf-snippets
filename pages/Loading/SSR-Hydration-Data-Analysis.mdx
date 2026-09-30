@@ -1,11 +1,12 @@
 import snippet from '../../snippets/Loading/SSR-Hydration-Data-Analysis.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# SSR Framework Hydration Data Analysis
+# SSR framework hydration data analysis
 
 Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix, Gatsby, and others. These scripts contain serialized state that the client needs to "hydrate" the server-rendered HTML into an interactive application.
 
-**Supported frameworks:**
+### Supported frameworks
 
 | Framework | Script ID / Pattern | Typical Content |
 |-----------|--------------------| ----------------|
@@ -17,7 +18,7 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
 | **SvelteKit** | `#__sveltekit_data` | Load function data |
 | **Astro** | `astro-island` props | Component props |
 
-**Why hydration data matters:**
+### Why hydration data matters
 
 | Issue | Impact | Threshold |
 |-------|--------|-----------|
@@ -26,22 +27,26 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
 | **Unused props** | Data fetched but never rendered | Varies |
 | **Sensitive data** | Exposed in client bundle | Any secrets |
 
-> **Warning:** Everything in hydration scripts is visible to users. Never include API keys, tokens, or sensitive data in server-side props.
+<Callout type="warning">
+**Warning:** Everything in hydration scripts is visible to users. Never include API keys, tokens, or sensitive data in server-side props.
+</Callout>
 
-> **Next.js limit:** Next.js warns when `__NEXT_DATA__` exceeds 128 KB. Large payloads delay hydration and increase Time to Interactive.
+<Callout type="warning">
+**Next.js limit:** Next.js warns when `__NEXT_DATA__` exceeds 128 KB. Large payloads delay hydration and increase Time to Interactive.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 - Detected framework(s) with size and status
 - Green (🟢) = within limits, Red (🔴) = exceeds threshold
 - Total hydration data vs other inline scripts
 
-**Framework-Specific Analysis:**
+### Framework-specific analysis
 
 For **Next.js**, the snippet analyzes:
 - Build ID and page route
@@ -54,7 +59,7 @@ For **Astro**, shows:
 - Client directive for each (load, idle, visible, etc.)
 - Props size per island
 
-**Common Issues Detected:**
+### Common issues detected
 
 | Issue | Why It Matters |
 |-------|----------------|
@@ -62,7 +67,7 @@ For **Astro**, shows:
 | Deep nesting (> 5 levels) | Increases parsing time |
 | Sensitive data patterns | Security risk - visible to users |
 
-### Recommended Thresholds
+### Recommended thresholds
 
 | Framework | Recommended Max | Official Warning |
 |-----------|-----------------|------------------|
@@ -72,9 +77,9 @@ For **Astro**, shows:
 | Gatsby | 100 KB | No official limit |
 | Astro | 50 KB total props | No official limit |
 
-### Common Optimization Patterns
+### Common optimization patterns
 
-**Pagination:**
+### Pagination
 ```js
 // ❌ Bad: All items in initial props
 export async function getServerSideProps() {
@@ -89,7 +94,7 @@ export async function getServerSideProps() {
 }
 ```
 
-**Selective fields:**
+### Selective fields
 ```js
 // ❌ Bad: Full objects
 return { props: { users } }; // Each user has 50 fields
@@ -102,7 +107,7 @@ return {
 };
 ```
 
-### Further Reading
+### Further reading
 
 - [Next.js: Large Page Data warning](https://nextjs.org/docs/messages/large-page-data) | Next.js Docs
 - [Nuxt: Reducing Payload Size](https://nuxt.com/docs/getting-started/data-fetching#reducing-payload-size) | Nuxt Docs

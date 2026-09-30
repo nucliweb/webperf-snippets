@@ -1,5 +1,5 @@
 ---
-## Network Bandwidth & Connection Quality
+## Network bandwidth & connection quality
 
 Network quality directly affects web performance. Segmenting metrics by connection type helps identify whether performance issues are infrastructure-related or affect only users on slower connections.
 

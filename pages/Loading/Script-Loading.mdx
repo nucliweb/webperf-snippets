@@ -1,18 +1,17 @@
 import snippet from '../../snippets/Loading/Script-Loading.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
+import { Callout } from 'nextra/components'
 
-# Scripts Loading
-
-### Overview
+# Scripts loading
 
 Analyzes all scripts on the page, showing their loading strategy and identifying potential performance issues. Scripts are often the biggest cause of main thread blocking and delayed rendering. This snippet helps you audit which scripts are blocking the critical rendering path.
 
-**Why this matters:**
+### Why this matters
 
 Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsing while they download and execute. This delays First Contentful Paint (FCP) and Largest Contentful Paint (LCP). Even a single blocking script can add hundreds of milliseconds to your load time, especially on slower connections.
 
-**How scripts affect HTML parsing:**
+### How scripts affect HTML parsing
 
 <Demo
   src="/demos/script-loading-timeline.html"
@@ -20,7 +19,7 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
   caption="Switch between <script>, async, and defer, then step through to see when the parser blocks, when the script downloads, and when it executes."
 />
 
-**Loading strategy comparison:**
+### Loading strategy comparison
 
 | Strategy | Downloads | Executes | Blocks Parsing | Order Guaranteed |
 |----------|-----------|----------|----------------|------------------|
@@ -30,7 +29,7 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 | **module** | In parallel | After parsing | ❌ No | ✅ Yes |
 | **async module** | In parallel | When ready | Briefly | ❌ No |
 
-**When to use each:**
+### When to use each
 
 | Strategy | Best For |
 |----------|----------|
@@ -39,26 +38,28 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 | **defer** | Scripts that need DOM, must run in order |
 | **module** | Modern ES modules with imports |
 
-> **Performance tip:** Most scripts should use `defer`. Use `async` only for truly independent scripts that don't rely on DOM or other scripts.
+<Callout type="info">
+**Performance tip:** Most scripts should use `defer`. Use `async` only for truly independent scripts that don't rely on DOM or other scripts.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 - Total scripts (external and inline)
 - Breakdown by loading strategy
 - Overall rating based on blocking scripts
 
-**Loading Strategy Legend:**
+### Loading strategy legend
 - 🔴 **Blocking**: Stops HTML parsing (bad for performance)
 - ⚡ **Async**: Downloads in parallel, executes when ready
 - 📋 **Defer**: Downloads in parallel, executes after parsing
 - 📦 **Module**: ES module (deferred by default)
 
-**Details Table:**
+### Details table
 
 | Column | Description |
 |--------|-------------|
@@ -69,7 +70,7 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 | Size | Transfer size; unknown for cross-origin scripts without `Timing-Allow-Origin` (`sizeKnown: false` in the returned items) |
 | Duration | Time to load |
 
-**Issues Detected:**
+### Issues detected
 
 | Issue | Severity | Why It Matters |
 |-------|----------|----------------|
@@ -77,7 +78,7 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 | Third-party blocking scripts | Error | External dependency blocking your page |
 | Large blocking scripts (> 50 KB) | Warning | Significant parsing delay |
 
-### Script Loading Decision Tree
+### Script loading decision tree
 
 ```mermaid
 flowchart TD
@@ -97,7 +98,7 @@ flowchart TD
     style Async fill:#FFE5F2
 ```
 
-### Further Reading
+### Further reading
 
 - [Efficiently load JavaScript](https://web.dev/articles/efficiently-load-third-party-javascript) | web.dev
 - [Script loading strategies](https://developer.chrome.com/docs/lighthouse/performance/render-blocking-resources) | Chrome Developers

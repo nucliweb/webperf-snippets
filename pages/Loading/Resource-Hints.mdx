@@ -1,12 +1,13 @@
 import snippet from '../../snippets/Loading/Resource-Hints.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
+import { Callout } from 'nextra/components'
 
-# Resource Hints
+# Resource hints
 
 Analyzes resource hints on the page, checking for proper usage and identifying optimization opportunities. Resource hints help the browser prioritize resource loading for better performance.
 
-**Resource hint types:**
+### Resource hint types
 
 | Hint | Purpose | When to Use | Priority |
 |------|---------|-------------|----------|
@@ -17,14 +18,14 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
 | **prefetch** | Load resource for next navigation | Resources needed on likely next page | Low |
 | **prerender** | Pre-render entire page | High-probability next navigation | Lowest |
 
-**Loading priority:**
+### Loading priority
 
 ```
 preload/modulepreload → preconnect → dns-prefetch → prefetch → prerender
      (current page)                                    (future navigation)
 ```
 
-**Common mistakes:**
+### Common mistakes
 
 | Mistake | Impact | Solution |
 |---------|--------|----------|
@@ -34,9 +35,11 @@ preload/modulepreload → preconnect → dns-prefetch → prefetch → prerender
 | Unused preloads | Wasted bandwidth | Remove or verify usage |
 | Preconnect without usage | Wasted connection | Only preconnect to used origins |
 
-> **Tip:** Preload is for resources needed in the current page. Prefetch is for resources needed in future navigations. Don't confuse them!
+<Callout type="info">
+**Tip:** Preload is for resources needed in the current page. Prefetch is for resources needed in future navigations. Don't confuse them!
+</Callout>
 
-### Why Preconnect Helps
+### Why preconnect helps
 
 `preconnect` pays off when a resource lives on a third-party origin: it moves the connection setup (DNS, TCP, TLS) off the critical path, so the request can start as soon as the resource is discovered. Step through the scenarios to compare connection reuse across HTTP versions and see what `preconnect` saves:
 
@@ -51,13 +54,13 @@ preload/modulepreload → preconnect → dns-prefetch → prefetch → prerender
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 - Count of each resource hint type
 - Green (🟢) = hints present, Grey (⚪) = no hints of this type
 
-**Details by Type:**
+### Details by type
 
 For **preload/modulepreload**:
 | Column | Description |
@@ -75,7 +78,7 @@ For **preconnect/dns-prefetch**:
 | Crossorigin | CORS setting |
 | Resources Loaded | Count of resources from this origin |
 
-**Issues Detected:**
+### Issues detected
 
 | Issue | Severity | Impact |
 |-------|----------|--------|
@@ -86,11 +89,11 @@ For **preconnect/dns-prefetch**:
 | Preconnect without resources | Warning | Wasted connection |
 | Too many preloads (> 6) | Warning | Bandwidth competition |
 
-**Optimization Opportunities:**
+### Optimization opportunities
 - Third-party origins loading multiple resources without preconnect
 - Suggested `<link>` tags to add
 
-### Priority Guidelines
+### Priority guidelines
 
 | Resource Type | Suggested Hint |
 |---------------|----------------|
@@ -101,7 +104,7 @@ For **preconnect/dns-prefetch**:
 | Below-fold images | None (use `loading="lazy"`) |
 | Next page resources | `prefetch` |
 
-### Further Reading
+### Further reading
 
 - [Preload critical assets](https://web.dev/articles/preload-critical-assets) | web.dev
 - [Establish network connections early](https://web.dev/articles/preconnect-and-dns-prefetch) | web.dev

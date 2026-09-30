@@ -1,17 +1,16 @@
 import snippet from '../../snippets/CoreWebVitals/LCP-Subparts.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# LCP Subparts
-
-### Overview
+# LCP subparts
 
 Breaks down [Largest Contentful Paint](https://web.dev/articles/lcp) into its four phases to identify optimization opportunities. Understanding which phase is slowest helps you focus your optimization efforts where they'll have the most impact. Based on the [Web Vitals Chrome Extension](https://github.com/GoogleChrome/web-vitals-extension).
 
-**Why this matters:**
+### Why this matters
 
 LCP is a critical Core Web Vital that measures when the largest content element becomes visible. By breaking it into sub-parts, you can pinpoint exactly where delays occur and apply targeted optimizations instead of guessing.
 
-**The four phases of LCP:**
+### The four phases of LCP
 
 ```mermaid
 flowchart LR
@@ -35,7 +34,7 @@ flowchart LR
 | **Resource Load Time** | Time to download the LCP resource | Large images, slow connection, no compression |
 | **Element Render Delay** | Time from download complete to paint | Client-side rendering, render-blocking JS |
 
-**Optimization priority:**
+### Optimization priority
 
 | Phase | Target | How to optimize |
 |-------|--------|-----------------|
@@ -44,15 +43,17 @@ flowchart LR
 | Load Time | < 40% of LCP | Compress images, use modern formats (WebP, AVIF) |
 | Render Delay | < 10% of LCP | Inline critical CSS, defer non-critical JS |
 
-> **Quick check:** Use [LCP](/CoreWebVitals/LCP) for a simple LCP value and element identification.
+<Callout type="info">
+**Quick check:** Use [LCP](/CoreWebVitals/LCP) for a simple LCP value and element identification.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Sub-Parts Table:**
+### Sub-parts table
 
 | Column | Description |
 |--------|-------------|
@@ -61,7 +62,7 @@ flowchart LR
 | % | Percentage of total LCP |
 | Status | ✅ OK or 🔴 Over target |
 
-**Visual Bar:**
+### Visual bar
 
 Shows time distribution across the four phases:
 - █ TTFB (server response)
@@ -69,14 +70,14 @@ Shows time distribution across the four phases:
 - ▒ Load Time (download)
 - ░ Render Delay (paint)
 
-**Performance Timeline:**
+### Performance timeline
 
 The snippet adds measures to the Performance API. To see them:
 1. Open DevTools → Performance tab
 2. Reload the page
 3. Look for "Time to First Byte", "Resource Load Delay", etc. in the timeline
 
-### Optimization Checklist
+### Optimization checklist
 
 | If slowest is... | Check these |
 |------------------|-------------|
@@ -85,7 +86,7 @@ The snippet adds measures to the Performance API. To see them:
 | **Load Time** | Image size, format, compression, CDN |
 | **Render Delay** | JavaScript blocking, CSS parsing, client-side rendering |
 
-**Optimization Decision Tree:**
+### Optimization decision tree
 
 ```mermaid
 flowchart TD
@@ -105,7 +106,7 @@ flowchart TD
     style Render_Fix fill:#E5FFE5
 ```
 
-### Further Reading
+### Further reading
 
 - [Optimize LCP](https://web.dev/articles/optimize-lcp) | web.dev
 - [LCP breakdown](https://web.dev/articles/optimize-lcp#lcp-breakdown) | web.dev

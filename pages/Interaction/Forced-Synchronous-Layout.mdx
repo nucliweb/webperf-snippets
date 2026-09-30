@@ -2,24 +2,22 @@ import snippet from '../../snippets/Interaction/Forced-Synchronous-Layout.js?raw
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
 
-# Forced Synchronous Layout Detector
+# Forced synchronous layout detector
 
-### Overview
+Detects the **Forced Synchronous Layout (FSL)** pattern at runtime, when JavaScript reads geometric properties from the DOM immediately after mutating styles, forcing the browser to perform layout synchronously on the main thread.
 
-Detects the **Forced Synchronous Layout (FSL)** pattern at runtime — when JavaScript reads geometric properties from the DOM immediately after mutating styles, forcing the browser to perform layout synchronously on the main thread.
-
-**Why this matters:**
+### Why this matters
 
 Normally the browser batches style recalculations and layout at the end of each frame. FSL breaks this contract: reading a geometric property after a style mutation forces the browser to flush pending style changes and recalculate layout _right now_, before the current task finishes. This blocks the main thread and contributes directly to long tasks, poor INP, and jank.
 
-**A typical FSL pattern:**
+### A typical FSL pattern
 
 ```js
 container.classList.toggle('state-a'); // invalidates styles
 container.scrollTop = 0;              // forces layout synchronously → FSL
 ```
 
-**The fix — double rAF:**
+### The fix: double rAF
 
 ```js
 container.classList.toggle('state-a');
@@ -38,9 +36,9 @@ Step through the render pipeline to see _why_ the double `requestAnimationFrame`
   caption="Use the buttons to walk through the three scenarios step by step and see what happens in each phase of the frame."
 />
 
-**What this snippet intercepts:**
+### What this snippet intercepts
 
-Mutation sources — detected synchronously:
+Mutation sources, detected synchronously:
 
 | API | Coverage |
 |-----|----------|
@@ -49,7 +47,7 @@ Mutation sources — detected synchronously:
 | `element.style.setProperty(...)` | `CSSStyleDeclaration.prototype` |
 | `element.style.cssText = ...` | `CSSStyleDeclaration.prototype` |
 
-Geometric reads/writes — triggers the FSL warning:
+Geometric reads/writes, triggers the FSL warning:
 
 | Property / Method | Type | Prototype |
 |-------------------|------|-----------|
@@ -63,7 +61,7 @@ Geometric reads/writes — triggers the FSL warning:
 
 <Snippet code={snippet} />
 
-### Understanding the Output
+### Understanding the output
 
 When an FSL is detected, the console shows:
 
@@ -85,9 +83,9 @@ When an FSL is detected, the console shows:
 | **Since last mutation** | Milliseconds between the style/class mutation and the forced layout |
 | **Stack trace** | Full call stack to locate the offending code |
 
-With the double-`requestAnimationFrame` fix applied, no warnings appear — the dirty flag is cleared before the geometric access.
+With the double-`requestAnimationFrame` fix applied, no warnings appear, the dirty flag is cleared before the geometric access.
 
-### How It Works
+### How it works
 
 ```mermaid
 sequenceDiagram
@@ -108,12 +106,12 @@ sequenceDiagram
 ### Limitations
 
 - Detects FSL only for the intercepted geometric properties. `getComputedStyle()` and `window.getComputedStyle()` also trigger layout but are not covered.
-- Direct property assignments on `element.style` (e.g. `element.style.display = 'none'`) are not intercepted — only `setProperty`, `cssText`, `setAttribute`, and `classList` methods are. Adding individual CSS property descriptors would be impractical.
+- Direct property assignments on `element.style` (e.g. `element.style.display = 'none'`) are not intercepted, only `setProperty`, `cssText`, `setAttribute`, and `classList` methods are. Adding individual CSS property descriptors would be impractical.
 - Intercepts mutations on any element in the document, not scoped to `document.body`. Mutations on `<head>` elements (e.g. dynamic `<style>` injection) would also set the dirty flag.
 - The overhead of intercepting prototype methods on every mutation and layout read can slow down pages with very frequent DOM changes. Use only during development and debugging.
 - `stopFSLDetector()` restores all intercepted prototypes to their original descriptors.
 
-### Use Case: Angular CDK Virtual Scroll
+### Use case: Angular CDK virtual scroll
 
 The classic FSL scenario in Angular applications using `CdkScrollable`: a route change triggers a CSS class toggle on the scroll container, followed by an immediate `scrollTop = 0` reset before the browser has processed the new styles.
 
@@ -133,7 +131,7 @@ requestAnimationFrame(() => {
 
 A reproducible demo is available at [github.com/nucliweb/forced-synchronous-layout](https://github.com/nucliweb/forced-synchronous-layout).
 
-### Further Reading
+### Further reading
 
 - [Forced Synchronous Layout](https://joanleon.dev/en/forced-synchronous-layout/) | Joan Leon
 - [Avoid large, complex layouts and layout thrashing](https://web.dev/articles/avoid-large-complex-layouts-and-layout-thrashing) | web.dev

@@ -1,11 +1,12 @@
 import snippet from '../../snippets/Loading/Inline-Script-Info-and-Size.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Inline Script Info and Size
+# Inline script info and size
 
 Analyzes all inline `<script>` tags on the page, measuring their size and identifying potential performance issues. This helps understand the impact of inline JavaScript on page load.
 
-**When inline scripts are good:**
+### When inline scripts are good
 
 | Scenario | Benefit |
 |----------|---------|
@@ -13,7 +14,7 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
 | **Small config/state** | Hydration data, feature flags (< 1 KB) |
 | **Above-the-fold interactivity** | Faster Time to Interactive |
 
-**When inline scripts are problematic:**
+### When inline scripts are problematic
 
 | Issue | Impact | Threshold |
 |-------|--------|-----------|
@@ -22,9 +23,11 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
 | **Duplicated** | Wasted bytes, potential conflicts | Same code in multiple scripts |
 | **Long execution** | Blocks main thread | > 50ms execution time |
 
-> **Key difference from CSS:** Unlike CSS which blocks rendering, inline scripts block HTML *parsing*. A large inline script in `<head>` delays everything below it.
+<Callout type="info">
+**Key difference from CSS:** Unlike CSS which blocks rendering, inline scripts block HTML *parsing*. A large inline script in `<head>` delays everything below it.
+</Callout>
 
-**Script types:**
+### Script types
 
 | Type | Attribute | Behavior |
 |------|-----------|----------|
@@ -37,15 +40,15 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 - Total inline scripts by category
 - Total executable size
 - Parser-blocking count (especially in `<head>`)
 - Overall rating
 
-**Executable Scripts Table:**
+### Executable scripts table
 
 | Column | Description |
 |--------|-------------|
@@ -57,11 +60,11 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
 | Pattern | Detected pattern (Analytics, Config, Globals) |
 | Preview | First 80 characters |
 
-**JSON-LD Section:**
+### JSON-LD section
 - Structured data scripts for SEO
 - Schema type detected from content
 
-**Issues Detected:**
+### Issues detected
 
 | Issue | Why It Matters |
 |-------|----------------|
@@ -70,7 +73,7 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
 | Duplicate scripts | Wasted bytes, potential conflicts |
 | Analytics blocking in `<head>` | Analytics should never block rendering |
 
-### Parser-Blocking vs Non-Blocking
+### Parser-blocking vs non-blocking
 
 ```
 Parser-Blocking (bad in <head>):
@@ -82,7 +85,7 @@ Non-Blocking alternatives:
 <script async>/* code */</script>      ← Async execution
 ```
 
-### Further Reading
+### Further reading
 
 - [Efficiently load JavaScript](https://web.dev/articles/efficiently-load-third-party-javascript) | web.dev
 - [Remove render-blocking resources](https://developer.chrome.com/docs/lighthouse/performance/render-blocking-resources) | Chrome Developers

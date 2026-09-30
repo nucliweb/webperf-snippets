@@ -1,15 +1,16 @@
 import snippet from '../../snippets/Loading/Priority-Hints-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Priority Hints Audit
+# Priority hints audit
 
-### Overview
+Audits all `fetchpriority` attribute usage across the page, covering non-image resources (scripts, preload links, iframes), `fetchpriority="low"` analysis, and conflicts between `preload` and low priority. Identifies the LCP candidate when it lacks `fetchpriority="high"`.
 
-Audits all `fetchpriority` attribute usage across the page — covering non-image resources (scripts, preload links, iframes), `fetchpriority="low"` analysis, and conflicts between `preload` and low priority. Identifies the LCP candidate when it lacks `fetchpriority="high"`.
+<Callout type="info">
+**Related:** Use the [Find Images With Lazy and Fetchpriority](/Loading/Find-Images-With-Lazy-and-Fetchpriority) snippet to detect the specific `loading="lazy"` + `fetchpriority="high"` conflict on images.
+</Callout>
 
-> **Related:** Use the [Find Images With Lazy and Fetchpriority](/Loading/Find-Images-With-Lazy-and-Fetchpriority) snippet to detect the specific `loading="lazy"` + `fetchpriority="high"` conflict on images.
-
-**What this snippet checks:**
+### What this snippet checks
 
 | Check | Scope |
 |-------|-------|
@@ -19,7 +20,7 @@ Audits all `fetchpriority` attribute usage across the page — covering non-imag
 | `fetchpriority="high"` on late-loaded resources | Investigate blocking dependencies |
 | LCP candidate image without `fetchpriority="high"` | Missed LCP optimization |
 
-**Why `fetchpriority` needs validation:**
+### Why `fetchpriority` needs validation
 
 `fetchpriority` was introduced in 2022 and hints to the browser how to prioritize a resource fetch relative to others of the same type. Incorrect usage sends conflicting signals:
 
@@ -27,16 +28,16 @@ Audits all `fetchpriority` attribute usage across the page — covering non-imag
 |-------------|---------|
 | `rel="preload"` + `fetchpriority="low"` | `preload` declares a resource as critical for the current page; `low` contradicts that |
 | `fetchpriority="low"` on a resource loaded in the first 500ms | If it loads that early, the browser may already consider it critical |
-| `fetchpriority="high"` on a resource loaded after 3s | High priority did not help — investigate render-blocking dependencies |
+| `fetchpriority="high"` on a resource loaded after 3s | High priority did not help, investigate render-blocking dependencies |
 | LCP image without `fetchpriority="high"` | Missed opportunity to improve Largest Contentful Paint |
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Inventory Section:**
+### Inventory section
 
 | Field | Description |
 |-------|-------------|
@@ -46,7 +47,7 @@ Audits all `fetchpriority` attribute usage across the page — covering non-imag
 | Preloads with fetchpriority | `<link rel="preload">` that also set priority |
 | Priority breakdown | Count of `high`, `low`, and `auto` values |
 
-**Non-Image Resources Table:**
+### Non-image resources table
 
 | Column | Description |
 |--------|-------------|
@@ -56,7 +57,7 @@ Audits all `fetchpriority` attribute usage across the page — covering non-imag
 | Size (KB) | Decompressed resource size |
 | Resource | Filename extracted from the URL |
 
-**Preload Links Table:**
+### Preload links table
 
 | Column | Description |
 |--------|-------------|
@@ -66,36 +67,36 @@ Audits all `fetchpriority` attribute usage across the page — covering non-imag
 | Start (ms) | Load start time from the Performance API |
 | Resource | Filename |
 
-**Issues Detected:**
+### Issues detected
 
 | Issue | Severity | Explanation |
 |-------|----------|-------------|
-| `preload` + `fetchpriority="low"` | Error | Contradictory signals — remove or change to `high` |
+| `preload` + `fetchpriority="low"` | Error | Contradictory signals, remove or change to `high` |
 | `fetchpriority="low"` loaded in &lt;500ms | Warning | Resource may be more critical than declared |
-| `fetchpriority="high"` loaded after 3000ms | Warning | High priority did not help — investigate dependencies |
+| `fetchpriority="high"` loaded after 3000ms | Warning | High priority did not help, investigate dependencies |
 | LCP candidate without `fetchpriority="high"` | Warning | Missed opportunity to improve LCP |
 
-### Best Practices
+### Best practices
 
-**LCP image** — always set `fetchpriority="high"`:
+**LCP image**, always set `fetchpriority="high"`:
 
 ```html
 <img src="hero.webp" fetchpriority="high" alt="Hero image">
 ```
 
-**Preloaded critical resource** — pair `preload` with `fetchpriority="high"`:
+**Preloaded critical resource**, pair `preload` with `fetchpriority="high"`:
 
 ```html
 <link rel="preload" href="critical-font.woff2" as="font" fetchpriority="high" crossorigin>
 ```
 
-**Below-fold image** — `loading="lazy"` with optional `fetchpriority="low"`:
+**Below-fold image**, `loading="lazy"` with optional `fetchpriority="low"`:
 
 ```html
 <img src="gallery.jpg" loading="lazy" fetchpriority="low" alt="Gallery image">
 ```
 
-**Never combine `preload` with `fetchpriority="low"`:**
+### Never combine `preload` with `fetchpriority="low"`
 
 ```html
 <!-- ❌ Contradictory -->
@@ -105,7 +106,7 @@ Audits all `fetchpriority` attribute usage across the page — covering non-imag
 <link rel="preload" href="font.woff2" as="font" fetchpriority="high" crossorigin>
 ```
 
-### Further Reading
+### Further reading
 
 - [Optimizing resource loading with Priority Hints](https://web.dev/articles/fetch-priority) | web.dev
 - [fetchpriority attribute](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority) | MDN

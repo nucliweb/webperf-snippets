@@ -244,8 +244,8 @@ function extractDescription(content, afterH2Text = null) {
 
 // Extract the first thresholds/rating table (contains 🟢) from MDX content
 function extractThresholds(content) {
-  // Find the bold label line followed by the table
-  const thresholdSectionRe = /\*\*[^*]*[Tt]hreshold[^*]*\*\*[:\s]*\n\n((?:\|.+\n)+)/g
+  // Find the bold label or heading line followed by the table
+  const thresholdSectionRe = /(?:\*\*[^*]*[Tt]hreshold[^*]*\*\*|^#{2,6} [^\n]*[Tt]hreshold[^\n]*)[:\s]*\n\n((?:\|.+\n)+)/gm
   let match = thresholdSectionRe.exec(content)
   if (match) return match[1].trimEnd()
 

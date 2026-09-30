@@ -1,7 +1,7 @@
 import snippet from '../../snippets/Loading/CSS-Media-Queries-Analysis.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# CSS Media Queries Analysis
+# CSS media queries analysis
 
 Analyze all `@media` rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files, with byte size estimates for potential mobile savings.
 
@@ -14,33 +14,33 @@ This page provides two complementary analysis functions:
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-#### `analyzeCSSMediaQueries()` Results
+#### `analyzeCSSMediaQueries()` results
 
 This function provides a detailed breakdown of desktop-specific CSS:
 
-**Potential Mobile Savings:**
+##### Potential mobile savings
 
 - **Estimated bytes** that mobile devices don't need to download/process
 - Breakdown by inline CSS vs external files
 - This represents CSS that could be eliminated from mobile experience by splitting files
 
-**Inline CSS (`<style>` tags):**
+##### Inline CSS (`<style>` tags)
 
 - Number of @media rules targeting viewports larger than the specified breakpoint
 - Total CSS class selectors in inline media queries
 - Total CSS properties in inline media queries
 - Total byte size of inline media queries
 
-**External Files (`.css` files):**
+##### External files (`.css` files)
 
 - Number of @media rules targeting viewports larger than the specified breakpoint
 - Total CSS class selectors in external file media queries
 - Total CSS properties in external file media queries
 - Total byte size of external file media queries
 
-**Each media query includes:**
+##### Each media query includes
 
 - **source**: Stylesheet URL or inline style tag identifier
 - **mediaQuery**: The media query condition (e.g., `min-width: 1024px`)
@@ -48,11 +48,11 @@ This function provides a detailed breakdown of desktop-specific CSS:
 - **properties**: Number of CSS properties
 - **bytesFormatted**: Size of the CSS in bytes (KB/MB)
 
-#### `analyzeCSSPerformanceImpact()` Results
+#### `analyzeCSSPerformanceImpact()` results
 
 This function estimates the real-world performance cost on mobile devices:
 
-**Performance Impact Analysis (per device profile):**
+##### Performance impact analysis (per device profile)
 
 - **High-end devices** (Pixel 7, iPhone 14): Fast CSS parsing, good network
 - **Mid-range devices** (Moto G Power, iPhone SE): Median mobile performance
@@ -64,25 +64,25 @@ For each profile, you'll see:
 - **Runtime overhead**: Selector matching + style recalculation per interaction
 - **Core Web Vitals impact**: FCP delay, LCP delay, INP overhead, TBT contribution
 
-**Potential Savings:**
+##### Potential savings
 
 - Total render-blocking time that could be eliminated
 - INP reduction per interaction
 - Bandwidth savings
 - Implementation strategy recommendations
 
-**Memory Impact:**
+##### Memory impact
 
 - Estimated CSSOM memory overhead
 - Total unnecessary memory allocation
 - Impact on low-end devices
 
-**Business Impact Estimation:**
+##### Business impact estimation
 
 - FCP improvement estimate
 - Potential conversion lift based on Google/Deloitte research (100ms FCP ≈ 1% conversion increase)
 
-### Customizing the Breakpoint
+### Customizing the breakpoint
 
 By default, the snippet uses **768px** as the mobile breakpoint, but you can customize it:
 
@@ -97,7 +97,7 @@ analyzeCSSMediaQueries(480);
 analyzeCSSMediaQueries(1440);
 ```
 
-### Breakpoint Detection
+### Breakpoint detection
 
 The snippet considers a media query "bigger than the breakpoint" when:
 
@@ -105,48 +105,48 @@ The snippet considers a media query "bigger than the breakpoint" when:
 - Excludes `max-width` only queries (typically for smaller viewports)
 - Automatically converts em/rem units (assuming 16px base font size)
 
-### Solutions & Optimization Strategies
+### Solutions & optimization strategies
 
 Understanding how much CSS is dedicated to larger viewports helps identify optimization opportunities:
 
-**1. Split CSS by Media Query**
+### 1. split CSS by media query
 
 - Separate mobile and desktop CSS into different files
 - Load desktop CSS with a media query: `<link media="(min-width: 768px)" href="desktop.css">`
 - Reduces initial CSS parse time on mobile devices
 - Reduces style recalculation work (browser doesn't need to process desktop styles)
 
-**2. Inline Critical Above-the-Fold CSS**
+### 2. inline critical above-the-fold CSS
 
 - Move critical mobile CSS inline in `<style>` tags
 - Defer non-critical and desktop CSS loading
 - Improves First Contentful Paint (FCP) and Largest Contentful Paint (LCP) on mobile
 
-**3. Use CSS-in-JS or CSS Modules**
+### 3. use CSS-in-JS or CSS modules
 
 - Modern bundlers can split CSS by route/component
 - Only load CSS when needed (code splitting)
 - Reduces unused CSS on initial load
 
-**4. Consider Mobile-First Approach**
+### 4. consider mobile-first approach
 
 - Write base styles for mobile without media queries
 - Use `min-width` media queries for progressive enhancement
 - Reduces CSS overhead on mobile devices
 
-**5. Audit and Remove Unused Desktop CSS**
+### 5. audit and remove unused desktop CSS
 
 - If desktop media queries contain excessive classes/properties
 - Use tools like PurgeCSS or UnCSS to remove unused selectors
 - Reduces overall CSS bundle size
 
-**6. Measure the Impact**
+### 6. measure the impact
 
 - The "Potential Mobile Savings" metric shows exactly how many bytes mobile users could save
 - Compare this against your total CSS size to understand the optimization opportunity
 - Even 20-50 KB savings can improve mobile performance significantly
 
-### Further Reading
+### Further reading
 
 For an in-depth understanding of CSS and network performance optimization strategies, check out this excellent article:
 

@@ -1,17 +1,16 @@
 import snippet from '../../snippets/Interaction/Interactions.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
 # Interactions
 
-### Overview
-
 Tracks all user interactions in real-time to help debug and improve [Interaction to Next Paint (INP)](https://web.dev/articles/inp). INP measures responsiveness by tracking the latency of all interactions during a page visit. This snippet breaks down each interaction into three phases to identify bottlenecks. Based on the [Web Vitals Chrome Extension](https://github.com/GoogleChrome/web-vitals-extension).
 
-**Why this matters:**
+### Why this matters
 
 INP is a Core Web Vital that directly affects user experience. Slow interactions make your site feel sluggish and frustrating. By identifying which phase causes delays (input delay, processing, or presentation), you can apply targeted optimizations to make your site feel more responsive.
 
-**INP Rating Thresholds:**
+### INP rating thresholds
 
 | Rating | Duration | Meaning |
 |--------|----------|---------|
@@ -19,7 +18,7 @@ INP is a Core Web Vital that directly affects user experience. Slow interactions
 | 🟡 Needs Improvement | ≤ 500ms | Noticeable delay |
 | 🔴 Poor | > 500ms | Frustrating delay |
 
-**INP Sub-Parts:**
+### INP sub-parts
 
 Every interaction consists of three phases:
 
@@ -67,15 +66,17 @@ flowchart LR
     style End fill:#F0F0F0,stroke:#666,stroke-width:3px
 ```
 
-> **Tip:** The sub-part with the longest duration is usually where to focus optimization efforts.
+<Callout type="info">
+**Tip:** The sub-part with the longest duration is usually where to focus optimization efforts.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Real-time Output:**
+### Real-time output
 
 Each interaction logs:
 - Duration with rating indicator (🟢/🟡/🔴)
@@ -85,7 +86,7 @@ Each interaction logs:
 - Visual bar showing time distribution
 - Optimization hints for slow interactions
 
-**Summary Function:**
+### Summary function
 
 Call `getInteractionSummary()` in the console to see:
 
@@ -97,7 +98,7 @@ Call `getInteractionSummary()` in the console to see:
 | Average | Mean duration across all interactions |
 | By rating | Count of good/needs-improvement/poor |
 
-### Optimizing Each Sub-Part
+### Optimizing each sub-part
 
 | Sub-part | Problem | Solutions |
 |----------|---------|-----------|
@@ -105,7 +106,7 @@ Call `getInteractionSummary()` in the console to see:
 | **Processing Time** | Slow event handlers | Optimize handlers, debounce, use web workers |
 | **Presentation Delay** | Expensive rendering | Reduce DOM size, avoid layout thrashing, use `content-visibility` |
 
-**Optimization Decision Tree:**
+### Optimization decision tree
 
 ```mermaid
 flowchart TD
@@ -126,7 +127,7 @@ flowchart TD
     style PresFix fill:#E5FFE5
 ```
 
-### Further Reading
+### Further reading
 
 - [Interaction to Next Paint (INP)](https://web.dev/articles/inp) | web.dev
 - [Optimize INP](https://web.dev/articles/optimize-inp) | web.dev

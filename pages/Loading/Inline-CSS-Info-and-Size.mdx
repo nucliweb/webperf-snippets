@@ -1,11 +1,12 @@
 import snippet from '../../snippets/Loading/Inline-CSS-Info-and-Size.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Inline CSS Info and Size
+# Inline CSS info and size
 
 Analyzes all inline `<style>` tags on the page, measuring their size and identifying optimization opportunities. This helps understand how much CSS is inlined and whether it's being used effectively.
 
-**When inline CSS is good:**
+### When inline CSS is good
 
 | Scenario | Benefit |
 |----------|---------|
@@ -13,7 +14,7 @@ Analyzes all inline `<style>` tags on the page, measuring their size and identif
 | **Above-the-fold styles** | Immediate rendering without waiting for external CSS |
 | **Single-page apps** | Reduces HTTP requests for small style chunks |
 
-**When inline CSS is problematic:**
+### When inline CSS is problematic
 
 | Issue | Impact | Threshold |
 |-------|--------|-----------|
@@ -22,21 +23,23 @@ Analyzes all inline `<style>` tags on the page, measuring their size and identif
 | **Not critical** | Delays HTML parsing | Styles for below-the-fold content |
 | **Uncached** | Re-downloaded on every page | Large styles that could be external |
 
-> **14 KB Rule:** The first TCP round-trip can deliver ~14 KB. Critical CSS should fit within this budget for optimal First Contentful Paint.
+<Callout type="info">
+**14 KB Rule:** The first TCP round-trip can deliver ~14 KB. Critical CSS should fit within this budget for optimal First Contentful Paint.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 - Total inline style tags and combined size
 - Approximate CSS rule count
 - Percentage of 14 KB critical budget used
 - Visual budget bar
 
-**Details Table:**
+### Details table
 
 | Column | Description |
 |--------|-------------|
@@ -48,7 +51,7 @@ Analyzes all inline `<style>` tags on the page, measuring their size and identif
 | Animations | Contains `@keyframes` |
 | Preview | First 80 characters of CSS |
 
-**Issues Detected:**
+### Issues detected
 
 | Issue | Why It Matters |
 |-------|----------------|
@@ -57,7 +60,7 @@ Analyzes all inline `<style>` tags on the page, measuring their size and identif
 | Large blocks (> 5 KB) | Could benefit from external caching |
 | Styles in `<body>` | May cause reflows during parsing |
 
-### The 14 KB Rule
+### The 14 KB rule
 
 The first TCP round-trip delivers approximately 14 KB of data. For optimal performance:
 
@@ -71,7 +74,7 @@ The first TCP round-trip delivers approximately 14 KB of data. For optimal perfo
 └─────────────────────────────────────────────┘
 ```
 
-### Further Reading
+### Further reading
 
 - [Extract critical CSS](https://web.dev/articles/extract-critical-css) | web.dev
 - [Defer non-critical CSS](https://web.dev/articles/defer-non-critical-css) | web.dev

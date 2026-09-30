@@ -1,13 +1,14 @@
 import snippet from '../../snippets/CoreWebVitals/LCP-Image-Entropy.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# LCP Image Entropy
+# LCP image entropy
 
 Checks if images qualify as LCP candidates based on their entropy (bits per pixel). Since [Chrome 112](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/speed/metrics_changelog/2023_04_lcp.md), low-entropy images are ignored for LCP measurement.
 
 Based on [Stoyan Stefanov's BPP check](https://www.phpied.com/quick-bpp-image-entropy-check/).
 
-**What is BPP (Bits Per Pixel)?**
+### What is BPP (bits per pixel)?
 
 BPP measures image complexity/entropy:
 
@@ -16,22 +17,24 @@ BPP = (file size in bits) / (width × height)
     = (encodedBodySize × 8) / (width × height)
 ```
 
-**LCP eligibility threshold:**
+### LCP eligibility threshold
 
 | BPP | Entropy | LCP Eligible | Example |
 |-----|---------|--------------|---------|
 | < 0.05 | 🔴 Low | ❌ No | Solid colors, simple gradients, placeholders |
 | ≥ 0.05 | 🟢 Normal | ✅ Yes | Photos, complex graphics |
 
-> **Why this matters:** If your largest image has low entropy, Chrome will skip it and use the next largest element for LCP. This can cause unexpected LCP values.
+<Callout type="info">
+**Why this matters:** If your largest image has low entropy, Chrome will skip it and use the next largest element for LCP. This can cause unexpected LCP values.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Table Columns:**
+### Table columns
 
 | Column | Description |
 |--------|-------------|
@@ -43,14 +46,14 @@ BPP = (file size in bits) / (width × height)
 | LCP Eligible | Whether Chrome considers it for LCP |
 | Is LCP | 👈 marks the current LCP element |
 
-**What causes low entropy:**
+### What causes low entropy
 - Solid color images
 - Simple gradients
 - Loading placeholders (blur-up, LQIP)
 - Very small images scaled up
 - Highly compressed images with little detail
 
-### Common Issues
+### Common issues
 
 | Issue | Impact | Solution |
 |-------|--------|----------|
@@ -58,7 +61,7 @@ BPP = (file size in bits) / (width × height)
 | Gradient hero | Not counted as LCP | Use image with detail or text LCP |
 | Lazy-loaded hero | Initial low-res placeholder skipped | Eager load hero image |
 
-### Further Reading
+### Further reading
 
 - [LCP change in Chrome 112](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/speed/metrics_changelog/2023_04_lcp.md) | Chromium
 - [Quick BPP check](https://www.phpied.com/quick-bpp-image-entropy-check/) | Stoyan Stefanov

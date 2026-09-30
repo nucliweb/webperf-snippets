@@ -17,15 +17,15 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 
 ## Scripts
 
-- `scripts/Forced-Synchronous-Layout.js` — Forced Synchronous Layout Detector
-- `scripts/Input-Latency-Breakdown.js` — Input Latency Breakdown
+- `scripts/Forced-Synchronous-Layout.js` — Forced synchronous layout detector
+- `scripts/Input-Latency-Breakdown.js` — Input latency breakdown
 - `scripts/Interactions.js` — Interactions
-- `scripts/Layout-Shift-Loading-and-Interaction.js` — Layout Shift Tracking
-- `scripts/Long-Animation-Frames-Helpers.js` — LoAF Helpers
-- `scripts/Long-Animation-Frames-Script-Attribution.js` — Long Animation Frames Script Attribution
-- `scripts/Long-Animation-Frames.js` — Long Animation Frames (LoAF)
-- `scripts/LongTask.js` — Long Tasks
-- `scripts/Scroll-Performance.js` — Scroll Performance Analysis
+- `scripts/Layout-Shift-Loading-and-Interaction.js` — Layout shift tracking
+- `scripts/Long-Animation-Frames-Helpers.js` — LoAF helpers
+- `scripts/Long-Animation-Frames-Script-Attribution.js` — Long animation frames script attribution
+- `scripts/Long-Animation-Frames.js` — Long animation frames (LoAF)
+- `scripts/LongTask.js` — Long tasks
+- `scripts/Scroll-Performance.js` — Scroll performance analysis
 
 
 ## Common Workflows

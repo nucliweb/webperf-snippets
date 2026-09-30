@@ -1,11 +1,11 @@
 import snippet from '../../snippets/Media/Image-Element-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# Image Element Audit
+# Image element audit
 
-Audits all `<img>` elements on the page against image performance best practices — covering loading strategy, fetch priority, format modernisation, responsive markup, and CLS prevention.
+Audits all `<img>` elements on the page against image performance best practices, covering loading strategy, fetch priority, format modernisation, responsive markup, and CLS prevention.
 
-**What this snippet checks:**
+### What this snippet checks
 
 | Check                                                   | Scope                             |
 | ------------------------------------------------------- | --------------------------------- |
@@ -20,11 +20,9 @@ Audits all `<img>` elements on the page against image performance best practices
 | No modern format detected (WebP / AVIF / JXL)           | All images not inside `<picture>` |
 | LCP candidate without `<link rel="preload" as="image">` | Largest in-viewport image         |
 
-### Overview
-
 Every image on a page falls into one of three roles, each with its own optimal configuration:
 
-**LCP image** — the largest image visible on load, most likely the element measured by Largest Contentful Paint:
+**LCP image**, the largest image visible on load, most likely the element measured by Largest Contentful Paint:
 
 ```html
 <link rel="preload" as="image" href="hero.avif" fetchpriority="high" />
@@ -33,13 +31,13 @@ Every image on a page falls into one of three roles, each with its own optimal c
 
 > A `<link rel="preload">` in the `<head>` allows the browser to discover and start fetching the LCP image before the parser reaches the `<img>` tag, which is especially important when the image is inside a `<picture>`, a CSS background, or injected by JavaScript. Pair it with `fetchpriority="high"` to boost it above other preloaded resources.
 
-**Above-the-fold image** — visible on load but not the LCP element:
+**Above-the-fold image**, visible on load but not the LCP element:
 
 ```html
 <img src="logo.svg" decoding="async" width="120" height="40" alt="..." />
 ```
 
-**Below-the-fold image** — outside the viewport on load:
+**Below-the-fold image**, outside the viewport on load:
 
 ```html
 <img
@@ -53,7 +51,7 @@ Every image on a page falls into one of three roles, each with its own optimal c
 />
 ```
 
-> `fetchpriority="low"` on below-the-fold images is optional — the browser already deprioritises off-viewport resources. It is most useful for images that are technically inside the viewport area but not visible, such as inactive carousel slides.
+> `fetchpriority="low"` on below-the-fold images is optional, the browser already deprioritises off-viewport resources. It is most useful for images that are technically inside the viewport area but not visible, such as inactive carousel slides.
 
 For maximum format coverage, wrap images in a `<picture>` element:
 
@@ -72,7 +70,7 @@ For maximum format coverage, wrap images in a `<picture>` element:
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
 #### Summary
 
@@ -83,20 +81,20 @@ For maximum format coverage, wrap images in a `<picture>` element:
 | Off viewport | Images outside the current viewport                                          |
 | Issues       | Count by severity: errors (must fix), warnings (should fix), info (consider) |
 
-#### LCP Candidate
+#### LCP candidate
 
-The snippet estimates the LCP candidate as the largest `<img>` by rendered area currently in the viewport. This is an approximation — the browser's actual LCP element may differ if non-image elements are larger, or if the page has scrolled before running the snippet.
+The snippet estimates the LCP candidate as the largest `<img>` by rendered area currently in the viewport. This is an approximation, the browser's actual LCP element may differ if non-image elements are larger, or if the page has scrolled before running the snippet.
 
 | Field           | Description                                                                           |
 | --------------- | ------------------------------------------------------------------------------------- |
 | `fetchpriority` | ✅ `high` is correct · ⚠️ any other value is a missed optimisation                    |
 | `decoding`      | `sync` is recommended for LCP; `async` or `auto` adds decoding latency                |
 | `loading`       | `lazy` on the LCP image delays loading and harms the LCP score                        |
-| `format`        | Detected from `currentSrc` — reflects what the browser actually loaded                |
+| `format`        | Detected from `currentSrc`, reflects what the browser actually loaded                |
 | `preload`       | ✅ `found (fetchpriority=high)` · ⚠️ `found (no fetchpriority=high)` · ⚠️ `not found` |
 | `dimensions`    | Rendered size in pixels                                                               |
 
-#### All Images Table
+#### All images table
 
 | Column          | Description                                                             |
 | --------------- | ----------------------------------------------------------------------- |
@@ -113,50 +111,50 @@ The snippet estimates the LCP candidate as the largest `<img>` by rendered area 
 | `w/h`           | ✓ if both `width` and `height` are set · ⚠️ if missing (CLS risk)       |
 | `issues`        | ✅ no issues · 🔴 error · ⚠️ warning · ℹ️ info                          |
 
-#### Issues Detected
+#### Issues detected
 
 | Issue                                               | Severity   | Explanation                                                                      |
 | --------------------------------------------------- | ---------- | -------------------------------------------------------------------------------- |
 | LCP image: no `fetchpriority="high"`                | 🔴 Error   | Browser discovers and fetches the LCP image too late                             |
 | LCP image: `loading="lazy"`                         | 🔴 Error   | Browser defers the most important image on the page                              |
 | Off-viewport: `fetchpriority="high"`                | 🔴 Error   | High priority fetch for an image the user cannot see                             |
-| Conflict: `loading="lazy"` + `fetchpriority="high"` | 🔴 Error   | Contradictory signals — browser ignores one or both                              |
+| Conflict: `loading="lazy"` + `fetchpriority="high"` | 🔴 Error   | Contradictory signals, browser ignores one or both                              |
 | LCP image: no `decoding="sync"`                     | ⚠️ Warning | Async decoding adds latency before the image is painted                          |
 | In-viewport: `loading="lazy"`                       | ⚠️ Warning | Deferring a visible image delays its display                                     |
 | Off-viewport: no `loading="lazy"`                   | ⚠️ Warning | Image loads eagerly, consuming bandwidth before it is needed                     |
 | Missing `width`/`height`                            | ⚠️ Warning | No reserved space causes layout shift when the image loads (CLS)                 |
 | No modern format detected                           | ℹ️ Info    | Serving JPEG/PNG when WebP or AVIF would reduce file size by 25–50%              |
-| LCP image: no `<link rel="preload">`                | ⚠️ Warning | Browser discovers the LCP image late — a preload allows an earlier fetch         |
+| LCP image: no `<link rel="preload">`                | ⚠️ Warning | Browser discovers the LCP image late, a preload allows an earlier fetch         |
 | LCP image preload: no `fetchpriority="high"`        | ℹ️ Info    | Preload without a priority hint may be deprioritised relative to other resources |
 
-#### Format Detection
+#### Format detection
 
 The snippet detects image formats using two strategies in order of accuracy:
 
-**1. `Content-Type` response header (primary)**
+##### 1. `Content-Type` response header (primary)
 
-The snippet performs a `fetch` with `cache: "force-cache"` for each image. Since images are already loaded on the page, the browser serves the response from its HTTP cache — no new network requests are made. The `Content-Type` header reveals the actual format served, regardless of the URL.
+The snippet performs a `fetch` with `cache: "force-cache"` for each image. Since images are already loaded on the page, the browser serves the response from its HTTP cache, no new network requests are made. The `Content-Type` header reveals the actual format served, regardless of the URL.
 
 This correctly handles CDNs that use automatic format negotiation (e.g. Cloudinary `f_auto`, DAM systems that respond based on the `Accept` header): a URL ending in `.jpg` may return `image/webp` or `image/avif`.
 
 If the server does not send CORS headers, the fetch fails silently and the snippet falls back to strategy 2.
 
-**2. URL-based heuristic (fallback)**
+##### 2. URL-based heuristic (fallback)
 
 | Detected value                                    | Source                                                               |
 | ------------------------------------------------- | -------------------------------------------------------------------- |
 | `avif`, `webp`, `jxl`, `png`, `jpg`, `gif`, `svg` | File extension or CDN transform parameter in the URL                 |
 | `auto (cdn)`                                      | Cloudinary `f_auto`-style path transform (e.g. `/f_auto,q_auto/`)    |
-| `auto (cdn?)`                                     | URL has no file extension — likely format-negotiated by a DAM or CDN |
+| `auto (cdn?)`                                     | URL has no file extension, likely format-negotiated by a DAM or CDN |
 | `unknown`                                         | No recognisable extension or pattern found                           |
 
 `auto (cdn)` and `auto (cdn?)` are treated as modern formats and do not trigger the "no modern format" info note.
 
 Images inside a `<picture>` element are exempt from the format check: `currentSrc` already reflects the URL the browser selected.
 
-#### `fetchpriority="low"` on Off-Viewport Images
+#### `fetchpriority="low"` on off-viewport images
 
-The browser already assigns low priority to off-viewport images during initial load, so setting `fetchpriority="low"` explicitly is redundant in most cases. It becomes useful for images that are geometrically inside the viewport but not actually visible — for example, slides 2 and 3 of a full-viewport carousel. Adding `fetchpriority="low"` on those hidden slides prevents them from competing with the visible first slide (which is likely the LCP candidate).
+The browser already assigns low priority to off-viewport images during initial load, so setting `fetchpriority="low"` explicitly is redundant in most cases. It becomes useful for images that are geometrically inside the viewport but not actually visible, for example, slides 2 and 3 of a full-viewport carousel. Adding `fetchpriority="low"` on those hidden slides prevents them from competing with the visible first slide (which is likely the LCP candidate).
 
 ```html
 <!-- Active carousel slide — likely LCP -->
@@ -167,7 +165,7 @@ The browser already assigns low priority to off-viewport images during initial l
 <img src="slide-3.avif" fetchpriority="low" loading="lazy" width="1200" height="630" alt="..." />
 ```
 
-### Browser Support
+### Browser support
 
 | Attribute        | Chrome | Edge | Firefox | Safari |
 | ---------------- | ------ | ---- | ------- | ------ |
@@ -176,13 +174,13 @@ The browser already assigns low priority to off-viewport images during initial l
 | `fetchpriority`  | 101    | 101  | 132     | 17.2   |
 | WebP             | 32     | 18   | 65      | 14     |
 | AVIF             | 85     | 121  | 93      | 16     |
-| JPEG XL          | —      | —    | —       | 17 ⚠️  |
+| JPEG XL          |,      |,    |,       | 17 ⚠️  |
 
-⚠️ Safari 17 supports JPEG XL for still images only — animated sequences are not supported. Chrome and Firefox require enabling an experimental flag and do not support JPEG XL by default.
+⚠️ Safari 17 supports JPEG XL for still images only, animated sequences are not supported. Chrome and Firefox require enabling an experimental flag and do not support JPEG XL by default.
 
-Browsers that do not support `fetchpriority` or `loading` ignore the attributes safely — no polyfill is needed.
+Browsers that do not support `fetchpriority` or `loading` ignore the attributes safely, no polyfill is needed.
 
-### Further Reading
+### Further reading
 
 - [Learn Images](https://web.dev/learn/images) | web.dev
 - [Optimizing Largest Contentful Paint](https://web.dev/articles/optimize-lcp) | web.dev
@@ -194,4 +192,4 @@ Browsers that do not support `fetchpriority` or `loading` ignore the attributes 
 - [`decoding` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#decoding) | MDN
 - [`fetchpriority` attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#fetchpriority) | MDN
 - [JPEG XL supported software](https://jpegxl.info/resources/supported-software.html) | jpegxl.info
-- [Best practices for images — nucliweb/image-element](https://github.com/nucliweb/image-element) | GitHub
+- [Best practices for images, nucliweb/image-element](https://github.com/nucliweb/image-element) | GitHub

@@ -1,18 +1,18 @@
 import snippet from '../../snippets/Interaction/Long-Animation-Frames-Helpers.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# LoAF Helpers
+# LoAF helpers
 
 Advanced debugging utilities for [Long Animation Frames](/Interaction/Long-Animation-Frames). While the basic LoAF snippet shows real-time frame data, this helper library provides powerful analysis, filtering, and export capabilities.
 
-**When to use each:**
+### When to use each
 
 | Snippet | Best for | Output |
 |---------|----------|--------|
 | [Long Animation Frames](/Interaction/Long-Animation-Frames) | Real-time debugging, seeing frames as they happen | Live console logs |
 | **LoAF Helpers** | Post-session analysis, finding patterns, exporting data | On-demand reports |
 
-**Available functions:**
+### Available functions
 
 | Function | Description | Example |
 |----------|-------------|---------|
@@ -28,7 +28,7 @@ Advanced debugging utilities for [Long Animation Frames](/Interaction/Long-Anima
 | `clear()` | Clear all captured data | `loafHelpers.clear()` |
 | `help()` | Show available commands | `loafHelpers.help()` |
 
-**Severity thresholds:**
+### Severity thresholds
 
 | Severity | Duration | Indicator |
 |----------|----------|-----------|
@@ -41,7 +41,7 @@ Advanced debugging utilities for [Long Animation Frames](/Interaction/Long-Anima
 
 <Snippet code={snippet} />
 
-### Understanding the Output
+### Understanding the output
 
 **summary()** shows:
 - Total frames captured and their durations
@@ -63,7 +63,7 @@ Advanced debugging utilities for [Long Animation Frames](/Interaction/Long-Anima
 | P95 | 95% are faster | Tail latency |
 | P99 | 99% are faster | Worst-case scenarios |
 
-### RUM Integration Example
+### RUM integration example
 
 ```js copy
 // After user session, collect metrics
@@ -81,7 +81,7 @@ analytics.track("loaf_performance", {
 });
 ```
 
-### Further Reading
+### Further reading
 
 - [Long Animation Frames API](https://developer.chrome.com/docs/web-platform/long-animation-frames) | Chrome Developers
 - [Optimize long tasks](https://web.dev/articles/optimize-long-tasks) | web.dev

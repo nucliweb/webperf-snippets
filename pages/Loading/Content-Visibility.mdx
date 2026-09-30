@@ -1,7 +1,7 @@
 import snippet from '../../snippets/Loading/Content-Visibility.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# Content Visibility
+# Content visibility
 
 Detect and analyze all elements using `content-visibility: auto` on a page. This CSS property is a powerful rendering optimization that allows browsers to skip layout and painting work for offscreen content, significantly improving initial page load performance.
 
@@ -18,13 +18,13 @@ This snippet code is based on the [script](https://github.com/corewebvitals/page
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-#### `detectContentVisibility()` Results
+#### `detectContentVisibility()` results
 
 This function scans the entire DOM for elements using `content-visibility` and provides:
 
-**Auto Elements (`content-visibility: auto`):**
+##### Auto elements (`content-visibility: auto`)
 
 - **selector**: CSS selector path to the element
 - **contentVisibility**: The current value (`auto`)
@@ -33,21 +33,21 @@ This function scans the entire DOM for elements using `content-visibility` and p
 - **top**: Distance from the top of the document
 - **inViewport**: Whether the element is currently visible
 
-**Hidden Elements (`content-visibility: hidden`):**
+##### Hidden elements (`content-visibility: hidden`)
 
 - Elements completely hidden from rendering
 - Useful for off-canvas menus, modals, or pre-rendered content
 
-**Warnings:**
+##### Warnings
 
 - Missing `contain-intrinsic-size` warnings help prevent Cumulative Layout Shift (CLS)
 - Suggests appropriate height values based on current element dimensions
 
-#### `analyzeContentVisibilityOpportunities(options)` Results
+#### `analyzeContentVisibilityOpportunities(options)` results
 
 This function walks the entire DOM to find elements below the viewport that would benefit from `content-visibility: auto`.
 
-**Options (all optional):**
+##### Options (all optional)
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -55,7 +55,7 @@ This function walks the entire DOM to find elements below the viewport that woul
 | `minHeight` | `100` | Minimum element height in px to be considered |
 | `minChildren` | `5` | Minimum number of child elements (filters out simple containers) |
 
-**Examples:**
+##### Examples
 
 ```js copy
 // Default settings
@@ -71,7 +71,7 @@ analyzeContentVisibilityOpportunities({ minHeight: 50, minChildren: 3 })
 analyzeContentVisibilityOpportunities({ threshold: -100, minHeight: 80, minChildren: 10 })
 ```
 
-**Output fields:**
+##### Output fields
 
 - **selector**: Element identifier
 - **height**: Current height (use this for `contain-intrinsic-size`)
@@ -81,7 +81,7 @@ analyzeContentVisibilityOpportunities({ threshold: -100, minHeight: 80, minChild
 
 **Note:** The function automatically filters out nested elements - if a parent container is selected, its children won't appear separately in the results.
 
-### How content-visibility Works
+### How content-visibility works
 
 The `content-visibility` CSS property controls whether an element renders its contents:
 
@@ -108,21 +108,21 @@ Always pair `content-visibility: auto` with `contain-intrinsic-size` to prevent 
 }
 ```
 
-**Understanding the value:**
+### Understanding the value
 
 The `contain-intrinsic-size` property tells the browser what size to use for the element before its content is rendered. This is critical because without it, offscreen elements would have zero height, causing massive layout shifts when they render.
 
 - **`auto`**: Tells the browser to remember the actual rendered size after the first render. On subsequent navigations or when scrolling back, it uses the cached size instead of the placeholder.
 - **`500px`** (or any height value): **The estimated height of your content**. This should approximate the actual rendered height of the element.
 
-**How to choose the right height value:**
+### How to choose the right height value
 
 1. **Measure the actual element**: Use DevTools to inspect the element's rendered height, or use the `analyzeContentVisibilityOpportunities()` function which reports element heights
 2. **Use an average**: For dynamic content (like comments or cards), use an average expected height
 3. **Err on the side of larger**: A slightly larger estimate is better than too small, it reduces the chance of noticeable layout shifts
 4. **It doesn't need to be exact**: The browser will adjust once content renders, this is just a placeholder to reserve space
 
-**Example values by content type:**
+### Example values by content type
 
 | Content Type         | Typical Height |
 | -------------------- | -------------- |
@@ -132,16 +132,16 @@ The `contain-intrinsic-size` property tells the browser what size to use for the
 | Blog article section | 400-800px      |
 | Sidebar widget       | 200-350px      |
 
-### Performance Impact
+### Performance impact
 
-**Potential Benefits:**
+### Potential benefits
 
 - **Faster Initial Render**: Browser skips layout/paint for offscreen content
 - **Reduced Main Thread Work**: Less JavaScript style recalculation
 - **Lower Memory Usage**: Offscreen content not in render tree
 - **Improved INP**: Less work during scrolling interactions
 
-**Typical Savings:**
+### Typical savings
 
 | Scenario                              | Estimated Improvement |
 | ------------------------------------- | --------------------- |
@@ -150,9 +150,9 @@ The `contain-intrinsic-size` property tells the browser what size to use for the
 | Documentation page with many sections | 150-400ms render time |
 | Social feed with infinite scroll      | 300-800ms render time |
 
-### Best Practices
+### Best practices
 
-**Good Candidates for `content-visibility: auto`:**
+### Good candidates for `content-visibility: auto`
 
 - Footer sections
 - Below-the-fold content sections
@@ -163,14 +163,14 @@ The `contain-intrinsic-size` property tells the browser what size to use for the
 - Accordion/collapsible content
 - Infinite scroll items
 
-**Avoid Using On:**
+### Avoid using on
 
 - Above-the-fold content (defeats the purpose)
 - Elements with animations that need immediate rendering
 - Content that affects layout calculations above it
 - Very small elements (overhead not worth it)
 
-### Browser Support
+### Browser support
 
 `content-visibility` is supported in:
 
@@ -181,9 +181,9 @@ The `contain-intrinsic-size` property tells the browser what size to use for the
 
 Firefox 125+ and Safari 18+ also support it. Browsers without support ignore the property, so it's safe to use as a progressive enhancement.
 
-### Implementation Examples
+### Implementation examples
 
-**Basic Usage:**
+### Basic usage
 
 ```css copy
 /* Apply to sections below the fold */
@@ -193,7 +193,7 @@ Firefox 125+ and Safari 18+ also support it. Browsers without support ignore the
 }
 ```
 
-**Footer Optimization:**
+### Footer optimization
 
 ```css copy
 footer {
@@ -202,7 +202,7 @@ footer {
 }
 ```
 
-**Card Grid Optimization:**
+### Card grid optimization
 
 ```css copy
 /* Skip rendering for cards far from viewport */
@@ -212,7 +212,7 @@ footer {
 }
 ```
 
-**Comments Section:**
+### Comments section
 
 ```css copy
 .comments-container {
@@ -221,7 +221,7 @@ footer {
 }
 ```
 
-### Further Reading
+### Further reading
 
 For an in-depth understanding of `content-visibility` and rendering optimization:
 
@@ -230,7 +230,7 @@ For an in-depth understanding of `content-visibility` and rendering optimization
 - [content-visibility on MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/content-visibility) | Complete reference
 - [Improve Largest Contentful Paint with content-visibility](https://web.dev/articles/optimize-lcp#optimize_when_resources_are_loaded) | web.dev
 
-**Real-world Example:**
+### Real-world example
 
 - [Add content-visibility to NoteButton component](https://github.com/nucliweb/react-workshop-fwdays-mar24/pull/2) | A practical PR showing before/after DevTools screenshots of layout and layers improvements when applying `content-visibility` to a React component
 

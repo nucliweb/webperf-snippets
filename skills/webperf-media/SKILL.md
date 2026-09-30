@@ -17,9 +17,9 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 
 ## Scripts
 
-- `scripts/Image-Element-Audit.js` — Image Element Audit
-- `scripts/SVG-Embedded-Bitmap-Analysis.js` — SVG Embedded Bitmap Analysis
-- `scripts/Video-Element-Audit.js` — Video Element Audit
+- `scripts/Image-Element-Audit.js` — Image element audit
+- `scripts/SVG-Embedded-Bitmap-Analysis.js` — SVG embedded bitmap analysis
+- `scripts/Video-Element-Audit.js` — Video element audit
 
 
 ## Common Workflows

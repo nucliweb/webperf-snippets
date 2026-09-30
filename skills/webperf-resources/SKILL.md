@@ -17,7 +17,7 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 
 ## Scripts
 
-- `scripts/Network-Bandwidth-Connection-Quality.js` — Network Bandwidth & Connection Quality
+- `scripts/Network-Bandwidth-Connection-Quality.js` — Network bandwidth & connection quality
 
 
 ## Common Workflows

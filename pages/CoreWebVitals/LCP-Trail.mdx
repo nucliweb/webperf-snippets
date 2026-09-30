@@ -1,21 +1,22 @@
 import snippet from '../../snippets/CoreWebVitals/LCP-Trail.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# LCP Trail
+# LCP trail
 
-### Overview
-
-Tracks every [LCP candidate](https://web.dev/articles/lcp#what-elements-are-considered) element during page load and highlights each one with a distinct pastel-colored dashed outline — so you can see the full trail from first candidate to final LCP.
+Tracks every [LCP candidate](https://web.dev/articles/lcp#what-elements-are-considered) element during page load and highlights each one with a distinct pastel-colored dashed outline, so you can see the full trail from first candidate to final LCP.
 
 Each time the browser promotes a larger element as the new LCP, the snippet assigns the next color in the palette and highlights it. All previous candidates remain visible on the page for easy comparison.
 
-> **Need timing breakdowns?** Use [LCP Subparts](/CoreWebVitals/LCP-Subparts) to identify which phase (TTFB, load delay, load time, render delay) is causing the bottleneck.
+<Callout type="info">
+**Need timing breakdowns?** Use [LCP Subparts](/CoreWebVitals/LCP-Subparts) to identify which phase (TTFB, load delay, load time, render delay) is causing the bottleneck.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### How It Works
+### How it works
 
 The snippet observes `largest-contentful-paint` entries with `buffered: true`, which captures all candidates since navigation started. Each time the browser promotes a new element as the current LCP:
 
@@ -23,15 +24,15 @@ The snippet observes `largest-contentful-paint` entries with `buffered: true`, w
 2. The console logs are updated with attribution for the current LCP
 3. The **Candidates Trail** legend shows every candidate in order, with its color, time, and a clickable element reference
 
-**Multiple candidates appear when:**
+### Multiple candidates appear when
 - An image loads after a text element that was initially larger in the viewport
 - A hero image replaces a heading as the largest content
 - Lazy-loaded or late-loading resources become the largest visible element
 
-### Further Reading
+### Further reading
 
 - [Largest Contentful Paint (LCP)](https://web.dev/articles/lcp) | web.dev
 - [LCP element candidates](https://web.dev/articles/lcp#what-elements-are-considered) | web.dev
 - [LCP](/CoreWebVitals/LCP) | Quick LCP check
 - [LCP Subparts](/CoreWebVitals/LCP-Subparts) | Detailed phase breakdown
-- [FCP](/Loading/FCP) | First Contentful Paint — the earliest paint signal before LCP
+- [FCP](/Loading/FCP) | First Contentful Paint, the earliest paint signal before LCP

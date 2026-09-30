@@ -1,13 +1,11 @@
 import snippet from "../../snippets/Loading/Resource-Hints-Validation.js?raw";
 import { Snippet } from "../../components/Snippet";
 
-# Resource Hints Validation
-
-### Overview
+# Resource hints validation
 
 Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which hints are declared and whether the resources or connections are actually used. Detects unused hints that waste browser resources and opportunities to optimize loading.
 
-**What are resource hints?**
+### What are resource hints?
 
 Resource hints tell the browser to perform actions that can improve loading performance:
 
@@ -17,7 +15,7 @@ Resource hints tell the browser to perform actions that can improve loading perf
 | `preconnect`   | Establish connection (DNS + TCP + TLS)       | Critical third-party domains     |
 | `dns-prefetch` | Resolve DNS only                             | Non-critical third-party domains |
 
-**Problems commonly detected:**
+### Problems commonly detected
 
 | Issue                   | Impact             | Detection                              |
 | ----------------------- | ------------------ | -------------------------------------- |
@@ -26,7 +24,7 @@ Resource hints tell the browser to perform actions that can improve loading perf
 | **Unused dns-prefetch** | Minimal waste      | DNS resolved but domain not used       |
 | **Missing preconnect**  | Opportunity loss   | Domain used but no preconnect hint     |
 
-### Important Notes
+### Important notes
 
 **Timing**: Run this snippet after the page has fully loaded and all resources are in the Performance API. For best results:
 
@@ -48,9 +46,9 @@ The snippet includes a check that compares DOM elements (like `<img>` tags) agai
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 
 Shows the overall state of resource hints:
 
@@ -58,7 +56,7 @@ Shows the overall state of resource hints:
 - Total resources loaded on the page
 - Number of unique domains accessed
 
-**Validation Categories:**
+### Validation categories
 
 1. **Preload Validation**
    - Lists preloaded resources and checks if they were actually used
@@ -81,7 +79,7 @@ Shows the overall state of resource hints:
    - Suggests adding preconnect or dns-prefetch based on request count
    - Limited to top recommendations to avoid bandwidth competition
 
-### When to Use Each Hint
+### When to use each hint
 
 | Hint           | Use Case                                            | Request Count           |
 | -------------- | --------------------------------------------------- | ----------------------- |
@@ -89,9 +87,9 @@ Shows the overall state of resource hints:
 | `preconnect`   | Critical third-party domains (CDN)                  | 5+ requests recommended |
 | `dns-prefetch` | Non-critical third-party (analytics, ads)           | 2-4 requests            |
 
-### Real-World Examples
+### Real-world examples
 
-**✅ Good: Proper resource hints**
+### ✅ Good: Proper resource hints
 
 ```html
 <!-- Preload critical resources -->
@@ -109,7 +107,7 @@ Shows the overall state of resource hints:
 <link rel="dns-prefetch" href="https://analytics.web.dev" />
 ```
 
-**❌ Bad: Unused hints**
+### ❌ Bad: Unused hints
 
 ```html
 <!-- Preload for resource not used on this page -->
@@ -119,7 +117,7 @@ Shows the overall state of resource hints:
 <link rel="preconnect" href="https://unused-cdn.web.dev" />
 ```
 
-### Further Reading
+### Further reading
 
 - [Resource Hints](https://www.w3.org/TR/resource-hints/) | W3C Specification
 - [Preload critical assets](https://web.dev/articles/preload-critical-assets) | web.dev

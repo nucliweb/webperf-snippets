@@ -1,11 +1,11 @@
 import snippet from '../../snippets/Loading/Service-Worker-Analysis.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# Service Worker Analysis
+# Service worker analysis
 
 Analyzes the Service Worker lifecycle, cache behavior, and its performance impact on resource loading. Service Workers can dramatically improve performance through caching strategies, but misconfigured workers can introduce startup delays and degrade TTFB.
 
-**What this snippet measures:**
+### What this snippet measures
 
 - Service Worker registration state and active/waiting/installing workers
 - Navigation Preload status (reduces SW startup cost on navigation)
@@ -14,7 +14,7 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 - Cache hit rate for SW-intercepted resources
 - Cache Storage inventory (caches and entry counts)
 
-**SW impact on navigation timing:**
+### SW impact on navigation timing
 
 ```mermaid
 sequenceDiagram
@@ -39,7 +39,7 @@ sequenceDiagram
     end
 ```
 
-**Navigation Preload reduces SW startup cost:**
+### Navigation preload reduces SW startup cost
 
 ```mermaid
 sequenceDiagram
@@ -69,9 +69,9 @@ sequenceDiagram
 
 <Snippet code={snippet} />
 
-## Interpreting the Results
+## Interpreting the results
 
-### Service Worker not controlled (`⚠️ Page is NOT controlled by SW`)
+### Service worker not controlled (`⚠️ Page is NOT controlled by SW`)
 
 The page was loaded with a hard reload (`Ctrl+Shift+R` / `Cmd+Shift+R`) or it's the very first visit. In this state the SW is registered but doesn't intercept requests.
 
@@ -86,9 +86,9 @@ A new SW version was installed but it's waiting for all open tabs to close befor
 | Development | Call `skipWaiting()` in the SW to force activation |
 | Production | Close all tabs and reopen, or add an "Update available" prompt |
 
-### SW Startup Overhead
+### SW startup overhead
 
-The overhead is the time between `workerStart` and `fetchStart` in the Navigation Timing entry — the time the browser spends starting the SW before the actual fetch can begin.
+The overhead is the time between `workerStart` and `fetchStart` in the Navigation Timing entry, the time the browser spends starting the SW before the actual fetch can begin.
 
 | Rating | Overhead | Meaning |
 |--------|----------|---------|
@@ -98,7 +98,7 @@ The overhead is the time between `workerStart` and `fetchStart` in the Navigatio
 
 A high overhead on first load is normal (SW cold start). On subsequent navigations it should be near zero if the SW is already running. Enable **Navigation Preload** to eliminate this overhead regardless.
 
-### Navigation Preload disabled (`❌ Disabled`)
+### Navigation preload disabled (`❌ Disabled`)
 
 Without Navigation Preload, the browser must wait for the SW to start before sending the navigation request to the network. Enable it in the SW `activate` event:
 
@@ -129,14 +129,14 @@ self.addEventListener('fetch', (event) => {
 | Rating | Hit rate | Meaning |
 |--------|----------|---------|
 | 🟢 Excellent | ≥ 80% | Most resources served from cache |
-| 🟡 Good | 50–79% | Mixed cache/network — review strategy |
+| 🟡 Good | 50–79% | Mixed cache/network, review strategy |
 | 🔴 Low | < 50% | Cache strategy too conservative or cache is cold |
 
 A low hit rate on first visit is expected since the cache hasn't been populated yet. Run the snippet on a **second visit** to get a meaningful measurement.
 
 ### `transferSize = 0` vs. actual cache hit
 
-`transferSize = 0` for SW-intercepted resources means no bytes came from the network — the response came from **Cache Storage or the HTTP cache**. It does **not** distinguish between the two. To confirm a response came specifically from Cache Storage, check your SW fetch handler logic or use the **Application → Cache Storage** panel in DevTools.
+`transferSize = 0` for SW-intercepted resources means no bytes came from the network, the response came from **Cache Storage or the HTTP cache**. It does **not** distinguish between the two. To confirm a response came specifically from Cache Storage, check your SW fetch handler logic or use the **Application → Cache Storage** panel in DevTools.
 
 Cross-origin resources without a `Timing-Allow-Origin` header report `transferSize = 0` and `encodedBodySize = 0`. The snippet cannot tell where these came from, so it lists them as **Unknown source** and leaves them out of the hit rate.
 
@@ -149,14 +149,14 @@ Resources with `workerStart = 0` were not intercepted. Common reasons:
 - Resources with `no-cors` mode that the SW skips
 - The SW `fetch` handler doesn't match their URL pattern
 
-### Cache Storage is empty
+### Cache storage is empty
 
 The SW is registered but hasn't cached anything yet. This happens on first visit before the `install` event pre-caches assets, or if the caching strategy is purely runtime (cache-on-first-use).
 
-## Further Reading
+## Further reading
 
 - [Service Worker API](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API) | MDN
 - [Speed up Service Worker with Navigation Preloads](https://developer.chrome.com/docs/workbox/navigation-preload/) | Chrome Developers
 - [Service worker caching and HTTP caching](https://web.dev/articles/service-worker-caching-and-http-caching) | web.dev
 - [Workbox](https://developer.chrome.com/docs/workbox/) | Production SW library by Google
-- [TTFB](/Loading/TTFB) | Time To First Byte — affected by SW startup time
+- [TTFB](/Loading/TTFB) | Time To First Byte, affected by SW startup time

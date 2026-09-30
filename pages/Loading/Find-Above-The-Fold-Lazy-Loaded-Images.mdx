@@ -1,23 +1,26 @@
 import snippet from '../../snippets/Loading/Find-Above-The-Fold-Lazy-Loaded-Images.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Find Above The Fold Lazy Loaded Images
+# Find above the fold lazy loaded images
 
 Detect images with lazy loading that are incorrectly placed above the fold (in the viewport). Lazy loading above-the-fold images is a common performance anti-pattern that can significantly harm your Largest Contentful Paint (LCP) score.
 
 The snippet identifies images with `loading="lazy"` or `[data-src]` in the viewport, detects the LCP candidate, and provides detailed performance metrics.
 
-> **Looking for images that should have lazy loading?** Use the [Find non Lazy Loaded Images outside of the viewport](/Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport) snippet instead.
+<Callout type="info">
+**Looking for images that should have lazy loading?** Use the [Find non Lazy Loaded Images outside of the viewport](/Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport) snippet instead.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
 The snippet scans the viewport for images that have lazy loading but shouldn't.
 
-#### Success Case
+#### Success case
 
 If no lazy-loaded images are found in the viewport:
 
@@ -25,7 +28,7 @@ If no lazy-loaded images are found in the viewport:
 ✅ Good job! No lazily loaded images found in the viewport.
 ```
 
-#### Issues Found
+#### Issues found
 
 When lazy-loaded images are detected in the viewport, you'll see:
 
@@ -47,11 +50,11 @@ When lazy-loaded images are detected in the viewport, you'll see:
 
 **Elements for inspection**: Direct DOM references you can click to inspect in DevTools
 
-### Why This Matters: Impact on Core Web Vitals
+### Why this matters: Impact on Core Web Vitals
 
 Lazy loading is a powerful optimization technique, but incorrect usage can severely harm your Largest Contentful Paint (LCP) score.
 
-**The Problem:**
+### The problem
 
 When you add `loading="lazy"` to an above-the-fold image:
 
@@ -60,7 +63,7 @@ When you add `loading="lazy"` to an above-the-fold image:
 3. The image loads later than it would have naturally
 4. LCP score increases (worse performance)
 
-**Performance Impact:**
+### Performance impact
 
 | Scenario | Impact on LCP |
 |----------|---------------|
@@ -69,7 +72,7 @@ When you add `loading="lazy"` to an above-the-fold image:
 | Above-fold gallery with lazy loading | +150-400ms cumulative |
 | Correctly lazy-loaded below-fold images | -100-500ms improvement |
 
-**The Solution:**
+### The solution
 
 | Image Location | Recommendation |
 |----------------|----------------|
@@ -78,9 +81,9 @@ When you add `loading="lazy"` to an above-the-fold image:
 | Below-fold images | `loading="lazy"` |
 | Images in hidden containers | `loading="lazy"` |
 
-### Best Practices
+### Best practices
 
-#### When to Use `loading="lazy"`
+#### When to use `loading="lazy"`
 
 ✅ **Good candidates:**
 - Images below the fold
@@ -98,7 +101,7 @@ When you add `loading="lazy"` to an above-the-fold image:
 - Critical product images
 - Any image visible on initial page load
 
-#### Prioritizing Critical Images
+#### Prioritizing critical images
 
 For your LCP candidate, use `fetchpriority="high"`:
 
@@ -121,7 +124,7 @@ For your LCP candidate, use `fetchpriority="high"`:
 >
 ```
 
-#### Combining with Responsive Images
+#### Combining with responsive images
 
 ```html copy
 <!-- LCP candidate with responsive images -->
@@ -143,9 +146,9 @@ For your LCP candidate, use `fetchpriority="high"`:
 >
 ```
 
-### Implementation Examples
+### Implementation examples
 
-**Fixing an LCP image:**
+### Fixing an LCP image
 
 ```html copy
 <!-- ❌ Before: Lazy loaded LCP candidate -->
@@ -163,7 +166,7 @@ For your LCP candidate, use `fetchpriority="high"`:
 >
 ```
 
-**Picture element with proper loading:**
+### Picture element with proper loading
 
 ```html copy
 <!-- Above-fold picture element -->
@@ -189,7 +192,7 @@ For your LCP candidate, use `fetchpriority="high"`:
 </picture>
 ```
 
-**JavaScript lazy loading libraries:**
+### JavaScript lazy loading libraries
 
 If using a JS library (lazysizes, vanilla-lazyload, etc.), configure it to exclude above-fold images:
 
@@ -205,7 +208,7 @@ document.querySelectorAll('img[data-src]').forEach(img => {
 });
 ```
 
-### Browser Support
+### Browser support
 
 Native lazy loading (`loading="lazy"`) is supported in:
 
@@ -223,7 +226,7 @@ The `fetchpriority` attribute is supported in:
 
 Not yet in Firefox and Safari, but they ignore the attribute safely.
 
-### Further Reading
+### Further reading
 
 - [Browser-level image lazy loading for the web](https://web.dev/articles/browser-level-image-lazy-loading) | web.dev
 - [Lazy loading images](https://developer.mozilla.org/en-US/docs/Web/Performance/Lazy_loading#images_and_iframes) | MDN Web Docs

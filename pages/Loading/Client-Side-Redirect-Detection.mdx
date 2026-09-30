@@ -1,13 +1,11 @@
 import snippet from "../../snippets/Loading/Client-Side-Redirect-Detection.js?raw";
 import { Snippet } from "../../components/Snippet";
 
-# Client-Side Redirect Detection
-
-### Overview
+# Client-side redirect detection
 
 Detects client-side redirects that add unnecessary latency to page load and impact Core Web Vitals, particularly LCP. Client-side redirects implemented via JavaScript or SPA routers can add seconds to the critical rendering path, yet they're often invisible to standard monitoring tools.
 
-**Why this matters:**
+### Why this matters
 
 Client-side redirects are one of the most impactful but hardest-to-detect performance issues:
 
@@ -17,7 +15,7 @@ Client-side redirects are one of the most impactful but hardest-to-detect perfor
 - Not visible in basic performance metrics
 - Often introduced accidentally during localization or A/B testing
 
-**Common patterns that trigger client-side redirects:**
+### Common patterns that trigger client-side redirects
 
 | Pattern                  | Example                                          | Impact                                   |
 | ------------------------ | ------------------------------------------------ | ---------------------------------------- |
@@ -27,7 +25,7 @@ Client-side redirects are one of the most impactful but hardest-to-detect perfor
 | **Legacy URLs**          | Old URL → JS maps to new URL → redirects         | High - should use 301 instead            |
 | **SPA routing**          | Deep link → app loads → client router takes over | Low to moderate - depends on bundle size |
 
-**Real-world example:**
+### Real-world example
 
 ```
 User navigates to: https://web.dev/
@@ -48,7 +46,7 @@ User navigates to: https://web.dev/
 Result: 81% improvement in LCP
 ```
 
-**Redirect Flow Comparison:**
+### Redirect flow comparison
 
 ```mermaid
 sequenceDiagram
@@ -86,9 +84,9 @@ sequenceDiagram
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-#### Current Page
+#### Current page
 
 Shows the current URL, path, and referrer information. If the referrer is from the same origin but a different path, this suggests a potential client-side redirect.
 
@@ -105,7 +103,7 @@ Shows the current URL, path, and referrer information. If the referrer is from t
 - Navigation from HTTPS → HTTP (browsers hide referrer)
 - Referrer blocked by `Referrer-Policy`
 
-#### Server-Side Redirects
+#### Server-side redirects
 
 Detects HTTP 301/302/307/308 redirects using the Navigation Timing API.
 
@@ -114,25 +112,25 @@ Detects HTTP 301/302/307/308 redirects using the Navigation Timing API.
 | ✅ No server-side redirects | Direct navigation, optimal                   |
 | ⚠️ N redirect(s) detected   | HTTP redirects occurred - check if necessary |
 
-**Impact:**
+##### Impact
 
 - Each redirect adds one round-trip (50-300ms typically)
 - Redirect chains (A→B→C) multiply the cost
 - Mobile/slow connections amplify the impact
 
-**When redirects are acceptable:**
+##### When redirects are acceptable
 
 - HTTPS enforcement (HTTP→HTTPS)
 - www canonicalization (www→non-www or vice versa)
 - Temporary redirects for maintenance (302)
 
-**When to avoid:**
+##### When to avoid
 
 - Chains of 3+ redirects
 - Client-side redirects that could be server-side
 - Redirects on every page load
 
-#### Client-Side Navigation Indicators
+#### Client-side navigation indicators
 
 The snippet checks multiple signals to detect client-side redirects:
 
@@ -144,13 +142,13 @@ The snippet checks multiple signals to detect client-side redirects:
 | **SPA router detected**             | History API state present                                                         | ℹ️ Info    |
 | **Fast minimal-content navigation** | Small page (&lt;10KB) loaded quickly (&lt;500ms) - likely a redirect page         | ⚠️ Warning |
 
-**Severity levels:**
+##### Severity levels
 
 - 🔴 **Error**: High-confidence client-side redirect detection - fix immediately
 - ⚠️ **Warning**: Likely redirect pattern - investigate
 - ℹ️ **Info**: Supporting evidence - may be normal behavior
 
-**Example output:**
+##### Example output
 
 ```
 📱 Client-Side Navigation Indicators:
@@ -165,7 +163,7 @@ The snippet checks multiple signals to detect client-side redirects:
       to: /es/
 ```
 
-#### Performance Impact
+#### Performance impact
 
 When client-side redirects are detected, the snippet estimates their impact on LCP:
 
@@ -175,7 +173,7 @@ When client-side redirects are detected, the snippet estimates their impact on L
 | **MODERATE** | 1000-3000ms | 🟡     | High priority - noticeable delay     |
 | **LOW**      | &lt; 1000ms | 🟢     | Monitor - may be acceptable for SPAs |
 
-**Calculating overhead:**
+##### Calculating overhead
 
 The overhead is the total duration of all document navigations detected in the Resource Timing API. This represents the additional time spent loading and processing pages that were only needed to redirect the user.
 
@@ -183,23 +181,23 @@ The overhead is the total duration of all document navigations detected in the R
 
 The snippet provides actionable recommendations based on the redirect type:
 
-**For server-side redirects:**
+##### For server-side redirects
 
 - Minimize redirect chains
 - Use direct links in your HTML/marketing campaigns
 - Cache redirect responses
 
-**For client-side redirects:**
+##### For client-side redirects
 
 - Replace with HTTP 301 (permanent) or 302 (temporary)
 - Use language detection at the server/CDN level
 - Implement redirects in Nginx, Apache, or CDN config
 
-**Example server-side redirect configurations:**
+##### Example server-side redirect configurations
 
 See your web server documentation for implementing 301/302 redirects with language detection or path mapping.
 
-#### Navigation Timing Table
+#### Navigation timing table
 
 Provides a complete breakdown of the current page load:
 
@@ -213,7 +211,7 @@ Provides a complete breakdown of the current page load:
 | TCP Connect        | Connection establishment time             |
 | Request/Response   | Time to receive the response              |
 
-#### Document Navigations Table
+#### Document navigations table
 
 If same-origin document navigations are detected, shows detailed timing for each. These are potential client-side redirects.
 
@@ -227,9 +225,9 @@ If same-origin document navigations are detected, shows detailed timing for each
 | Transfer | Bytes transferred over the network               |
 | URL      | The navigation URL (same origin as current page) |
 
-### How to Use This Snippet
+### How to use this snippet
 
-**1. Detect redirects on landing pages:**
+### 1. detect redirects on landing pages
 
 Navigate to your site's homepage or common landing pages and run the snippet. Look for:
 
@@ -237,7 +235,7 @@ Navigate to your site's homepage or common landing pages and run the snippet. Lo
 - Document navigation entries
 - High performance impact
 
-**2. Compare direct vs. redirect navigation:**
+### 2. compare direct vs. redirect navigation
 
 ```
 Test 1: Navigate directly to /es/
@@ -249,7 +247,7 @@ Test 2: Navigate to / (which redirects to /es/)
 Compare: Is Test 2 significantly slower?
 ```
 
-**3. Test in different scenarios:**
+### 3. test in different scenarios
 
 - First visit (hard reload: Cmd+Shift+R)
 - Repeat visit (normal reload: Cmd+R)
@@ -257,7 +255,7 @@ Compare: Is Test 2 significantly slower?
 - Different language preferences
 - Different geographic locations
 
-**4. Validate after fixes:**
+### 4. validate after fixes
 
 After implementing server-side redirects:
 
@@ -266,7 +264,7 @@ After implementing server-side redirects:
 - Confirm server-side redirects show in the "Server-Side Redirects" section
 - Check that redirect time is minimal (under 50ms)
 
-### Browser Support
+### Browser support
 
 | Feature           | Chrome | Edge | Firefox | Safari |
 | ----------------- | ------ | ---- | ------- | ------ |
@@ -278,32 +276,32 @@ The snippet works in all modern browsers. Older browsers may show reduced inform
 
 ### Limitations
 
-**Cannot detect:**
+### Cannot detect
 
 - Meta refresh redirects (`<meta http-equiv="refresh">`)
 - Redirects that happen before the page loads
 - Some SPA router navigations that don't create resource entries
 - History.pushState/replaceState navigations without full page loads
 
-**Automatically filtered out:**
+### Automatically filtered out
 
 - Third-party iframes (analytics, ads, social widgets)
 - Cross-origin navigations
 - Standard iframe embeds
 
-**False positives:**
+### False positives
 
 - SPAs that legitimately use client-side routing
 - Preview/staging environments with redirect parameters
 - A/B testing platforms that use URL parameters
 
-**Accuracy notes:**
+### Accuracy notes
 
 - Performance impact is estimated based on detected navigation entries
 - Actual LCP impact may vary based on resource loading patterns
 - Some redirect patterns may not leave traces in Performance APIs
 
-### Further Reading
+### Further reading
 
 - [Avoid page redirects](https://developer.chrome.com/docs/lighthouse/performance/redirects) | Chrome Developers
 - [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_timing_API) | MDN

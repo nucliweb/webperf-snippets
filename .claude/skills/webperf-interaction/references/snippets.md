@@ -1,11 +1,11 @@
 ---
-## Forced Synchronous Layout Detector
+## Forced synchronous layout detector
 
-Detects the Forced Synchronous Layout (FSL) pattern at runtime — when JavaScript reads geometric properties from the DOM immediately after mutating styles, forcing the browser to perform layout synchronously on the main thread.
+Detects the Forced Synchronous Layout (FSL) pattern at runtime, when JavaScript reads geometric properties from the DOM immediately after mutating styles, forcing the browser to perform layout synchronously on the main thread.
 
 **Script:** `scripts/Forced-Synchronous-Layout.js`
 ---
-## Input Latency Breakdown
+## Input latency breakdown
 
 Aggregates interaction latency by event type to reveal which phase causes slowness across all interactions with the page. While Interactions shows a per-interaction breakdown in real time, this snippet collects data over time and answers a different question: is click systematically slower than keypress? Is the bottleneck always input delay, or does it vary by event?
 
@@ -25,7 +25,7 @@ Tracks all user interactions in real-time to help debug and improve Interaction 
 | 🟡 Needs Improvement | ≤ 500ms | Noticeable delay |
 | 🔴 Poor | > 500ms | Frustrating delay |
 ---
-## Layout Shift Tracking
+## Layout shift tracking
 
 Tracks all layout shifts during page load and user interaction, identifying the elements causing Cumulative Layout Shift (CLS). This debugging-focused snippet logs every shift with detailed information about which elements moved and when.
 
@@ -39,7 +39,7 @@ Tracks all layout shifts during page load and user interaction, identifying the 
 | 🟡 Needs Improvement | ≤ 0.25 | Noticeable shifting |
 | 🔴 Poor | > 0.25 | Significant layout instability |
 ---
-## LoAF Helpers
+## LoAF helpers
 
 Advanced debugging utilities for Long Animation Frames. While the basic LoAF snippet shows real-time frame data, this helper library provides powerful analysis, filtering, and export capabilities.
 
@@ -54,19 +54,19 @@ Advanced debugging utilities for Long Animation Frames. While the basic LoAF sni
 | Medium | 100-150ms | 🟡 |
 | Low | < 100ms | 🟢 |
 ---
-## Long Animation Frames Script Attribution
+## Long animation frames script attribution
 
 Analyzes and visualizes which scripts are responsible for blocking the main thread. This snippet categorizes blocking time by script origin (your code, framework, third-party, extensions) and provides actionable insights for optimization.
 
 **Script:** `scripts/Long-Animation-Frames-Script-Attribution.js`
 ---
-## Long Animation Frames (LoAF)
+## Long animation frames (LoAF)
 
 Tracks Long Animation Frames to identify JavaScript and rendering work that blocks the main thread. LoAF is the underlying API that powers INP debugging and provides detailed attribution for slow interactions.
 
 **Script:** `scripts/Long-Animation-Frames.js`
 ---
-## Long Tasks
+## Long tasks
 
 Tracks tasks that block the main thread for more than 50ms. Long tasks prevent the browser from responding to user input, causing poor Interaction to Next Paint (INP) and sluggish user experience.
 
@@ -81,9 +81,9 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
 | 🟠 High | 150-250ms | Poor responsiveness |
 | 🔴 Critical | > 250ms | Severe blocking |
 ---
-## Scroll Performance Analysis
+## Scroll performance analysis
 
-Measures scroll jank, frame drops, and event listener configuration to identify what makes scrolling feel laggy or unresponsive. Scroll jank — visible stuttering during scroll — is one of the most common UX problems on the web, especially on mobile.
+Measures scroll jank, frame drops, and event listener configuration to identify what makes scrolling feel laggy or unresponsive. Scroll jank, visible stuttering during scroll, is one of the most common UX problems on the web, especially on mobile.
 
 **Script:** `scripts/Scroll-Performance.js`
 

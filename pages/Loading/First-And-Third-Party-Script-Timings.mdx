@@ -1,11 +1,12 @@
 import snippet from '../../snippets/Loading/First-And-Third-Party-Script-Timings.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# First And Third Party Script Timings
+# First and third party script timings
 
 Analyzes detailed timing phases for all scripts, comparing first-party vs third-party performance. This helps identify slow connection phases, DNS issues, or server response problems.
 
-**Timing phases explained:**
+### Timing phases explained
 
 ```mermaid
 sequenceDiagram
@@ -32,21 +33,25 @@ sequenceDiagram
 | **Response** | Time to download the resource | File size, connection speed |
 | **Total** | End-to-end loading time | Overall script impact |
 
-> **CORS Note:** Third-party scripts without `Timing-Allow-Origin` header will show 0 for most timing phases. Only `startTime`, `responseEnd`, and `duration` are available.
+<Callout type="warning">
+**CORS Note:** Third-party scripts without `Timing-Allow-Origin` header will show 0 for most timing phases. Only `startTime`, `responseEnd`, and `duration` are available.
+</Callout>
 
-> **Related:** Use [First And Third Party Script Info](/Loading/First-And-Third-Party-Script-Info) for a simpler overview focused on sizes and blocking status.
+<Callout type="info">
+**Related:** Use [First And Third Party Script Info](/Loading/First-And-Third-Party-Script-Info) for a simpler overview focused on sizes and blocking status.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Table:**
+### Summary table
 
 Compares average timing for each phase between first-party and third-party scripts.
 
-**Timing Phases:**
+### Timing phases
 
 | Phase | Calculation | What 0 means |
 |-------|-------------|--------------|
@@ -57,7 +62,7 @@ Compares average timing for each phase between first-party and third-party scrip
 | Response | `responseEnd - responseStart` | Always available |
 | Total | `responseEnd - startTime` | Always available |
 
-**CORS Restrictions:**
+### CORS restrictions
 
 Third-party scripts often show `-` for detailed timings because the server doesn't send the `Timing-Allow-Origin` header. Only `total` is always available.
 
@@ -66,11 +71,11 @@ Third-party scripts often show `-` for detailed timings because the server doesn
 Timing-Allow-Origin: *
 ```
 
-**Slow Script Detection:**
+### Slow script detection
 
 Scripts taking more than 500ms are highlighted with their slowest phases identified.
 
-### Typical Values
+### Typical values
 
 | Phase | Good | Slow | Very Slow |
 |-------|------|------|-----------|
@@ -81,7 +86,7 @@ Scripts taking more than 500ms are highlighted with their slowest phases identif
 | Response | Depends on size | - | - |
 | Total | < 200ms | 200-500ms | > 500ms |
 
-### Further Reading
+### Further reading
 
 - [Resource Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Resource_Timing_API/Using_the_Resource_Timing_API) | MDN
 - [Timing-Allow-Origin Header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin) | MDN

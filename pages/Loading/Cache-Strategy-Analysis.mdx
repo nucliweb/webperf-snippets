@@ -1,11 +1,11 @@
 import snippet from "../../snippets/Loading/Cache-Strategy-Analysis.js?raw";
 import { Snippet } from "../../components/Snippet";
 
-# Cache Strategy Analysis
+# Cache strategy analysis
 
 Audits HTTP caching strategies across all page resources, identifying resources without cache, short-lived cache configurations, cache anti-patterns, and CDN cache hit rates. Provides a cache efficiency score and actionable recommendations.
 
-**What this snippet analyzes:**
+### What this snippet analyzes
 
 - Cache strategy classification for every resource (immutable, long, medium, short, no-cache, no-store, etc.)
 - Resources missing cache headers entirely
@@ -16,7 +16,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 - Protocol distribution (HTTP/1.1 vs H2/H3)
 - Uncompressed text resources and duplicate resource loads
 
-**How the browser decides to serve a resource:**
+### How the browser decides to serve a resource
 
 ```mermaid
 flowchart TD
@@ -32,11 +32,11 @@ flowchart TD
     C --> G
 ```
 
-**Why caching matters for performance:**
+### Why caching matters for performance
 
 | Metric        | Impact                                                     |
 | ------------- | ---------------------------------------------------------- |
-| LCP           | Cached resources load instantly — no network round-trip    |
+| LCP           | Cached resources load instantly, no network round-trip    |
 | TTFB          | CDN cache hits dramatically reduce server response time    |
 | Bandwidth     | Cached resources don't consume data (mobile users benefit) |
 | Repeat visits | Good caching makes subsequent page loads near-instant      |
@@ -45,9 +45,9 @@ flowchart TD
 
 <Snippet code={snippet} />
 
-## Understanding the Results
+## Understanding the results
 
-### Cache Strategy Distribution
+### Cache strategy distribution
 
 Every resource is classified into one of these strategies:
 
@@ -68,32 +68,32 @@ Every resource is classified into one of these strategies:
 
 The **Cache Efficiency Score** shows what percentage of resources have an effective cache strategy (`immutable`, `long`, `medium`, `swr`, or `must-revalidate`).
 
-### Resources Without Cache
+### Resources without cache
 
-Resources with strategy `none`, `no-store`, or `no-cache`. For static assets (JS, CSS, fonts, images), this is a performance problem — every page load re-fetches them from the network.
+Resources with strategy `none`, `no-store`, or `no-cache`. For static assets (JS, CSS, fonts, images), this is a performance problem, every page load re-fetches them from the network.
 
 **Fix:** Add `Cache-Control: max-age=31536000, immutable` for versioned assets, or at minimum `max-age=86400` for stable static files.
 
-### Short Cache Resources
+### Short cache resources
 
 Resources with `max-age < 3600` (less than 1 hour). Pay attention to:
 
-- **Has Hash = ✅**: If the URL contains a content hash, the file changes when its content changes. A short cache is wasted opportunity — use `immutable`.
+- **Has Hash = ✅**: If the URL contains a content hash, the file changes when its content changes. A short cache is wasted opportunity, use `immutable`.
 - **Has Hash = ❌**: The URL is stable, so a short cache forces frequent re-fetches. Increase the TTL if the content changes infrequently.
 
-### Cache Anti-patterns
+### Cache anti-patterns
 
 | Pattern                   | Severity   | Meaning                                                                          |
 | ------------------------- | ---------- | -------------------------------------------------------------------------------- |
-| `static-no-store`         | 🔴 Error   | A JS, CSS, font, or image file has `no-store` — these should always be cacheable |
-| `large-no-cache`          | 🔴 Error   | A resource > 100 KB has no cache — significant bandwidth waste per visit         |
-| `versioned-short-cache`   | 🟡 Warning | A hashed URL has `max-age < 86400` — safe to use much longer TTL                 |
-| `expires-without-cc`      | 🟡 Warning | Uses only `Expires` header — outdated, less reliable than `Cache-Control`        |
-| `maxage-zero-static`      | 🟡 Warning | Static asset with `max-age=0` — browser revalidates on every request             |
-| `short-cache-static`      | 🟡 Warning | Static asset with `max-age < 3600` — increase TTL for better performance         |
-| `versioned-not-immutable` | 🔵 Info    | Hashed URL without `immutable` — adding it avoids conditional GET requests       |
+| `static-no-store`         | 🔴 Error   | A JS, CSS, font, or image file has `no-store`, these should always be cacheable |
+| `large-no-cache`          | 🔴 Error   | A resource > 100 KB has no cache, significant bandwidth waste per visit         |
+| `versioned-short-cache`   | 🟡 Warning | A hashed URL has `max-age < 86400`, safe to use much longer TTL                 |
+| `expires-without-cc`      | 🟡 Warning | Uses only `Expires` header, outdated, less reliable than `Cache-Control`        |
+| `maxage-zero-static`      | 🟡 Warning | Static asset with `max-age=0`, browser revalidates on every request             |
+| `short-cache-static`      | 🟡 Warning | Static asset with `max-age < 3600`, increase TTL for better performance         |
+| `versioned-not-immutable` | 🔵 Info    | Hashed URL without `immutable`, adding it avoids conditional GET requests       |
 
-### CDN Cache Status
+### CDN cache status
 
 Reads CDN-specific response headers to determine cache hit/miss per resource:
 
@@ -108,13 +108,13 @@ Reads CDN-specific response headers to determine cache hit/miss per resource:
 
 A **CDN hit rate below 70%** usually indicates the CDN cache is cold, the TTL is too short, or cache-busting headers (`Cache-Control: no-store`, `Vary: *`) are preventing caching at the edge.
 
-## Header Analysis Scope and CORS Limitations
+## Header analysis scope and CORS limitations
 
 Header inspection (`Cache-Control`, `Expires`, CDN headers) requires issuing `HEAD` requests via `fetch()`. Two categories of resources are excluded from this analysis and fall back to **Tier 1 heuristics** (Performance API data only):
 
 ### Cross-origin resources
 
-Resources served from a different origin (different scheme, host, or port) than the current page are blocked by CORS unless the server sends `Access-Control-Allow-Origin`. This includes subdomains — `api.web.dev` is cross-origin from `www.web.dev`.
+Resources served from a different origin (different scheme, host, or port) than the current page are blocked by CORS unless the server sends `Access-Control-Allow-Origin`. This includes subdomains, `api.web.dev` is cross-origin from `www.web.dev`.
 
 Those resources appear as **"CORS-restricted"** in the output.
 
@@ -138,7 +138,7 @@ Access-Control-Allow-Origin: *
 Timing-Allow-Origin: *
 ```
 
-## Further Reading
+## Further reading
 
 - [HTTP caching](https://web.dev/articles/http-cache) | web.dev
 - [Prevent unnecessary network requests with the HTTP Cache](https://developer.chrome.com/docs/lighthouse/performance/uses-long-cache-ttl) | Chrome Developers

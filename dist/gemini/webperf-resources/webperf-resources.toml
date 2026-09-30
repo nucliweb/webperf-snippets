@@ -7,7 +7,7 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 
 ## Scripts
 
-- `scripts/Network-Bandwidth-Connection-Quality.js` — Network Bandwidth & Connection Quality
+- `scripts/Network-Bandwidth-Connection-Quality.js` — Network bandwidth & connection quality
 
 
 ## Common Workflows
@@ -186,7 +186,7 @@ Be aware of API limitations and fallbacks:
 ## Snippet Details
 
 ---
-### Network Bandwidth & Connection Quality
+### Network bandwidth & connection quality
 
 Network quality directly affects web performance. Segmenting metrics by connection type helps identify whether performance issues are infrastructure-related or affect only users on slower connections.
 

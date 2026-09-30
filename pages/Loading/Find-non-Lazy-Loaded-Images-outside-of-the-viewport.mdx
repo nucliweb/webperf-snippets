@@ -1,7 +1,8 @@
 import snippet from '../../snippets/Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Find non Lazy Loaded Images outside of the viewport
+# Find non lazy loaded images outside of the viewport
 
 Identifies images that are loaded eagerly but not visible in the initial viewport, representing wasted bandwidth and parsing time that delays page interactivity. The snippet analyzes all `<img>` elements to find optimization opportunities for lazy loading.
 
@@ -14,17 +15,19 @@ Images outside the viewport that load immediately:
 
 This script detects images without `loading="lazy"` or `[data-src]` attributes that are positioned outside the initial viewport, including images in hidden containers (tabs, modals, carousels). It also identifies the LCP candidate to ensure you don't accidentally lazy-load it.
 
-> **Found lazy-loaded images in the viewport?** Use the [Find Above The Fold Lazy Loaded Images](/Loading/Find-Above-The-Fold-Lazy-Loaded-Images) snippet to detect that anti-pattern.
+<Callout type="info">
+**Found lazy-loaded images in the viewport?** Use the [Find Above The Fold Lazy Loaded Images](/Loading/Find-Above-The-Fold-Lazy-Loaded-Images) snippet to detect that anti-pattern.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
 The snippet provides different outputs depending on what it finds:
 
-#### Success Case: All Images Optimized
+#### Success case: All images optimized
 
 If all images outside the viewport already use lazy loading:
 
@@ -34,15 +37,15 @@ If all images outside the viewport already use lazy loading:
 
 This means your page is already optimized and no action is needed.
 
-#### Optimization Opportunities Found
+#### Optimization opportunities found
 
 When images without lazy loading are detected, you'll see organized output with:
 
-**Summary:**
+##### Summary
 - Total count of images that should have lazy loading
 - Potential bandwidth savings on initial load
 
-**Below The Fold Section:**
+##### Below the fold section
 
 Images positioned below the viewport, displayed in a table with:
 
@@ -54,7 +57,7 @@ Images positioned below the viewport, displayed in a table with:
 | `sizeFormatted` | File size from Performance API |
 | `distanceFromViewport` | How far below the viewport |
 
-**Hidden Containers Section:**
+##### Hidden containers section
 
 Images inside tabs, modals, carousels, or other hidden elements:
 
@@ -72,21 +75,21 @@ The snippet detects images in:
 - Non-active carousel slides (`.carousel-item:not(.active)`, `.swiper-slide`)
 - Modals (`.modal:not(.show)`)
 
-**Correctly Excluded Section:**
+##### Correctly excluded section
 
 Shows what was intentionally skipped:
 - **LCP candidate**: The largest viewport image (should never be lazy-loaded)
 - **Other in-viewport images**: Above-the-fold images
 - **Too small**: Images under 50px (likely icons/tracking pixels)
 
-### How Size Detection Works
+### How size detection works
 
 The script uses the **Performance Resource Timing API** to get accurate file sizes:
 
 1. **`transferSize`**: Actual bytes transferred over the network (includes headers)
 2. **`encodedBodySize`**: Compressed response body size (fallback if transferSize unavailable)
 
-**Why this is more reliable than fetch:**
+### Why this is more reliable than fetch
 
 - ✅ No CORS issues (data is already available in the browser)
 - ✅ No additional network requests needed
@@ -95,11 +98,11 @@ The script uses the **Performance Resource Timing API** to get accurate file siz
 
 **Note**: Images must be loaded before running the script for size detection to work. Execute it after page load is complete.
 
-### What to Do With This Information
+### What to do with this information
 
 When the script identifies non-lazy-loaded images:
 
-**1. Add Native Lazy Loading**
+### 1. add native lazy loading
 
 For modern browsers, simply add the `loading` attribute:
 
@@ -107,7 +110,7 @@ For modern browsers, simply add the `loading` attribute:
 <img src="image.jpg" alt="Description" loading="lazy" />
 ```
 
-**2. Prioritize by Impact**
+### 2. prioritize by impact
 
 Focus on images with:
 
@@ -115,7 +118,7 @@ Focus on images with:
 - **Lowest position on page** (least likely to be seen immediately)
 - **High resolution** (more CPU-intensive to decode)
 
-**3. Measure Performance Impact**
+### 3. measure performance impact
 
 Before and after implementing lazy loading:
 
@@ -123,30 +126,30 @@ Before and after implementing lazy loading:
 - Measure **Total Blocking Time (TBT)** - should reduce with fewer images to decode
 - Track **Network usage** - compare total bytes transferred on initial load
 
-### Best Practices
+### Best practices
 
-**When to use lazy loading:**
+### When to use lazy loading
 
 - ✅ Images below the fold (outside initial viewport)
 - ✅ Images in long articles or infinite scroll
 - ✅ Images in carousels (except the first visible slide)
 - ✅ Images in tabs/accordions (hidden content)
 
-**When NOT to use lazy loading:**
+### When NOT to use lazy loading
 
 - ❌ The LCP (Largest Contentful Paint) element
 - ❌ Above-the-fold hero images
 - ❌ Small images that are part of initial UI (`<10KB`)
 - ❌ Images critical for First Contentful Paint
 
-**Important Considerations:**
+### Important considerations
 
 1. **LCP Images**: Never lazy-load your LCP image. This will delay it and hurt Core Web Vitals.
 2. **Layout Shift**: Always specify `width` and `height` attributes to prevent CLS when images load.
 3. **Loading attribute browser support**: `loading="lazy"` has [excellent browser support](https://caniuse.com/loading-lazy-attr) (96%+ globally as of 2024).
 4. **SEO**: Search engines can crawl lazy-loaded images, but ensure proper alt text and semantic markup.
 
-### Example Output Interpretation
+### Example output interpretation
 
 ```
 💡 Lazy Loading Opportunities
@@ -175,7 +178,7 @@ Images in tabs, modals, carousels, or other hidden elements:
 • Too small (<50px): 12
 ```
 
-**What this tells you:**
+### What this tells you
 
 - 42 images should have lazy loading but don't
 - You're wasting **2.35 MB** of bandwidth on initial load

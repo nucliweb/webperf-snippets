@@ -1,20 +1,21 @@
 import snippet from '../../snippets/Interaction/LongTask.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
+import { Callout } from 'nextra/components'
 
-# Long Tasks
-
-### Overview
+# Long tasks
 
 Tracks tasks that block the main thread for more than 50ms. Long tasks prevent the browser from responding to user input, causing poor [Interaction to Next Paint (INP)](https://web.dev/articles/inp) and sluggish user experience.
 
-**Why this matters:**
+### Why this matters
 
 When the main thread is blocked by a long task, the browser cannot respond to clicks, taps, or keyboard input. This creates a frustrating experience where the page feels "frozen". Long tasks are the primary cause of poor INP scores and should be broken up into smaller chunks.
 
-> **Recommendation:** For better debugging, consider using [Long Animation Frames (LoAF)](/Interaction/Long-Animation-Frames) which provides full script attribution and render timing.
+<Callout type="info">
+**Recommendation:** For better debugging, consider using [Long Animation Frames (LoAF)](/Interaction/Long-Animation-Frames) which provides full script attribution and render timing.
+</Callout>
 
-**Long Tasks vs Long Animation Frames:**
+### Long tasks vs long animation frames
 
 | Aspect | Long Tasks | LoAF |
 |--------|------------|------|
@@ -24,12 +25,12 @@ When the main thread is blocked by a long task, the browser cannot respond to cl
 | Forced layout detection | No | Yes |
 | Browser support | Chrome 58+ | Chrome 123+ |
 
-**When to use Long Tasks:**
+### When to use long tasks
 - Broader browser support needed
 - Simple detection of blocking work
 - Legacy monitoring systems
 
-**Severity thresholds:**
+### Severity thresholds
 
 | Severity | Duration | Impact |
 |----------|----------|--------|
@@ -42,9 +43,9 @@ When the main thread is blocked by a long task, the browser cannot respond to cl
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Real-time Output:**
+### Real-time output
 
 Each long task logs:
 - Duration and blocking time (time over 50ms)
@@ -52,7 +53,7 @@ Each long task logs:
 - Attribution (container type, if available)
 - Running session totals
 
-**Summary Function:**
+### Summary function
 
 Call `getLongTaskSummary()` in the console to see:
 
@@ -63,7 +64,7 @@ Call `getLongTaskSummary()` in the console to see:
 | Timeline | Top 10 longest tasks sorted by duration |
 | Recommendations | Optimization suggestions |
 
-### What is Blocking Time?
+### What is blocking time?
 
 Blocking time is the portion of a long task that exceeds 50ms:
 
@@ -74,7 +75,7 @@ Blocking time: 150 - 50 = 100ms
 
 Total Blocking Time (TBT) is a key metric for understanding main thread responsiveness.
 
-**Blocking Time Visualization:**
+### Blocking time visualization
 
 ```mermaid
 flowchart LR
@@ -88,7 +89,7 @@ flowchart LR
     style Block fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
 ```
 
-### Breaking Up Long Tasks
+### Breaking up long tasks
 
 Once a long task is detected, the fix is to _yield to the main thread_ so the browser can handle pending input between chunks of work. A common misconception is that `queueMicrotask` yields, it does not: microtasks run within the same task, so the main thread stays blocked. Only scheduling a new task (for example with `setTimeout`, or the newer `scheduler.yield()`) actually gives the browser a chance to respond.
 
@@ -116,7 +117,7 @@ The Long Tasks API provides limited information:
 
 For full script attribution, use [Long Animation Frames](/Interaction/Long-Animation-Frames).
 
-### Further Reading
+### Further reading
 
 - [Long Tasks API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceLongTaskTiming) | MDN
 - [Are long tasks the main thread is doing?](https://web.dev/articles/optimize-long-tasks) | web.dev

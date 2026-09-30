@@ -1,5 +1,5 @@
 ---
-## Cumulative Layout Shift (CLS)
+## Cumulative layout shift (CLS)
 
 Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the largest burst of unexpected layout shifts.
 
@@ -13,7 +13,7 @@ Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual s
 | 🟡 Needs Improvement | ≤ 0.25 | Noticeable shifting |
 | 🔴 Poor | > 0.25 | Significant layout instability |
 ---
-## Interaction to Next Paint (INP)
+## Interaction to next paint (INP)
 
 Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness. INP evaluates how quickly a page responds to user interactions throughout the entire page visit, replacing First Input Delay (FID) as a Core Web Vital in March 2024.
 
@@ -27,7 +27,7 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
 | 🟡 Needs Improvement | ≤ 500ms | Noticeable delay |
 | 🔴 Poor | > 500ms | Slow, frustrating experience |
 ---
-## LCP Image Entropy
+## LCP image entropy
 
 Checks if images qualify as LCP candidates based on their entropy (bits per pixel). Since Chrome 112, low-entropy images are ignored for LCP measurement.
 
@@ -40,25 +40,25 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
 | < 0.05 | 🔴 Low | ❌ No | Solid colors, simple gradients, placeholders |
 | ≥ 0.05 | 🟢 Normal | ✅ Yes | Photos, complex graphics |
 ---
-## LCP Subparts
+## LCP subparts
 
 Breaks down Largest Contentful Paint into its four phases to identify optimization opportunities. Understanding which phase is slowest helps you focus your optimization efforts where they'll have the most impact. Based on the Web Vitals Chrome Extension.
 
 **Script:** `scripts/LCP-Subparts.js`
 ---
-## LCP Trail
+## LCP trail
 
-Tracks every LCP candidate element during page load and highlights each one with a distinct pastel-colored dashed outline — so you can see the full trail from first candidate to final LCP.
+Tracks every LCP candidate element during page load and highlights each one with a distinct pastel-colored dashed outline, so you can see the full trail from first candidate to final LCP.
 
 **Script:** `scripts/LCP-Trail.js`
 ---
-## LCP Video Candidate
+## LCP video candidate
 
-Detects whether the LCP element is a <video> and audits the poster image configuration — the most common source of avoidable LCP delay when video is the hero element.
+Detects whether the LCP element is a <video> and audits the poster image configuration, the most common source of avoidable LCP delay when video is the hero element.
 
 **Script:** `scripts/LCP-Video-Candidate.js`
 ---
-## Largest Contentful Paint (LCP)
+## Largest contentful paint (LCP)
 
 Quick check for Largest Contentful Paint, a Core Web Vital that measures loading performance. LCP marks when the largest content element becomes visible in the viewport.
 
