@@ -488,7 +488,7 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
 
 #### Compression-Audit
 
-Synchronous. `count` is the number of uncompressed text resources; `items` holds the 50 with the largest estimated savings, while `details` totals the whole set. A cross-origin resource without `Timing-Allow-Origin` reports zero for every size, so it is counted in `sizeUnknownCount` (left out of `items`) and `corsLimitedAnalysis` is `true`. `estimatedSavingsBytes` applies a typical gzip/brotli reduction (70% for JS, CSS, HTML, JSON, SVG and XML; 50% for TTF/OTF), so it is an estimate.
+Synchronous. `count` is the number of uncompressed text resources; `items` holds the 50 with the largest estimated savings, while `details` totals the whole set. A cross-origin resource without `Timing-Allow-Origin` reports zero for every size, so it is counted in `sizeUnknownCount` (left out of `items`) and `corsLimitedAnalysis` is `true`. Resources under 1 KB are counted in `skippedSmallCount`, so the counts add up to `totalTextResources`. `estimatedSavingsBytes` applies a typical gzip/brotli reduction (70% for JS, CSS, HTML, JSON, SVG and XML; 50% for TTF/OTF), so it is an estimate.
 
 ```json
 {
@@ -501,6 +501,7 @@ Synchronous. `count` is the number of uncompressed text resources; `items` holds
     "compressedCount": 4,
     "uncompressedCount": 1,
     "sizeUnknownCount": 1,
+    "skippedSmallCount": 0,
     "totalUncompressedBytes": 61440,
     "estimatedSavingsBytes": 43008,
     "byEncoding": { "br": 3, "gzip": 1, "none": 1 },

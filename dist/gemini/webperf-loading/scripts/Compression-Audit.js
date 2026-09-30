@@ -65,6 +65,7 @@
   const compressed = [];
   const uncompressed = [];
   let sizeUnknownCount = 0;
+  let skippedSmallCount = 0;
   const byEncoding = {};
   candidates.forEach(({entry: entry, url: url, type: type}) => {
     const decoded = entry.decodedBodySize || 0;
@@ -73,7 +74,10 @@
       sizeUnknownCount++;
       return;
     }
-    if (decoded < MIN_BYTES) return;
+    if (decoded < MIN_BYTES) {
+      skippedSmallCount++;
+      return;
+    }
     const encoding = (entry.contentEncoding || "").toLowerCase();
     const isCompressed = encoding ? encoding !== "identity" : encoded < decoded;
     if (isCompressed) {
@@ -124,6 +128,7 @@
       compressedCount: compressed.length,
       uncompressedCount: uncompressed.length,
       sizeUnknownCount: sizeUnknownCount,
+      skippedSmallCount: skippedSmallCount,
       totalUncompressedBytes: totalUncompressedBytes,
       estimatedSavingsBytes: estimatedSavingsBytes,
       byEncoding: byEncoding,

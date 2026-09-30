@@ -3775,6 +3775,7 @@ Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fo
   const compressed = [];
   const uncompressed = [];
   let sizeUnknownCount = 0;
+  let skippedSmallCount = 0;
   const byEncoding = {};
 
   candidates.forEach(({ entry, url, type }) => {
@@ -3786,7 +3787,10 @@ Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fo
       sizeUnknownCount++;
       return;
     }
-    if (decoded < MIN_BYTES) return;
+    if (decoded < MIN_BYTES) {
+      skippedSmallCount++;
+      return;
+    }
 
     const encoding = (entry.contentEncoding || "").toLowerCase();
     // Without contentEncoding (older browsers), a body smaller than its decoded form was compressed
@@ -3870,6 +3874,7 @@ Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fo
       compressedCount: compressed.length,
       uncompressedCount: uncompressed.length,
       sizeUnknownCount,
+      skippedSmallCount,
       totalUncompressedBytes,
       estimatedSavingsBytes,
       byEncoding,

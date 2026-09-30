@@ -30,7 +30,9 @@ The snippet reads `contentEncoding`, `encodedBodySize` and `decodedBodySize` fro
 | `details.estimatedSavingsBytes` | Estimated bytes saved by compressing them all |
 | `items` | Up to 50 uncompressed resources, sorted by estimated savings |
 
-Resources under 1 KB are skipped, because compression saves too little to matter.
+Resources under 1 KB are skipped, because compression saves too little to matter. They are counted in `details.skippedSmallCount`, so `compressedCount + uncompressedCount + sizeUnknownCount + skippedSmallCount` equals `totalTextResources`.
+
+When the browser does not expose `contentEncoding` for a resource but does expose its sizes, the snippet treats it as compressed if its encoded size is smaller than its decoded size, and lists it as `unspecified` in `details.byEncoding`.
 
 ### How the savings are estimated
 

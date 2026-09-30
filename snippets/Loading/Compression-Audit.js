@@ -61,6 +61,7 @@
   const compressed = [];
   const uncompressed = [];
   let sizeUnknownCount = 0;
+  let skippedSmallCount = 0;
   const byEncoding = {};
 
   candidates.forEach(({ entry, url, type }) => {
@@ -72,7 +73,10 @@
       sizeUnknownCount++;
       return;
     }
-    if (decoded < MIN_BYTES) return;
+    if (decoded < MIN_BYTES) {
+      skippedSmallCount++;
+      return;
+    }
 
     const encoding = (entry.contentEncoding || "").toLowerCase();
     // Without contentEncoding (older browsers), a body smaller than its decoded form was compressed
@@ -156,6 +160,7 @@
       compressedCount: compressed.length,
       uncompressedCount: uncompressed.length,
       sizeUnknownCount,
+      skippedSmallCount,
       totalUncompressedBytes,
       estimatedSavingsBytes,
       byEncoding,

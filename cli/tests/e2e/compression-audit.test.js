@@ -110,6 +110,14 @@ describe("Compression-Audit", () => {
     expect(r.items.some((i) => i.url.endsWith("/tiny.js"))).toBe(false);
   }, 30000);
 
+  it("counts the resources it skipped, so every text resource is accounted for", async () => {
+    const r = await run("/mixed");
+    const d = r.details;
+    // tiny.js and the fixture document itself are both under 1 KB
+    expect(d.skippedSmallCount).toBe(2);
+    expect(d.compressedCount + d.uncompressedCount + d.sizeUnknownCount + d.skippedSmallCount).toBe(d.totalTextResources);
+  }, 30000);
+
   it("totals the estimated savings over the whole set", async () => {
     const r = await run("/mixed");
     const sum = r.items.reduce((n, i) => n + i.estimatedSavingsBytes, 0);
