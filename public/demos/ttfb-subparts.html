@@ -83,18 +83,52 @@ button { font: inherit; color: inherit; }
 .tab:hover { color: var(--text); border-color: var(--accent); }
 .tab[aria-pressed="true"] { color: var(--text); background: var(--tab-active-bg); border-color: var(--accent); }
 
-/* Result header */
-.result {
+/* Legend strip (same component as the step demos) */
+.legend {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
+  gap: 6px;
+  padding: 8px 12px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
+  flex-wrap: wrap;
 }
-.ttfb { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 96px; }
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid var(--lg);
+  color: var(--lg);
+  background: color-mix(in srgb, var(--lg) 12%, transparent);
+}
+
+/* Frame with a title bar (same component as the step demos) */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Result line inside the frame */
+.result { display: flex; align-items: center; gap: 12px; }
+.ttfb { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 96px; line-height: 1.1; }
 .ttfb small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 3px; }
 .badge {
   font-size: 11px;
@@ -106,20 +140,41 @@ button { font: inherit; color: inherit; }
 .badge.good { color: var(--c-good); }
 .badge.mid { color: var(--c-mid); }
 .badge.poor { color: var(--c-poor); }
-.story { color: var(--muted); font-size: 12px; flex: 1 1 260px; }
-.play {
-  padding: 6px 14px;
+
+/* Controls (same buttons as the step demos) */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
   border-radius: 6px;
-  border: 1px solid var(--accent);
-  background: var(--tab-active-bg);
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 12px;
+  transition: opacity .15s;
 }
-.play:hover { filter: brightness(1.1); }
+.btn-next { background: #1f6feb; color: #fff; }
+.btn-next:hover { background: #388bfd; }
+.tab:focus-visible, .btn:focus-visible, .phase:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explanation box (same component as the step demos), accent follows the rating */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl.t-ok { border-left-color: var(--c-good); }
+.expl.t-warn { border-left-color: var(--c-mid); }
+.expl.t-block { border-left-color: var(--c-poor); }
+.expl strong { color: var(--text); }
 
 /* Timeline */
-.timeline-wrap { padding: 4px 2px 0; }
 .timeline {
   position: relative;
   height: 46px;
@@ -194,25 +249,35 @@ button { font: inherit; color: inherit; }
   .p-cause { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .seg { transition: none; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
 }
 </style>
 </head>
 <body>
 
+<div class="legend" id="legend"><span class="legend-label">Sub-parts</span></div>
+
 <div class="tabs" id="tabs" role="group" aria-label="Scenario"></div>
 
-<div class="result" aria-live="polite">
-  <div class="ttfb" id="ttfb">0<small>ms</small></div>
-  <span class="badge good" id="badge">Good</span>
-  <p class="story" id="story"></p>
-  <button class="play" id="play" type="button">Replay</button>
+<div class="frame">
+  <div class="frame-label">Navigation timeline, 0 to 2000 ms</div>
+  <div class="frame-body">
+    <div class="result">
+      <div class="ttfb" id="ttfb" aria-hidden="true">0<small>ms</small></div>
+      <span class="badge good" id="badge">Good</span>
+    </div>
+    <div class="timeline-wrap">
+      <div class="timeline" id="timeline" aria-hidden="true"><div class="cursor" id="cursor"></div></div>
+      <div class="axis" id="axis" aria-hidden="true"></div>
+    </div>
+  </div>
 </div>
 
-<div class="timeline-wrap">
-  <div class="timeline" id="timeline" aria-hidden="true"><div class="cursor" id="cursor"></div></div>
-  <div class="axis" id="axis" aria-hidden="true"></div>
+<div class="controls">
+  <button class="btn btn-next" id="play" type="button">Replay</button>
 </div>
+
+<div class="expl t-ok" id="story" aria-live="polite"></div>
 
 <div class="phases" id="phases" role="group" aria-label="TTFB sub-parts"></div>
 <p class="note">Select a sub-part to highlight it on the timeline. The scale is the same in every scenario (0 to 2000 ms), so the bars are comparable.</p>
@@ -261,7 +326,7 @@ const SCENARIOS = [
 
 const $ = (id) => document.getElementById(id);
 const tabsEl = $("tabs"), phasesEl = $("phases"), timelineEl = $("timeline");
-const cursorEl = $("cursor"), ttfbEl = $("ttfb"), badgeEl = $("badge"), storyEl = $("story");
+const cursorEl = $("cursor"), ttfbEl = $("ttfb"), badgeEl = $("badge"), storyEl = $("story"), legendEl = $("legend");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 let current = SCENARIOS[0];
@@ -278,6 +343,14 @@ function rating(ms) {
 }
 
 /* One-time DOM */
+PHASES.forEach((p) => {
+  const pill = document.createElement("span");
+  pill.className = "lg";
+  pill.style.setProperty("--lg", `var(${p.color})`);
+  pill.textContent = p.name;
+  legendEl.appendChild(pill);
+});
+
 SCENARIOS.forEach((s) => {
   const b = document.createElement("button");
   b.type = "button";
@@ -378,7 +451,9 @@ function selectScenario(s) {
   current = s;
   selected = null;
   tabsEl.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === s.id)));
-  storyEl.textContent = s.story;
+  const end = total(s), r = rating(end);
+  storyEl.className = "expl " + (r.cls === "good" ? "t-ok" : r.cls === "mid" ? "t-warn" : "t-block");
+  storyEl.innerHTML = `<strong>${end} ms, ${r.text.toLowerCase()}.</strong> ${s.story}`;
   layout();
   paintSelection();
   play();

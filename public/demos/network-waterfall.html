@@ -65,36 +65,22 @@ body {
 .chooser-hint { color: var(--muted); font-weight: 500; }
 .chooser-arrow { color: var(--c-dl-fg); font-weight: 700; }
 
-.tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab {
-  position: relative;
-  padding: 9px 16px;
-  border-radius: 8px;
+  padding: 7px 14px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
-  color: var(--text);
+  color: var(--muted);
   cursor: pointer;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
-  box-shadow: 0 1px 2px rgba(0,0,0,.2);
-  transition: border-color .15s, background .15s, transform .12s, box-shadow .15s;
+  transition: border-color .15s, color .15s, background .15s;
 }
-.tab:hover {
-  border-color: var(--c-dl);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0,0,0,.28);
-}
-.tab:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.tab:hover { color: var(--text); border-color: var(--c-dl); }
 .tab:focus-visible { outline: 2px solid var(--c-dl); outline-offset: 2px; }
-.tab.active {
-  background: var(--tab-active-bg);
-  border-color: var(--c-dl);
-  box-shadow: 0 0 0 1px var(--c-dl), 0 1px 2px rgba(0,0,0,.2);
-}
-[data-theme="light"] .tab { box-shadow: 0 1px 2px rgba(31,35,40,.1); }
-[data-theme="light"] .tab:hover { box-shadow: 0 3px 8px rgba(31,35,40,.14); }
-[data-theme="light"] .tab.active { box-shadow: 0 0 0 1px var(--c-dl), 0 1px 2px rgba(31,35,40,.1); }
+.tab.active { color: var(--text); background: var(--tab-active-bg); border-color: var(--c-dl); }
 
 /* ── Stats ─────────────────────────────────── */
 .stats { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -286,6 +272,11 @@ body {
   padding: 1px 6px; border-radius: 3px;
   vertical-align: middle;
 }
+
+/* ── Reduced motion ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
 </style>
 </head>
 <body>
@@ -345,7 +336,7 @@ body {
 <div class="callout" id="callout"></div>
 
 <!-- Steps -->
-<div class="steps-wrap" id="stepsWrap">
+<div class="steps-wrap" id="stepsWrap" aria-live="polite">
   <div class="steps-title">What the browser does under the hood</div>
   <ol class="steps" id="steps"></ol>
 </div>
