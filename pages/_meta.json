@@ -2,6 +2,9 @@
   "index": {
     "title": "Introduction"
   },
+  "which-snippet": {
+    "title": "Which snippet should I use?"
+  },
   "CoreWebVitals": {
     "title": "Core Web Vitals"
   },

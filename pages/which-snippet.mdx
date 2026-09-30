@@ -1,0 +1,74 @@
+---
+type: guide
+---
+
+# Which snippet should I use?
+
+Start from the symptom you see, not from the snippet name. Each table lists the snippet to run first and what to run next depending on what it shows. The same decision trees drive the [agent skills](/#ai-agent-skills), so an agent follows the same path.
+
+If you are not sure where to start, run [LCP](/CoreWebVitals/LCP), [CLS](/CoreWebVitals/CLS) and [INP](/CoreWebVitals/INP). They tell you which of the sections below applies.
+
+## Core Web Vitals are failing
+
+| Symptom | Start with | Then |
+|---------|------------|------|
+| Largest Contentful Paint is slow | [LCP](/CoreWebVitals/LCP) | [LCP subparts](/CoreWebVitals/LCP-Subparts) to find the slow phase, then [LCP trail](/CoreWebVitals/LCP-Trail) to see how the candidate changes |
+| The LCP element is an image | [LCP](/CoreWebVitals/LCP) | [Image element audit](/Media/Image-Element-Audit), [LCP image entropy](/CoreWebVitals/LCP-Image-Entropy) and [priority hints audit](/Loading/Priority-Hints-Audit) |
+| The LCP element is a video | [LCP video candidate](/CoreWebVitals/LCP-Video-Candidate) | [Video element audit](/Media/Video-Element-Audit) |
+| Layout shifts during load | [CLS](/CoreWebVitals/CLS) | [Layout shifts during loading and interaction](/Interaction/Layout-Shift-Loading-and-Interaction), [Find above-the-fold lazy-loaded images](/Loading/Find-Above-The-Fold-Lazy-Loaded-Images) and [Fonts preloaded, loaded and used above the fold](/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold) |
+| Slow interactions | [INP](/CoreWebVitals/INP) | [Interactions](/Interaction/Interactions), then [Input latency breakdown](/Interaction/Input-Latency-Breakdown) |
+
+## The page loads slowly
+
+| Symptom | Start with | Then |
+|---------|------------|------|
+| The server responds late | [TTFB](/Loading/TTFB) | [Server-Timing and Early Hints](/Loading/Server-Timing-Early-Hints) to see which backend phase is slow, and [Service worker analysis](/Loading/Service-Worker-Analysis) if a service worker is involved |
+| Nothing shows for a long time | [FCP](/Loading/FCP) | [Find render-blocking resources](/Loading/Find-render-blocking-resources), then [Critical CSS detection](/Loading/Critical-CSS-Detection) |
+| Scripts block rendering | [Script loading](/Loading/Script-Loading) | [Validate preload, async and defer scripts](/Loading/Validate-Preload-Async-Defer-Scripts) and [JS execution time breakdown](/Loading/JS-Execution-Time-Breakdown) |
+| Third-party scripts are suspected | [Third-party impact by domain](/Loading/Third-Party-Impact-by-Domain) | [First and third-party script info](/Loading/First-And-Third-Party-Script-Info) and [First and third-party script timings](/Loading/First-And-Third-Party-Script-Timings) |
+| Text files are sent uncompressed | [Compression audit](/Loading/Compression-Audit) | [Find render-blocking resources](/Loading/Find-render-blocking-resources) to see whether they also block rendering |
+| Inlined CSS or scripts are heavy | [Inline CSS info and size](/Loading/Inline-CSS-Info-and-Size) | [Inline script info and size](/Loading/Inline-Script-Info-and-Size) |
+| Long pages take a long time to render | [Content visibility](/Loading/Content-Visibility) | [DOM size and depth](/Interaction/DOM-Size-and-Depth) |
+| Fonts load late or shift the layout | [Fonts preloaded, loaded and used above the fold](/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold) | [Webfont usage analyzer](/Loading/Webfont-Usage-Analyzer) for faces that load but are never used |
+| Resource hints look wrong | [Resource hints validation](/Loading/Resource-Hints-Validation) | [Priority hints audit](/Loading/Priority-Hints-Audit) and [Prefetch resource validation](/Loading/Prefetch-Resource-Validation) |
+| The site is built with a JavaScript framework | [SSR hydration data analysis](/Loading/SSR-Hydration-Data-Analysis) | [JS execution time breakdown](/Loading/JS-Execution-Time-Breakdown) |
+| Repeat visits are not fast | [Cache strategy analysis](/Loading/Cache-Strategy-Analysis) | [Service worker analysis](/Loading/Service-Worker-Analysis) |
+
+## Navigation is not instant
+
+| Symptom | Start with | Then |
+|---------|------------|------|
+| Back and forward reload the page | [Back-forward cache](/Loading/Back-Forward-Cache) | Fix the reasons it lists |
+| The page redirects before it renders | [Client-side redirect detection](/Loading/Client-Side-Redirect-Detection) | [TTFB](/Loading/TTFB) |
+| Next pages should feel instant | [Speculation rules inspector](/Loading/Speculation-Rules-Inspector) | [Prefetch resource validation](/Loading/Prefetch-Resource-Validation) |
+
+## The page feels janky or frozen
+
+| Symptom | Start with | Then |
+|---------|------------|------|
+| Choppy scrolling | [Scroll performance](/Interaction/Scroll-Performance) | [Long animation frames](/Interaction/Long-Animation-Frames) |
+| The page freezes | [Long tasks](/Interaction/LongTask) | [Long animation frames](/Interaction/Long-Animation-Frames), then [Long animation frames script attribution](/Interaction/Long-Animation-Frames-Script-Attribution) to name the scripts |
+| Each interaction repeats expensive layout work | [Forced synchronous layout](/Interaction/Forced-Synchronous-Layout) | [DOM size and depth](/Interaction/DOM-Size-and-Depth) |
+| Content moves when the user clicks | [Layout shifts during loading and interaction](/Interaction/Layout-Shift-Loading-and-Interaction) | [Interactions](/Interaction/Interactions) |
+| Animations stutter | [Long animation frames](/Interaction/Long-Animation-Frames) | [Long animation frames helpers](/Interaction/Long-Animation-Frames-Helpers) |
+
+## Images, video and SVG are heavy
+
+| Symptom | Start with | Then |
+|---------|------------|------|
+| Images are too big or blurry | [Oversized images](/Media/Oversized-Images) | [Image element audit](/Media/Image-Element-Audit) |
+| Above-the-fold images are lazy-loaded | [Find above-the-fold lazy-loaded images](/Loading/Find-Above-The-Fold-Lazy-Loaded-Images) | [Priority hints audit](/Loading/Priority-Hints-Audit) |
+| Offscreen images load eagerly | [Find non-lazy-loaded images outside of the viewport](/Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport) | [Image element audit](/Media/Image-Element-Audit) |
+| Images combine `loading="lazy"` with `fetchpriority="high"` | [Find images with lazy and fetchpriority](/Loading/Find-Images-With-Lazy-and-Fetchpriority) | [Priority hints audit](/Loading/Priority-Hints-Audit) |
+| Videos are slow to start | [Video element audit](/Media/Video-Element-Audit) | [LCP video candidate](/CoreWebVitals/LCP-Video-Candidate) |
+| SVG files are large | [SVG embedded bitmap analysis](/Media/SVG-Embedded-Bitmap-Analysis) | Optimize the file, for example with SVGO |
+
+## Some users have slow connections
+
+| Symptom | Start with | Then |
+|---------|------------|------|
+| Users on mobile or slow networks struggle | [Network bandwidth and connection quality](/Resources/Network-Bandwidth-Connection-Quality) | [Oversized images](/Media/Oversized-Images) and [Compression audit](/Loading/Compression-Audit) |
+
+## Running the snippets
+
+Paste any snippet into the DevTools console, or save it as a DevTools snippet, as described in [How to use](/#how-to-use). To run them from a terminal or in CI, use the [CLI](/CLI). To read the result of a snippet as a report, paste its returned object in the [visualizer](/visualizer).
