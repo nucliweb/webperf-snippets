@@ -1,0 +1,77 @@
+import snippet from '../../snippets/Loading/Webfont-Usage-Analyzer.js?raw'
+import { Snippet } from '../../components/Snippet'
+
+# Webfont usage analyzer
+
+Cross-checks every font face the page knows about against the text that renders, and reports which faces are used, which downloaded for nothing, and which never loaded. Each unused font file is bytes the visitor pays for and, when the file is on the critical path, delay before text appears.
+
+It complements [Fonts Preloaded, Loaded, and Used Above The Fold](/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold), which compares preload hints with above-the-fold usage. This snippet looks at the whole page and at the `@font-face` declarations themselves.
+
+The snippet reports:
+
+- Faces in `document.fonts` that loaded but no rendered element uses
+- Faces declared but never loaded, told apart from `unicode-range` subsets the page did not need
+- `font-display` of every face
+- The size of each font file and the total, when the browser exposes it
+
+### Snippet
+
+<Snippet code={snippet} />
+
+### Understanding the results
+
+Every face in `document.fonts` is one item, with its family, weight, style, `font-display`, `unicode-range`, load status, whether text uses it, and the encoded size of its file.
+
+#### How usage is decided
+
+The snippet reads the computed `font-family`, `font-weight` and `font-style` of every visible element with text, and of its `::before` and `::after` content, so icon fonts that only render through pseudo-elements count as used. A face is used when:
+
+- Its family appears in the font stack of some text
+- The text has a character inside the face's `unicode-range`
+- It is the closest match in weight and style, since the browser picks the nearest weight when the exact one is missing
+
+Usage is a snapshot of the current DOM. Text that appears after a click, a route change or a scroll is not counted until it renders, so run the snippet again after those states.
+
+#### Loaded but not used
+
+The browser downloaded the file, yet nothing on the page renders with it. Common causes are a weight or style that no longer appears in the design, a font stack left over from a previous design, and `document.fonts.load()` or `<link rel="preload">` calls for fonts the page does not use. Remove the declaration or the preload, or, when the face serves content that appears later, load it on demand.
+
+#### Declared but never loaded
+
+Browsers download a face only when text needs it, so an unloaded face costs nothing at runtime. The report separates two cases:
+
+- A `unicode-range` subset that the page had no characters for. This is how a split font is meant to behave, for example a Cyrillic subset on a Latin page.
+- A whole face with no `unicode-range` that nothing used. It is dead CSS that is safe to remove.
+
+#### font-display
+
+| Value | Behavior while the font loads |
+|-------|-------------------------------|
+| `swap` | Shows fallback text at once, then swaps |
+| `optional` | Shows fallback text and uses the font only if it is already available |
+| `fallback` | Short invisible period, then fallback text, with a limited swap window |
+| `auto`, `block` | Text stays invisible until the font loads, up to three seconds |
+
+Faces that load with `auto` or `block` raise a warning, because they can delay text rendering and hurt LCP when the text is the LCP element.
+
+#### Font bytes
+
+`details.totalFontBytes` sums the encoded size of the font files in Resource Timing. Cross-origin files that do not send `Timing-Allow-Origin` report a size of 0, so `details.bytesReadable` is `false`, `corsLimitedAnalysis` is `true` and the total is a lower bound. Resource Timing keeps a limited buffer, so on pages with many requests some font entries may be missing.
+
+The snippet reads the font URLs from the stylesheets' `@font-face` rules. Cross-origin stylesheets without CORS cannot be read, and their font files are counted in the total but not attributed to a face.
+
+#### Returned data
+
+The snippet returns an object with `count` (faces), `items` (at most 50, problems first, with `unicode-range` values over 60 characters shortened), `issues`, and `details` with the counts, byte totals, `font-display` distribution and per-family `unicode-range` coverage (`unicodeRangeFamilies`).
+
+### Attribution
+
+Based on the idea and original script by [Paul Calvano](https://github.com/paulcalvano/webfont-usage-analyzer).
+
+### Further reading
+
+- [Best practices for fonts](https://web.dev/articles/font-best-practices) | web.dev
+- [Optimize web fonts](https://web.dev/learn/performance/optimize-web-fonts) | web.dev
+- [font-display](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display) | MDN
+- [unicode-range](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/unicode-range) | MDN
+- [CSS Font Loading API](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Font_Loading_API) | MDN

@@ -56,6 +56,9 @@
   "Fonts-Preloaded-Loaded-and-used-above-the-fold": {
     "title": "Fonts Preloaded, Loaded, and Used Above The Fold"
   },
+  "Webfont-Usage-Analyzer": {
+    "title": "Webfont Usage Analyzer"
+  },
   "Content-Visibility": {
     "title": "Content Visibility"
   },

@@ -212,3 +212,9 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 ## Validate Preload Async Defer Scripts
 
 **Script:** `scripts/Validate-Preload-Async-Defer-Scripts.js`
+---
+## Webfont usage analyzer
+
+Cross-checks every font face the page knows about against the text that renders, and reports which faces are used, which downloaded for nothing, and which never loaded. Each unused font file is bytes the visitor pays for and, when the file is on the critical path, delay before text appears.
+
+**Script:** `scripts/Webfont-Usage-Analyzer.js`

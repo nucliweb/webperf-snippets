@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Webfonts fixture</title>
+  <style>
+    @font-face { font-family: "Used Sans"; src: url("/font.woff2?used") format("woff2"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Loaded Only"; src: url("/font.woff2?loaded") format("woff2"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Never Used"; src: url("/font.woff2?never") format("woff2"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Split"; src: url("/font.woff2?latin") format("woff2"); font-weight: 400; font-display: swap; unicode-range: U+0000-00FF; }
+    @font-face { font-family: "Split"; src: url("/font.woff2?cyrillic") format("woff2"); font-weight: 400; font-display: swap; unicode-range: U+0400-04FF; }
+    @font-face { font-family: "Auto Display"; src: url("/font.woff2?auto") format("woff2"); font-weight: 700; }
+    @font-face { font-family: "Icons"; src: url("/font.woff2?icons") format("woff2"); font-display: block; }
+    .icon::before { content: "\e900"; font-family: "Icons"; }
+    body { margin: 0; font-family: sans-serif; }
+    h1 { font-family: "Used Sans", sans-serif; }
+    h2 { font-family: "Split", sans-serif; }
+    strong { font-family: "Auto Display", sans-serif; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Used text</h1>
+  <h2>Latin only text</h2>
+  <span class="icon"></span>
+  <p><strong>Bold text</strong></p>
+  <script>document.fonts.load('16px "Loaded Only"');</script>
+</body>
+</html>
