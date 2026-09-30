@@ -43,6 +43,7 @@ beforeAll(async () => {
         return html(`<script src="${tp}/blocking.js?ms=180"></script><script src="${tp}/blocking.js?ms=180&n=2"></script>`);
       }
       if (path === "/first-party") return html(`<script src="/own.js"></script>`);
+      if (path === "/hidden-only") return html(`<script src="${hidden}/pixel.js" async></script>`);
       if (path === "/async-only") return html(`<script src="${tp}/quiet.js" async></script>`);
       res.writeHead(200, { "Content-Type": "application/javascript" });
       return res.end("window.__own = 1;");
@@ -88,7 +89,38 @@ async function run(route, { withoutLoaf = false } = {}) {
   }
 }
 
+async function summaryLine(route) {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const lines = [];
+    page.on("console", (m) => lines.push(m.text()));
+    await page.goto(`${pageBase}${route}`, { waitUntil: "load" });
+    await page.waitForTimeout(500);
+    await page.evaluate(asExpression("Loading/Third-Party-Impact-by-Domain"));
+    return lines.find((l) => l.startsWith("Third-party domains:")) || "";
+  } finally {
+    await browser.close();
+  }
+}
+
 describe("Third-Party-Impact-by-Domain", () => {
+  it("shows the transfer total as a lower bound when some sizes are hidden", async () => {
+    expect(await summaryLine("/")).toMatch(/transfer: ≥ \d/);
+  }, 30000);
+
+  it("shows the transfer total as unknown, not 0 B, when every size is hidden", async () => {
+    const line = await summaryLine("/hidden-only");
+    expect(line).toMatch(/transfer: unknown/);
+    expect(line).not.toMatch(/0 B/);
+  }, 30000);
+
+  it("shows the plain transfer total when every size is known", async () => {
+    const line = await summaryLine("/async-only");
+    expect(line).toMatch(/transfer: \d/);
+    expect(line).not.toMatch(/≥|unknown/);
+  }, 30000);
+
   it("groups third-party requests by root domain and leaves out first party", async () => {
     const r = await run("/");
     expect(r.script).toBe("Third-Party-Impact-by-Domain");

@@ -17,6 +17,12 @@
   }
   // @end-shared formatBytes
 
+  // A size that misses some resources is a lower bound, and one that misses all of them is unknown
+  const sizeLabel = (bytes, unknown, total) => {
+    if (total > 0 && unknown === total) return "unknown";
+    return (unknown > 0 ? "≥ " : "") + formatBytes(bytes);
+  };
+
   // @shared getRootDomain
   function getRootDomain(hostname) {
     const host = hostname.replace(/\.$/, "");
@@ -153,14 +159,14 @@
 
   console.group("%c🌐 Third-Party Impact by Domain", "font-weight: bold; font-size: 14px;");
   console.log(
-    `Third-party domains: ${all.length} | requests: ${thirdPartyRequests} | transfer: ${formatBytes(thirdPartyBytes)} | first-party requests: ${firstPartyRequests}`
+    `Third-party domains: ${all.length} | requests: ${thirdPartyRequests} | transfer: ${sizeLabel(thirdPartyBytes, sizeUnknownCount, thirdPartyRequests)} | first-party requests: ${firstPartyRequests}`
   );
   if (all.length > 0) {
     console.table(
       all.slice(0, MAX_ITEMS).map((d) => ({
         Domain: d.domain,
         Requests: d.requests,
-        Size: d.sizeUnknownCount === d.requests ? "unknown" : formatBytes(d.transferBytes),
+        Size: sizeLabel(d.transferBytes, d.sizeUnknownCount, d.requests),
         "Render-blocking": d.renderBlocking ? "yes" : "no",
         "Main thread": d.loafMs === null ? "n/a" : d.loafMs + " ms",
       }))
