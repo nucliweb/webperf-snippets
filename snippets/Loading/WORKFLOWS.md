@@ -28,6 +28,7 @@ When the user asks about fonts, FOIT, FOUT, or font performance:
 1. **Fonts-Preloaded-Loaded-and-used-above-the-fold.js** - Full font audit
 2. **Resource-Hints-Validation.js** - Verify font preloads are correct
 3. **Find-render-blocking-resources.js** - Check if fonts block rendering
+4. **Webfont-Usage-Analyzer.js** - Find font faces that are unused, never loaded, or use a blocking `font-display`
 
 ### Text Compression Audit
 
@@ -142,7 +143,14 @@ Use this decision tree to automatically run follow-up snippets based on results:
 
 - **If fonts preloaded but not used above-the-fold** → Recommend removing preloads
 - **If fonts used but not preloaded** → Recommend adding preload
-- **If many font variants loaded** → Suggest subsetting or reducing variants
+- **If many font variants loaded** → Suggest subsetting or reducing variants, and run **Webfont-Usage-Analyzer.js** to find the unused ones
+
+### After Webfont-Usage-Analyzer.js
+
+- **If fonts loaded but not used** → Recommend removing the `@font-face` declaration or the preload
+- **If faces use `font-display: auto` or `block`** → Recommend `swap` or `optional`, then check **Find-render-blocking-resources.js**
+- **If font bytes are high** → Suggest subsetting with `unicode-range` and WOFF2
+- **If the LCP element is text** → Run **LCP.js** with the **webperf-core-web-vitals** skill
 
 ### After First-And-Third-Party-Script-Info.js
 

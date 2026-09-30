@@ -123,6 +123,9 @@
 - [Validate preload on async/defer scripts](https://webperf-snippets.nucliweb.net/Loading/Validate-Preload-Async-Defer-Scripts)
   Detects preload resource hints for scripts that use `async` or `defer` attributes. This is an anti-pattern that wastes bandwidth and can hurt performance by artificially elevating the priority of resources that should load at lower priority.
 
+- [Webfont usage analyzer](https://webperf-snippets.nucliweb.net/Loading/Webfont-Usage-Analyzer)
+  Cross-checks every font face the page knows about against the text that renders, and reports which faces are used, which downloaded for nothing, and which never loaded. Each unused font file is bytes the visitor pays for and, when the file is on the critical path, delay before text appears. It complements Fonts Preloaded, Loaded, and Used Above The Fold, which compares preload hints with above-the-fold usage. This snippet looks at the whole page and at the `@font-face` declarations themselves. The snippet reports: - Faces in `document.fonts` that loaded but no rendered element uses - Faces declared but never loaded, told apart from `unicode-range` subsets the page did not need - `font-display` of every face - The size of each font file and the total, when the browser exposes it
+
 ## Interaction
 
 - [Forced synchronous layout detector](https://webperf-snippets.nucliweb.net/Interaction/Forced-Synchronous-Layout)
