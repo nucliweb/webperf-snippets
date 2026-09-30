@@ -120,6 +120,9 @@
 - [Time to first byte](https://webperf-snippets.nucliweb.net/Loading/TTFB)
   Time to First Byte (TTFB) measures the time from when the user starts navigating to a page until the first byte of the HTML response is received. It's a critical metric that reflects server responsiveness and network latency. - Redirect time - Service worker startup time (if applicable) - DNS lookup - TCP connection and TLS negotiation - Request time until the first byte of the response arrives
 
+- [Third-party impact by domain](https://webperf-snippets.nucliweb.net/Loading/Third-Party-Impact-by-Domain)
+  Groups every third-party request by root domain and reports, per domain, the request count, the transfer size, whether any of its requests blocks rendering, and the main-thread time its scripts take inside long animation frames. It answers which third party to fix first. A page rarely suffers from third parties as a group. A few domains usually cause most of the damage: one tag manager that blocks rendering, one widget that runs 300 ms of script. Ranking domains by impact turns a long list of requests into a short list of decisions: remove, defer, self-host or replace.
+
 - [Validate preload on async/defer scripts](https://webperf-snippets.nucliweb.net/Loading/Validate-Preload-Async-Defer-Scripts)
   Detects preload resource hints for scripts that use `async` or `defer` attributes. This is an anti-pattern that wastes bandwidth and can hurt performance by artificially elevating the priority of resources that should load at lower priority.
 

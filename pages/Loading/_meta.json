@@ -94,5 +94,8 @@
   },
   "Speculation-Rules-Inspector": {
     "title": "Speculation Rules Inspector"
+  },
+  "Third-Party-Impact-by-Domain": {
+    "title": "Third-Party Impact by Domain"
   }
 }

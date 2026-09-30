@@ -48,6 +48,7 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 - `scripts/TTFB-Resources.js` — Time to first byte: Measure TTFB for all resources
 - `scripts/TTFB-Sub-Parts.js` — Time to first byte: Measure TTFB sub-parts
 - `scripts/TTFB.js` — Time to first byte: Measure the time to first byte
+- `scripts/Third-Party-Impact-by-Domain.js` — Third-party impact by domain
 - `scripts/Validate-Preload-Async-Defer-Scripts.js` — Validate Preload Async Defer Scripts
 - `scripts/Webfont-Usage-Analyzer.js` — Webfont usage analyzer
 
@@ -98,6 +99,7 @@ When scripts are suspected to slow down the page:
 
 1. **Script-Loading.js** - Identify blocking scripts and loading strategy
 2. **First-And-Third-Party-Script-Info.js** - Separate first vs third-party impact
+   - **Third-Party-Impact-by-Domain.js** - Rank third-party domains by render-blocking, main-thread time and size
 3. **First-And-Third-Party-Script-Timings.js** - Diagnose slow script connections
 4. **JS-Execution-Time-Breakdown.js** - Network vs parse/execution time
 5. **Inline-Script-Info-and-Size.js** - Measure inline script overhead
@@ -186,6 +188,13 @@ Use this decision tree to automatically run follow-up snippets based on results:
 - **If uncompressed CSS/JS found** → Run **Find-render-blocking-resources.js** to see if they block rendering
 - **If estimated savings > 100KB** → Recommend enabling gzip or brotli on the server or CDN
 - **If corsLimitedAnalysis is true** → Report the result as a lower bound and suggest `Timing-Allow-Origin` on resources you control
+
+### After Third-Party-Impact-by-Domain.js
+
+- **If a domain is render-blocking** → Recommend `async`, `defer`, lazy loading or self-hosting; run **Script-Loading.js** for the loading strategy
+- **If a domain's main-thread time > 250ms** → Run **Long-Animation-Frames-Script-Attribution.js** (webperf-interaction) to find the functions responsible, and recommend delaying or removing the script
+- **If many domains with few requests each** → Recommend auditing tags and removing unused ones
+- **If corsLimitedAnalysis is true** → Report sizes as a lower bound; use **First-And-Third-Party-Script-Timings.js** for timings of the hidden resources
 
 ### After Service-Worker-Analysis.js
 
