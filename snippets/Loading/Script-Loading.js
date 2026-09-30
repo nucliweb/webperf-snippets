@@ -313,6 +313,14 @@
 
   const agentRating = blockingInHead.length === 0 ? "good" :
     (blockingInHead.length <= 2 && thirdPartyBlocking.length === 0) ? "needs-improvement" : "poor";
+  // The list keeps the 50 scripts to look at first (render-blocking, then third-party, then the largest); count and details cover all of them
+  const MAX_ITEMS = 50;
+  const rankedScripts = [...scripts].sort(
+    (a, b) =>
+      Number(b.isBlocking) - Number(a.isBlocking) ||
+      Number(a.firstParty) - Number(b.firstParty) ||
+      b.size - a.size
+  );
   return {
     script: "Script-Loading",
     status: "ok",
@@ -333,7 +341,7 @@
       },
       thirdPartyBlockingCount: thirdPartyBlocking.length,
     },
-    items: scripts.map((s) => ({
+    items: rankedScripts.slice(0, MAX_ITEMS).map((s) => ({
       url: s.src,
       shortName: s.shortSrc,
       strategy: s.strategy,

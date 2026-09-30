@@ -128,6 +128,8 @@
     severity: "error",
     message: "Current LCP image has low entropy and may be skipped by Chrome"
   });
+  const MAX_ITEMS = 50;
+  const rankedImages = [ ...imagesSync ].sort((a, b) => Number(b.isLCP) - Number(a.isLCP) || Number(b.isLowEntropy) - Number(a.isLowEntropy) || a.bpp - b.bpp);
   return {
     script: "LCP-Image-Entropy",
     status: "ok",
@@ -142,7 +144,7 @@
         isLowEntropy: lcpImageSync.isLowEntropy
       } : null
     },
-    items: imagesSync,
+    items: rankedImages.slice(0, MAX_ITEMS),
     issues: issuesSync
   };
 })();

@@ -307,6 +307,11 @@
 
   console.groupEnd();
 
+  // The list keeps the 50 largest executable scripts, parser-blocking ones first; count and details cover all of them
+  const MAX_ITEMS = 50;
+  const rankedScripts = [...executableScripts].sort(
+    (a, b) => Number(b.isParserBlocking) - Number(a.isParserBlocking) || b.size - a.size
+  );
   return {
     script: "Inline-Script-Info-and-Size",
     status: "ok",
@@ -319,7 +324,7 @@
       parserBlockingCount: parserBlockingScripts.length,
       parserBlockingInHeadCount: parserBlockingInHead.length,
     },
-    items: executableScripts.map(s => ({ index: s.index, sizeBytes: s.size, category: s.category, inHead: s.inHead, isParserBlocking: s.isParserBlocking, isAnalytics: s.isAnalytics, isConfig: s.isConfig })),
+    items: rankedScripts.slice(0, MAX_ITEMS).map(s => ({ index: s.index, sizeBytes: s.size, category: s.category, inHead: s.inHead, isParserBlocking: s.isParserBlocking, isAnalytics: s.isAnalytics, isConfig: s.isConfig })),
     issues: issues.map(i => ({ severity: i.type === "blocking" ? "error" : "warning", message: i.message })),
   };
 })();

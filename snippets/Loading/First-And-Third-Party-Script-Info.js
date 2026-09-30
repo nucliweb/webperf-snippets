@@ -224,6 +224,14 @@
 
   console.groupEnd();
 
+  // The list keeps the 50 scripts to look at first (render-blocking, then third-party, then the largest); count and details cover all of them
+  const MAX_ITEMS = 50;
+  const rankedScripts = [...scripts].sort(
+    (a, b) =>
+      Number(b.renderBlocking) - Number(a.renderBlocking) ||
+      Number(a.firstParty) - Number(b.firstParty) ||
+      b.transferSize - a.transferSize
+  );
   return {
     script: "First-And-Third-Party-Script-Info",
     status: "ok",
@@ -238,7 +246,7 @@
       thirdPartyHostCount: thirdMetrics.hosts.length,
       sizeUnknownCount: scripts.filter((s) => !s.sizeKnown).length,
     },
-    items: scripts.map((s) => ({
+    items: rankedScripts.slice(0, MAX_ITEMS).map((s) => ({
       shortName: s.shortName,
       host: s.host,
       firstParty: s.firstParty,

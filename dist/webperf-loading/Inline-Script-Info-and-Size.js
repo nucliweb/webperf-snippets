@@ -139,6 +139,8 @@
     });
   } else if (executableScripts.length > 0) {
   }
+  const MAX_ITEMS = 50;
+  const rankedScripts = [ ...executableScripts ].sort((a, b) => Number(b.isParserBlocking) - Number(a.isParserBlocking) || b.size - a.size);
   return {
     script: "Inline-Script-Info-and-Size",
     status: "ok",
@@ -151,7 +153,7 @@
       parserBlockingCount: parserBlockingScripts.length,
       parserBlockingInHeadCount: parserBlockingInHead.length
     },
-    items: executableScripts.map(s => ({
+    items: rankedScripts.slice(0, MAX_ITEMS).map(s => ({
       index: s.index,
       sizeBytes: s.size,
       category: s.category,

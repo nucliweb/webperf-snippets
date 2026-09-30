@@ -163,6 +163,24 @@ const SMALL_PAGES = (other) => ({
     })}</script>`,
     "<h1>ssr</h1>"
   ),
+  // The one item that matters comes last, after more than 50 that do not, to show that a
+  // capped list keeps the relevant ones first
+  "/cap-scripts": page(
+    Array.from({ length: 60 }, (_, i) => `<script src="/c${i}.js" async></script>`).join("") +
+      '<script src="/blocking.js"></script>',
+    "<h1>scripts</h1>"
+  ),
+  "/cap-hints": page(
+    Array.from({ length: 60 }, (_, i) => `<link rel="dns-prefetch" href="https://h${i}.example.test/">`).join("") +
+      '<link rel="preload" href="/late.js">',
+    "<h1>hints</h1>"
+  ),
+  "/cap-images": page(
+    "",
+    '<div style="height:2000px"></div>' +
+      Array.from({ length: 60 }, (_, i) => `<img src="/hero.png?ok${i}" width="10" height="10" alt="" loading="lazy">`).join("") +
+      '<img src="/hero.png?bad" width="10" height="10" alt="" loading="lazy" fetchpriority="high">'
+  ),
   "/astro": page(
     "",
     '<astro-island component-url="/Counter.js" client="load" props="{&quot;n&quot;:[0,1]}"></astro-island><astro-island component-url="/Menu.js" client="idle" props="{}"></astro-island>'

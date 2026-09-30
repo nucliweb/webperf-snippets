@@ -774,12 +774,19 @@
       ? "needs-improvement"
       : "poor";
 
+  const MAX_ITEMS = 50;
+  const actionableEntries = entries.filter(
+    (e) =>
+      e.antiPatterns.length > 0 ||
+      ["none", "no-store", "no-cache", "short"].includes(e.cacheStrategy)
+  );
   return {
     script: "Cache-Strategy-Analysis",
     status: "ok",
     count: entries.length,
     details: {
       totalResources: entries.length,
+      actionableCount: actionableEntries.length,
       headersAnalyzed,
       corsRestricted,
       excludedFromHeaders: excludedFromHeaders.length,
@@ -796,13 +803,11 @@
       uncompressedCount: uncompressedResources.length,
       protocolDistribution,
     },
-    // Only resources with actionable issues — omits clean resources to reduce noise
-    items: entries
-      .filter(
-        (e) =>
-          e.antiPatterns.length > 0 ||
-          ["none", "no-store", "no-cache", "short"].includes(e.cacheStrategy)
-      )
+    // Only resources with actionable issues, at most 50: the ones with the most anti-patterns
+    // first, then the largest. Clean resources are left out to reduce noise.
+    items: actionableEntries
+      .sort((a, b) => b.antiPatterns.length - a.antiPatterns.length || b.decodedBodySize - a.decodedBodySize)
+      .slice(0, MAX_ITEMS)
       .map((e) => ({
         shortName: e.shortName,
         host: e.host,
