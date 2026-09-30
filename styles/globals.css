@@ -199,3 +199,60 @@ pre code {
 .wp-dg .dg-muted { fill: var(--dg-muted); }
 .wp-dg .dg-ok { fill: var(--dg-ok); }
 .wp-dg .dg-title { font-weight: 600; }
+
+/* Flow and Sequence diagrams (components/diagrams/Flow.jsx and Sequence.jsx).
+   Extra tone tokens for the semantic tones; the phase tones above are reused. */
+.wp-dg {
+  --dg-good: var(--dg-ok);
+  --dg-warn: #bf8700;
+  --dg-bad: #cf222e;
+  --dg-violet: #8250df;
+}
+.dark .wp-dg {
+  --dg-warn: #e3b341;
+  --dg-bad: #ff7b72;
+  --dg-violet: #d2a8ff;
+}
+.wp-dg .dg-c-info { --dg-c: var(--dg-accent); }
+.wp-dg .dg-c-good { --dg-c: var(--dg-good); }
+.wp-dg .dg-c-warn { --dg-c: var(--dg-warn); }
+.wp-dg .dg-c-bad { --dg-c: var(--dg-bad); }
+.wp-dg .dg-c-violet { --dg-c: var(--dg-violet); }
+.wp-dg .dg-c-neutral { --dg-c: var(--dg-muted); }
+.wp-dg .dg-decision {
+  fill: color-mix(in srgb, var(--dg-c) 7%, transparent);
+  stroke-width: 2;
+}
+.wp-dg .dg-mark { fill: var(--dg-c); }
+.wp-dg .dg-dot { fill: var(--dg-text); }
+.wp-dg .dg-ring { fill: none; stroke: var(--dg-text); stroke-width: 1.5; }
+.wp-dg .dg-group {
+  fill: color-mix(in srgb, var(--dg-c) 6%, transparent);
+  stroke: color-mix(in srgb, var(--dg-c) 55%, transparent);
+  stroke-width: 1.5;
+}
+.wp-dg .dg-note {
+  fill: color-mix(in srgb, var(--dg-c) 10%, var(--dg-surface));
+  stroke: color-mix(in srgb, var(--dg-c) 50%, transparent);
+  stroke-width: 1;
+}
+.wp-dg .dg-tint {
+  fill: color-mix(in srgb, var(--dg-c) 9%, transparent);
+  stroke: color-mix(in srgb, var(--dg-c) 40%, transparent);
+  stroke-width: 1;
+}
+.wp-dg .dg-frame { fill: none; stroke: var(--dg-muted); stroke-width: 1; opacity: 0.6; }
+.wp-dg .dg-lifeline { stroke: var(--dg-border); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.wp-dg .dg-dash { stroke-dasharray: 5 4; }
+.wp-dg .dg-scroll { overflow-x: auto; }
+.wp-dg .dg-scroll:focus-visible { outline: 2px solid var(--dg-accent); outline-offset: 2px; border-radius: 6px; }
+/* A flow has a primary layout and, when that one would shrink too much on a
+   narrow column, a compact top-down layout. `dg-bp-N` holds the width (px) of
+   the column below which the compact layout replaces the primary one. */
+.wp-dg .dg-v-compact { display: none; }
+@container (max-width: 399px) { .wp-dg.dg-bp-400 .dg-v-primary { display: none; } .wp-dg.dg-bp-400 .dg-v-compact { display: block; } }
+@container (max-width: 479px) { .wp-dg.dg-bp-480 .dg-v-primary { display: none; } .wp-dg.dg-bp-480 .dg-v-compact { display: block; } }
+@container (max-width: 559px) { .wp-dg.dg-bp-560 .dg-v-primary { display: none; } .wp-dg.dg-bp-560 .dg-v-compact { display: block; } }
+@container (max-width: 639px) { .wp-dg.dg-bp-640 .dg-v-primary { display: none; } .wp-dg.dg-bp-640 .dg-v-compact { display: block; } }
+@container (max-width: 719px) { .wp-dg.dg-bp-720 .dg-v-primary { display: none; } .wp-dg.dg-bp-720 .dg-v-compact { display: block; } }
+@container (max-width: 799px) { .wp-dg.dg-bp-800 .dg-v-primary { display: none; } .wp-dg.dg-bp-800 .dg-v-compact { display: block; } }
