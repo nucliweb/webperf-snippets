@@ -2,6 +2,7 @@
   const MAX_ITEMS = 50;
   const LOAF_WARNING_MS = 250;
   const MAX_LISTED_DOMAINS = 5;
+  const OWN_DOMAINS = [];
   function getRootDomain(hostname) {
     const host = hostname.replace(/\.$/, "");
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
@@ -16,12 +17,13 @@
   function isFirstParty(hostname) {
     return getRootDomain(hostname) === getRootDomain(location.hostname);
   }
+  const ownRoots = new Set(OWN_DOMAINS.map(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0])));
   const rootDomainOf = url => {
     try {
       const u = new URL(url);
       return /^https?:$/.test(u.protocol) ? {
         root: getRootDomain(u.hostname),
-        first: isFirstParty(u.hostname)
+        first: isFirstParty(u.hostname) || ownRoots.has(getRootDomain(u.hostname))
       } : null;
     } catch {
       return null;
@@ -113,6 +115,7 @@
   if (all.length > 0) void 0; else void 0;
   if (!loafSupported) void 0;
   if (corsLimitedAnalysis) void 0;
+  if (OWN_DOMAINS.length === 0 && all.length > 0) void 0;
   return {
     script: "Third-Party-Impact-by-Domain",
     status: "ok",

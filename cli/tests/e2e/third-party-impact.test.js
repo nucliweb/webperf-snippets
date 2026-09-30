@@ -104,7 +104,49 @@ async function summaryLine(route) {
   }
 }
 
+// Runs the snippet with OWN_DOMAINS set to `own`, and returns the result with every console line
+async function runWithOwnDomains(route, own) {
+  const source = asExpression("Loading/Third-Party-Impact-by-Domain").replace(
+    "const OWN_DOMAINS = [];",
+    `const OWN_DOMAINS = ${JSON.stringify(own)};`
+  );
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const lines = [];
+    page.on("console", (m) => lines.push(m.text()));
+    await page.goto(`${pageBase}${route}`, { waitUntil: "load" });
+    await page.waitForTimeout(500);
+    const result = await page.evaluate(source);
+    return { result, lines };
+  } finally {
+    await browser.close();
+  }
+}
+
 describe("Third-Party-Impact-by-Domain", () => {
+  it("explains how to set OWN_DOMAINS when the list is empty", async () => {
+    const { lines } = await runWithOwnDomains("/", []);
+    const message = lines.find((l) => l.includes("OWN_DOMAINS is empty"));
+    expect(message).toBeDefined();
+    expect(message).toMatch(/const OWN_DOMAINS = \[/);
+  }, 30000);
+
+  it("counts the domains listed in OWN_DOMAINS as first party and drops the message", async () => {
+    const before = await runWithOwnDomains("/", []);
+    const { result, lines } = await runWithOwnDomains("/", ["other.localhost"]);
+    expect(lines.some((l) => l.includes("OWN_DOMAINS is empty"))).toBe(false);
+    expect(result.items.some((i) => i.domain === "other.localhost")).toBe(false);
+    expect(result.details.blockingDomains).toBe(0);
+    expect(result.details.thirdPartyLoafMs).toBe(0);
+    expect(result.details.firstPartyRequests).toBeGreaterThan(before.result.details.firstPartyRequests);
+  }, 30000);
+
+  it("accepts URLs and mixed case in OWN_DOMAINS", async () => {
+    const { result } = await runWithOwnDomains("/", ["https://Other.Localhost/assets/"]);
+    expect(result.items.some((i) => i.domain === "other.localhost")).toBe(false);
+  }, 30000);
+
   it("shows the transfer total as a lower bound when some sizes are hidden", async () => {
     expect(await summaryLine("/")).toMatch(/transfer: ≥ \d/);
   }, 30000);

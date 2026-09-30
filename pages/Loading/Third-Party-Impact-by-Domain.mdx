@@ -19,7 +19,7 @@ A page rarely suffers from third parties as a group. A few domains usually cause
 A request is third party when its root domain differs from the root domain of `location.hostname`. Subdomains of the page's own site, such as `cdn.example.com` on `www.example.com`, are first party.
 
 <Callout type="info">
-  A site's own CDN on a different root domain, such as `bbci.co.uk` for `bbc.com`, is reported as a third party, because the comparison uses root domains only. Review the top entries before treating them as external.
+  A site's own CDN on a different root domain, such as `bbci.co.uk` for `bbc.com`, is reported as a third party, because the comparison uses root domains only. To count those domains as first party, list them in the `OWN_DOMAINS` constant at the top of the snippet, for example `const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];`. Entries can be domains or URLs. While the list is empty, the snippet prints a reminder in the console.
 </Callout>
 
 Each entry in `items` describes one domain:

@@ -11381,6 +11381,10 @@ Groups every third-party request by root domain and reports, per domain, the req
   const LOAF_WARNING_MS = 250; // Script time in long animation frames above which one domain is a problem
   const MAX_LISTED_DOMAINS = 5;
 
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // @shared formatBytes
   function formatBytes(bytes) {
     if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
@@ -11419,11 +11423,15 @@ Groups every third-party request by root domain and reports, per domain, the req
   }
   // @end-shared isFirstParty
 
+  const ownRoots = new Set(
+    OWN_DOMAINS.map((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]))
+  );
+
   // Root domain of an http(s) URL, or null for anything else (data:, blob:, empty)
   const rootDomainOf = (url) => {
     try {
       const u = new URL(url);
-      return /^https?:$/.test(u.protocol) ? { root: getRootDomain(u.hostname), first: isFirstParty(u.hostname) } : null;
+      return /^https?:$/.test(u.protocol) ? { root: getRootDomain(u.hostname), first: isFirstParty(u.hostname) || ownRoots.has(getRootDomain(u.hostname)) } : null;
     } catch {
       return null;
     }
@@ -11553,6 +11561,12 @@ Groups every third-party request by root domain and reports, per domain, the req
   }
   if (corsLimitedAnalysis) {
     console.log("%cℹ️ Some third-party sizes are hidden (no Timing-Allow-Origin); sizes are a lower bound", "color: #3b82f6;");
+  }
+  if (OWN_DOMAINS.length === 0 && all.length > 0) {
+    console.log(
+      '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+      "color: #3b82f6;"
+    );
   }
   console.groupEnd();
 
