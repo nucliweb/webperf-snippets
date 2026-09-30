@@ -83,6 +83,7 @@
     }
   };
   const ttfbVals = resourcesSync.map(r => r.ttfbMs);
+  const MAX_ITEMS = 50;
   return {
     script: "TTFB-Resources",
     status: "ok",
@@ -95,6 +96,6 @@
       slowCount: resourcesSync.filter(r => r.ttfbMs > 500).length,
       corsRestrictedCount: corsRestrictedCount
     },
-    items: resourcesSync
+    items: resourcesSync.slice(0, MAX_ITEMS)
   };
 })();

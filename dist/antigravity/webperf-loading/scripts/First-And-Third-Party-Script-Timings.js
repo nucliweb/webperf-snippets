@@ -159,6 +159,8 @@
     if (hasCorsIssues) {
     }
   }
+  const MAX_ITEMS = 50;
+  const slowestScripts = [ ...scripts ].sort((a, b) => b.total - a.total);
   return {
     script: "First-And-Third-Party-Script-Timings",
     status: "ok",
@@ -171,7 +173,7 @@
       firstPartyAvgTotalMs: Math.round(firstStats.stats.total?.avg || 0),
       thirdPartyAvgTotalMs: Math.round(thirdStats.stats.total?.avg || 0)
     },
-    items: scripts.map(s => ({
+    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({
       shortName: s.shortName,
       host: s.host,
       firstParty: s.firstParty,

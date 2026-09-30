@@ -324,6 +324,8 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
 
 #### LCP-Image-Entropy
 
+`items` holds the 50 most relevant images: the LCP image first, then the low-entropy ones, then the lowest bits per pixel. `count` and `details` cover every image.
+
 ```json
 {
   "script": "LCP-Image-Entropy",
@@ -446,6 +448,8 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
 ```
 
 #### Script-Loading
+
+`items` holds the 50 scripts to look at first: render-blocking, then third-party, then the largest. `count` and `details` cover every script.
 
 ```json
 {
@@ -573,7 +577,7 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 #### Resource-Hints
 
-`details.missingPreconnects` lists the third-party origins without a preconnect (at most 20). `details.missingPreconnectsCount` is the total.
+`items` holds at most 50 hints, those with an error or a warning first, and `count` is the total. `details.missingPreconnects` lists the third-party origins without a preconnect (at most 20). `details.missingPreconnectsCount` is the total.
 
 ```json
 {
@@ -938,6 +942,8 @@ Returns buffered long tasks immediately. Ongoing tracking continues. `items` lis
 ### Media
 
 #### Image-Element-Audit (async)
+
+`items` holds the 50 images to look at first: the LCP image, then those with the most errors and warnings. `count` and `details` cover every image.
 
 ```json
 {

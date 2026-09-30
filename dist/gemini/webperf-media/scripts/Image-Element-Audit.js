@@ -187,6 +187,9 @@
   } else {
   }
   const lcpData = lcpCandidate ? audited.find(r => r.isLcp) : null;
+  const MAX_ITEMS = 50;
+  const countBy = (r, severity) => r.issues.filter(i => i.s === severity).length;
+  const rankedImages = [ ...audited ].sort((a, b) => Number(b.isLcp) - Number(a.isLcp) || countBy(b, "error") - countBy(a, "error") || countBy(b, "warning") - countBy(a, "warning") || b.issues.length - a.issues.length || Number(b.inViewport) - Number(a.inViewport));
   return {
     script: "Image-Element-Audit",
     status: "ok",
@@ -206,7 +209,7 @@
         preloaded: !!lcpData.lcpPreload
       } : null
     },
-    items: audited.map(r => ({
+    items: rankedImages.slice(0, MAX_ITEMS).map(r => ({
       url: r.src,
       format: r.format,
       inViewport: r.inViewport,

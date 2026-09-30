@@ -768,6 +768,11 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
   if (lcpImageSync?.isLowEntropy) {
     issuesSync.push({ severity: "error", message: "Current LCP image has low entropy and may be skipped by Chrome" });
   }
+  // The list keeps the 50 most relevant images (the LCP image, then low entropy, then lowest bits per pixel); count and details cover all of them
+  const MAX_ITEMS = 50;
+  const rankedImages = [...imagesSync].sort(
+    (a, b) => Number(b.isLCP) - Number(a.isLCP) || Number(b.isLowEntropy) - Number(a.isLowEntropy) || a.bpp - b.bpp
+  );
   return {
     script: "LCP-Image-Entropy",
     status: "ok",
@@ -778,7 +783,7 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
       lcpImageEligible: lcpImageSync ? !lcpImageSync.isLowEntropy : null,
       lcpImage: lcpImageSync ? { url: lcpImageSync.url, bpp: lcpImageSync.bpp, isLowEntropy: lcpImageSync.isLowEntropy } : null,
     },
-    items: imagesSync,
+    items: rankedImages.slice(0, MAX_ITEMS),
     issues: issuesSync,
   };
 })();
@@ -3296,12 +3301,19 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       ? "needs-improvement"
       : "poor";
 
+  const MAX_ITEMS = 50;
+  const actionableEntries = entries.filter(
+    (e) =>
+      e.antiPatterns.length > 0 ||
+      ["none", "no-store", "no-cache", "short"].includes(e.cacheStrategy)
+  );
   return {
     script: "Cache-Strategy-Analysis",
     status: "ok",
     count: entries.length,
     details: {
       totalResources: entries.length,
+      actionableCount: actionableEntries.length,
       headersAnalyzed,
       corsRestricted,
       excludedFromHeaders: excludedFromHeaders.length,
@@ -3318,13 +3330,11 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       uncompressedCount: uncompressedResources.length,
       protocolDistribution,
     },
-    // Only resources with actionable issues — omits clean resources to reduce noise
-    items: entries
-      .filter(
-        (e) =>
-          e.antiPatterns.length > 0 ||
-          ["none", "no-store", "no-cache", "short"].includes(e.cacheStrategy)
-      )
+    // Only resources with actionable issues, at most 50: the ones with the most anti-patterns
+    // first, then the largest. Clean resources are left out to reduce noise.
+    items: actionableEntries
+      .sort((a, b) => b.antiPatterns.length - a.antiPatterns.length || b.decodedBodySize - a.decodedBodySize)
+      .slice(0, MAX_ITEMS)
       .map((e) => ({
         shortName: e.shortName,
         host: e.host,
@@ -5902,6 +5912,14 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 
   console.groupEnd();
 
+  // The list keeps the 50 scripts to look at first (render-blocking, then third-party, then the largest); count and details cover all of them
+  const MAX_ITEMS = 50;
+  const rankedScripts = [...scripts].sort(
+    (a, b) =>
+      Number(b.renderBlocking) - Number(a.renderBlocking) ||
+      Number(a.firstParty) - Number(b.firstParty) ||
+      b.transferSize - a.transferSize
+  );
   return {
     script: "First-And-Third-Party-Script-Info",
     status: "ok",
@@ -5916,7 +5934,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
       thirdPartyHostCount: thirdMetrics.hosts.length,
       sizeUnknownCount: scripts.filter((s) => !s.sizeKnown).length,
     },
-    items: scripts.map((s) => ({
+    items: rankedScripts.slice(0, MAX_ITEMS).map((s) => ({
       shortName: s.shortName,
       host: s.host,
       firstParty: s.firstParty,
@@ -6244,6 +6262,9 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
 
   console.groupEnd();
 
+  // The list keeps the 50 slowest scripts; count and details cover all of them
+  const MAX_ITEMS = 50;
+  const slowestScripts = [...scripts].sort((a, b) => b.total - a.total);
   return {
     script: "First-And-Third-Party-Script-Timings",
     status: "ok",
@@ -6256,7 +6277,7 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
       firstPartyAvgTotalMs: Math.round(firstStats.stats.total?.avg || 0),
       thirdPartyAvgTotalMs: Math.round(thirdStats.stats.total?.avg || 0),
     },
-    items: scripts.map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: Math.round(s.dns), tcpMs: Math.round(s.tcp), requestMs: Math.round(s.request), responseMs: Math.round(s.response), hasTiming: s.hasTiming })),
+    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: Math.round(s.dns), tcpMs: Math.round(s.tcp), requestMs: Math.round(s.request), responseMs: Math.round(s.response), hasTiming: s.hasTiming })),
     issues: [
       ...(slowScripts.length > 0 ? [{ severity: "warning", message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load` }] : []),
       ...(hasSlowDns ? [{ severity: "warning", message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect." }] : []),
@@ -7195,6 +7216,11 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
 
   console.groupEnd();
 
+  // The list keeps the 50 largest executable scripts, parser-blocking ones first; count and details cover all of them
+  const MAX_ITEMS = 50;
+  const rankedScripts = [...executableScripts].sort(
+    (a, b) => Number(b.isParserBlocking) - Number(a.isParserBlocking) || b.size - a.size
+  );
   return {
     script: "Inline-Script-Info-and-Size",
     status: "ok",
@@ -7207,7 +7233,7 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
       parserBlockingCount: parserBlockingScripts.length,
       parserBlockingInHeadCount: parserBlockingInHead.length,
     },
-    items: executableScripts.map(s => ({ index: s.index, sizeBytes: s.size, category: s.category, inHead: s.inHead, isParserBlocking: s.isParserBlocking, isAnalytics: s.isAnalytics, isConfig: s.isConfig })),
+    items: rankedScripts.slice(0, MAX_ITEMS).map(s => ({ index: s.index, sizeBytes: s.size, category: s.category, inHead: s.inHead, isParserBlocking: s.isParserBlocking, isAnalytics: s.isAnalytics, isConfig: s.isConfig })),
     issues: issues.map(i => ({ severity: i.type === "blocking" ? "error" : "warning", message: i.message })),
   };
 })();
@@ -9312,6 +9338,13 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
 
   console.groupEnd();
 
+  // The list keeps 50 hints: those with an error or a warning first, then in document order; count and details cover all of them
+  const MAX_ITEMS = 50;
+  const hintRank = (h) => (issues.some((i) => i.hint === h && i.severity === "error") ? 0 : issues.some((i) => i.hint === h) ? 1 : 2);
+  const rankedHints = allHints
+    .map((h, index) => ({ h, index }))
+    .sort((a, b) => hintRank(a.h) - hintRank(b.h) || a.index - b.index)
+    .map(({ h }) => h);
   return {
     script: "Resource-Hints",
     status: "ok",
@@ -9327,7 +9360,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
         recommendedHint: "preconnect",
       })),
     },
-    items: allHints.map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
+    items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
     issues: issues.map(i => ({ severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}` })),
   };
 })();
@@ -10099,6 +10132,14 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 
   const agentRating = blockingInHead.length === 0 ? "good" :
     (blockingInHead.length <= 2 && thirdPartyBlocking.length === 0) ? "needs-improvement" : "poor";
+  // The list keeps the 50 scripts to look at first (render-blocking, then third-party, then the largest); count and details cover all of them
+  const MAX_ITEMS = 50;
+  const rankedScripts = [...scripts].sort(
+    (a, b) =>
+      Number(b.isBlocking) - Number(a.isBlocking) ||
+      Number(a.firstParty) - Number(b.firstParty) ||
+      b.size - a.size
+  );
   return {
     script: "Script-Loading",
     status: "ok",
@@ -10119,7 +10160,7 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
       },
       thirdPartyBlockingCount: thirdPartyBlocking.length,
     },
-    items: scripts.map((s) => ({
+    items: rankedScripts.slice(0, MAX_ITEMS).map((s) => ({
       url: s.src,
       shortName: s.shortSrc,
       strategy: s.strategy,
@@ -10831,6 +10872,8 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
     return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available", details: { corsRestrictedCount } };
   }
   const ttfbVals = resourcesSync.map((r) => r.ttfbMs);
+  // The list keeps the 50 slowest resources (already sorted); count and details cover all of them
+  const MAX_ITEMS = 50;
   return {
     script: "TTFB-Resources",
     status: "ok",
@@ -10843,7 +10886,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
       slowCount: resourcesSync.filter((r) => r.ttfbMs > 500).length,
       corsRestrictedCount,
     },
-    items: resourcesSync,
+    items: resourcesSync.slice(0, MAX_ITEMS),
   };
 })();
 ```
@@ -14292,6 +14335,17 @@ Audits all `<img>` elements on the page against image performance best practices
   console.groupEnd();
 
   const lcpData = lcpCandidate ? audited.find((r) => r.isLcp) : null;
+  // The list keeps the 50 images to look at first: the LCP image, then the most errors, warnings and notes, then those in the viewport; count and details cover all of them
+  const MAX_ITEMS = 50;
+  const countBy = (r, severity) => r.issues.filter((i) => i.s === severity).length;
+  const rankedImages = [...audited].sort(
+    (a, b) =>
+      Number(b.isLcp) - Number(a.isLcp) ||
+      countBy(b, "error") - countBy(a, "error") ||
+      countBy(b, "warning") - countBy(a, "warning") ||
+      b.issues.length - a.issues.length ||
+      Number(b.inViewport) - Number(a.inViewport)
+  );
   return {
     script: "Image-Element-Audit",
     status: "ok",
@@ -14313,7 +14367,7 @@ Audits all `<img>` elements on the page against image performance best practices
           }
         : null,
     },
-    items: audited.map((r) => ({
+    items: rankedImages.slice(0, MAX_ITEMS).map((r) => ({
       url: r.src,
       format: r.format,
       inViewport: r.inViewport,

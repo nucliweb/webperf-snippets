@@ -7,18 +7,7 @@ import { listSnippets, launch, startContractServers, observeSnippet } from "../h
 //
 // KNOWN_VIOLATIONS lists what is still broken, per snippet. It can only shrink: a listed
 // violation that no longer happens fails the test, so the entry has to be removed.
-const KNOWN_VIOLATIONS = {
-  // Return every item they find; the schema caps items at 50.
-  "CoreWebVitals/LCP-Image-Entropy": ["items-uncapped"],
-  "Loading/Cache-Strategy-Analysis": ["items-uncapped"],
-  "Loading/First-And-Third-Party-Script-Info": ["items-uncapped"],
-  "Loading/First-And-Third-Party-Script-Timings": ["items-uncapped"],
-  "Loading/Inline-Script-Info-and-Size": ["items-uncapped"],
-  "Loading/Resource-Hints": ["items-uncapped"],
-  "Loading/Script-Loading": ["items-uncapped"],
-  "Loading/TTFB-Resources": ["items-uncapped"],
-  "Media/Image-Element-Audit": ["items-uncapped"],
-};
+const KNOWN_VIOLATIONS = {};
 
 let browser;
 let servers;

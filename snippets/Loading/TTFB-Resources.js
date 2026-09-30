@@ -136,6 +136,8 @@
     return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available", details: { corsRestrictedCount } };
   }
   const ttfbVals = resourcesSync.map((r) => r.ttfbMs);
+  // The list keeps the 50 slowest resources (already sorted); count and details cover all of them
+  const MAX_ITEMS = 50;
   return {
     script: "TTFB-Resources",
     status: "ok",
@@ -148,6 +150,6 @@
       slowCount: resourcesSync.filter((r) => r.ttfbMs > 500).length,
       corsRestrictedCount,
     },
-    items: resourcesSync,
+    items: resourcesSync.slice(0, MAX_ITEMS),
   };
 })();

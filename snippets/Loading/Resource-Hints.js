@@ -388,6 +388,13 @@
 
   console.groupEnd();
 
+  // The list keeps 50 hints: those with an error or a warning first, then in document order; count and details cover all of them
+  const MAX_ITEMS = 50;
+  const hintRank = (h) => (issues.some((i) => i.hint === h && i.severity === "error") ? 0 : issues.some((i) => i.hint === h) ? 1 : 2);
+  const rankedHints = allHints
+    .map((h, index) => ({ h, index }))
+    .sort((a, b) => hintRank(a.h) - hintRank(b.h) || a.index - b.index)
+    .map(({ h }) => h);
   return {
     script: "Resource-Hints",
     status: "ok",
@@ -403,7 +410,7 @@
         recommendedHint: "preconnect",
       })),
     },
-    items: allHints.map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
+    items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
     issues: issues.map(i => ({ severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}` })),
   };
 })();

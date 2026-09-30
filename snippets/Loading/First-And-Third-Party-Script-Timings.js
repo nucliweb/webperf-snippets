@@ -276,6 +276,9 @@
 
   console.groupEnd();
 
+  // The list keeps the 50 slowest scripts; count and details cover all of them
+  const MAX_ITEMS = 50;
+  const slowestScripts = [...scripts].sort((a, b) => b.total - a.total);
   return {
     script: "First-And-Third-Party-Script-Timings",
     status: "ok",
@@ -288,7 +291,7 @@
       firstPartyAvgTotalMs: Math.round(firstStats.stats.total?.avg || 0),
       thirdPartyAvgTotalMs: Math.round(thirdStats.stats.total?.avg || 0),
     },
-    items: scripts.map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: Math.round(s.dns), tcpMs: Math.round(s.tcp), requestMs: Math.round(s.request), responseMs: Math.round(s.response), hasTiming: s.hasTiming })),
+    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: Math.round(s.dns), tcpMs: Math.round(s.tcp), requestMs: Math.round(s.request), responseMs: Math.round(s.response), hasTiming: s.hasTiming })),
     issues: [
       ...(slowScripts.length > 0 ? [{ severity: "warning", message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load` }] : []),
       ...(hasSlowDns ? [{ severity: "warning", message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect." }] : []),

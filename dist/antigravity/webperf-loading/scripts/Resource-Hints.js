@@ -217,6 +217,12 @@
     missingPreconnects.slice(0, 3).forEach(o => {
     });
   }
+  const MAX_ITEMS = 50;
+  const hintRank = h => issues.some(i => i.hint === h && i.severity === "error") ? 0 : issues.some(i => i.hint === h) ? 1 : 2;
+  const rankedHints = allHints.map((h, index) => ({
+    h: h,
+    index: index
+  })).sort((a, b) => hintRank(a.h) - hintRank(b.h) || a.index - b.index).map(({h: h}) => h);
   return {
     script: "Resource-Hints",
     status: "ok",
@@ -232,7 +238,7 @@
         recommendedHint: "preconnect"
       }))
     },
-    items: allHints.map(h => ({
+    items: rankedHints.slice(0, MAX_ITEMS).map(h => ({
       rel: h.rel,
       href: h.shortHref,
       as: h.as,

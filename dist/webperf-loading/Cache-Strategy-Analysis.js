@@ -339,12 +339,15 @@
     for (const rec of recommendations) void 0;
   }
   const cacheEfficiencyRating = cacheEfficiencyPercent >= 80 ? "good" : cacheEfficiencyPercent >= 50 ? "needs-improvement" : "poor";
+  const MAX_ITEMS = 50;
+  const actionableEntries = entries.filter(e => e.antiPatterns.length > 0 || [ "none", "no-store", "no-cache", "short" ].includes(e.cacheStrategy));
   return {
     script: "Cache-Strategy-Analysis",
     status: "ok",
     count: entries.length,
     details: {
       totalResources: entries.length,
+      actionableCount: actionableEntries.length,
       headersAnalyzed: headersAnalyzed,
       corsRestricted: corsRestricted,
       excludedFromHeaders: excludedFromHeaders.length,
@@ -360,7 +363,7 @@
       uncompressedCount: uncompressedResources.length,
       protocolDistribution: protocolDistribution
     },
-    items: entries.filter(e => e.antiPatterns.length > 0 || [ "none", "no-store", "no-cache", "short" ].includes(e.cacheStrategy)).map(e => ({
+    items: actionableEntries.sort((a, b) => b.antiPatterns.length - a.antiPatterns.length || b.decodedBodySize - a.decodedBodySize).slice(0, MAX_ITEMS).map(e => ({
       shortName: e.shortName,
       host: e.host,
       type: e.type,

@@ -191,6 +191,11 @@
   if (lcpImageSync?.isLowEntropy) {
     issuesSync.push({ severity: "error", message: "Current LCP image has low entropy and may be skipped by Chrome" });
   }
+  // The list keeps the 50 most relevant images (the LCP image, then low entropy, then lowest bits per pixel); count and details cover all of them
+  const MAX_ITEMS = 50;
+  const rankedImages = [...imagesSync].sort(
+    (a, b) => Number(b.isLCP) - Number(a.isLCP) || Number(b.isLowEntropy) - Number(a.isLowEntropy) || a.bpp - b.bpp
+  );
   return {
     script: "LCP-Image-Entropy",
     status: "ok",
@@ -201,7 +206,7 @@
       lcpImageEligible: lcpImageSync ? !lcpImageSync.isLowEntropy : null,
       lcpImage: lcpImageSync ? { url: lcpImageSync.url, bpp: lcpImageSync.bpp, isLowEntropy: lcpImageSync.isLowEntropy } : null,
     },
-    items: imagesSync,
+    items: rankedImages.slice(0, MAX_ITEMS),
     issues: issuesSync,
   };
 })();
