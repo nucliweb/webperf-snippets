@@ -22,7 +22,7 @@ If you are not sure where to start, run [LCP](/CoreWebVitals/LCP), [CLS](/CoreWe
 
 | Symptom | Start with | Then |
 |---------|------------|------|
-| The server responds late | [TTFB](/Loading/TTFB) | [Server-Timing and Early Hints](/Loading/Server-Timing-Early-Hints) to see which backend phase is slow, and [Service worker analysis](/Loading/Service-Worker-Analysis) if a service worker is involved |
+| The server responds late | [TTFB](/Loading/TTFB) | [TTFB sub-parts](/Loading/TTFB#measure-ttfb-sub-parts) to see which phase is slow, [TTFB for all resources](/Loading/TTFB#measure-ttfb-for-all-resources) to find slow requests, [Server-Timing and Early Hints](/Loading/Server-Timing-Early-Hints) for the backend phases, and [Service worker analysis](/Loading/Service-Worker-Analysis) if a service worker is involved |
 | Nothing shows for a long time | [FCP](/Loading/FCP) | [Find render-blocking resources](/Loading/Find-render-blocking-resources), then [Critical CSS detection](/Loading/Critical-CSS-Detection) |
 | Scripts block rendering | [Script loading](/Loading/Script-Loading) | [Validate preload, async and defer scripts](/Loading/Validate-Preload-Async-Defer-Scripts) and [JS execution time breakdown](/Loading/JS-Execution-Time-Breakdown) |
 | Third-party scripts are suspected | [Third-party impact by domain](/Loading/Third-Party-Impact-by-Domain) | [First and third-party script info](/Loading/First-And-Third-Party-Script-Info) and [First and third-party script timings](/Loading/First-And-Third-Party-Script-Timings) |
