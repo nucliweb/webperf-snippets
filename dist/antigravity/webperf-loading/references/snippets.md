@@ -209,6 +209,12 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 
 **Script:** `scripts/TTFB.js`
 ---
+## Third-party impact by domain
+
+Groups every third-party request by root domain and reports, per domain, the request count, the transfer size, whether any of its requests blocks rendering, and the main-thread time its scripts take inside long animation frames. It answers which third party to fix first.
+
+**Script:** `scripts/Third-Party-Impact-by-Domain.js`
+---
 ## Validate Preload Async Defer Scripts
 
 **Script:** `scripts/Validate-Preload-Async-Defer-Scripts.js`

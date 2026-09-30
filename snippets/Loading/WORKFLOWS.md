@@ -44,6 +44,7 @@ When scripts are suspected to slow down the page:
 
 1. **Script-Loading.js** - Identify blocking scripts and loading strategy
 2. **First-And-Third-Party-Script-Info.js** - Separate first vs third-party impact
+   - **Third-Party-Impact-by-Domain.js** - Rank third-party domains by render-blocking, main-thread time and size
 3. **First-And-Third-Party-Script-Timings.js** - Diagnose slow script connections
 4. **JS-Execution-Time-Breakdown.js** - Network vs parse/execution time
 5. **Inline-Script-Info-and-Size.js** - Measure inline script overhead
@@ -132,6 +133,13 @@ Use this decision tree to automatically run follow-up snippets based on results:
 - **If uncompressed CSS/JS found** → Run **Find-render-blocking-resources.js** to see if they block rendering
 - **If estimated savings > 100KB** → Recommend enabling gzip or brotli on the server or CDN
 - **If corsLimitedAnalysis is true** → Report the result as a lower bound and suggest `Timing-Allow-Origin` on resources you control
+
+### After Third-Party-Impact-by-Domain.js
+
+- **If a domain is render-blocking** → Recommend `async`, `defer`, lazy loading or self-hosting; run **Script-Loading.js** for the loading strategy
+- **If a domain's main-thread time > 250ms** → Run **Long-Animation-Frames-Script-Attribution.js** (webperf-interaction) to find the functions responsible, and recommend delaying or removing the script
+- **If many domains with few requests each** → Recommend auditing tags and removing unused ones
+- **If corsLimitedAnalysis is true** → Report sizes as a lower bound; use **First-And-Third-Party-Script-Timings.js** for timings of the hidden resources
 
 ### After Service-Worker-Analysis.js
 

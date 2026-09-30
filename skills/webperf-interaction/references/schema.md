@@ -100,7 +100,7 @@ Scripts that read DOM or `performance.getEntriesByType()` directly. Return JSON 
 })();
 ```
 
-**Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Resource-Hints, Resource-Hints-Validation, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, Compression-Audit, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
+**Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Resource-Hints, Resource-Hints-Validation, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, Compression-Audit, Third-Party-Impact-by-Domain, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
 
 ### Pattern 2: Buffered observer
 
@@ -521,6 +521,36 @@ Synchronous. `count` is the number of uncompressed text resources; `items` holds
   "issues": [
     { "severity": "warning", "message": "1 text resource(s) served without compression; enabling gzip or brotli could save about 42.0 KB" },
     { "severity": "info", "message": "1 cross-origin text resource(s) without Timing-Allow-Origin report zero sizes, so their compression is unknown" }
+  ]
+}
+```
+
+#### Third-Party-Impact-by-Domain
+
+Synchronous. `count` is the number of third-party root domains; `items` holds the 50 to look at first (render-blocking, then the most main-thread time, then the largest transfer), while `details` totals every domain. `loafMs` is the script time attributed to the domain in `long-animation-frame` entries (sum of `scripts[].duration` by `sourceURL`), or `null` for every item when `details.loafSupported` is `false`. A cross-origin request without `Timing-Allow-Origin` reports zero for every size, so it is counted in `sizeUnknownCount` (per domain and in `details`), left out of the byte totals, and `corsLimitedAnalysis` is `true`.
+
+```json
+{
+  "script": "Third-Party-Impact-by-Domain",
+  "status": "ok",
+  "count": 2,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "thirdPartyRequests": 3,
+    "thirdPartyBytes": 5120,
+    "thirdPartyLoafMs": 128,
+    "firstPartyRequests": 1,
+    "blockingDomains": 1,
+    "loafSupported": true,
+    "sizeUnknownCount": 1
+  },
+  "items": [
+    { "domain": "tagmanager.example", "requests": 2, "transferBytes": 5120, "sizeUnknownCount": 0, "renderBlocking": true, "loafMs": 128, "loafScripts": 1 },
+    { "domain": "metrics.example", "requests": 1, "transferBytes": 0, "sizeUnknownCount": 1, "renderBlocking": false, "loafMs": 0, "loafScripts": 0 }
+  ],
+  "issues": [
+    { "severity": "warning", "message": "1 third-party domain(s) serve render-blocking resources (tagmanager.example); load them async or defer, or self-host them" },
+    { "severity": "info", "message": "1 third-party request(s) without Timing-Allow-Origin report zero sizes, so the transfer size is a lower bound" }
   ]
 }
 ```

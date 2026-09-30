@@ -1,0 +1,91 @@
+import snippet from '../../snippets/Loading/Third-Party-Impact-by-Domain.js?raw'
+import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
+
+# Third-party impact by domain
+
+Groups every third-party request by root domain and reports, per domain, the request count, the transfer size, whether any of its requests blocks rendering, and the main-thread time its scripts take inside long animation frames. It answers which third party to fix first.
+
+### Why this matters
+
+A page rarely suffers from third parties as a group. A few domains usually cause most of the damage: one tag manager that blocks rendering, one widget that runs 300 ms of script. Ranking domains by impact turns a long list of requests into a short list of decisions: remove, defer, self-host or replace.
+
+### Snippet
+
+<Snippet code={snippet} />
+
+### Understanding the results
+
+A request is third party when its root domain differs from the root domain of `location.hostname`. Subdomains of the page's own site, such as `cdn.example.com` on `www.example.com`, are first party.
+
+<Callout type="info">
+  A site's own CDN on a different root domain, such as `bbci.co.uk` for `bbc.com`, is reported as a third party, because the comparison uses root domains only. To count those domains as first party, list them in the `OWN_DOMAINS` constant at the top of the snippet, for example `const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];`. Entries can be domains or URLs. While the list is empty, the snippet prints a reminder in the console.
+</Callout>
+
+Each entry in `items` describes one domain:
+
+| Field | Description |
+|-------|-------------|
+| `domain` | Root domain of the third party |
+| `requests` | Requests to the domain |
+| `transferBytes` | Transfer size of the requests whose size is readable (`encodedBodySize` when `transferSize` is 0) |
+| `sizeUnknownCount` | Requests whose size is hidden |
+| `renderBlocking` | `true` when a script or stylesheet from the domain has `renderBlockingStatus` of `blocking` |
+| `loafMs` | Script time, in ms, attributed to the domain in long animation frames, or `null` when the browser does not support them |
+| `loafScripts` | Script executions attributed to the domain in long animation frames |
+
+`items` holds at most 50 domains, sorted by impact: render-blocking domains first, then the most main-thread time, then the largest transfer. `count` and `details` cover every third-party domain.
+
+| Field | Description |
+|-------|-------------|
+| `count` | Number of third-party domains |
+| `details.thirdPartyRequests` | Third-party requests |
+| `details.thirdPartyBytes` | Transfer size of the third-party requests with a readable size |
+| `details.thirdPartyLoafMs` | Third-party script time in long animation frames |
+| `details.firstPartyRequests` | First-party resource requests, for comparison |
+| `details.blockingDomains` | Domains with a render-blocking request |
+| `details.loafSupported` | `false` when the browser has no Long Animation Frames API |
+| `details.sizeUnknownCount` | Third-party requests whose size is hidden |
+
+### Issues
+
+| Severity | When |
+|----------|------|
+| `warning` | One or more third-party domains serve render-blocking resources |
+| `warning` | A domain's scripts take more than 250 ms of main-thread time in long animation frames |
+| `info` | Some sizes are hidden because of a missing `Timing-Allow-Origin` header |
+
+### Main-thread time
+
+The snippet reads `long-animation-frame` entries and adds up the `duration` of every entry in `scripts[]`, grouped by the root domain of `sourceURL`. Only frames longer than 50 ms are recorded, and only script executions of 5 ms or more appear in `scripts[]`, so `loafMs` is a lower bound of the real script cost. Inline scripts and scripts with an empty `sourceURL` count as first party and are left out.
+
+<Callout type="warning">
+  Long Animation Frames need Chrome 123 or later. Elsewhere `details.loafSupported` is `false` and `loafMs` is `null`; the rest of the report still works.
+</Callout>
+
+The buffer holds the frames since the page started, so run the snippet after the page settled or after the interaction you want to measure.
+
+### Cross-origin resources without Timing-Allow-Origin
+
+Browsers report every size as zero for a cross-origin resource unless its server sends a `Timing-Allow-Origin` header. The snippet counts those requests in `sizeUnknownCount` (per domain and in `details`), keeps them out of the byte totals, and sets `corsLimitedAnalysis` to `true`.
+
+<Callout type="warning">
+  When `corsLimitedAnalysis` is `true`, treat `transferBytes` and `details.thirdPartyBytes` as lower bounds. Request counts, render-blocking flags and main-thread time are not affected.
+</Callout>
+
+### Acting on the results
+
+| Finding | Options |
+|---------|---------|
+| Render-blocking domain | Add `async` or `defer`, load it after the first paint, or self-host the file |
+| High `loafMs` | Delay the script until interaction or idle time, use a facade, or remove it |
+| Many requests, low size | Consolidate tags or remove unused ones |
+| Large `transferBytes` | Lazy-load the widget or replace it with a lighter alternative |
+
+### Further reading
+
+- [Loading third-party JavaScript](https://web.dev/articles/loading-third-party-javascript) | web.dev
+- [Efficiently load third-party JavaScript](https://developer.chrome.com/docs/lighthouse/performance/third-party-facades) | Chrome Developers
+- [Long Animation Frames API](https://developer.chrome.com/docs/web-platform/long-animation-frames) | Chrome Developers
+- [First and Third Party Script Info](/Loading/First-And-Third-Party-Script-Info) | Lists the scripts behind each party
+- [Long Animation Frames Script Attribution](/Interaction/Long-Animation-Frames-Script-Attribution) | Attributes long frames to scripts
