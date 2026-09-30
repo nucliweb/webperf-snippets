@@ -23,13 +23,13 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 
 ## Scripts
 
-- `scripts/CLS.js` — Cumulative Layout Shift (CLS)
-- `scripts/INP.js` — Interaction to Next Paint (INP)
-- `scripts/LCP-Image-Entropy.js` — LCP Image Entropy
-- `scripts/LCP-Subparts.js` — LCP Subparts
-- `scripts/LCP-Trail.js` — LCP Trail
-- `scripts/LCP-Video-Candidate.js` — LCP Video Candidate
-- `scripts/LCP.js` — Largest Contentful Paint (LCP)
+- `scripts/CLS.js` — Cumulative layout shift (CLS)
+- `scripts/INP.js` — Interaction to next paint (INP)
+- `scripts/LCP-Image-Entropy.js` — LCP image entropy
+- `scripts/LCP-Subparts.js` — LCP subparts
+- `scripts/LCP-Trail.js` — LCP trail
+- `scripts/LCP-Video-Candidate.js` — LCP video candidate
+- `scripts/LCP.js` — Largest contentful paint (LCP)
 
 
 ## Common Workflows

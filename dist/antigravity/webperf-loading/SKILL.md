@@ -24,33 +24,33 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 ## Scripts
 
 - `scripts/Back-Forward-Cache.js` — Back Forward Cache
-- `scripts/CSS-Media-Queries-Analysis.js` — CSS Media Queries Analysis
+- `scripts/CSS-Media-Queries-Analysis.js` — CSS media queries analysis
 - `scripts/Cache-Strategy-Analysis.js` — Cache Strategy Analysis
 - `scripts/Client-Side-Redirect-Detection.js` — Client Side Redirect Detection
-- `scripts/Content-Visibility.js` — Content Visibility
-- `scripts/Critical-CSS-Detection.js` — Critical CSS Detection
-- `scripts/Event-Processing-Time.js` — Event Processing Time
-- `scripts/FCP.js` — First Contentful Paint (FCP)
-- `scripts/Find-Above-The-Fold-Lazy-Loaded-Images.js` — Find Above The Fold Lazy Loaded Images
-- `scripts/Find-Images-With-Lazy-and-Fetchpriority.js` — Find Images With Loading Lazy and Fetchpriority
-- `scripts/Find-non-Lazy-Loaded-Images-outside-of-the-viewport.js` — Find non Lazy Loaded Images outside of the viewport
+- `scripts/Content-Visibility.js` — Content visibility
+- `scripts/Critical-CSS-Detection.js` — Critical CSS detection
+- `scripts/Event-Processing-Time.js` — Event processing time
+- `scripts/FCP.js` — First contentful paint (FCP)
+- `scripts/Find-Above-The-Fold-Lazy-Loaded-Images.js` — Find above the fold lazy loaded images
+- `scripts/Find-Images-With-Lazy-and-Fetchpriority.js` — Find images with loading lazy and fetchpriority
+- `scripts/Find-non-Lazy-Loaded-Images-outside-of-the-viewport.js` — Find non lazy loaded images outside of the viewport
 - `scripts/Find-render-blocking-resources.js` — Find render-blocking resources
 - `scripts/First-And-Third-Party-Script-Info.js` — First And Third Party Script Info
-- `scripts/First-And-Third-Party-Script-Timings.js` — First And Third Party Script Timings
-- `scripts/Fonts-Preloaded-Loaded-and-used-above-the-fold.js` — Fonts Preloaded, Loaded, and Used Above The Fold
-- `scripts/Inline-CSS-Info-and-Size.js` — Inline CSS Info and Size
-- `scripts/Inline-Script-Info-and-Size.js` — Inline Script Info and Size
-- `scripts/JS-Execution-Time-Breakdown.js` — JavaScript Execution Time Breakdown
-- `scripts/Prefetch-Resource-Validation.js` — Prefetch Resource Validation
-- `scripts/Priority-Hints-Audit.js` — Priority Hints Audit
+- `scripts/First-And-Third-Party-Script-Timings.js` — First and third party script timings
+- `scripts/Fonts-Preloaded-Loaded-and-used-above-the-fold.js` — Fonts preloaded, loaded, and used above the fold
+- `scripts/Inline-CSS-Info-and-Size.js` — Inline CSS info and size
+- `scripts/Inline-Script-Info-and-Size.js` — Inline script info and size
+- `scripts/JS-Execution-Time-Breakdown.js` — JavaScript execution time breakdown
+- `scripts/Prefetch-Resource-Validation.js` — Prefetch resource validation
+- `scripts/Priority-Hints-Audit.js` — Priority hints audit
 - `scripts/Resource-Hints-Validation.js` — Resource Hints Validation
-- `scripts/Resource-Hints.js` — Resource Hints
-- `scripts/SSR-Hydration-Data-Analysis.js` — SSR Framework Hydration Data Analysis
-- `scripts/Script-Loading.js` — Scripts Loading
-- `scripts/Service-Worker-Analysis.js` — Service Worker Analysis
-- `scripts/TTFB-Resources.js` — Time To First Byte: Measure TTFB for all resources
-- `scripts/TTFB-Sub-Parts.js` — Time To First Byte: Measure TTFB sub-parts
-- `scripts/TTFB.js` — Time To First Byte: Measure the time to first byte
+- `scripts/Resource-Hints.js` — Resource hints
+- `scripts/SSR-Hydration-Data-Analysis.js` — SSR framework hydration data analysis
+- `scripts/Script-Loading.js` — Scripts loading
+- `scripts/Service-Worker-Analysis.js` — Service worker analysis
+- `scripts/TTFB-Resources.js` — Time to first byte: Measure TTFB for all resources
+- `scripts/TTFB-Sub-Parts.js` — Time to first byte: Measure TTFB sub-parts
+- `scripts/TTFB.js` — Time to first byte: Measure the time to first byte
 - `scripts/Validate-Preload-Async-Defer-Scripts.js` — Validate Preload Async Defer Scripts
 
 
