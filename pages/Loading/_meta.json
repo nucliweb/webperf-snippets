@@ -85,5 +85,8 @@
   },
   "Compression-Audit": {
     "title": "Compression Audit"
+  },
+  "Server-Timing-Early-Hints": {
+    "title": "Server-Timing and Early Hints"
   }
 }
