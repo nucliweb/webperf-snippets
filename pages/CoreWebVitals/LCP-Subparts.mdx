@@ -1,5 +1,6 @@
 import snippet from '../../snippets/CoreWebVitals/LCP-Subparts.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Demo } from '../../components/Demo'
 import { Callout } from 'nextra/components'
 
 # LCP subparts
@@ -42,6 +43,12 @@ flowchart LR
 | Load Delay | < 10% of LCP | Preload LCP image, remove render-blocking resources |
 | Load Time | < 40% of LCP | Compress images, use modern formats (WebP, AVIF) |
 | Render Delay | < 10% of LCP | Inline critical CSS, defer non-critical JS |
+
+<Demo
+  src="/demos/lcp-subparts.html"
+  title="Timeline of the four LCP sub-parts for five scenarios: optimized, late discovery, heavy image, client-side rendering and slow server"
+  caption="Switch scenarios to see which sub-part is over its target, and select a sub-part to highlight it."
+/>
 
 <Callout type="info">
 **Quick check:** Use [LCP](/CoreWebVitals/LCP) for a simple LCP value and element identification.
