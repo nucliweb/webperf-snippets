@@ -1,0 +1,65 @@
+import snippet from '../../snippets/Loading/Speculation-Rules-Inspector.js?raw'
+import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
+
+# Speculation rules inspector
+
+Inspects how a page uses the Speculation Rules API to prefetch and prerender future navigations, and whether the current page was itself prerendered. A prerendered page can activate instantly, which makes navigations feel immediate and changes how load metrics are measured.
+
+### Why this matters
+
+Prerendering loads and renders a page in the background before the user navigates to it. When the user clicks, the browser activates the prerendered page instead of loading it, so LCP can be close to zero. Rules that are missing, invalid or too aggressive either miss that benefit or waste bandwidth and CPU.
+
+Timing values on a prerendered page are relative to the start of the prerender, not to the activation. `activationStart` is the offset that turns them into user-perceived timings, which is why metric snippets subtract it.
+
+### What the snippet reports
+
+- Whether the browser supports speculation rules
+- Every `<script type="speculationrules">` block, parsed into one item per rule (action, source, eagerness, URLs, `where` conditions)
+- Invalid JSON, which the browser silently ignores
+- Rules that are likely to waste resources, such as eager document prerender rules
+- `document.prerendering`, `activationStart` and the navigation `deliveryType` (`"navigational-prefetch"` when the page came from a prefetch)
+- The `prerenderingchange` event, so the activation of a prerendered page is recorded
+
+### Snippet
+
+<Snippet code={snippet} />
+
+### Understanding the results
+
+The snippet returns the following structure.
+
+| Field | Description |
+|-------|-------------|
+| `count` | Number of rules found across all speculation rules scripts |
+| `items` | One entry per rule, capped at 50 |
+| `details.supported` | Whether the browser supports speculation rules |
+| `details.prerendering` | `true` while the page is being prerendered |
+| `details.activated` | `true` once the page is visible to the user, or was never prerendered |
+| `details.activationStart` | Milliseconds between the start of the prerender and the activation, `0` for a normal load |
+| `details.deliveryType` | `"navigational-prefetch"` for a prefetched navigation, empty otherwise |
+| `details.scriptCount` | Number of `script[type="speculationrules"]` elements |
+| `issues` | Invalid JSON, rules that waste resources, and informational notes |
+
+#### Eagerness
+
+`eagerness` controls when the browser speculates. List rules default to `immediate`, document rules default to `conservative`.
+
+| Value | Trigger |
+|-------|---------|
+| `immediate` | As soon as the rules are observed |
+| `eager` | Shortly after the rules are observed |
+| `moderate` | On pointer hover for about 200ms, or on pointer down |
+| `conservative` | On pointer down or touch start |
+
+<Callout type="warning">Rules delivered through the `Speculation-Rules` HTTP header are not readable from JavaScript. The snippet reports them as missing when no script element exists. Check the response headers in the Network panel.</Callout>
+
+#### Checking a prerendered page
+
+Run the snippet in a page that is prerendering to get `status: "tracking"`. After the page is activated, call `getSpeculationRulesInspection()` to read `activated`, `activatedAt` and `activationStart`. In DevTools, the Application panel lists speculative loads under Speculative loads, with the status and failure reason of each one.
+
+### Further reading
+
+- [Prerender pages in Chrome for instant page navigations](https://developer.chrome.com/docs/web-platform/prerender-pages) | Chrome for Developers
+- [Speculation rules](https://developer.mozilla.org/en-US/docs/Web/API/Speculation_Rules_API) | MDN
+- [Debugging speculation rules](https://developer.chrome.com/docs/devtools/application/debugging-speculation-rules) | Chrome for Developers
