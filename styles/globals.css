@@ -137,3 +137,65 @@ pre code {
 .dark .hljs-link {
   text-decoration: underline;
 }
+
+/* Diagrams drawn as inline SVG (see components/diagrams). The tokens match the
+   palette of the interactive demos in public/demos. */
+.wp-dg {
+  --dg-surface: #f6f8fa;
+  --dg-surface2: #eaeef2;
+  --dg-border: #d0d7de;
+  --dg-text: #1f2328;
+  --dg-muted: #656d76;
+  --dg-accent: #0969da;
+  --dg-ok: #1a7f37;
+  --dg-ttfb: #0969da;
+  --dg-delay: #bf8700;
+  --dg-load: #1b7c83;
+  --dg-render: #bf3989;
+  container-type: inline-size;
+  margin: 1.5rem 0;
+}
+.dark .wp-dg {
+  --dg-surface: #161b22;
+  --dg-surface2: #21262d;
+  --dg-border: #30363d;
+  --dg-text: #e6edf3;
+  --dg-muted: #8b949e;
+  --dg-accent: #58a6ff;
+  --dg-ok: #3fb950;
+  --dg-ttfb: #58a6ff;
+  --dg-delay: #e3b341;
+  --dg-load: #39c5cf;
+  --dg-render: #f778ba;
+}
+.wp-dg .dg-svg { display: block; width: 100%; height: auto; font-family: inherit; }
+.wp-dg .dg-svg--narrow { max-width: 340px; margin: 0 auto; }
+.wp-dg .dg-wide { display: block; }
+.wp-dg .dg-narrow { display: none; }
+@container (max-width: 520px) {
+  .wp-dg .dg-wide { display: none; }
+  .wp-dg .dg-narrow { display: block; }
+}
+.wp-dg .dg-c-ttfb { --dg-c: var(--dg-ttfb); }
+.wp-dg .dg-c-delay { --dg-c: var(--dg-delay); }
+.wp-dg .dg-c-load { --dg-c: var(--dg-load); }
+.wp-dg .dg-c-render { --dg-c: var(--dg-render); }
+.wp-dg .dg-c-accent { --dg-c: var(--dg-accent); }
+.wp-dg .dg-node {
+  fill: color-mix(in srgb, var(--dg-c) 13%, transparent);
+  stroke: var(--dg-c);
+  stroke-width: 1.5;
+}
+.wp-dg .dg-card {
+  fill: color-mix(in srgb, var(--dg-c) 7%, transparent);
+  stroke: color-mix(in srgb, var(--dg-c) 55%, transparent);
+  stroke-width: 1;
+}
+.wp-dg .dg-plain { fill: var(--dg-surface); stroke: var(--dg-border); stroke-width: 1.5; }
+.wp-dg .dg-yes { fill: var(--dg-surface2); stroke: var(--dg-border); }
+.wp-dg .dg-line { stroke: var(--dg-muted); stroke-width: 1.5; fill: none; opacity: 0.75; }
+.wp-dg .dg-arrowhead { fill: var(--dg-muted); }
+.wp-dg .dg-text { fill: var(--dg-text); }
+.wp-dg .dg-muted { fill: var(--dg-muted); }
+.wp-dg .dg-ok { fill: var(--dg-ok); }
+.wp-dg .dg-title { font-weight: 600; }
