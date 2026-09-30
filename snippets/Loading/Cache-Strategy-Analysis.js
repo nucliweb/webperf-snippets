@@ -784,6 +784,7 @@
     script: "Cache-Strategy-Analysis",
     status: "ok",
     count: entries.length,
+    corsLimitedAnalysis: corsRestricted > 0,
     details: {
       totalResources: entries.length,
       actionableCount: actionableEntries.length,

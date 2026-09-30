@@ -138,6 +138,7 @@
     script: "JS-Execution-Time-Breakdown",
     status: "ok",
     count: scripts.length,
+    corsLimitedAnalysis: scripts.some(s => s.corsRestricted),
     details: {
       blockingCount: blocking.length,
       nonBlockingCount: nonBlocking.length,

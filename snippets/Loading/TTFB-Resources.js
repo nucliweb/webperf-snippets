@@ -133,7 +133,7 @@
     }))
     .sort((a, b) => b.ttfbMs - a.ttfbMs);
   if (resourcesSync.length === 0) {
-    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available", details: { corsRestrictedCount } };
+    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available", corsLimitedAnalysis: corsRestrictedCount > 0, details: { corsRestrictedCount } };
   }
   const ttfbVals = resourcesSync.map((r) => r.ttfbMs);
   // The list keeps the 50 slowest resources (already sorted); count and details cover all of them
@@ -142,6 +142,7 @@
     script: "TTFB-Resources",
     status: "ok",
     count: resourcesSync.length,
+    corsLimitedAnalysis: corsRestrictedCount > 0,
     details: {
       avgTtfbMs: Math.round(ttfbVals.reduce((a, b) => a + b, 0) / ttfbVals.length),
       maxTtfbMs: Math.max(...ttfbVals),

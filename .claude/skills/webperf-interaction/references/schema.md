@@ -46,6 +46,9 @@ Every script must return an object matching this shape:
   count?: number;        // Total number of items found
   items?: object[];      // Array of individual findings
 
+  // Audit scripts that read resource sizes or timings hidden by Timing-Allow-Origin
+  corsLimitedAnalysis?: boolean;  // true when at least one cross-origin resource could not be analyzed; the result is a lower bound
+
   // Script-specific structured data
   details?: object;
 
@@ -449,7 +452,7 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
 
 #### Script-Loading
 
-`items` holds the 50 scripts to look at first: render-blocking, then third-party, then the largest. `count` and `details` cover every script.
+`items` holds the 50 scripts to look at first: render-blocking, then third-party, then the largest. `count` and `details` cover every script. `corsLimitedAnalysis` is `true` when `details.sizeUnknownCount` is above zero, so `details.totalSizeBytes` is a lower bound.
 
 ```json
 {
@@ -528,7 +531,7 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 #### JS-Execution-Time-Breakdown
 
-`criticalBundles` lists the scripts over 1 MB decoded (at most 20, largest first). `items` holds the first 50 scripts, and a script whose size is hidden by a missing `Timing-Allow-Origin` header has `corsRestricted: true`.
+`criticalBundles` lists the scripts over 1 MB decoded (at most 20, largest first). `items` holds the first 50 scripts, and a script whose size is hidden by a missing `Timing-Allow-Origin` header has `corsRestricted: true`, which sets `corsLimitedAnalysis` to `true`.
 
 ```json
 {
@@ -577,7 +580,7 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 #### Resource-Hints
 
-`items` holds at most 50 hints, those with an error or a warning first, and `count` is the total. `details.missingPreconnects` lists the third-party origins without a preconnect (at most 20). `details.missingPreconnectsCount` is the total.
+`items` holds at most 50 hints, those with an error or a warning first, and `count` is the total. `details.sizeUnknownCount` counts the third-party resources whose size is hidden by a missing `Timing-Allow-Origin` header; `corsLimitedAnalysis` is `true` when it is above zero, and the `sizeBytes` of `missingPreconnects` is then a lower bound. `details.missingPreconnects` lists the third-party origins without a preconnect (at most 20). `details.missingPreconnectsCount` is the total.
 
 ```json
 {
@@ -943,7 +946,7 @@ Returns buffered long tasks immediately. Ongoing tracking continues. `items` lis
 
 #### Image-Element-Audit (async)
 
-`items` holds the 50 images to look at first: the LCP image, then those with the most errors and warnings. `count` and `details` cover every image.
+`items` holds the 50 images to look at first: the LCP image, then those with the most errors and warnings. `count` and `details` cover every image. The format comes from the `Content-Type` of the response; when a cross-origin image blocks `fetch()` it is guessed from the URL, `details.formatGuessedCount` counts those images and `corsLimitedAnalysis` is `true`.
 
 ```json
 {
@@ -1082,5 +1085,6 @@ data = evaluate_script("getINP()")
 9. **Nested detail stays nested** — phases and groups are objects such as `{ "dnsLookup": { "value": 12, "unit": "ms" } }`, not flattened into `dnsLookupMs`. Renderers adapt to the schema, not the other way around.
 10. **Valid statuses only** — `ok`, `tracking`, `error` or `unsupported`, with an `error` message when the status is `error` or `unsupported`.
 11. **Hidden cross-origin data is reported, not guessed** — a resource whose timing or size is hidden (no `Timing-Allow-Origin`) reports zeros for every size and timing. Count it (`sizeKnown: false`, `corsRestrictedCount`) instead of treating the zero as a measurement.
+12. **Partial analysis is flagged** — when hidden cross-origin data leaves part of the set unanalyzed, set the top-level `corsLimitedAnalysis: true` and report how many resources were skipped in `details` (`sizeUnknownCount`, `corsRestrictedCount`). Set it to `false` when every resource was analyzed.
 
 The rules are checked by `cli/tests/e2e/snippet-contract.test.js`, which runs every script, and every `getDataFn`, on an empty page, a seeded page and a heavy page.

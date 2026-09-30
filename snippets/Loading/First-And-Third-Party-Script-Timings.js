@@ -283,6 +283,7 @@
     script: "First-And-Third-Party-Script-Timings",
     status: "ok",
     count: scripts.length,
+    corsLimitedAnalysis: thirdStats.withoutTiming > 0,
     details: {
       firstPartyCount: firstParty.length,
       thirdPartyCount: thirdParty.length,

@@ -25,6 +25,12 @@ export function AuditRenderer({ result }) {
         </div>
       </div>
 
+      {result.corsLimitedAnalysis === true && (
+        <p style={{ color: "#f59e0b", fontSize: "0.875rem", margin: "0 0 16px" }}>
+          ⚠ Partial analysis: cross-origin resources without Timing-Allow-Origin hid their sizes or timings, so the totals are a lower bound.
+        </p>
+      )}
+
       {result.issues?.length > 0 ? (
         <section style={{ marginBottom: "24px" }}>
           <div style={{ fontSize: "0.875rem", fontWeight: "600", marginBottom: "8px" }}>Issues</div>
