@@ -48,6 +48,7 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 - `scripts/Resource-Hints.js` — Resource hints
 - `scripts/SSR-Hydration-Data-Analysis.js` — SSR framework hydration data analysis
 - `scripts/Script-Loading.js` — Scripts loading
+- `scripts/Server-Timing-Early-Hints.js` — Server-Timing and Early Hints viewer
 - `scripts/Service-Worker-Analysis.js` — Service worker analysis
 - `scripts/TTFB-Resources.js` — Time to first byte: Measure TTFB for all resources
 - `scripts/TTFB-Sub-Parts.js` — Time to first byte: Measure TTFB sub-parts
@@ -76,6 +77,7 @@ When TTFB is slow or the user asks "why is my server slow":
 2. **TTFB-Sub-Parts.js** - Break down into DNS, connection, server time
 3. **Service-Worker-Analysis.js** - Check for SW overhead impacting TTFB
 4. **TTFB-Resources.js** - Identify slow third-party or API endpoints
+5. **Server-Timing-Early-Hints.js** - Read backend phases from `Server-Timing` and check 103 Early Hints
 
 ### Font Loading Optimization
 
@@ -141,6 +143,13 @@ Use this decision tree to automatically run follow-up snippets based on results:
 - **If TTFB > 600ms** → Run **TTFB-Sub-Parts.js** to diagnose where time is spent
 - **If Service Worker detected** → Run **Service-Worker-Analysis.js** to check for SW overhead
 - **If TTFB varies significantly across resources** → Run **TTFB-Resources.js**
+- **If server time dominates TTFB-Sub-Parts.js** → Run **Server-Timing-Early-Hints.js** to see which backend phase is slow
+
+### After Server-Timing-Early-Hints.js
+
+- **If no `Server-Timing` metrics found** → Recommend adding `Server-Timing` headers for database, cache and render phases
+- **If cross-origin resources look hidden** → Recommend `Timing-Allow-Origin` on those responses
+- **If no 103 Early Hints received and server time is high** → Recommend Early Hints for the main stylesheet and LCP image
 
 ### After FCP.js
 

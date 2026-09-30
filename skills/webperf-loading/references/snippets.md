@@ -165,6 +165,12 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 
 **Script:** `scripts/Script-Loading.js`
 ---
+## Server-Timing and Early Hints viewer
+
+Lists the Server-Timing metrics that the server sends with the document and with each resource, and reports the 103 Early Hints timing of the navigation. These two signals show where the backend spends time before the first byte and whether the server lets the browser start fetching critical resources while it still builds the response.
+
+**Script:** `scripts/Server-Timing-Early-Hints.js`
+---
 ## Service worker analysis
 
 Analyzes the Service Worker lifecycle, cache behavior, and its performance impact on resource loading. Service Workers can dramatically improve performance through caching strategies, but misconfigured workers can introduce startup delays and degrade TTFB.

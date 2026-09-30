@@ -1,0 +1,86 @@
+import snippet from '../../snippets/Loading/Server-Timing-Early-Hints.js?raw'
+import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
+
+# Server-Timing and Early Hints viewer
+
+Lists the `Server-Timing` metrics that the server sends with the document and with each resource, and reports the 103 Early Hints timing of the navigation. These two signals show where the backend spends time before the first byte and whether the server lets the browser start fetching critical resources while it still builds the response.
+
+### Why this matters
+
+TTFB shows that the server is slow, not why. A `Server-Timing` header lets the backend report its own phases (database, cache lookup, rendering, edge) so they show up in DevTools and in the Performance API next to the network timings. Early Hints (`103`) lets the server send `Link: rel=preload` or `rel=preconnect` headers before the final response is ready, which hides part of the server think time behind useful downloads.
+
+### What it reads
+
+| Source | Property | Meaning |
+|--------|----------|---------|
+| Navigation entry | `serverTiming` | Metrics the document response reports |
+| Resource entries | `serverTiming` | Metrics each subresource response reports |
+| Navigation entry | `firstInterimResponseStart` | When the first interim response (103 Early Hints) arrived |
+| Navigation entry | `finalResponseHeadersStart` | When the headers of the final response arrived |
+| Navigation entry | `responseStart` | When the first byte of the final response arrived |
+
+Each `Server-Timing` metric has a `name`, an optional `dur` (duration in milliseconds) and an optional `desc` (description). A metric without `dur` is reported with a duration of `0`.
+
+### Snippet
+
+<Snippet code={snippet} />
+
+### Understanding the results
+
+The snippet prints a summary and a table in the console, and returns a structured object.
+
+### Metrics
+
+`items` holds up to 50 metrics, slowest first, with the fields `source` (`navigation` or `resource`), `url`, `name`, `durationMs` and `description`. `count` is the total number of metrics found, including those beyond the first 50.
+
+### Early Hints timing
+
+`details.navigation` reports:
+
+- `firstInterimResponseStartMs`: when the 103 response arrived, or `0` when none was observed.
+- `finalResponseHeadersStartMs`: when the final response headers arrived.
+- `earlyHintsLeadMs`: how much earlier the browser learned about the hinted resources than it would have without Early Hints.
+- `earlyHintsReceived`: `true` when a 103 response was observed.
+
+Times are relative to the start of the navigation, or to `activationStart` on a prerendered page.
+
+<Callout type="warning">Chrome uses Early Hints for navigations over HTTP/2 and HTTP/3. A server that sends a 103 over HTTP/1.1 does not produce a `firstInterimResponseStart` value.</Callout>
+
+### Cross-origin resources
+
+A cross-origin resource exposes its `Server-Timing` metrics only when its response sends a `Timing-Allow-Origin` header that permits the page origin. Without that header the browser reports an empty `serverTiming` list and zero for every size, so the snippet cannot tell a resource with no metrics from a hidden one. It counts the resources that look hidden (cross-origin with zero sizes) in `details.corsRestrictedCount`, sets `corsLimitedAnalysis` to `true` and adds an issue. `details.resourcesWithServerTiming` counts the resources whose metrics were read.
+
+### Adding Server-Timing to a response
+
+```http
+Server-Timing: db;dur=53.2;desc="Database", cache;desc=HIT, total;dur=120
+```
+
+```http
+Timing-Allow-Origin: https://example.com
+```
+
+Use a short metric name and do not expose internal details, since any script on the page can read these values.
+
+### Sending Early Hints
+
+```http
+HTTP/2 103
+Link: </styles/app.css>; rel=preload; as=style
+Link: <https://cdn.example.com>; rel=preconnect
+```
+
+Send the same `Link` headers only for resources that every response for the URL needs, such as the main stylesheet or the LCP image.
+
+### Browser support
+
+`serverTiming` is available in Chromium, Firefox and Safari. `firstInterimResponseStart` and `finalResponseHeadersStart` are Chromium features. Where a property is missing the snippet reports `0` for it.
+
+### Further reading
+
+- [Server-Timing](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server-Timing) | MDN
+- [Timing-Allow-Origin](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Timing-Allow-Origin) | MDN
+- [Early Hints](https://developer.chrome.com/docs/web-platform/early-hints) | Chrome Developers
+- [Optimize TTFB](https://web.dev/articles/optimize-ttfb) | web.dev
+- [TTFB sub-parts](/Loading/TTFB-Sub-Parts) | Break the time to first byte into its phases
