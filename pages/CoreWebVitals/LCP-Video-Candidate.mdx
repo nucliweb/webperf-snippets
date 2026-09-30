@@ -1,13 +1,13 @@
 import snippet from '../../snippets/CoreWebVitals/LCP-Video-Candidate.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# LCP Video Candidate
+# LCP video candidate
 
-Detects whether the LCP element is a `<video>` and audits the poster image configuration — the most common source of avoidable LCP delay when video is the hero element.
+Detects whether the LCP element is a `<video>` and audits the poster image configuration, the most common source of avoidable LCP delay when video is the hero element.
 
 When a `<video>` element has a `poster` attribute, the browser treats the poster image as the LCP candidate. The browser cannot discover the poster URL until the parser reaches the `<video>` tag, so without a `<link rel="preload">` the poster is fetched late, increasing LCP.
 
-**What this snippet checks:**
+### What this snippet checks
 
 | Check                                                       | Scope                        |
 | ----------------------------------------------------------- | ---------------------------- |
@@ -17,8 +17,6 @@ When a `<video>` element has a `poster` attribute, the browser treats the poster
 | Preload link without `fetchpriority="high"`                 | LCP video poster preload     |
 | Poster using a legacy format (not AVIF / WebP / JXL)        | LCP video poster             |
 | `renderTime` is zero (cross-origin poster, TAO header missing) | LCP video poster          |
-
-### Overview
 
 When a `<video>` drives LCP, the critical path for the poster image mirrors that of an LCP `<img>`:
 
@@ -47,48 +45,48 @@ A `<link rel="preload">` in `<head>` shortcuts this chain, allowing the browser 
 </video>
 ```
 
-> The `poster` URL in the `<link>` and the `<video>` must be identical — including query strings — so the browser can match them and avoid a duplicate fetch.
+> The `poster` URL in the `<link>` and the `<video>` must be identical, including query strings, so the browser can match them and avoid a duplicate fetch.
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
 #### When LCP is not a `<video>`
 
 The snippet reports the actual LCP element tag and URL, and exits. The [LCP Trail](/CoreWebVitals/LCP-Trail) and [LCP Subparts](/CoreWebVitals/LCP-Subparts) snippets are better suited for diagnosing non-video LCP elements.
 
-#### LCP Metrics
+#### LCP metrics
 
 | Field        | Description                                                                                            |
 | ------------ | ------------------------------------------------------------------------------------------------------ |
-| `LCP time`   | `startTime` from the last LCP entry — the moment the poster was painted to screen                     |
+| `LCP time`   | `startTime` from the last LCP entry, the moment the poster was painted to screen                     |
 | `Render time`| Time the poster was rendered; `0` means the image is cross-origin without a `Timing-Allow-Origin` header |
 | `Load time`  | Time the poster finished loading over the network                                                      |
 | `Size`       | Rendered area of the video element in pixels²                                                          |
 | `Poster URL` | URL the browser used (`lcp.url`), which may differ from the `poster` attribute if redirected           |
 | `Format`     | Image format detected from the URL extension                                                           |
 
-#### Video Element
+#### Video element
 
 | Field        | Description                                                                                   |
 | ------------ | --------------------------------------------------------------------------------------------- |
-| `poster`     | Value of the `poster` attribute — must match the preload `href` exactly                      |
+| `poster`     | Value of the `poster` attribute, must match the preload `href` exactly                      |
 | `preload`    | `none` may delay poster loading in non-autoplay videos; `metadata` or `auto` are safer        |
-| `autoplay`   | ✓ means the browser starts playback immediately — `muted` is required                        |
+| `autoplay`   | ✓ means the browser starts playback immediately, `muted` is required                        |
 | `muted`      | Required for `autoplay` to work in all modern browsers                                        |
 | `playsinline`| Prevents iOS Safari from switching to native fullscreen                                       |
 
-#### Preload Link
+#### Preload link
 
 | Status                          | Meaning                                                                                              |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| ✅ found (fetchpriority=high)   | Optimal — browser fetches the poster at the highest priority before parsing the `<video>` tag       |
+| ✅ found (fetchpriority=high)   | Optimal, browser fetches the poster at the highest priority before parsing the `<video>` tag       |
 | ✅ found (no fetchpriority)     | Preload exists but may be deprioritised relative to other `high` resources                          |
 | ⚠️ not found                   | Browser cannot start fetching the poster until it parses the `<video>` tag                          |
 
-#### Issues Detected
+#### Issues detected
 
 | Issue                                       | Severity   | Explanation                                                                              |
 | ------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------- |
@@ -97,7 +95,7 @@ The snippet reports the actual LCP element tag and URL, and exits. The [LCP Trai
 | `preload="none"` on non-autoplay video      | ⚠️ Warning | Some browsers delay poster loading until user interaction                                |
 | Preload without `fetchpriority="high"`      | ℹ️ Info    | Preload competes with other resources and may not run as early as possible               |
 | Poster using legacy format                  | ℹ️ Info    | AVIF / WebP reduces poster file size by 30–50 %, directly lowering load time            |
-| `renderTime` is 0                           | ℹ️ Info    | Cross-origin poster without `Timing-Allow-Origin` — accurate LCP timing is unavailable  |
+| `renderTime` is 0                           | ℹ️ Info    | Cross-origin poster without `Timing-Allow-Origin`, accurate LCP timing is unavailable  |
 
 #### `renderTime` and `Timing-Allow-Origin`
 
@@ -113,7 +111,7 @@ Timing-Allow-Origin: *
 
 LCP entries accumulate from page load until the first user interaction (click, key press, or scroll). Run the snippet immediately after the page finishes loading, before interacting with it. After a user interaction, `performance.getEntriesByType('largest-contentful-paint')` still returns the entries collected up to that point.
 
-### Further Reading
+### Further reading
 
 - [Largest Contentful Paint](https://web.dev/articles/lcp) | web.dev
 - [Optimizing LCP](https://web.dev/articles/optimize-lcp) | web.dev

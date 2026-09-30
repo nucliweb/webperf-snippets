@@ -1,11 +1,11 @@
 import snippet from '../../snippets/Loading/Event-Processing-Time.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# Event Processing Time
+# Event processing time
 
 Analyzes the time spent in each phase of page navigation, from initial redirect to the load event. This helps identify bottlenecks in the page loading process and understand where time is being spent.
 
-**Key phases in page load:**
+### Key phases in page load
 
 ```mermaid
 gantt
@@ -27,7 +27,7 @@ gantt
     Load Event         :800, 820
 ```
 
-**What each phase means:**
+### What each phase means
 
 | Phase | Description | Impact |
 |-------|-------------|--------|
@@ -44,16 +44,16 @@ gantt
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
 The snippet displays a timeline of all page load phases with:
 
-**Summary Section:**
+### Summary section
 - **Network time**: Time spent on network operations (DNS, TCP, SSL, request/response)
 - **Processing time**: Time spent on DOM parsing and JavaScript execution
 - **Total**: Complete page load time
 
-**Timeline Section:**
+### Timeline section
 
 Each phase shows:
 - Duration in milliseconds
@@ -61,18 +61,18 @@ Each phase shows:
 - Visual bar indicating relative duration
 - Color coding: 🔴 Red (>30%), 🟠 Orange (>15%), default otherwise
 
-**Key Milestones:**
+### Key milestones
 - **TTFB**: When the first byte of HTML arrives
 - **DOMContentLoaded**: When HTML is parsed and deferred scripts executed
 - **Load Complete**: When all resources (images, styles, etc.) are loaded
 
-**Bottleneck Detection:**
+### Bottleneck detection
 
 If any phase takes more than 25% of total load time, the snippet identifies it and provides optimization tips.
 
 Run the snippet after the load event. While the page is still loading it reports `tracking` (and logs a reminder) instead of a total.
 
-### Typical Values
+### Typical values
 
 | Metric | Good | Moderate | Slow |
 |--------|------|----------|------|
@@ -80,7 +80,7 @@ Run the snippet after the load event. While the page is still loading it reports
 | TTFB | < 800ms | 800ms - 1800ms | > 1800ms |
 | DOMContentLoaded | < 1.5s | 1.5s - 3s | > 3s |
 
-### Further Reading
+### Further reading
 
 - [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_timing_API) | MDN
 - [PerformanceNavigationTiming](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) | MDN

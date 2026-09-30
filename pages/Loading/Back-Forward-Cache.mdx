@@ -1,24 +1,22 @@
 import snippet from "../../snippets/Loading/Back-Forward-Cache.js?raw";
 import { Snippet } from "../../components/Snippet";
 
-# Back/Forward Cache (bfcache)
-
-### Overview
+# Back/forward cache (bfcache)
 
 Analyzes [Back/Forward Cache (bfcache)](https://web.dev/articles/bfcache) to determine if your page is eligible for instant back/forward navigations. When bfcache works, users get instant (0ms) page loads when using browser back/forward buttons, dramatically improving perceived performance.
 
-**Why this matters:**
+### Why this matters
 
 bfcache is one of the most impactful performance optimizations available - it can make navigation instantaneous. However, many pages are unknowingly ineligible due to common patterns like `unload` handlers, `Cache-Control: no-store`, or open connections. This snippet reports the blockers it can detect and reads the `NotRestoredReasons` the browser reports after a back navigation, including those of embedded frames.
 
-**bfcache Impact:**
+### bfcache impact
 
 | Navigation Type     | Load Time | User Experience |
 | ------------------- | --------- | --------------- |
 | Normal navigation   | 1-3s      | Wait, spinner   |
 | bfcache restoration | 0ms       | Instant         |
 
-**How bfcache works:**
+### How bfcache works
 
 ```mermaid
 sequenceDiagram
@@ -56,7 +54,7 @@ sequenceDiagram
     style B fill:#E5F2FF
 ```
 
-**Common blocking reasons:**
+### Common blocking reasons
 
 ```mermaid
 flowchart TD
@@ -97,18 +95,18 @@ flowchart TD
 
 ### Understanding bfcache
 
-**What is bfcache:**
+### What is bfcache
 
 The back/forward cache (bfcache) stores a complete snapshot of a page when you navigate away. When you press the browser back button, the page is restored instantly from memory instead of reloading.
 
-**Benefits:**
+### Benefits
 
 - **0ms navigation**: Instant page restoration
 - **Preserved scroll position**: Users return to exact scroll position
 - **Preserved form state**: Form inputs maintain their values
 - **Preserved JavaScript state**: Variables, timers, everything intact
 
-**When bfcache works:**
+### When bfcache works
 
 ```
 User flow with bfcache:
@@ -118,7 +116,7 @@ User flow without bfcache:
 Page A → Page B → [Back] → Page A (full reload, 1-3s)
 ```
 
-### Common Blockers and Solutions
+### Common blockers and solutions
 
 | Blocker                        | Why it blocks               | Solution                                     |
 | ------------------------------ | --------------------------- | -------------------------------------------- |
@@ -143,11 +141,11 @@ Several blockers are invisible to JavaScript, so the snippet separates what it c
 
 When none of these apply, the result is `no-blockers-detected`. That is not a guarantee: `unload` listeners added with `addEventListener`, and open WebSocket, BroadcastChannel or IndexedDB connections, cannot be detected from JavaScript. They appear in `NotRestoredReasons` after a back navigation, or in DevTools → Application → Back/forward cache.
 
-### Fixing Common Issues
+### Fixing common issues
 
 #### Issue 1: unload/beforeunload handlers
 
-**Bad:**
+##### Bad
 
 ```javascript
 window.addEventListener("unload", () => {
@@ -159,7 +157,7 @@ window.addEventListener("beforeunload", () => {
 });
 ```
 
-**Good:**
+##### Good
 
 ```javascript
 window.addEventListener("pagehide", (event) => {
@@ -178,13 +176,13 @@ window.addEventListener("pagehide", (event) => {
 
 The header is part of the HTTP response of the page. A `<meta http-equiv="Cache-Control">` tag is ignored by browsers, so it has no effect on bfcache either way.
 
-**Bad:**
+##### Bad
 
 ```http
 Cache-Control: no-store
 ```
 
-**Good:**
+##### Good
 
 ```http
 Cache-Control: no-cache
@@ -194,14 +192,14 @@ Keep `no-store` only for responses that contain sensitive data, and use `private
 
 #### Issue 3: Open WebSocket
 
-**Bad:**
+##### Bad
 
 ```javascript
 const ws = new WebSocket("wss://web.dev");
 // Connection stays open, blocks bfcache
 ```
 
-**Good:**
+##### Good
 
 ```javascript
 const ws = new WebSocket("wss://web.dev");
@@ -220,7 +218,7 @@ window.addEventListener("pageshow", (event) => {
 
 #### Issue 4: IndexedDB
 
-**Bad:**
+##### Bad
 
 ```javascript
 const request = indexedDB.open("myDB");
@@ -231,7 +229,7 @@ request.onsuccess = () => {
 };
 ```
 
-**Good:**
+##### Good
 
 ```javascript
 let db;
@@ -247,7 +245,7 @@ window.addEventListener("pagehide", () => {
 
 ### Testing bfcache
 
-**Method 1: Manual test (recommended)**
+### Method 1: Manual test (recommended)
 
 1. Open your page and run the snippet. It reports the blockers it can detect and starts listening for the `pageshow` event.
 2. Navigate to another page, for example by clicking a link.
@@ -256,13 +254,13 @@ window.addEventListener("pagehide", () => {
 
 A `pageshow` event with `persisted: true` is the only reliable sign that a page was restored. The snippet logs it as soon as it happens, but only if it was running before the navigation.
 
-**Output when the page is restored:**
+### Output when the page is restored
 
 ```
 ⚡ Page restored from bfcache!
 ```
 
-**Method 2: Chrome DevTools**
+### Method 2: Chrome DevTools
 
 1. Open DevTools → Application tab
 2. Click "Back/forward cache" in sidebar
@@ -274,7 +272,7 @@ A `pageshow` event with `persisted: true` is the only reliable sign that a page 
 
 Chrome 123+ exposes `notRestoredReasons` on the navigation entry. After a back or forward navigation that was not served from bfcache, it lists why. This is the most accurate way to diagnose bfcache issues.
 
-**API structure:**
+### API structure
 
 ```javascript
 const navEntry = performance.getEntriesByType("navigation")[0];
@@ -299,7 +297,7 @@ Each entry of `reasons` is an object whose `reason` property holds the reason. T
 
 ### Reason values
 
-**Common reason values:**
+### Common reason values
 
 | Reason | What it means |
 | ------ | ------------- |
@@ -311,7 +309,7 @@ Each entry of `reasons` is an object whose `reason` property holds the reason. T
 | `related-active-contents` | A related window (popup, opener) blocks caching |
 | `masked` | The browser hides the exact reason, for example for a cross-origin frame |
 
-**Example with an embedded frame:**
+### Example with an embedded frame
 
 ```json
 {
@@ -348,13 +346,13 @@ This tells us:
 3. Fix the blockers: remove `unload` listeners, close connections on `pagehide`.
 4. Repeat from step 1. A `pageshow` event with `persisted: true` confirms the fix.
 
-**Chrome DevTools shortcut:**
+### Chrome DevTools shortcut
 
 - DevTools → Application → Back/forward cache
 - Click "Test back/forward cache"
 - The panel lists the blocking reasons immediately
 
-### Browser Support
+### Browser support
 
 | Browser     | bfcache Support | NotRestoredReasons API |
 | ----------- | --------------- | ---------------------- |
@@ -388,7 +386,7 @@ All modern browsers support bfcache, but diagnostics vary.
    1. unload event listeners block bfcache. Use pagehide or visibilitychange instead.
 ```
 
-#### Same page after navigating away and pressing Back
+#### Same page after navigating away and pressing back
 
 The page has an `unload` listener and an iframe with its own `unload` listener.
 
@@ -411,19 +409,19 @@ The page has an `unload` listener and an iframe with its own `unload` listener.
 
 The `details.notRestoredReasons` property of the returned object carries the same tree, and `issues` has one `error` per reason and frame.
 
-### Real-World Impact
+### Real-world impact
 
-**Case studies:**
+### Case studies
 
 - **Wikipedia**: 40% faster back navigations with bfcache
 - **E-commerce sites**: 50% reduction in bounce rate from back button
 - **News sites**: 60% of back navigations became instant
 
-**Measuring impact:**
+### Measuring impact
 
 Count restorations with the `pageshow` event: a restore fires it with `persisted: true`, while a regular back navigation loads the page again and reports `notRestoredReasons`.
 
-### RUM Integration
+### RUM integration
 
 ```js copy
 // Track bfcache restoration in RUM
@@ -448,7 +446,7 @@ if (navEntry && navEntry.notRestoredReasons) {
 }
 ```
 
-### Further Reading
+### Further reading
 
 - [Back/forward cache (bfcache)](https://web.dev/articles/bfcache) | web.dev
 - [NotRestoredReasons API](https://developer.chrome.com/docs/web-platform/bfcache-notrestoredreasons/) | Chrome Developers

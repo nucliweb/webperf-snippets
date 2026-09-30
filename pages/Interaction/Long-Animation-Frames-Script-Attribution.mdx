@@ -1,11 +1,11 @@
 import snippet from '../../snippets/Interaction/Long-Animation-Frames-Script-Attribution.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# Long Animation Frames Script Attribution
+# Long animation frames script attribution
 
 Analyzes and visualizes which scripts are responsible for blocking the main thread. This snippet categorizes blocking time by script origin (your code, framework, third-party, extensions) and provides actionable insights for optimization.
 
-**Why Script Attribution Matters:**
+### Why script attribution matters
 
 - Identify if blocking comes from your code vs third-parties
 - Prioritize optimization efforts on the biggest offenders
@@ -13,7 +13,7 @@ Analyzes and visualizes which scripts are responsible for blocking the main thre
 - Track third-party impact on performance
 - Segment RUM data by script category
 
-**What you'll see:**
+### What you'll see
 
 - Blocking time breakdown by script category (first-party, framework, third-party, unknown)
 - Top blocking scripts ranked by total duration
@@ -48,7 +48,7 @@ graph LR
 
 **Purpose**: Provide detailed attribution of main thread blocking to specific scripts, categorized by origin and ranked by impact.
 
-**Key Features**:
+### Key features
 
 1. **Automatic Categorization**: Classifies scripts as first-party, framework, third-party, or unknown
 2. **Visual Breakdown**: ASCII charts showing percentage contribution
@@ -56,26 +56,26 @@ graph LR
 4. **Actionable Insights**: Specific recommendations based on findings
 5. **RUM Integration**: Export data in format ready for analytics
 
-**Use Cases**:
+### Use cases
 
 - Performance audits: "Where should we optimize first?"
 - Third-party analysis: "Is our analytics/ads slowing us down?"
 - Framework cost: "How much overhead does React/Vue add?"
 - Before/after comparisons: "Did our optimization work?"
 
-## Script Attribution Analysis
+## Script attribution analysis
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-## Quick Tips
+## Quick tips
 
-**Custom collection duration:**
+### Custom collection duration
 
 The script runs for 10 seconds by default. You can specify a different duration:
 
-```javascript
+```javascript copy
 // Quick 3-second check
 analyzeScriptAttribution(3);
 
@@ -86,15 +86,15 @@ analyzeScriptAttribution(20);
 analyzeScriptAttribution();
 ```
 
-**Already have some interactions?**
+### Already have some interactions?
 
 Since the script uses `buffered: true`, it captures frames that already occurred. If you've been interacting with the page, you'll see data immediately even with shorter durations.
 
-**Re-run the analysis:**
+### Re-run the analysis
 
 The function is available in the console, so you can run it multiple times to compare different scenarios:
 
-```javascript
+```javascript copy
 // After feature A
 await analyzeScriptAttribution(5);
 
@@ -102,9 +102,9 @@ await analyzeScriptAttribution(5);
 await analyzeScriptAttribution(5);
 ```
 
-## Understanding the Output
+## Understanding the output
 
-### Category Definitions
+### Category definitions
 
 | Category           | What it includes                              | Optimization Responsibility                                       |
 | ------------------ | --------------------------------------------- | ----------------------------------------------------------------- |
@@ -114,7 +114,7 @@ await analyzeScriptAttribution(5);
 | **🟤 Extensions**  | Browser extensions (adblockers, etc.)         | ❌ **No control** - User's environment                            |
 | **⚫ Unknown**     | Inline scripts, eval(), no source attribution | 🔍 **Need investigation** - Likely your code                      |
 
-### Reading the Visual Chart
+### Reading the visual chart
 
 ```
 🔵 Your Code      ████████████████████░░░░░░░░░░░░ 40.2% (235ms, 3 scripts)
@@ -122,22 +122,22 @@ await analyzeScriptAttribution(5);
 🟠 Third-Party    ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  4.0% (23ms, 2 scripts)
 ```
 
-**What this tells you:**
+### What this tells you
 
 - **Bar length** = Percentage of total script execution time
 - **Percentage** = Contribution to blocking (prioritization metric)
 - **Duration** = Absolute time spent (optimization potential)
 - **Script count** = Number of individual script executions
 
-**In this example:**
+### In this example
 
 - Framework is taking &gt;50% → Investigate React re-renders
 - Your code is 40% → Largest controllable opportunity
 - Third-party is &lt;5% → Not the problem
 
-### Interpreting Recommendations
+### Interpreting recommendations
 
-**Priority levels:**
+### Priority levels
 
 | Priority      | When Shown                                       | Action Required                                                   |
 | ------------- | ------------------------------------------------ | ----------------------------------------------------------------- |
@@ -146,7 +146,7 @@ await analyzeScriptAttribution(5);
 | 🟡 **Low**    | Minor contributors                               | **Monitor** - Optimize if easy wins available                     |
 | ℹ️ **Info**   | Extensions or environmental                      | **Document** - Track in RUM, no code changes needed               |
 
-### RUM Data Structure
+### RUM data structure
 
 The exported `rumData` object structure:
 
@@ -178,14 +178,14 @@ The exported `rumData` object structure:
 }
 ```
 
-**How to use in RUM:**
+### How to use in RUM
 
 - **Segment by category %** - Track if third-party cost increases over time
 - **Alert on spikes** - If first-party > 50%, investigate recent deploys
 - **Compare P50/P95** - See if some users have worse attribution
 - **A/B test impact** - Did removing analytics improve frameRate?
 
-## Browser Support
+## Browser support
 
 | Feature                   | Chrome | Firefox | Safari | Edge |
 | ------------------------- | ------ | ------- | ------ | ---- |
@@ -194,9 +194,9 @@ The exported `rumData` object structure:
 
 **Fallback**: For browsers without LoAF, use the [Long Tasks API](/Interaction/LongTask) but you'll lose script attribution detail.
 
-## Best Practices
+## Best practices
 
-### When to Run This Analysis
+### When to run this analysis
 
 ✅ **Good times:**
 
@@ -212,7 +212,7 @@ The exported `rumData` object structure:
 - On low-end devices (adds overhead)
 - Without user interaction (won't capture interaction frames)
 
-### How to Get Good Data
+### How to get good data
 
 1. **Interact with the page** - Click, scroll, type during the collection window (default: 10 seconds)
 2. **Test realistic scenarios** - Open dropdowns, submit forms, load data
@@ -222,7 +222,7 @@ The exported `rumData` object structure:
 6. **Test on real devices** - Mobile performance often differs significantly
 7. **Use buffered data** - The script captures frames that already occurred, so existing interactions count
 
-### Integration Tips
+### Integration tips
 
 ```javascript
 // Only run on a sample of users (10%) with short duration
@@ -258,9 +258,9 @@ async function checkPerformance() {
 }
 ```
 
-## Real-World Examples
+## Real-world examples
 
-### Example 1: Framework-Heavy Application
+### Example 1: Framework-heavy application
 
 ```
 📊 Blocking Time by Category
@@ -273,7 +273,7 @@ async function checkPerformance() {
 **Diagnosis**: Framework overhead is dominating (79%)
 **Action**: Implement React.memo(), reduce re-renders, consider Preact
 
-### Example 2: Third-Party Impact
+### Example 2: Third-party impact
 
 ```
 📊 Blocking Time by Category
@@ -286,7 +286,7 @@ async function checkPerformance() {
 **Diagnosis**: Third-parties taking &gt;50% (analytics, ads, tracking)
 **Action**: Defer non-critical scripts, use facades, consider alternatives
 
-### Example 3: Balanced (Optimized)
+### Example 3: Balanced (optimized)
 
 ```
 📊 Blocking Time by Category
@@ -300,7 +300,7 @@ async function checkPerformance() {
 **Diagnosis**: Well-distributed, no single category dominates
 **Action**: Focus on absolute values - can all categories go lower?
 
-## Further Reading
+## Further reading
 
 - [Long Animation Frames API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceLongAnimationFrameTiming) | MDN
 - [Optimize long tasks](https://web.dev/articles/optimize-long-tasks) | web.dev

@@ -1,42 +1,43 @@
 import snippet from '../../snippets/Resources/Network-Bandwidth-Connection-Quality.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Network Bandwidth & Connection Quality
-
-### Overview
+# Network bandwidth & connection quality
 
 Network quality directly affects web performance. Segmenting metrics by connection type helps identify whether performance issues are infrastructure-related or affect only users on slower connections.
 
-**Measured properties:**
+### Measured properties
 - Connection type (WiFi, cellular, etc.)
 - Effective connection type (slow-2g, 2g, 3g, 4g)
 - Estimated downlink speed (Mbps)
 - Round Trip Time (RTT) estimate
 - Save-Data preference status
 
-**Use cases:**
+### Use cases
 - Segment RUM data by connection quality
 - Serve adaptive experiences based on network conditions
 - Debug performance regressions for specific network profiles
 
-> **API availability**: The Network Information API (`navigator.connection`) has limited browser support. It is available in Chrome and Android browsers but not in Safari or Firefox.
+<Callout type="warning">
+**API availability**: The Network Information API (`navigator.connection`) has limited browser support. It is available in Chrome and Android browsers but not in Safari or Firefox.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Connection Type vs Effective Type:**
+### Connection type vs effective type
 
 | Property | What it reports | Example values |
 |----------|----------------|----------------|
 | `type` | Physical medium | `wifi`, `cellular`, `ethernet`, `none`, `unknown` |
 | `effectiveType` | Estimated quality tier | `slow-2g`, `2g`, `3g`, `4g` |
 
-`effectiveType` is the most useful value for performance decisions — it reflects actual measured throughput, not just the connection medium. A user on LTE in a crowded area may show `3g` even though the physical type is `cellular`.
+`effectiveType` is the most useful value for performance decisions, it reflects actual measured throughput, not just the connection medium. A user on LTE in a crowded area may show `3g` even though the physical type is `cellular`.
 
-**Downlink and RTT:**
+### Downlink and RTT
 
 These are estimates derived from recent network activity, not live measurements:
 
@@ -47,11 +48,11 @@ These are estimates derived from recent network activity, not live measurements:
 
 Both values are intentionally coarsened by browsers to reduce fingerprinting risk.
 
-**Save-Data:**
+### Save-data
 
 Reflects the user's `Save-Data: on` HTTP header preference (enabled via browser settings or OS data saver mode). When active, serve minimal payloads: skip non-essential images, disable autoplay, and defer analytics.
 
-**Effective type thresholds (Chrome):**
+### Effective type thresholds (Chrome)
 
 | Effective Type | Max RTT | Min Downlink |
 |---------------|---------|-------------|
@@ -60,9 +61,9 @@ Reflects the user's `Save-Data: on` HTTP header preference (enabled via browser 
 | `3g` | 270ms | 700 kbps |
 | `4g` | < 270ms | > 700 kbps |
 
-**Connection change listener:**
+### Connection change listener
 
-The snippet registers a `change` event on `navigator.connection`. This fires when the browser detects a network quality change — useful for testing adaptive behavior by switching between network profiles in DevTools.
+The snippet registers a `change` event on `navigator.connection`. This fires when the browser detects a network quality change, useful for testing adaptive behavior by switching between network profiles in DevTools.
 
 ### Limitations
 
@@ -74,9 +75,9 @@ The snippet registers a `change` event on `navigator.connection`. This fires whe
 | No upstream data | The API does not expose upload speed |
 | Fingerprinting mitigations | Some browsers may further restrict or mock these values |
 
-### Best Practices
+### Best practices
 
-**Check Save-Data before serving heavy assets:**
+### Check save-data before serving heavy assets
 
 ```js
 if (navigator.connection?.saveData) {
@@ -86,7 +87,7 @@ if (navigator.connection?.saveData) {
 }
 ```
 
-**Serve different assets based on effective connection type:**
+### Serve different assets based on effective connection type
 
 ```js
 const effectiveType = navigator.connection?.effectiveType ?? "4g";
@@ -101,7 +102,7 @@ const src = {
 img.src = src;
 ```
 
-**Adapt behaviour mid-session when connection changes:**
+### Adapt behaviour mid-session when connection changes
 
 ```js
 navigator.connection?.addEventListener("change", () => {
@@ -113,7 +114,7 @@ navigator.connection?.addEventListener("change", () => {
 });
 ```
 
-**Honour Save-Data server-side via the HTTP header:**
+### Honour save-data server-side via the HTTP header
 
 ```js
 // Express / Node.js
@@ -124,7 +125,7 @@ app.get("/image", (req, res) => {
 });
 ```
 
-**Tag RUM events with connection quality for segmentation:**
+### Tag RUM events with connection quality for segmentation
 
 ```js
 const connection = navigator.connection;
@@ -137,7 +138,7 @@ analytics.send("page_view", {
 });
 ```
 
-## Further Reading
+## Further reading
 
 - [Network Information API](https://developer.mozilla.org/en-US/docs/Web/API/Network_Information_API) | MDN
 - [NetworkInformation: effectiveType](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/effectiveType) | MDN

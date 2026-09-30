@@ -1,11 +1,12 @@
 import snippet from "../../snippets/Loading/First-And-Third-Party-Script-Info.js?raw";
 import { Snippet } from "../../components/Snippet";
+import { Callout } from 'nextra/components'
 
-# First And Third Party Script Info
+# First and third party script info
 
 Analyzes all scripts loaded on the page, separating them into first-party (your domain) and third-party (external) scripts. This helps identify the performance impact of external dependencies.
 
-**Why this matters:**
+### Why this matters
 
 | Concern         | First-Party                       | Third-Party                            |
 | --------------- | --------------------------------- | -------------------------------------- |
@@ -15,7 +16,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 | **Privacy**     | Your data policies                | May collect user data                  |
 | **Security**    | Your responsibility               | Potential vulnerability vector         |
 
-**Common third-party script issues:**
+### Common third-party script issues
 
 - Block main thread during execution
 - Add DNS lookups and connection overhead
@@ -23,31 +24,33 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 - Often not cached effectively
 - Can delay Time to Interactive (TTI)
 
-> **Related:** Use the [Find render-blocking resources](/Loading/Find-render-blocking-resources) snippet to identify scripts blocking initial render.
+<Callout type="info">
+**Related:** Use the [Find render-blocking resources](/Loading/Find-render-blocking-resources) snippet to identify scripts blocking initial render.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Overall Summary:**
+### Overall summary
 
 - Total script count with first/third-party breakdown
 - Warning if third-party scripts outnumber first-party
 
-**First-Party Scripts:**
+### First-party scripts
 
 - Scripts from your domain and subdomains (auto-detected)
 - Total size and render-blocking count
 
-**Third-Party Scripts:**
+### Third-party scripts
 
 - Scripts from external domains
 - Grouped by host to identify heavy dependencies
 - Total size, render-blocking count, unique hosts
 
-**For each script:**
+### For each script
 
 | Field    | Description                 |
 | -------- | --------------------------- |
@@ -57,7 +60,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 | Duration | Total time to load          |
 | Blocking | Whether it blocks rendering |
 
-### How First-Party Detection Works
+### How first-party detection works
 
 The snippet automatically detects first-party scripts by comparing root domains:
 
@@ -69,7 +72,7 @@ The snippet automatically detects first-party scripts by comparing root domains:
 | `web.dev`            | `google-analytics.com` | Third-party |
 | `shop.example.co.uk` | `cdn.example.co.uk`    | First-party |
 
-### Common Third-Party Script Categories
+### Common third-party script categories
 
 | Category     | Examples                            | Typical Impact                     |
 | ------------ | ----------------------------------- | ---------------------------------- |
@@ -80,7 +83,7 @@ The snippet automatically detects first-party scripts by comparing root domains:
 | Chat/Support | Intercom, Zendesk, Drift            | 100-500 KB, often deferred         |
 | A/B Testing  | Optimizely, VWO                     | 50-150 KB, often blocking          |
 
-### Further Reading
+### Further reading
 
 - [Loading Third-Party JavaScript](https://web.dev/articles/optimizing-content-efficiency-loading-third-party-javascript) | web.dev
 - [Best practices for third-party scripts](https://web.dev/articles/optimizing-content-efficiency-loading-third-party-javascript) | web.dev

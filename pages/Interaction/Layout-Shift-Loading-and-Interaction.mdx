@@ -1,17 +1,16 @@
 import snippet from '../../snippets/Interaction/Layout-Shift-Loading-and-Interaction.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Layout Shift Tracking
-
-### Overview
+# Layout shift tracking
 
 Tracks all layout shifts during page load and user interaction, identifying the elements causing [Cumulative Layout Shift (CLS)](https://web.dev/articles/cls). This debugging-focused snippet logs every shift with detailed information about which elements moved and when.
 
-**Why this matters:**
+### Why this matters
 
 While the [CLS quick check](/CoreWebVitals/CLS) gives you a score, this snippet helps you debug **which specific elements** are causing layout shifts. It shows you the exact selectors, movement distances, and whether shifts were excluded due to user input. This is essential for fixing CLS issues.
 
-**CLS Rating Thresholds:**
+### CLS rating thresholds
 
 | Rating | CLS Score | Meaning |
 |--------|-----------|---------|
@@ -19,7 +18,7 @@ While the [CLS quick check](/CoreWebVitals/CLS) gives you a score, this snippet 
 | 🟡 Needs Improvement | ≤ 0.25 | Noticeable shifting |
 | 🔴 Poor | > 0.25 | Significant layout instability |
 
-**What causes layout shifts:**
+### What causes layout shifts
 
 | Cause | Example | Solution |
 |-------|---------|----------|
@@ -29,9 +28,11 @@ While the [CLS quick check](/CoreWebVitals/CLS) gives you a score, this snippet 
 | Web fonts causing FOIT/FOUT | Font swap changes text size | Use `font-display: optional` or size-adjust |
 | DOM updates above viewport | Content inserted above current scroll | Insert below or use transforms |
 
-> **Note:** Shifts with `hadRecentInput: true` (within 500ms of user input) are excluded from CLS, as they're considered expected by the user.
+<Callout type="default">
+**Note:** Shifts with `hadRecentInput: true` (within 500ms of user input) are excluded from CLS, as they're considered expected by the user.
+</Callout>
 
-**Layout Shift Phases:**
+### Layout shift phases
 
 ```mermaid
 flowchart LR
@@ -45,7 +46,7 @@ flowchart LR
     style After fill:#FFFBE5,stroke:#FF8800,stroke-width:2px
 ```
 
-**CLS Counting Logic:**
+### CLS counting logic
 
 ```mermaid
 flowchart TD
@@ -66,9 +67,9 @@ flowchart TD
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Real-time Output:**
+### Real-time output
 
 Each significant layout shift (> 0.001) logs:
 - Shift value with the current CLS (largest session window) and rating
@@ -76,7 +77,7 @@ Each significant layout shift (> 0.001) logs:
 - Elements that shifted with their movement details
 - Clickable element references for inspection
 
-**Summary Function:**
+### Summary function
 
 Call `getLayoutShiftSummary()` in the console to see:
 
@@ -88,7 +89,7 @@ Call `getLayoutShiftSummary()` in the console to see:
 | Shift Timeline | When shifts occurred and what caused them |
 | Recommendations | Specific fixes based on your CLS score |
 
-### Common Fixes
+### Common fixes
 
 | Problem | Detection | Solution |
 |---------|-----------|----------|
@@ -97,7 +98,7 @@ Call `getLayoutShiftSummary()` in the console to see:
 | Dynamic content | Elements inserted at top | Reserve space or insert below fold |
 | Ads/embeds | Third-party containers shifting | Use `min-height` to reserve space |
 
-### Further Reading
+### Further reading
 
 - [Cumulative Layout Shift (CLS)](https://web.dev/articles/cls) | web.dev
 - [Optimize CLS](https://web.dev/articles/optimize-cls) | web.dev

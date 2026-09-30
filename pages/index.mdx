@@ -29,7 +29,7 @@ A curated collection of JavaScript snippets to measure and debug Web Performance
 | **[Resources](/Resources/Network-Bandwidth-Connection-Quality)** | Network Bandwidth & Connection Quality                                                                                                                                                                                                                            |
 | **[Media](/Media/Image-Element-Audit)**                          | Image Element Audit, Video Element Audit                                                                                                                                                                                                                          |
 
-## Quick Start
+## Quick start
 
 Copy this snippet and paste it in your browser console to see your page's Core Web Vitals:
 
@@ -66,7 +66,7 @@ All snippets are tested in [Google Chrome](https://google.com/chrome/). Most sni
 3. Go to the **Console** tab
 4. Paste and press `Enter`
 
-### Option 2: Save as DevTools Snippet
+### Option 2: Save as DevTools snippet
 
 Save frequently used snippets for quick access:
 
@@ -76,9 +76,9 @@ Save frequently used snippets for quick access:
 4. Paste the code
 5. Right-click → **Run** (or `Cmd+Enter` / `Ctrl+Enter`)
 
-### Option 3: Use with AI Agent Skills
+### Option 3: Use with AI agent skills
 
-Run snippets autonomously through an AI agent via [Claude Code](https://claude.ai/code) and [Chrome DevTools MCP](https://github.com/chrome-devtools-mcp). The [WebPerf Skills](https://github.com/nucliweb/webperf-snippets/tree/main/.claude/skills) provide deterministic, consistent measurements across sessions — the agent executes the exact snippet code without improvising JavaScript.
+Run snippets autonomously through an AI agent via [Claude Code](https://claude.ai/code) and [Chrome DevTools MCP](https://github.com/chrome-devtools-mcp). The [WebPerf Skills](https://github.com/nucliweb/webperf-snippets/tree/main/.claude/skills) provide deterministic, consistent measurements across sessions, the agent executes the exact snippet code without improvising JavaScript.
 
 Available skills: `webperf`, `webperf-core-web-vitals`, `webperf-loading`, `webperf-interaction`, `webperf-media`, `webperf-resources`.
 
@@ -95,9 +95,9 @@ Available skills: `webperf`, `webperf-core-web-vitals`, `webperf-loading`, `webp
   />
 </div>
 
-## AI Agent Skills
+## AI agent skills
 
-WebPerf Snippets powers a set of [Agent Skills](https://github.com/nucliweb/webperf-snippets/tree/main/.claude/skills) for autonomous performance audits. Instead of copying and pasting snippets manually, an AI agent executes them deterministically through Chrome DevTools MCP — the same code, every time, across sessions and models.
+WebPerf Snippets powers a set of [Agent Skills](https://github.com/nucliweb/webperf-snippets/tree/main/.claude/skills) for autonomous performance audits. Instead of copying and pasting snippets manually, an AI agent executes them deterministically through Chrome DevTools MCP, the same code, every time, across sessions and models.
 
 | Skill                     | What it covers                                             |
 | ------------------------- | ---------------------------------------------------------- |
@@ -108,13 +108,13 @@ WebPerf Snippets powers a set of [Agent Skills](https://github.com/nucliweb/webp
 | `webperf-media`           | Image and video audits, lazy loading, LCP media            |
 | `webperf-resources`       | Network quality, adaptive loading strategies               |
 
-The skills include decision trees that automatically trigger deeper analysis when thresholds are exceeded — for example, when TTFB is slow, the agent runs TTFB sub-parts diagnostics to pinpoint whether the issue is DNS, connection, or backend latency.
+The skills include decision trees that automatically trigger deeper analysis when thresholds are exceeded, for example, when TTFB is slow, the agent runs TTFB sub-parts diagnostics to pinpoint whether the issue is DNS, connection, or backend latency.
 
 → [Read more about WebPerf Agent Skills](https://joanleon.dev/en/webperf-snippets-agent-skills/)
 
 ## CLI
 
-Run the same curated snippets headlessly via Playwright — no copy-pasting into DevTools. Diagnose LCP regressions in CI, gate pull requests on real performance budgets, and automate the audits you already run by hand.
+Run the same curated snippets headlessly via Playwright, no copy-pasting into DevTools. Diagnose LCP regressions in CI, gate pull requests on real performance budgets, and automate the audits you already run by hand.
 
 ```bash copy
 npx webperf-snippets https://web.dev --workflow audit
@@ -123,7 +123,7 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 
 | Workflow          | What it runs                                                         |
 | ----------------- | -------------------------------------------------------------------- |
-| `core-web-vitals` | LCP, CLS — with automatic LCP-Subparts follow-up                     |
+| `core-web-vitals` | LCP, CLS, with automatic LCP-Subparts follow-up                     |
 | `audit`           | Render-blocking, resource hints, critical CSS, TTFB, scripts, images |
 
 → [CLI documentation](/CLI)

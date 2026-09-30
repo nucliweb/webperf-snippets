@@ -1,18 +1,22 @@
-# DevTools Overrides
+import { Callout } from 'nextra/components'
 
-### What are DevTools Overrides?
+# DevTools overrides
 
-**DevTools Overrides** is a Chrome DevTools feature that lets you replace any resource served by a website — HTML, JavaScript, CSS — with a local version stored on your machine. The substitution happens transparently on every page load, without touching the server or the source code.
+### What are DevTools overrides?
+
+**DevTools Overrides** is a Chrome DevTools feature that lets you replace any resource served by a website, HTML, JavaScript, CSS, with a local version stored on your machine. The substitution happens transparently on every page load, without touching the server or the source code.
 
 You can find it under **Sources → Overrides** in Chrome DevTools.
 
-> **Cannot be automated.** Unlike the snippets in other categories, Overrides require manual setup in Chrome DevTools. They cannot be executed programmatically via automation tools such as Puppeteer, Playwright, or the DevTools Protocol.
+<Callout type="warning">
+**Cannot be automated.** Unlike the snippets in other categories, Overrides require manual setup in Chrome DevTools. They cannot be executed programmatically via automation tools such as Puppeteer, Playwright, or the DevTools Protocol.
+</Callout>
 
 ---
 
 ### Why a dedicated category?
 
-The snippets in this collection run in the browser console *after* the page has loaded. That works for measuring what already happened, but some problems only reveal themselves *during* the page lifecycle — before frameworks bootstrap, before API calls fire, before the first paint.
+The snippets in this collection run in the browser console *after* the page has loaded. That works for measuring what already happened, but some problems only reveal themselves *during* the page lifecycle, before frameworks bootstrap, before API calls fire, before the first paint.
 
 DevTools Overrides let you inject instrumentation code **before any other script runs**, making it possible to observe things that are invisible to console snippets:
 
@@ -23,17 +27,17 @@ DevTools Overrides let you inject instrumentation code **before any other script
 
 ---
 
-### How to set up an Override
+### How to set up an override
 
-**Step 1 — Enable local overrides**
+### Step 1: enable local overrides
 
 Open Chrome DevTools → **Sources** → **Overrides** tab → click **Select folder for overrides** and choose a local directory. When prompted, allow DevTools to access it.
 
-**Step 2 — Save the resource you want to modify**
+### Step 2: save the resource you want to modify
 
 Navigate to the page, open **Sources** → **Page**, find the HTML file or script you want to override, right-click it, and select **Save for overrides**. A purple dot will appear next to the file indicating it is now overridden locally.
 
-**Step 3 — Inject the snippet**
+### Step 3: inject the snippet
 
 Open the local copy of the file in DevTools and add the inject snippet code inside a `<script>` tag before the closing `</head>`:
 
@@ -43,7 +47,7 @@ Open the local copy of the file in DevTools and add the inject snippet code insi
 </script>
 ```
 
-**Step 4 — Reload and read**
+### Step 4: reload and read
 
 Reload the page. The override fires before any other script. Once the page has loaded, run the companion **read snippet** from the console to see the captured data.
 
@@ -61,7 +65,7 @@ Add <script> tag      window.__perfCalls         with LCP and other metrics
 
 ---
 
-### Further Reading
+### Further reading
 
 - [Local Overrides](https://developer.chrome.com/docs/devtools/overrides) | Chrome Developers
 - [Override web content and HTTP response headers](https://developer.chrome.com/docs/devtools/overrides) | Chrome Developers

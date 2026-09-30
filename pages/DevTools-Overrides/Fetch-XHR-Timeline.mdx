@@ -2,15 +2,13 @@ import injectSnippet from '../../snippets/DevTools-Overrides/Fetch-XHR-Timeline-
 import readSnippet from '../../snippets/DevTools-Overrides/Fetch-XHR-Timeline-read.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# Fetch & XHR Timeline
-
-### Overview
+# Fetch & XHR timeline
 
 Intercepts every `fetch()` and `XMLHttpRequest` call made during the page lifecycle and correlates them with the [Largest Contentful Paint (LCP)](https://web.dev/articles/lcp) timing.
 
 Console snippets can only see requests that have already completed and are visible in the Resource Timing API. That excludes cross-origin requests without `Timing-Allow-Origin`, requests made by service workers, and calls that fail before a response is received. This snippet patches `window.fetch` and `XMLHttpRequest.prototype` at page initialization, so every call is captured regardless of origin or outcome.
 
-**What it helps diagnose:**
+### What it helps diagnose
 
 - API calls that complete *before* LCP and may be blocking the critical rendering path
 - Failed or errored requests during framework bootstrap (Angular, React, Vue resolvers and guards)
@@ -21,7 +19,7 @@ Console snippets can only see requests that have already completed and are visib
 
 ---
 
-### Part 1 — Inject snippet
+### Part 1: inject snippet
 
 Add this inside a `<script>` tag before the closing `</head>` of the overridden HTML file. It runs before any other script and stores all captured calls in `window.__perfCalls`.
 
@@ -29,7 +27,7 @@ Add this inside a `<script>` tag before the closing `</head>` of the overridden 
 
 ---
 
-### Part 2 — Read snippet
+### Part 2: read snippet
 
 Run this in the console after the page has loaded to see the captured data correlated with LCP.
 
@@ -37,22 +35,22 @@ Run this in the console after the page has loaded to see the captured data corre
 
 ---
 
-### Understanding the Results
+### Understanding the results
 
-**Summary section:**
+### Summary section
 
 | Field | Meaning |
 |-------|---------|
 | Total calls | All fetch and XHR calls captured from page start |
-| Before LCP | Calls that completed before LCP — these are candidates for critical path investigation |
+| Before LCP | Calls that completed before LCP, these are candidates for critical path investigation |
 | After LCP | Calls confirmed not to have blocked LCP |
 | Errors / failed calls | Calls with HTTP 4xx/5xx status or network errors |
 
-**Before LCP table:**
+### Before LCP table
 
-Calls in this group completed before the LCP element was painted. They *may* have contributed to the rendering delay — particularly if a framework waits for their response before rendering content. Cross-reference with the LCP element: if it is rendered by a JavaScript framework, any call completing shortly before LCP is a strong candidate.
+Calls in this group completed before the LCP element was painted. They *may* have contributed to the rendering delay, particularly if a framework waits for their response before rendering content. Cross-reference with the LCP element: if it is rendered by a JavaScript framework, any call completing shortly before LCP is a strong candidate.
 
-**Failed calls table:**
+### Failed calls table
 
 Failed calls during bootstrap are a common source of unexpected rendering delays. A framework resolver that catches an auth error and redirects, or a config endpoint that times out, can add hundreds of milliseconds before the page renders its first meaningful content.
 
@@ -62,7 +60,7 @@ Failed calls during bootstrap are a common source of unexpected rendering delays
 
 The inject snippet stores all captured calls in `window.__perfCalls` as an array. You can query it directly at any point from the console:
 
-```js
+```js copy
 // All calls
 console.table(window.__perfCalls)
 
@@ -89,7 +87,7 @@ Each entry has the following shape:
 
 ---
 
-### Further Reading
+### Further reading
 
 - [Largest Contentful Paint (LCP)](https://web.dev/articles/lcp) | web.dev
 - [LCP Subparts](/CoreWebVitals/LCP-Subparts) | Detailed LCP phase breakdown

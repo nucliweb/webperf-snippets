@@ -83,7 +83,7 @@ Conventions:
 - Headings use sentence case (`# My new snippet`, `### Further reading`).
 - The `<Snippet>` component takes the code through the `code` prop; it renders its own copy button.
 - Each Further reading link ends with `| source`.
-- Use `>` blockquotes for tips and warnings, not bold text.
+- Use the Nextra `Callout` component for tips and warnings (`import { Callout } from 'nextra/components'`; types `info`, `warning`, `default`), not bold text or plain `>` blockquotes. Reserve `>` for real quotations.
 
 Use the `copy` prop in code blocks to enable easy copying to DevTools:
 

@@ -2,19 +2,20 @@ import snippet from '../../snippets/Loading/TTFB.js?raw'
 import snippet2 from '../../snippets/Loading/TTFB-Sub-Parts.js?raw'
 import snippet3 from '../../snippets/Loading/TTFB-Resources.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Time To First Byte
+# Time to first byte
 
 Time to First Byte (TTFB) measures the time from when the user starts navigating to a page until the first byte of the HTML response is received. It's a critical metric that reflects server responsiveness and network latency.
 
-**TTFB includes:**
+### TTFB includes
 - Redirect time
 - Service worker startup time (if applicable)
 - DNS lookup
 - TCP connection and TLS negotiation
 - Request time until the first byte of the response arrives
 
-**Thresholds (according to web.dev):**
+### Thresholds (according to web.dev)
 
 | Rating | TTFB |
 |--------|------|
@@ -53,7 +54,7 @@ sequenceDiagram
     Note over B,S: ← TTFB ends here
 ```
 
-**Sub-parts explained:**
+### Sub-parts explained
 
 | Phase | Description | Common causes of delays |
 |-------|-------------|------------------------|
@@ -72,13 +73,15 @@ sequenceDiagram
 
 Analyzes TTFB for every resource loaded on the page (scripts, stylesheets, images, fonts, etc.). Helps identify slow third-party resources or backend endpoints.
 
-> **Note**: Each value is the wait between sending the request and receiving the first byte (`responseStart - requestStart`). Cross-origin resources without a `Timing-Allow-Origin` header expose no timing; they are excluded from the table and counted in `corsRestrictedCount`.
+<Callout type="default">
+**Note**: Each value is the wait between sending the request and receiving the first byte (`responseStart - requestStart`). Cross-origin resources without a `Timing-Allow-Origin` header expose no timing; they are excluded from the table and counted in `corsRestrictedCount`.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet3} />
 
-## Browser Support
+## Browser support
 
 | API | Chrome | Firefox | Safari | Edge |
 |-----|--------|---------|--------|------|
@@ -86,10 +89,10 @@ Analyzes TTFB for every resource loaded on the page (scripts, stylesheets, image
 | Resource Timing | ✅ 43 | ✅ 36 | ✅ 11 | ✅ 12 |
 | PerformanceObserver | ✅ 52 | ✅ 57 | ✅ 11 | ✅ 79 |
 
-## Further Reading
+## Further reading
 
 - [Time to First Byte (TTFB)](https://web.dev/articles/ttfb) | web.dev
 - [Optimize TTFB](https://web.dev/articles/optimize-ttfb) | web.dev
 - [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation_timing_API) | MDN
 - [Resource Timing API](https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/Resource_timing) | MDN
-- [FCP](/Loading/FCP) | First Contentful Paint — the next metric after TTFB
+- [FCP](/Loading/FCP) | First Contentful Paint, the next metric after TTFB

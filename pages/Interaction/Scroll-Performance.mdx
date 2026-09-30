@@ -1,17 +1,16 @@
 import snippet from '../../snippets/Interaction/Scroll-Performance.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Scroll Performance Analysis
+# Scroll performance analysis
 
-### Overview
+Measures scroll jank, frame drops, and event listener configuration to identify what makes scrolling feel laggy or unresponsive. Scroll jank, visible stuttering during scroll, is one of the most common UX problems on the web, especially on mobile.
 
-Measures scroll jank, frame drops, and event listener configuration to identify what makes scrolling feel laggy or unresponsive. Scroll jank — visible stuttering during scroll — is one of the most common UX problems on the web, especially on mobile.
-
-**Why this matters:**
+### Why this matters
 
 Scroll jank is caused by work blocking the compositor thread: non-passive event listeners, heavy JavaScript during scroll, or large layout-triggering DOM reads. Even a few dropped frames per second are noticeable to users and contribute to poor experience scores.
 
-**What this snippet detects:**
+### What this snippet detects
 
 | Problem | Detection Method |
 |---------|-----------------|
@@ -19,7 +18,7 @@ Scroll jank is caused by work blocking the compositor thread: non-passive event 
 | **Frame drops during scroll** | Measures `requestAnimationFrame` timing during active scroll |
 | **CSS scroll configuration** | Audits `will-change`, `content-visibility`, `scroll-behavior` |
 
-**FPS thresholds:**
+### FPS thresholds
 
 | Rating | FPS | Frame time | Experience |
 |--------|-----|------------|------------|
@@ -27,15 +26,17 @@ Scroll jank is caused by work blocking the compositor thread: non-passive event 
 | 🟡 Needs improvement | 40–54 fps | 18–25ms | Minor jank |
 | 🔴 Poor | < 40 fps | > 25ms | Visible stutter |
 
-> **Note:** The passive listener detection only catches listeners registered **after** the snippet runs. Run it before interacting with the page for complete coverage.
+<Callout type="default">
+**Note:** The passive listener detection only catches listeners registered **after** the snippet runs. Run it before interacting with the page for complete coverage.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Real-time output:**
+### Real-time output
 
 Each scroll session logs:
 - Average and minimum FPS with rating indicator
@@ -44,7 +45,7 @@ Each scroll session logs:
 
 Warnings appear immediately when a non-passive scroll listener is registered after the snippet loads.
 
-**Summary function:**
+### Summary function
 
 Call `getScrollSummary()` after scrolling to see:
 
@@ -55,11 +56,11 @@ Call `getScrollSummary()` after scrolling to see:
 | CSS Audit | `will-change`, `content-visibility`, `scroll-behavior` usage |
 | Recommendations | Targeted fixes based on detected issues |
 
-### Key Concepts
+### Key concepts
 
-**Non-passive event listeners:**
+### Non-passive event listeners
 
-By default, `scroll`, `wheel`, `touchstart`, and `touchmove` listeners can call `preventDefault()` to cancel the scroll. Because the browser cannot know in advance whether your code will call it, it must wait for JavaScript to finish before moving the page — blocking the compositor on every frame.
+By default, `scroll`, `wheel`, `touchstart`, and `touchmove` listeners can call `preventDefault()` to cancel the scroll. Because the browser cannot know in advance whether your code will call it, it must wait for JavaScript to finish before moving the page, blocking the compositor on every frame.
 
 Marking a listener `passive: true` is a contract: you promise never to call `preventDefault()`. The browser can then move the page immediately on the compositor thread, without touching the main thread at all.
 
@@ -95,7 +96,7 @@ element.addEventListener('scroll', handler)
 element.addEventListener('scroll', handler, { passive: true })
 ```
 
-**Frame drops:**
+### Frame drops
 
 A frame drop occurs when the time between two `requestAnimationFrame` callbacks exceeds ~25ms (below 40fps). Common causes during scroll:
 
@@ -106,11 +107,11 @@ A frame drop occurs when the time between two `requestAnimationFrame` callbacks 
 | Large unvirtualized lists | Jank on fast scroll | Virtual scrolling |
 | Excessive compositor layers | Memory pressure jank | Reduce `will-change` usage |
 
-**`content-visibility: auto`:**
+### `content-visibility: auto`
 
 Skips rendering work for off-screen content, reducing the amount the browser must recalculate during scroll on long pages. See the [Content Visibility](/Loading/Content-Visibility) snippet for detailed analysis.
 
-### Further Reading
+### Further reading
 
 - [Passive event listeners](https://developer.chrome.com/docs/lighthouse/best-practices/uses-passive-event-listeners) | Chrome Lighthouse
 - [content-visibility: the new CSS property that boosts your rendering performance](https://web.dev/articles/content-visibility) | web.dev

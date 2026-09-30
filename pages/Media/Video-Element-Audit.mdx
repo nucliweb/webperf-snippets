@@ -1,11 +1,11 @@
 import snippet from '../../snippets/Media/Video-Element-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
 
-# Video Element Audit
+# Video element audit
 
-Audits all `<video>` elements on the page against video performance best practices — covering preload strategy, autoplay configuration, format modernisation, CLS prevention, and playback accessibility.
+Audits all `<video>` elements on the page against video performance best practices, covering preload strategy, autoplay configuration, format modernisation, CLS prevention, and playback accessibility.
 
-**What this snippet checks:**
+### What this snippet checks
 
 | Check                                            | Scope                           |
 | ------------------------------------------------ | ------------------------------- |
@@ -18,11 +18,9 @@ Audits all `<video>` elements on the page against video performance best practic
 | No modern codec source (WebM / VP9 / AV1)        | All videos with `<source>` tags |
 | No `controls` and no `autoplay`                  | Non-autoplay videos             |
 
-### Overview
-
 Every video on a page falls into one of three roles, each with its own optimal configuration:
 
-**Autoplay hero / background video** — silent, looping visual that plays immediately:
+**Autoplay hero / background video**, silent, looping visual that plays immediately:
 
 ```html
 <video autoplay muted playsinline loop poster="preview.avif" width="1280" height="720">
@@ -34,7 +32,7 @@ Every video on a page falls into one of three roles, each with its own optimal c
 
 > `muted` is required for `autoplay` to work in browsers. `playsinline` prevents iOS Safari from switching to fullscreen. Offering AV1 → VP9 → MP4 fallback ensures the best available codec is used, reducing file size by up to 50 % compared to H.264.
 
-**User-controlled video** — on-demand content the user initiates:
+**User-controlled video**, on-demand content the user initiates:
 
 ```html
 <video controls preload="metadata" poster="thumbnail.avif" width="800" height="450">
@@ -43,9 +41,9 @@ Every video on a page falls into one of three roles, each with its own optimal c
 </video>
 ```
 
-> `preload="metadata"` loads only the video duration and dimensions — enough to render the player UI — without downloading the full file. `poster` provides a visible thumbnail while the video is paused.
+> `preload="metadata"` loads only the video duration and dimensions, enough to render the player UI, without downloading the full file. `poster` provides a visible thumbnail while the video is paused.
 
-**Below-the-fold video** — content outside the initial viewport:
+**Below-the-fold video**, content outside the initial viewport:
 
 ```html
 <video controls preload="none" poster="thumbnail.avif" width="800" height="450">
@@ -60,7 +58,7 @@ Every video on a page falls into one of three roles, each with its own optimal c
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
 #### Summary
 
@@ -71,7 +69,7 @@ Every video on a page falls into one of three roles, each with its own optimal c
 | Off viewport | Videos outside the current viewport                                          |
 | Issues       | Count by severity: errors (must fix), warnings (should fix), info (consider) |
 
-#### All Videos Table
+#### All videos table
 
 | Column       | Description                                                                                |
 | ------------ | ------------------------------------------------------------------------------------------ |
@@ -88,20 +86,20 @@ Every video on a page falls into one of three roles, each with its own optimal c
 | `sources`    | Number of `<source>` child elements                                                        |
 | `issues`     | ✅ no issues · 🔴 error · ⚠️ warning · ℹ️ info                                            |
 
-#### Issues Detected
+#### Issues detected
 
 | Issue                                            | Severity   | Explanation                                                                                |
 | ------------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------ |
 | `preload="auto"` without `autoplay`              | 🔴 Error   | Browser downloads the entire video file on page load, wasting bandwidth                    |
-| `autoplay` without `muted`                       | 🔴 Error   | All modern browsers block autoplay with audio — the video will not play                    |
+| `autoplay` without `muted`                       | 🔴 Error   | All modern browsers block autoplay with audio, the video will not play                    |
 | `autoplay` without `playsinline`                 | ⚠️ Warning | iOS Safari switches to native fullscreen, breaking the intended layout                     |
 | Off-viewport without `preload="none"`            | ⚠️ Warning | Browser may begin loading video data before the user scrolls to it                         |
-| Missing `poster`                                 | ⚠️ Warning | No preview frame — the element renders blank or black until the video loads                |
+| Missing `poster`                                 | ⚠️ Warning | No preview frame, the element renders blank or black until the video loads                |
 | Missing `width`/`height`                         | ⚠️ Warning | No reserved space causes layout shift when the video renders (CLS)                         |
 | No modern codec source                           | ℹ️ Info    | Serving only MP4/H.264 when VP9 or AV1 would reduce file size by 30–50 %                  |
 | No `controls` and no `autoplay`                  | ℹ️ Info    | Users have no visible way to start playback                                                |
 
-#### Codec Detection
+#### Codec detection
 
 The snippet detects the best codec offered by the video by inspecting the `type` attribute of each `<source>` element in order of quality:
 
@@ -117,7 +115,7 @@ The snippet detects the best codec offered by the video by inspecting the `type`
 
 `AV1`, `VP9`, and `WebM` are treated as modern codecs and do not trigger the info note. Offering a modern codec as the first `<source>` lets browsers that support it avoid downloading the larger H.264 fallback.
 
-#### `preload` Attribute Behaviour
+#### `preload` attribute behaviour
 
 | Value      | Browser behaviour                                                               |
 | ---------- | ------------------------------------------------------------------------------- |
@@ -128,20 +126,20 @@ The snippet detects the best codec offered by the video by inspecting the `type`
 
 Being explicit avoids relying on browser defaults, which vary across devices and versions.
 
-### Browser Support
+### Browser support
 
 | Feature           | Chrome | Edge | Firefox | Safari |
 | ----------------- | ------ | ---- | ------- | ------ |
 | `autoplay` + `muted` | 66  | 79   | 65      | 11     |
-| `playsinline`     | 60     | 79   | —       | 10     |
+| `playsinline`     | 60     | 79   |,       | 10     |
 | `preload`         | 3      | 12   | 4       | 4      |
 | `poster`          | 8      | 12   | 3.6     | 4      |
 | VP9 (WebM)        | 29     | 14   | 28      | 14.1   |
 | AV1               | 70     | 75   | 67      | 17     |
 
-`playsinline` has no effect on desktop browsers — it is a no-op outside of iOS Safari's fullscreen enforcement.
+`playsinline` has no effect on desktop browsers, it is a no-op outside of iOS Safari's fullscreen enforcement.
 
-### Further Reading
+### Further reading
 
 - [Video performance](https://web.dev/learn/performance/video-performance) | web.dev
 - [Optimizing Largest Contentful Paint](https://web.dev/articles/optimize-lcp) | web.dev

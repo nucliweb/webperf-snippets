@@ -1,11 +1,12 @@
 import snippet from '../../snippets/Media/SVG-Embedded-Bitmap-Analysis.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# SVG Embedded Bitmap Analysis
+# SVG embedded bitmap analysis
 
-Scans all SVG resources on the page — both external files and inline `<svg>` elements — and flags any that contain embedded bitmap images, reporting name, transfer size, compression encoding, and embedded bitmap details.
+Scans all SVG resources on the page, both external files and inline `<svg>` elements, and flags any that contain embedded bitmap images, reporting name, transfer size, compression encoding, and embedded bitmap details.
 
-**What this snippet detects:**
+### What this snippet detects
 
 | Check                                               | Scope                                        |
 | --------------------------------------------------- | -------------------------------------------- |
@@ -14,14 +15,12 @@ Scans all SVG resources on the page — both external files and inline `<svg>` e
 | Transfer size                                       | External SVG files                           |
 | Compression encoding (gzip, br, zstd, none)         | External SVG files                           |
 
-### Overview
-
-SVG is a vector format designed to scale without quality loss. Embedding raster (bitmap) images inside an SVG — either as base64 data URIs or as external `<image>` references pointing to bitmap files — introduces several performance problems:
+SVG is a vector format designed to scale without quality loss. Embedding raster (bitmap) images inside an SVG, either as base64 data URIs or as external `<image>` references pointing to bitmap files, introduces several performance problems:
 
 - **Size bloat**: Base64 encoding inflates a bitmap by approximately 33%. A 100 KB PNG becomes ~133 KB of inline text, and the wrapping SVG cannot be compressed independently.
 - **No format negotiation**: The embedded bitmap is served as-is; the browser cannot substitute it with AVIF or WebP based on the `Accept` header.
 - **Broken caching**: A change to either the SVG or the bitmap invalidates the other file's cache entry.
-- **Blocked parallel loading**: The bitmap cannot be fetched in parallel with the SVG — it is hidden inside it and only discovered after the SVG has been downloaded and parsed.
+- **Blocked parallel loading**: The bitmap cannot be fetched in parallel with the SVG, it is hidden inside it and only discovered after the SVG has been downloaded and parsed.
 
 The correct pattern is to reference bitmap assets as separate files:
 
@@ -39,7 +38,7 @@ The correct pattern is to reference bitmap assets as separate files:
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
 #### Summary
 
@@ -49,16 +48,16 @@ The correct pattern is to reference bitmap assets as separate files:
 | Inline `<svg>` elements | Count of `<svg>` elements present in the DOM. When some already use the sprite pattern the breakdown shows `N using <use>, M standalone` |
 | SVGs with bitmaps       | SVGs (external or inline) that contain at least one embedded bitmap                                       |
 
-#### External SVG Resources Table
+#### External SVG resources table
 
 | Column            | Description                                                                                                                                                                            |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`            | Filename extracted from the resource URL                                                                                                                                               |
 | `size`            | Bytes transferred over the network (compressed). `—` means the entry was served from cache with no transfer                                                                            |
 | `compression`     | Encoding reported by the `Content-Encoding` response header. Falls back to comparing `encodedBodySize` vs `decodedBodySize` from the Performance API when the header is not accessible |
-| `embedded bitmap` | ✅ none — no bitmaps detected · ⚠️ N found — N embedded bitmaps                                                                                                                        |
+| `embedded bitmap` | ✅ none, no bitmaps detected · ⚠️ N found, N embedded bitmaps                                                                                                                        |
 
-#### Compression Values
+#### Compression values
 
 | Value        | Meaning                                                    |
 | ------------ | ---------------------------------------------------------- |
@@ -66,18 +65,18 @@ The correct pattern is to reference bitmap assets as separate files:
 | `br`         | Compressed with Brotli                                     |
 | `zstd`       | Compressed with Zstandard                                  |
 | `none`       | No content encoding applied                                |
-| `compressed` | Compressed (type not accessible — CORS restriction)        |
+| `compressed` | Compressed (type not accessible, CORS restriction)        |
 | `unknown`    | Size not accessible (cross-origin without `Timing-Allow-Origin`) |
-| `N/A`        | Not applicable (inline `<svg>` element — no HTTP transfer) |
+| `N/A`        | Not applicable (inline `<svg>` element, no HTTP transfer) |
 
-#### Embedded Bitmap Types
+#### Embedded bitmap types
 
 | Icon | Kind       | Description                                                                                                                                                                |
 | ---- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 🖼️   | `inline`   | Base64-encoded bitmap embedded directly as a `data:image/…;base64,` URI. The reported size is an estimate derived from the base64 string length                            |
 | 🔗   | `external` | Bitmap file referenced via `href` or `xlink:href` on an `<image>` element. The bitmap is a separate HTTP request, but it is still discovered only after the SVG has loaded |
 
-#### SVG Sprite Opportunity
+#### SVG sprite opportunity
 
 When 5 or more standalone inline `<svg>` elements are detected (i.e. not already using `<use>`), the snippet shows a tip suggesting the SVG sprite pattern.
 
@@ -101,9 +100,11 @@ The summary line for inline `<svg>` elements shows a breakdown when the sprite p
 Inline <svg> elements : 211  (5 using <use>, 206 standalone)
 ```
 
-> **CORS note**: The snippet fetches each SVG with `cache: "force-cache"` to read headers and content without triggering new network requests. Cross-origin SVGs without CORS headers cannot be read — in that case the snippet falls back to Performance API timing data for size and compression, and bitmap detection is skipped for that resource.
+<Callout type="warning">
+**CORS note**: The snippet fetches each SVG with `cache: "force-cache"` to read headers and content without triggering new network requests. Cross-origin SVGs without CORS headers cannot be read, in that case the snippet falls back to Performance API timing data for size and compression, and bitmap detection is skipped for that resource.
+</Callout>
 
-### Further Reading
+### Further reading
 
 - [SVG `<image>` element](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/image) | MDN
 - [SVG `<use>` element](https://developer.mozilla.org/en-US/docs/Web/SVG/Element/use) | MDN

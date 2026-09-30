@@ -1,11 +1,12 @@
 import snippet from '../../snippets/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Fonts Preloaded, Loaded, and Used Above The Fold
+# Fonts preloaded, loaded, and used above the fold
 
 Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and fonts actually used above the fold. This helps identify optimization opportunities and wasted resources.
 
-**Why font loading matters:**
+### Why font loading matters
 
 | Issue | Impact | Solution |
 |-------|--------|----------|
@@ -14,7 +15,7 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 | **Unused preloads** | Wasted bandwidth, delayed other resources | Remove unnecessary preloads |
 | **Missing preloads** | LCP delay for text-based LCP | Add preload for critical fonts |
 
-**Font-display values:**
+### Font-display values
 
 | Value | Behavior | Best for |
 |-------|----------|----------|
@@ -24,41 +25,43 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 | `fallback` | Brief FOIT (~100ms), swap if fast | Balance of performance/aesthetics |
 | `optional` | Brief FOIT, may skip font entirely | Non-critical fonts, slow connections |
 
-> **Tip:** For LCP optimization, critical fonts should be preloaded AND use `font-display: swap` or `optional`.
+<Callout type="info">
+**Tip:** For LCP optimization, critical fonts should be preloaded AND use `font-display: swap` or `optional`.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 - Count of preloaded, loaded, and used fonts
 
-**Preloaded Fonts:**
+### Preloaded fonts
 - Fonts loaded via `<link rel="preload" as="font">`
 - Shows type, third-party status, and crossorigin attribute
 - Warning if crossorigin is missing (causes double fetch)
 
-**Loaded Fonts:**
+### Loaded fonts
 - Fonts loaded via CSS `@font-face`
 - Shows family, weight, style, and font-display value
 - Warning if using default font-display
 
-**Used Above The Fold:**
+### Used above the fold
 - Fonts actually rendered in the viewport
 - Shows element count using each font combination
 
-**Potential Issues:**
+### Potential issues
 
 | Issue | Meaning | Action |
 |-------|---------|--------|
 | Preloaded but not used | Wasting bandwidth | Remove preload or defer loading |
 | Used but not preloaded | Potential LCP delay | Add preload for critical fonts |
 
-### Common Font Loading Patterns
+### Common font loading patterns
 
-**Optimal setup for critical fonts:**
+### Optimal setup for critical fonts
 
 ```html
 <!-- Preload in <head> -->
@@ -74,7 +77,7 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 </style>
 ```
 
-**For non-critical fonts:**
+### For non-critical fonts
 
 ```css
 @font-face {
@@ -84,7 +87,7 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 }
 ```
 
-### Further Reading
+### Further reading
 
 - [Optimize WebFont loading](https://web.dev/articles/optimize-webfont-loading) | web.dev
 - [Best practices for fonts](https://web.dev/articles/font-best-practices) | web.dev

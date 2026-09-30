@@ -1,24 +1,23 @@
 import snippet from '../../snippets/Loading/Prefetch-Resource-Validation.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Prefetch Resource Validation
-
-### Overview
+# Prefetch resource validation
 
 Detects potential performance issues with `rel="prefetch"` resource hints by analyzing quantity, size, type, and appropriateness of prefetched resources. Excessive or incorrect prefetch usage can waste bandwidth, delay critical resources, and negatively impact mobile users.
 
-**What is prefetch?**
+### What is prefetch?
 
 `rel="prefetch"` is a resource hint that tells the browser to fetch and cache resources that may be needed for future navigations, during idle time. Unlike `preload`, which is for the current page, prefetch is for anticipated next-page resources.
 
-**Difference between preload and prefetch:**
+### Difference between preload and prefetch
 
 | Hint       | Priority | Timing            | Cache        | Use Case                                  |
 | ---------- | -------- | ----------------- | ------------ | ----------------------------------------- |
 | `preload`  | High     | Current page      | Memory cache | Critical resources for current page (LCP) |
 | `prefetch` | Lowest   | Future navigation | Disk cache   | Resources for likely next pages           |
 
-**Visual comparison:**
+### Visual comparison
 
 ```mermaid
 graph LR
@@ -41,7 +40,7 @@ graph LR
     style H fill:#3b82f6,color:#fff
 ```
 
-**Problems commonly detected:**
+### Problems commonly detected
 
 | Issue                      | Impact                   | Detection                                 |
 | -------------------------- | ------------------------ | ----------------------------------------- |
@@ -56,9 +55,9 @@ graph LR
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 
 Shows the overall state of prefetch usage:
 
@@ -67,7 +66,7 @@ Shows the overall state of prefetch usage:
 - Total size (decompressed and transfer size)
 - Number of issues detected
 
-**Issue Categories:**
+### Issue categories
 
 | Category               | Severity | Description                                                          |
 | ---------------------- | -------- | -------------------------------------------------------------------- |
@@ -82,9 +81,11 @@ Shows the overall state of prefetch usage:
 | **Inappropriate type** | Warning  | Resource type/size not suitable (video, large image/script)          |
 | **Not loaded**         | Info     | Prefetch hint present but resource not loaded yet                    |
 
-> **(\*) Note on "Wrong hint type" detection:** This check uses a 5-second heuristic (resources loaded in the first 5s are considered current-page resources). On very slow-loading pages (>5s), this may produce false positives. The heuristic works well for most pages but consider the page load time when evaluating this error.
+<Callout type="default">
+**(\*) Note on "Wrong hint type" detection:** This check uses a 5-second heuristic (resources loaded in the first 5s are considered current-page resources). On very slow-loading pages (>5s), this may produce false positives. The heuristic works well for most pages but consider the page load time when evaluating this error.
+</Callout>
 
-**Resource Analysis:**
+### Resource analysis
 
 The snippet shows detailed information for each prefetched resource:
 
@@ -98,7 +99,7 @@ The snippet shows detailed information for each prefetched resource:
 | **Cache**    | Cache status - cached vs network fetch (valid prefetch table only)      |
 | **Issue**    | Specific problems detected (issues tables only)                         |
 
-**Thresholds:**
+### Thresholds
 
 | Metric               | Warning          | Critical | Rationale                                  |
 | -------------------- | ---------------- | -------- | ------------------------------------------ |
@@ -106,9 +107,9 @@ The snippet shows detailed information for each prefetched resource:
 | Individual file size | &gt;500KB        | -        | Large files may not be used immediately    |
 | Total prefetch size  | &gt;2MB          | &gt;5MB  | Mobile data consumption and network impact |
 
-### Real-World Examples
+### Real-world examples
 
-**Common prefetch scenarios:**
+### Common prefetch scenarios
 
 | Scenario              | Recommendation                    | When to Use                       | Probability |
 | --------------------- | --------------------------------- | --------------------------------- | ----------- |
@@ -121,7 +122,7 @@ The snippet shows detailed information for each prefetched resource:
 | **Search Results**    | ❌ Don't prefetch all results     | Unknown user intent               | Low         |
 | **Video Content**     | ❌ Too large for prefetch         | Use adaptive streaming instead    | N/A         |
 
-**✅ Good: Next.js route prefetching**
+### ✅ Good: Next.js route prefetching
 
 ```html
 <!-- Next.js automatically prefetches visible <Link> components -->
@@ -131,7 +132,7 @@ The snippet shows detailed information for each prefetched resource:
 <!-- Small scripts for likely next pages - excellent use of prefetch -->
 ```
 
-**✅ Good: Predictable user journey**
+### ✅ Good: Predictable user journey
 
 ```html
 <!-- Multi-step form: prefetch step 2 while user fills step 1 -->
@@ -141,7 +142,7 @@ The snippet shows detailed information for each prefetched resource:
 <!-- User intent is clear, resources are small -->
 ```
 
-**❌ Bad: Prefetching current page hero image**
+### ❌ Bad: Prefetching current page hero image
 
 ```html
 <!-- WRONG: Hero image is needed NOW, not for future navigation -->
@@ -151,7 +152,7 @@ The snippet shows detailed information for each prefetched resource:
 <link rel="preload" href="/hero-image.jpg" as="image" fetchpriority="high" />
 ```
 
-**❌ Bad: Excessive prefetch without user intent**
+### ❌ Bad: Excessive prefetch without user intent
 
 ```html
 <!-- Prefetching 20+ product images "just in case" -->
@@ -163,7 +164,7 @@ The snippet shows detailed information for each prefetched resource:
 <!-- SOLUTION: Use Intersection Observer to prefetch when user scrolls near links -->
 ```
 
-**✅ Good: Analytics-driven prefetch**
+### ✅ Good: Analytics-driven prefetch
 
 ```javascript
 // Prefetch based on analytics: 80% of users go to /pricing after landing
@@ -176,9 +177,9 @@ if (currentPage === "/features") {
 }
 ```
 
-### Framework-Specific Guidance
+### Framework-specific guidance
 
-**Next.js:**
+### Next.js
 
 Next.js automatically prefetches routes for `<Link>` components in the viewport. This is generally good, but watch for:
 
@@ -192,7 +193,7 @@ Next.js automatically prefetches routes for `<Link>` components in the viewport.
 // User must click before loading begins
 ```
 
-**Remix / React Router:**
+### Remix / React router
 
 ```javascript
 // Intentional prefetch on hover
@@ -208,7 +209,7 @@ Next.js automatically prefetches routes for `<Link>` components in the viewport.
 // Only prefetch when user hovers/focuses (recommended)
 ```
 
-**SvelteKit:**
+### SvelteKit
 
 ```html
 <!-- Default: prefetch on hover -->
@@ -221,9 +222,9 @@ Next.js automatically prefetches routes for `<Link>` components in the viewport.
 <a href="/gallery" data-sveltekit-preload-data="off">Gallery</a>
 ```
 
-### Advanced: Runtime Prefetch Strategies
+### Advanced: Runtime prefetch strategies
 
-**Adaptive prefetch decision flow:**
+### Adaptive prefetch decision flow
 
 ```mermaid
 graph TD
@@ -244,7 +245,7 @@ graph TD
     style G fill:#ef4444,color:#fff
 ```
 
-**Adaptive prefetch based on connection:**
+### Adaptive prefetch based on connection
 
 ```javascript
 // Only prefetch on fast connections
@@ -262,7 +263,7 @@ if ("connection" in navigator) {
 }
 ```
 
-**Intersection Observer for smart prefetch:**
+### Intersection observer for smart prefetch
 
 ```javascript
 // Prefetch when user scrolls near a link
@@ -290,7 +291,7 @@ document.querySelectorAll("a.important-nav").forEach((link) => {
 
 ### Impact on Core Web Vitals
 
-**How prefetch affects page load timeline:**
+### How prefetch affects page load timeline
 
 ```mermaid
 sequenceDiagram
@@ -320,7 +321,7 @@ sequenceDiagram
     Note over Browser,Cache: Page Interactive ✅
 ```
 
-**Potential negative impacts:**
+### Potential negative impacts
 
 1. **LCP (Largest Contentful Paint):**
    - Prefetch competes with current page resources at network level
@@ -335,7 +336,7 @@ sequenceDiagram
    - Indirect impact: If prefetch delays critical fonts, can cause layout shifts
    - Ensure fonts for current page use `preload`, not `prefetch`
 
-**Mobile considerations:**
+### Mobile considerations
 
 - **Data saver mode:** Respect `navigator.connection.saveData`
 - **Slow connections:** Check `navigator.connection.effectiveType`
@@ -358,9 +359,9 @@ if (!goodConnection) {
 }
 ```
 
-### When Prefetch vs Preload?
+### When prefetch vs preload?
 
-**Use `rel="preload"` when:**
+### Use `rel="preload"` when
 
 - ✅ Resource is needed for **current page**
 - ✅ Resource is **critical** for LCP or FCP
@@ -374,7 +375,7 @@ if (!goodConnection) {
 <link rel="preload" href="/critical-styles.css" as="style" />
 ```
 
-**Use `rel="prefetch"` when:**
+### Use `rel="prefetch"` when
 
 - ✅ Resource is for **future navigation**
 - ✅ User journey is **predictable**
@@ -387,7 +388,7 @@ if (!goodConnection) {
 <link rel="prefetch" href="/dashboard-styles.css" as="style" />
 ```
 
-**Quick decision tree:**
+### Quick decision tree
 
 ```mermaid
 graph TD
@@ -408,9 +409,9 @@ graph TD
     style G fill:#6b7280,color:#fff
 ```
 
-### Browser Support & Caching
+### Browser support & caching
 
-**Prefetch resource lifecycle:**
+### Prefetch resource lifecycle
 
 ```mermaid
 stateDiagram-v2
@@ -432,7 +433,7 @@ stateDiagram-v2
     }
 ```
 
-**Browser support:**
+### Browser support
 
 | Browser         | Prefetch Support | Notes                                     |
 | --------------- | ---------------- | ----------------------------------------- |
@@ -441,7 +442,7 @@ stateDiagram-v2
 | Safari          | ⚠️ Limited       | Supports prefetch but behavior differs    |
 | Mobile browsers | ✅ Most          | May ignore on slow connections/data saver |
 
-**Cache requirements:**
+### Cache requirements
 
 Prefetched resources MUST have proper cache headers to be effective:
 
@@ -456,9 +457,11 @@ Cache-Control: public, max-age=3600
 Cache-Control: no-cache, no-store
 ```
 
-**Verify cache headers:**
+### Verify cache headers
 
-> **Note:** The following is a standalone example to check cache headers manually. It is NOT part of the diagnostic snippet above (it makes a real network request).
+<Callout type="default">
+**Note:** The following is a standalone example to check cache headers manually. It is NOT part of the diagnostic snippet above (it makes a real network request).
+</Callout>
 
 ```javascript
 // Standalone example: Check if a specific resource has good cache headers
@@ -473,7 +476,7 @@ fetch("/prefetched-script.js", { method: "HEAD" }).then((res) => {
 });
 ```
 
-### Further Reading
+### Further reading
 
 - [Resource Hints: `rel=prefetch`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel/prefetch) | MDN
 - [Resource Hints Specification](https://www.w3.org/TR/resource-hints/#prefetch) | W3C

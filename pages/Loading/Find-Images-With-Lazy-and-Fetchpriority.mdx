@@ -1,11 +1,12 @@
 import snippet from '../../snippets/Loading/Find-Images-With-Lazy-and-Fetchpriority.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Find Images With Loading Lazy and Fetchpriority
+# Find images with loading lazy and fetchpriority
 
 Detects images that have both `loading="lazy"` and `fetchpriority="high"` - a contradictory combination that indicates a misconfiguration.
 
-**Why this is a problem:**
+### Why this is a problem
 
 | Attribute | Purpose | When to use |
 |-----------|---------|-------------|
@@ -20,7 +21,9 @@ This is contradictory because high-priority resources should load immediately, n
 
 > "In reality you probably wouldn't really want `loading=lazy` and `fetchpriority=high` at the same time. That would mean don't load it initially, but when you start to load it, load it with high priority. Which is kind of contradictory!" - [Barry Pollard](https://twitter.com/tunetheweb/status/1714750391890444582)
 
-> **Related:** Use the [Find Above The Fold Lazy Loaded Images](/Loading/Find-Above-The-Fold-Lazy-Loaded-Images) snippet to detect lazy-loaded images in the viewport that may be hurting LCP.
+<Callout type="info">
+**Related:** Use the [Find Above The Fold Lazy Loaded Images](/Loading/Find-Above-The-Fold-Lazy-Loaded-Images) snippet to detect lazy-loaded images in the viewport that may be hurting LCP.
+</Callout>
 
 ### Attribution
 
@@ -30,11 +33,11 @@ Based on the [script](https://twitter.com/csswizardry/status/1714697877245632832
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
 The snippet checks for the contradictory combination and provides context:
 
-**For each conflicting element:**
+### For each conflicting element
 
 | Field | Description |
 |-------|-------------|
@@ -44,7 +47,7 @@ The snippet checks for the contradictory combination and provides context:
 | `isLcpCandidate` | Whether this is the largest viewport image |
 | `src` | Image source URL (truncated) |
 
-**Recommendations:**
+### Recommendations
 
 Based on the image position, the snippet suggests which attribute to keep:
 
@@ -53,28 +56,28 @@ Based on the image position, the snippet suggests which attribute to keep:
 | In viewport / LCP | Remove `loading="lazy"`, keep `fetchpriority="high"` |
 | Outside viewport | Remove `fetchpriority="high"`, keep `loading="lazy"` |
 
-### Best Practices
+### Best practices
 
-**For critical above-the-fold images (especially LCP):**
+### For critical above-the-fold images (especially LCP)
 
 ```html
 <img src="hero.jpg" fetchpriority="high" alt="Hero image">
 ```
 
-**For below-the-fold images:**
+### For below-the-fold images
 
 ```html
 <img src="content.jpg" loading="lazy" alt="Content image">
 ```
 
-**Never combine both:**
+### Never combine both
 
 ```html
 <!-- ❌ Contradictory - don't do this -->
 <img src="image.jpg" loading="lazy" fetchpriority="high" alt="...">
 ```
 
-### Further Reading
+### Further reading
 
 - [Fetch Priority API](https://web.dev/articles/fetch-priority) | web.dev
 - [Browser-level lazy loading](https://web.dev/articles/browser-level-image-lazy-loading) | web.dev

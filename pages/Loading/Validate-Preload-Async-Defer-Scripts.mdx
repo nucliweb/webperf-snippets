@@ -1,13 +1,12 @@
 import snippet from "../../snippets/Loading/Validate-Preload-Async-Defer-Scripts.js?raw";
 import { Snippet } from "../../components/Snippet";
+import { Callout } from 'nextra/components'
 
-# Validate Preload on Async/Defer Scripts
-
-### Overview
+# Validate preload on async/defer scripts
 
 Detects preload resource hints for scripts that use `async` or `defer` attributes. This is an anti-pattern that wastes bandwidth and can hurt performance by artificially elevating the priority of resources that should load at lower priority.
 
-**Why this matters:**
+### Why this matters
 
 | Issue                     | Impact                    | Explanation                                                                                      |
 | ------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -16,7 +15,7 @@ Detects preload resource hints for scripts that use `async` or `defer` attribute
 | **Wasted bytes**          | Extra requests            | Browser may fetch the resource twice if preload doesn't match script attributes                  |
 | **False optimization**    | Maintenance burden        | Adds complexity without performance benefit                                                      |
 
-**Script loading priorities in Chrome:**
+### Script loading priorities in Chrome
 
 | Strategy                                                  | Network Priority   | Execution Priority | Blocks Parser | Use Case                                  |
 | --------------------------------------------------------- | ------------------ | ------------------ | ------------- | ----------------------------------------- |
@@ -28,15 +27,17 @@ Detects preload resource hints for scripts that use `async` or `defer` attribute
 | `<script>` at end of `<body>`                             | Medium/High        | Low                | Briefly       | Legacy pattern (use defer instead)        |
 | `<script defer>` at end of `<body>`                       | Lowest/Low         | VeryLow            | ❌ No         | Non-critical occasional features          |
 
-> **Key insight:** Adding `preload` to an `async` or `defer` script elevates it from **Lowest/Low** to **Medium/High** network priority, causing it to compete with critical resources. This is rarely what you want! Source: [JavaScript Loading Priorities in Chrome](https://addyosmani.com/blog/script-priorities/) by [Addy Osmani](https://addyosmani.com/)
+<Callout type="info">
+**Key insight:** Adding `preload` to an `async` or `defer` script elevates it from **Lowest/Low** to **Medium/High** network priority, causing it to compete with critical resources. This is rarely what you want! Source: [JavaScript Loading Priorities in Chrome](https://addyosmani.com/blog/script-priorities/) by [Addy Osmani](https://addyosmani.com/)
+</Callout>
 
-**How async/defer work:**
+### How async/defer work
 
 ![Script loading comparison: regular script blocks HTML parsing during download and execution. Script with async downloads in parallel but pauses parsing during execution. Script with defer downloads in parallel and executes after parsing completes.](https://v8.dev/_img/modules/async-defer.svg)
 
 _Diagram comparing script loading strategies. Source: [JavaScript modules - module vs script | V8](https://v8.dev/features/modules#module-vs-script)_
 
-**Why not to preload async/defer scripts:**
+### Why not to preload async/defer scripts
 
 1. **Async scripts** naturally load at **Lowest/Low** network priority (good!)
 2. **Defer scripts** also load at **Lowest/Low** network priority (also good!)
@@ -44,7 +45,7 @@ _Diagram comparing script loading strategies. Source: [JavaScript modules - modu
 4. **The result**: They compete with critical CSS, fonts, and LCP images for bandwidth
 5. **Performance impact**: Can delay LCP by 100-500ms on slower connections
 
-**Priority escalation example:**
+### Priority escalation example
 
 ```
 Without preload:
@@ -60,21 +61,23 @@ With preload on async script:
 └── Preloaded async script: Medium/High priority ❌
 ```
 
-> **Key insight:** If a script has `async` or `defer`, it's already declared as **"not critical for initial render"**. Preloading contradicts that by elevating its priority to compete with truly critical resources!
+<Callout type="info">
+**Key insight:** If a script has `async` or `defer`, it's already declared as **"not critical for initial render"**. Preloading contradicts that by elevating its priority to compete with truly critical resources!
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Understanding the Results
+### Understanding the results
 
-**Summary Section:**
+### Summary section
 
 - Total count of preloaded scripts
 - Valid preloads (blocking scripts that may benefit)
 - Issues detected
 
-**Issue Types:**
+### Issue types
 
 | Type                      | Severity | Description                                                           |
 | ------------------------- | -------- | --------------------------------------------------------------------- |
@@ -82,7 +85,7 @@ With preload on async script:
 | **Module preload**        | Warning  | ES module using rel="preload" instead of rel="modulepreload"          |
 | **Orphan preload**        | Warning  | Preloaded script not found or loaded                                  |
 
-**Valid Preload Types:**
+### Valid preload types
 
 | Type                  | Description                                                                    |
 | --------------------- | ------------------------------------------------------------------------------ |
@@ -90,9 +93,11 @@ With preload on async script:
 | **Mitigated pattern** | Preload + async/defer with fetchpriority="low" (early discovery, low priority) |
 | **Dynamic scripts**   | Scripts loaded via import(), code-splitting, or injection                      |
 
-> **Note:** Dynamic scripts (loaded via `import()` or code-splitting) don't appear in the DOM but are visible in the Performance API. The snippet detects these by checking resource timing entries and classifies them separately from truly orphaned preloads.
+<Callout type="default">
+**Note:** Dynamic scripts (loaded via `import()` or code-splitting) don't appear in the DOM but are visible in the Performance API. The snippet detects these by checking resource timing entries and classifies them separately from truly orphaned preloads.
+</Callout>
 
-**Anti-patterns Table:**
+### Anti-patterns table
 
 | Column           | Description                                                       |
 | ---------------- | ----------------------------------------------------------------- |
@@ -104,7 +109,7 @@ With preload on async script:
 | fetchPriority    | Value of fetchpriority attribute (shows if mitigation is missing) |
 | Issue            | Type of problem detected                                          |
 
-**Recommendations:**
+### Recommendations
 
 The snippet provides specific guidance on:
 
@@ -113,9 +118,9 @@ The snippet provides specific guidance on:
 3. What to preload instead (critical resources like fonts, CSS, LCP images)
 4. Correct usage of rel="modulepreload" for ES modules
 
-### Real-World Example
+### Real-world example
 
-**❌ Anti-pattern (hurts performance):**
+### ❌ Anti-pattern (hurts performance)
 
 ```html
 <!-- Preloading Google Analytics (async) - BAD -->
@@ -125,7 +130,7 @@ The snippet provides specific guidance on:
 <!-- Result: Analytics competes with critical resources like fonts/CSS -->
 ```
 
-**✅ Correct approach:**
+### ✅ Correct approach
 
 ```html
 <!-- No preload - async is enough -->
@@ -136,9 +141,9 @@ The snippet provides specific guidance on:
 <link rel="preload" href="/hero-image.webp" as="image" fetchpriority="high" />
 ```
 
-### Why This Matters for Core Web Vitals
+### Why this matters for Core Web Vitals
 
-**Impact on LCP (Largest Contentful Paint):**
+### Impact on LCP (largest contentful paint)
 
 If you preload non-critical async scripts, they compete for bandwidth with:
 
@@ -148,7 +153,7 @@ If you preload non-critical async scripts, they compete for bandwidth with:
 
 This can measurably delay your LCP, especially on slower connections and bandwidth-constrained devices. The actual impact depends on your site's resource size, connection speed, and number of competing resources.
 
-**Priority order reality:**
+### Priority order reality
 
 ```
 Without preload:
@@ -164,11 +169,11 @@ With wrong preload:
 └── LCP image (competing)
 ```
 
-### When Is Preload + Script Actually Appropriate?
+### When is preload + script actually appropriate?
 
 According to [JavaScript Loading Priorities](https://addyosmani.com/blog/script-priorities/), preload is appropriate only for very specific cases:
 
-**Valid use case: `<link rel=preload>` + `<script async>`**
+### Valid use case: `<link rel=preload>` + `<script async>`
 
 For scripts that:
 
@@ -185,7 +190,7 @@ For scripts that:
 
 **⚠️ Warning:** This is a rare edge case. Most scripts should NOT be preloaded.
 
-**Better alternatives for common cases:**
+### Better alternatives for common cases
 
 ```html
 <!-- For framework/polyfills needed early -->
@@ -201,25 +206,25 @@ For scripts that:
 <!-- Loads at Low priority, no preload needed -->
 ```
 
-### ES Modules: Use `modulepreload`, Not `preload`
+### ES modules: Use `modulepreload`, not `preload`
 
 ES modules (`type="module"`) behave like `defer` scripts by default, loading at low priority. If you need to preload them, use the **`rel="modulepreload"`** attribute instead of `rel="preload"`:
 
-**❌ Incorrect (detected as anti-pattern):**
+### ❌ Incorrect (detected as anti-pattern)
 
 ```html
 <link rel="preload" href="/app.js" as="script" />
 <script type="module" src="/app.js"></script>
 ```
 
-**✅ Correct approach for modules:**
+### ✅ Correct approach for modules
 
 ```html
 <link rel="modulepreload" href="/app.js" />
 <script type="module" src="/app.js"></script>
 ```
 
-**Key differences:**
+### Key differences
 
 - `rel="modulepreload"` understands module imports and preloads dependencies
 - `rel="preload" as="script"` treats it as a regular script (wrong priority escalation)
@@ -227,11 +232,11 @@ ES modules (`type="module"`) behave like `defer` scripts by default, loading at 
 
 **Learn more:** [MDN: `<link rel="modulepreload">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel/modulepreload)
 
-### Alternative Fix: Using `fetchpriority="low"`
+### Alternative fix: Using `fetchpriority="low"`
 
 If you need to keep the preload for early discovery (e.g., the script is defined late in the HTML but needs to start downloading early), you can use `fetchpriority="low"` on the **script tag** to reduce its bandwidth priority while keeping the preload:
 
-**❌ Problem: Preload escalates async script priority**
+### ❌ Problem: Preload escalates async script priority
 
 ```html
 <link rel="preload" href="/analytics.js" as="script" />
@@ -240,7 +245,7 @@ If you need to keep the preload for early discovery (e.g., the script is defined
 <!-- Priority escalated to Medium/High, competes with critical resources -->
 ```
 
-**✅ Solution: Keep preload for discovery, but lower script priority**
+### ✅ Solution: Keep preload for discovery, but lower script priority
 
 ```html
 <link rel="preload" href="/analytics.js" as="script" />
@@ -249,7 +254,7 @@ If you need to keep the preload for early discovery (e.g., the script is defined
 <!-- Downloaded early, but at low priority - doesn't compete with LCP -->
 ```
 
-**When to use this approach:**
+### When to use this approach
 
 - Script is discovered late in HTML but should start downloading early
 - You need early discovery but don't want bandwidth competition
@@ -259,13 +264,13 @@ If you need to keep the preload for early discovery (e.g., the script is defined
 
 **Learn more:** [MDN: `fetchpriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/fetchPriority)
 
-### Real-World Case: Third-Party Consent Scripts
+### Real-world case: third-party consent scripts
 
 A common scenario where this anti-pattern appears is with third-party consent management scripts (cookie banners, GDPR compliance, etc.). Developers often think: "I want it async, but I need it now" and reach for preload. Let's analyze the tradeoffs and solutions.
 
-#### The Problem
+#### The problem
 
-**Common (incorrect) approach:**
+##### Common (incorrect) approach
 
 ```html
 <!-- ❌ Anti-pattern: Preload + async without mitigation -->
@@ -273,13 +278,13 @@ A common scenario where this anti-pattern appears is with third-party consent ma
 <script async src="https://cdn.web.dev/consent.js"></script>
 ```
 
-**Why developers do this:**
+##### Why developers do this
 
 - Want the consent banner to appear quickly (early discovery)
 - Don't want to block page rendering (async)
 - Assume preload + async is the best of both worlds
 
-**What actually happens:**
+##### What actually happens
 
 ```mermaid
 graph LR
@@ -293,7 +298,7 @@ graph LR
     F --> G
 ```
 
-#### Proposed Alternative: `fetchpriority="high"`
+#### Proposed alternative: `fetchpriority="high"`
 
 Some developers consider using `fetchpriority="high"` instead:
 
@@ -302,7 +307,7 @@ Some developers consider using `fetchpriority="high"` instead:
 <script async src="https://cdn.web.dev/consent.js" fetchpriority="high"></script>
 ```
 
-**Why this doesn't solve the problem:**
+##### Why this doesn't solve the problem
 
 ```mermaid
 graph TD
@@ -319,9 +324,11 @@ graph TD
 
 Using `fetchpriority="high"` on an async script has the **same negative effect** as preloading it - both artificially escalate the priority and cause bandwidth competition.
 
-> **Note:** This priority escalation applies to scripts discovered during initial HTML parsing. Dynamically inserted scripts (via JavaScript) may behave differently depending on when they're injected.
+<Callout type="default">
+**Note:** This priority escalation applies to scripts discovered during initial HTML parsing. Dynamically inserted scripts (via JavaScript) may behave differently depending on when they're injected.
+</Callout>
 
-#### Solution 1: Preload with Low Priority (Best Balance)
+#### Solution 1: Preload with low priority (best balance)
 
 If you truly need early discovery but don't want priority escalation:
 
@@ -331,7 +338,7 @@ If you truly need early discovery but don't want priority escalation:
 <script async src="https://cdn.web.dev/consent.js" fetchpriority="low"></script>
 ```
 
-**How this works:**
+##### How this works
 
 ```mermaid
 graph LR
@@ -345,14 +352,14 @@ graph LR
     style F fill:#22c55e,color:#fff
 ```
 
-**Benefits:**
+##### Benefits
 
 - ✅ Script discovered and starts downloading early
 - ✅ Stays at Low priority (doesn't compete with LCP)
 - ✅ Still loads async (non-blocking)
 - ✅ Best of both worlds
 
-#### Solution 2: Just Use Async (Simplest)
+#### Solution 2: Just use async (simplest)
 
 If the script tag is already in `<head>`, preload may not be necessary:
 
@@ -364,7 +371,7 @@ If the script tag is already in `<head>`, preload may not be necessary:
 </head>
 ```
 
-**When this is sufficient:**
+##### When this is sufficient
 
 ```mermaid
 graph TD
@@ -376,13 +383,13 @@ graph TD
     style E fill:#22c55e,color:#fff
 ```
 
-**Why this works:**
+##### Why this works
 
 - Script in `<head>` is discovered immediately
 - Async loads at Lowest/Low priority naturally
 - No preload overhead or complexity needed
 
-#### Priority Comparison: Consent Script Scenarios
+#### Priority comparison: Consent script scenarios
 
 | Approach                                                  | Network Priority | LCP Impact | Complexity | Recommendation                 |
 | --------------------------------------------------------- | ---------------- | ---------- | ---------- | ------------------------------ |
@@ -391,7 +398,7 @@ graph TD
 | `<link rel=preload>` + `<script async>`                   | ⚠️ Medium/High   | ❌ High    | Medium     | **Anti-pattern - avoid**       |
 | `<script async fetchpriority=high>`                       | ⚠️ High          | ❌ High    | Low        | **Anti-pattern - avoid**       |
 
-#### Decision Tree for Consent Scripts
+#### Decision tree for consent scripts
 
 ```mermaid
 graph TD
@@ -409,9 +416,11 @@ graph TD
     style H fill:#22c55e,color:#fff
 ```
 
-> **Note:** For scripts late in `<body>` where early download is not needed, plain `<script async>` is appropriate because the consent banner is non-critical. The script will load when discovered by the parser, which is acceptable for this use case.
+<Callout type="default">
+**Note:** For scripts late in `<body>` where early download is not needed, plain `<script async>` is appropriate because the consent banner is non-critical. The script will load when discovered by the parser, which is acceptable for this use case.
+</Callout>
 
-#### Key Takeaway
+#### Key takeaway
 
 For consent scripts and other third-party resources:
 
@@ -422,36 +431,36 @@ For consent scripts and other third-party resources:
 
 The goal is **early start, low priority** - not high priority. Users care more about fast LCP than seeing the consent banner 50ms earlier.
 
-### Understanding Script Priorities (Chrome)
+### Understanding script priorities (Chrome)
 
 Based on [Addy Osmani's research](https://addyosmani.com/blog/script-priorities/), here's how different script loading strategies affect priorities:
 
-**Scripts in `<head>` (framework/polyfills):**
+### Scripts in `<head>` (framework/polyfills)
 
 - Network: Medium/High
 - Execution: VeryHigh (blocks parser)
 - Use for: Scripts affecting FMP layout, must run before other scripts
 
-**`<script defer>` (recommended for most scripts):**
+### `<script defer>` (recommended for most scripts)
 
 - Network: **Lowest/Low** ✅
 - Execution: VeryLow (after parsing)
 - Use for: Scripts needing DOM, non-critical content, interactive features used by >50% of sessions
 
-**`<script async>` (analytics, ads):**
+### `<script async>` (analytics, ads)
 
 - Network: **Lowest/Low** ✅
 - Execution: High (interrupts parser briefly)
 - Use for: Independent scripts, but be careful - execution priority is inconsistent
 
-**`<link rel=preload>` + `<script async>` (rare case):**
+### `<link rel=preload>` + `<script async>` (rare case)
 
 - Network: **Medium/High** ⚠️
 - Execution: High
 - Use for: Critical content generators (not layout), discovered late
 - Warning: Rarely needed, often misused
 
-**`<script>` at end of `<body>` (legacy):**
+### `<script>` at end of `<body>` (legacy)
 
 - Network: Medium/High
 - Execution: Low
@@ -460,7 +469,7 @@ Based on [Addy Osmani's research](https://addyosmani.com/blog/script-priorities/
 
 **Key takeaway:** Defer gives you **Lowest/Low** network priority (good for non-critical scripts) while preload forces **Medium/High** priority (should only be used for truly critical resources).
 
-### Common Sources of This Issue
+### Common sources of this issue
 
 | Source                      | Why It Happens                                                               |
 | --------------------------- | ---------------------------------------------------------------------------- |
@@ -470,7 +479,7 @@ Based on [Addy Osmani's research](https://addyosmani.com/blog/script-priorities/
 | **Outdated advice**         | Old articles suggesting "preload everything"                                 |
 | **Misunderstanding async**  | Assuming async always needs help, not realizing it already loads efficiently |
 
-### Advanced Strategy: Server-Side Conditional Loading
+### Advanced strategy: server-side conditional loading
 
 For production scenarios with consent scripts, a more sophisticated approach involves server-side logic to conditionally prioritize the script only when needed (first visit). This strategy considers that:
 
@@ -481,7 +490,7 @@ For production scenarios with consent scripts, a more sophisticated approach inv
 
 This approach is beyond the scope of this validation snippet, as it requires architectural changes to your server-side rendering logic.
 
-### Further Reading
+### Further reading
 
 - [JavaScript Loading Priorities](https://addyosmani.com/blog/script-priorities/) | Addy Osmani - Detailed breakdown of network and execution priorities
 - [Negative performance impact from preloading](https://www.debugbear.com/blog/resource-hints-rel-preload-prefetch-preconnect#negative-performance-impact-from-preloading) | DebugBear

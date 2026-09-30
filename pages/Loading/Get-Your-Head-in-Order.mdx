@@ -2,11 +2,13 @@
 type: guide
 ---
 
+import { Callout } from 'nextra/components'
+
 # Get your `<head>` in order
 
 How you order elements in the `<head>` can have an effect on the (perceived) performance of the page. The order of elements matters because the browser processes them sequentially.
 
-**Recommended `<head>` element order:**
+### Recommended `<head>` element order
 
 | Priority | Element | Why |
 |----------|---------|-----|
@@ -28,7 +30,7 @@ How you order elements in the `<head>` can have an effect on the (perceived) per
 
 The best tool to analyze your `<head>` order is [**capo.js**](https://github.com/rviscomi/capo.js) by [Rick Viscomi](https://twitter.com/rviscomi).
 
-**How to use:**
+### How to use
 
 1. **Browser extension (recommended):** Install Capo for [Chrome](https://chrome.google.com/webstore/detail/capo-get-your-head-in-ord/ohabpnaccigjhkkebjofhpmebofgpbeb) or [Firefox](https://addons.mozilla.org/en-US/firefox/addon/capo-get-your-head-in-order/), then read the console logs.
 
@@ -37,16 +39,18 @@ The best tool to analyze your `<head>` order is [**capo.js**](https://github.com
 npm install @rviscomi/capo.js
 ```
 
-**What capo.js shows:**
+### What capo.js shows
 
 - Visual color-coded representation of your `<head>` order
 - Actual vs optimal (sorted) element order
 - Validation warnings for invalid elements
 - Detailed element-by-element breakdown
 
-> **Note:** For the most up-to-date version, always refer to the [official capo.js repository](https://github.com/rviscomi/capo.js).
+<Callout type="default">
+**Note:** For the most up-to-date version, always refer to the [official capo.js repository](https://github.com/rviscomi/capo.js).
+</Callout>
 
-### Further Reading
+### Further reading
 
 - [capo.js GitHub Repository](https://github.com/rviscomi/capo.js) | Rick Viscomi
 - [ct.css - HEAD element order](https://csswizardry.com/ct/) | Harry Roberts

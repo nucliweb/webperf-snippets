@@ -1,17 +1,16 @@
 import snippet from '../../snippets/CoreWebVitals/CLS.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Cumulative Layout Shift (CLS)
-
-### Overview
+# Cumulative layout shift (CLS)
 
 Quick check for [Cumulative Layout Shift](https://web.dev/articles/cls), a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the largest burst of unexpected layout shifts.
 
-**Why this matters:**
+### Why this matters
 
 Unexpected layout shifts are frustrating and can cause users to click the wrong element or lose their reading position. CLS directly impacts user experience and is a ranking factor for Google Search. Common causes include images without dimensions, web fonts, and dynamically injected content.
 
-**CLS Rating Thresholds:**
+### CLS rating thresholds
 
 | Rating | Score | Meaning |
 |--------|-------|---------|
@@ -19,7 +18,9 @@ Unexpected layout shifts are frustrating and can cause users to click the wrong 
 | 🟡 Needs Improvement | ≤ 0.25 | Noticeable shifting |
 | 🔴 Poor | > 0.25 | Significant layout instability |
 
-> **Need to debug?** Use [Layout Shift Tracking](/Interaction/Layout-Shift-Loading-and-Interaction) to identify which elements are causing shifts.
+<Callout type="info">
+**Need to debug?** Use [Layout Shift Tracking](/Interaction/Layout-Shift-Loading-and-Interaction) to identify which elements are causing shifts.
+</Callout>
 
 ### Snippet
 
@@ -37,11 +38,11 @@ CLS = max over session windows of Σ shift scores
 - **Impact fraction**: How much of the viewport was affected
 - **Distance fraction**: How far elements moved
 
-**What's excluded:**
+### What's excluded
 - Shifts within 500ms of user input (`hadRecentInput: true`)
 - Shifts caused by scroll anchoring
 
-**CLS Calculation Flow:**
+### CLS calculation flow
 
 ```mermaid
 flowchart TD
@@ -60,7 +61,7 @@ flowchart TD
     style Accumulate fill:#E5F2FF
 ```
 
-**CLS Lifecycle:**
+### CLS lifecycle
 
 ```mermaid
 stateDiagram-v2
@@ -75,7 +76,7 @@ stateDiagram-v2
     end note
 ```
 
-### Common Causes
+### Common causes
 
 | Cause | Solution |
 |-------|----------|
@@ -84,14 +85,14 @@ stateDiagram-v2
 | Dynamic content injection | Reserve space or insert below fold |
 | Web fonts (FOIT/FOUT) | Use `font-display: optional` or `size-adjust` |
 
-### Browser Support
+### Browser support
 
 | API | Chrome | Firefox | Safari | Edge |
 |-----|--------|---------|--------|------|
 | Layout Instability API | ✅ 77 | ❌ | ❌ | ✅ 79 |
 | PerformanceObserver | ✅ 52 | ✅ 57 | ✅ 11 | ✅ 79 |
 
-### Further Reading
+### Further reading
 
 - [Cumulative Layout Shift (CLS)](https://web.dev/articles/cls) | web.dev
 - [Optimize CLS](https://web.dev/articles/optimize-cls) | web.dev

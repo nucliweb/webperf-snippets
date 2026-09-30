@@ -1,15 +1,14 @@
 import snippet from '../../snippets/Loading/FCP.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# First Contentful Paint (FCP)
+# First contentful paint (FCP)
 
-### Overview
-
-Quick check for [First Contentful Paint](https://web.dev/articles/fcp), the metric that marks when the browser renders the first piece of DOM content — text, image, canvas, or SVG. FCP measures the user's perception of whether the page is loading.
+Quick check for [First Contentful Paint](https://web.dev/articles/fcp), the metric that marks when the browser renders the first piece of DOM content, text, image, canvas, or SVG. FCP measures the user's perception of whether the page is loading.
 
 Unlike LCP, FCP fires as soon as _any_ content appears, making it the earliest signal of loading progress. A slow FCP almost always points to TTFB or render-blocking resources.
 
-**FCP Rating Thresholds:**
+### FCP rating thresholds
 
 | Rating | Time | Meaning |
 |--------|------|---------|
@@ -17,27 +16,31 @@ Unlike LCP, FCP fires as soon as _any_ content appears, making it the earliest s
 | 🟡 Needs Improvement | ≤ 3s | Noticeable delay |
 | 🔴 Poor | > 3s | Users may perceive the page as broken |
 
-> **Render-blocking resources?** Use [Find Render-Blocking Resources](/Loading/Find-render-blocking-resources) for a detailed analysis with recommendations.
+<Callout type="info">
+**Render-blocking resources?** Use [Find Render-Blocking Resources](/Loading/Find-render-blocking-resources) for a detailed analysis with recommendations.
+</Callout>
 
 ### Snippet
 
 <Snippet code={snippet} />
 
-### Phase Breakdown
+### Phase breakdown
 
 The three phases explain where time is spent before the first pixel is painted:
 
 | Phase | Measured as | Optimization |
 |-------|-------------|--------------|
-| **TTFB** | `responseStart` — time until first byte of HTML arrives | Server response time, CDN, caching |
+| **TTFB** | `responseStart`, time until first byte of HTML arrives | Server response time, CDN, caching |
 | **Render-blocking load** | Time blocked waiting for CSS/JS before the browser can paint | Defer/async scripts, inline critical CSS |
 | **Render delay** | Time from resources ready to actual paint | CSS complexity, main thread contention |
 
 On prerendered pages, every phase is measured from `activationStart` (the moment the page was shown), not from the start of the prerender.
 
-> **Browser support:** The render-blocking phase requires the `renderBlockingStatus` API (Chrome 107+, Edge 107+). In other browsers the render-blocking section will show no resources even if they exist.
+<Callout type="warning">
+**Browser support:** The render-blocking phase requires the `renderBlockingStatus` API (Chrome 107+, Edge 107+). In other browsers the render-blocking section will show no resources even if they exist.
+</Callout>
 
-### Further Reading
+### Further reading
 
 - [First Contentful Paint (FCP)](https://web.dev/articles/fcp) | web.dev
 - [Optimize FCP](https://web.dev/articles/optimize-fcp) | web.dev

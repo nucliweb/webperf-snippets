@@ -1,17 +1,16 @@
 import snippet from '../../snippets/CoreWebVitals/INP.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
 
-# Interaction to Next Paint (INP)
-
-### Overview
+# Interaction to next paint (INP)
 
 Tracks [Interaction to Next Paint](https://web.dev/articles/inp), a Core Web Vital that measures responsiveness. INP evaluates how quickly a page responds to user interactions throughout the entire page visit, replacing First Input Delay (FID) as a Core Web Vital in March 2024.
 
-**Why this matters:**
+### Why this matters
 
 INP directly measures user frustration. When users click a button and nothing happens for seconds, they abandon tasks. Unlike FID which only measured first interaction, INP tracks ALL interactions, making it a more comprehensive responsiveness metric and a key ranking factor for Google Search.
 
-**INP Rating Thresholds:**
+### INP rating thresholds
 
 | Rating | Time | Meaning |
 |--------|------|---------|
@@ -19,9 +18,11 @@ INP directly measures user frustration. When users click a button and nothing ha
 | 🟡 Needs Improvement | ≤ 500ms | Noticeable delay |
 | 🔴 Poor | > 500ms | Slow, frustrating experience |
 
-> **Need to debug?** Use [Long Animation Frames](/Interaction/Long-Animation-Frames) to identify which scripts are blocking interactions.
+<Callout type="info">
+**Need to debug?** Use [Long Animation Frames](/Interaction/Long-Animation-Frames) to identify which scripts are blocking interactions.
+</Callout>
 
-**INP Measurement Approach:**
+### INP measurement approach
 
 ```mermaid
 flowchart TD
@@ -46,7 +47,7 @@ flowchart TD
     style Calculate fill:#FFF4E5
 ```
 
-**INP vs FID Comparison:**
+### INP vs FID comparison
 
 | Aspect | FID (Old) | INP (New) |
 |--------|-----------|-----------|
@@ -62,7 +63,7 @@ flowchart TD
 
 ### Understanding INP
 
-**What makes a good INP:**
+### What makes a good INP
 
 INP measures the latency of ALL user interactions during the page's lifetime. Unlike FID (which only measured first input delay), INP captures:
 
@@ -70,7 +71,7 @@ INP measures the latency of ALL user interactions during the page's lifetime. Un
 - The full duration from input to visual update
 - The 98th percentile (worst case for most users)
 
-**INP has three phases:**
+### INP has three phases
 
 | Phase | Description | Common causes of delay |
 |-------|-------------|----------------------|
@@ -78,14 +79,14 @@ INP measures the latency of ALL user interactions during the page's lifetime. Un
 | **Processing Time** | Event handler execution | Heavy computation, DOM manipulation |
 | **Presentation Delay** | Time to render update | Large render tree, forced layouts |
 
-**INP updates throughout the page lifetime:**
+### INP updates throughout the page lifetime
 
 - INP is calculated from all interactions
 - Takes the 98th percentile duration
 - Skips one interaction for every 50 the page has received (`performance.interactionCount`), so pages with fewer than 50 interactions use the worst one
 - Final INP reported when page is hidden
 
-### Common Causes of Poor INP
+### Common causes of poor INP
 
 | Cause | Detection | Solution |
 |-------|-----------|----------|
@@ -95,9 +96,9 @@ INP measures the latency of ALL user interactions during the page's lifetime. Un
 | Third-party scripts | Scripts blocking interactions | Defer scripts, use facades for embeds |
 | Large DOM | Slow rendering | Virtualize lists, lazy load components |
 
-### Interpreting Results
+### Interpreting results
 
-**Output Overview:**
+### Output overview
 
 The snippet provides comprehensive INP analysis including:
 
@@ -109,7 +110,7 @@ The snippet provides comprehensive INP analysis including:
 - **Interaction Types**: Summary by event type (click, keydown, etc.)
 - **Actionable Recommendations**: Specific advice based on bottleneck phase
 
-**Phase Analysis:**
+### Phase analysis
 
 If your INP is poor (> 500ms), check which phase dominates:
 
@@ -122,7 +123,7 @@ If your INP is poor (> 500ms), check which phase dominates:
 - **Presentation Delay > 50%**: Rendering is slow
   - Solution: Reduce render complexity, batch updates, avoid forced layouts
 
-**Element Attribution:**
+### Element attribution
 
 The snippet identifies which specific DOM element caused each interaction:
 
@@ -144,7 +145,7 @@ This helps you:
 - **Reproduce locally**: Navigate to the element in the DOM inspector
 - **Track patterns**: See if all interactions on certain elements are slow
 
-**Interaction Types:**
+### Interaction types
 
 Different interaction types have different performance profiles:
 
@@ -155,7 +156,7 @@ Different interaction types have different performance profiles:
 | `keydown` | 32-100ms | Debounce text input, defer validation |
 | `pointerup` | 16-50ms | Usually fast unless triggering complex actions |
 
-### Browser Support
+### Browser support
 
 | Browser | INP Support | Event Timing API | Phase Breakdown |
 |---------|-------------|------------------|-----------------|
@@ -168,23 +169,23 @@ Different interaction types have different performance profiles:
 
 ### Troubleshooting
 
-**"No interactions recorded"**
+### "No interactions recorded"
 
 - Cause: Page hasn't had meaningful interactions yet
 - Solution: Interact with the page (clicks, keypresses) then run `getINP()`
 
-**"All interactions show 0ms for phases"**
+### "All interactions show 0ms for phases"
 
 - Cause: Browser doesn't support detailed phase breakdown
 - Solution: Use Chrome 96+ for full support. The total duration is still accurate.
 
-**"INP keeps changing"**
+### "INP keeps changing"
 
 - This is expected! INP is calculated from all interactions as a 98th percentile
 - It will update as more interactions occur
 - The final value is reported when the page is hidden
 
-**"Want to see real-time updates?"**
+### "Want to see real-time updates?"
 
 ```js copy
 // Log INP after each interaction
@@ -228,7 +229,7 @@ window.getINP = () => {
 };
 ```
 
-### Further Reading
+### Further reading
 
 - [Interaction to Next Paint (INP)](https://web.dev/articles/inp) | web.dev
 - [Optimize INP](https://web.dev/articles/optimize-inp) | web.dev
