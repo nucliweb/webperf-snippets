@@ -173,6 +173,8 @@
 
   // Get third-party origins that could benefit from preconnect
   const thirdPartyOrigins = new Map();
+  // Third-party resources without Timing-Allow-Origin report every size as 0
+  let sizeUnknownCount = 0;
   loadedResources.forEach((r) => {
     try {
       const url = new URL(r.name);
@@ -183,6 +185,7 @@
         const data = thirdPartyOrigins.get(url.origin);
         data.count++;
         data.size += r.transferSize || 0;
+        if (r.transferSize === 0 && r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.duration > 0) sizeUnknownCount++;
         data.types.add(r.initiatorType);
       }
     } catch {}
@@ -399,7 +402,9 @@
     script: "Resource-Hints",
     status: "ok",
     count: allHints.length,
+    corsLimitedAnalysis: sizeUnknownCount > 0,
     details: {
+      sizeUnknownCount,
       byType: Object.fromEntries(hintTypes.map(t => [t.rel, allHints.filter(h => h.rel === t.rel).length])),
       missingPreconnectsCount: missingPreconnects.length,
       missingPreconnects: missingPreconnects.slice(0, 20).map((o) => ({

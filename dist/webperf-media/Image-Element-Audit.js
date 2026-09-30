@@ -37,6 +37,7 @@
   function isModernFormat(format) {
     return [ "avif", "webp", "jxl", "auto (cdn)", "auto (cdn?)" ].includes(format);
   }
+  let formatGuessedCount = 0;
   async function fetchFormat(url) {
     if (!url) return detectFormat(url);
     try {
@@ -51,7 +52,9 @@
       if (ct.includes("gif")) return "gif";
       if (ct.includes("svg")) return "svg";
       if (ct.includes("jpeg")) return "jpg";
-    } catch {}
+    } catch {
+      formatGuessedCount++;
+    }
     return detectFormat(url);
   }
   function shortSrc(url) {
@@ -81,6 +84,7 @@
       script: "Image-Element-Audit",
       status: "ok",
       count: 0,
+      corsLimitedAnalysis: false,
       items: [],
       issues: []
     };
@@ -194,8 +198,10 @@
     script: "Image-Element-Audit",
     status: "ok",
     count: images.length,
+    corsLimitedAnalysis: formatGuessedCount > 0,
     details: {
       totalImages: images.length,
+      formatGuessedCount: formatGuessedCount,
       inViewport: audited.filter(r => r.inViewport).length,
       offViewport: audited.filter(r => !r.inViewport).length,
       totalErrors: totalErrors,

@@ -72,6 +72,9 @@ function cwvMarkdown(result) {
 function auditMarkdown(result) {
   const lines = [`## ${result.script}`];
   if (result.count != null) lines.push(`> ${result.count} item(s) found`);
+  if (result.corsLimitedAnalysis === true) {
+    lines.push("> ⚠️ Partial analysis: cross-origin resources without Timing-Allow-Origin hid their sizes or timings, so the totals are a lower bound.");
+  }
 
   if (result.issues?.length) {
     lines.push("", "### Issues");

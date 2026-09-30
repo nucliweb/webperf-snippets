@@ -181,6 +181,11 @@ const SMALL_PAGES = (other) => ({
       Array.from({ length: 60 }, (_, i) => `<img src="/hero.png?ok${i}" width="10" height="10" alt="" loading="lazy">`).join("") +
       '<img src="/hero.png?bad" width="10" height="10" alt="" loading="lazy" fetchpriority="high">'
   ),
+  // Images from another origin: one that fetch() can read (svg, with CORS) and one it cannot
+  "/cors-images": page(
+    "",
+    `<h1>images</h1><img src="${other}/nocors.png" width="10" height="10" alt="">`
+  ),
   "/astro": page(
     "",
     '<astro-island component-url="/Counter.js" client="load" props="{&quot;n&quot;:[0,1]}"></astro-island><astro-island component-url="/Menu.js" client="idle" props="{}"></astro-island>'
@@ -271,6 +276,8 @@ export function checkResult(name, inspected, prefix = "") {
   };
   scan(result, 0);
 
+  if ("corsLimitedAnalysis" in result && typeof result.corsLimitedAnalysis !== "boolean") add("cors-limited-not-boolean");
+
   if (Array.isArray(result.items)) {
     if (result.items.length > MAX_ITEMS) add("items-uncapped");
     const shapes = new Set(
@@ -292,6 +299,11 @@ export async function startContractServers() {
   const png = readFileSync(join(FIXTURES, "hero.png"));
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="10" height="10"><image width="10" height="10" xlink:href="data:image/png;base64,${png.toString("base64").slice(0, 200)}"/></svg>`;
   const other = await listen((req, res) => {
+    // An image another origin serves with no CORS header, so fetch() cannot read it
+    if (req.url.startsWith("/nocors.png")) {
+      res.writeHead(200, { "Content-Type": "image/png" });
+      return res.end(png);
+    }
     if (req.url.startsWith("/bitmap.svg")) {
       res.writeHead(200, { "Content-Type": "image/svg+xml", "Access-Control-Allow-Origin": "*" });
       return res.end(svg);

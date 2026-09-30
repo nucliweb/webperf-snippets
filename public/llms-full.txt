@@ -3311,6 +3311,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     script: "Cache-Strategy-Analysis",
     status: "ok",
     count: entries.length,
+    corsLimitedAnalysis: corsRestricted > 0,
     details: {
       totalResources: entries.length,
       actionableCount: actionableEntries.length,
@@ -5924,6 +5925,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
     script: "First-And-Third-Party-Script-Info",
     status: "ok",
     count: totalScripts,
+    corsLimitedAnalysis: scripts.some((s) => !s.sizeKnown),
     details: {
       firstPartyCount: firstParty.length,
       thirdPartyCount: thirdParty.length,
@@ -6269,6 +6271,7 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
     script: "First-And-Third-Party-Script-Timings",
     status: "ok",
     count: scripts.length,
+    corsLimitedAnalysis: thirdStats.withoutTiming > 0,
     details: {
       firstPartyCount: firstParty.length,
       thirdPartyCount: thirdParty.length,
@@ -7567,6 +7570,7 @@ Identifies where JavaScript time goes during page load: network download vs brow
     script: "JS-Execution-Time-Breakdown",
     status: "ok",
     count: scripts.length,
+    corsLimitedAnalysis: scripts.some((s) => s.corsRestricted),
     details: {
       blockingCount: blocking.length,
       nonBlockingCount: nonBlocking.length,
@@ -9123,6 +9127,8 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
 
   // Get third-party origins that could benefit from preconnect
   const thirdPartyOrigins = new Map();
+  // Third-party resources without Timing-Allow-Origin report every size as 0
+  let sizeUnknownCount = 0;
   loadedResources.forEach((r) => {
     try {
       const url = new URL(r.name);
@@ -9133,6 +9139,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
         const data = thirdPartyOrigins.get(url.origin);
         data.count++;
         data.size += r.transferSize || 0;
+        if (r.transferSize === 0 && r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.duration > 0) sizeUnknownCount++;
         data.types.add(r.initiatorType);
       }
     } catch {}
@@ -9349,7 +9356,9 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
     script: "Resource-Hints",
     status: "ok",
     count: allHints.length,
+    corsLimitedAnalysis: sizeUnknownCount > 0,
     details: {
+      sizeUnknownCount,
       byType: Object.fromEntries(hintTypes.map(t => [t.rel, allHints.filter(h => h.rel === t.rel).length])),
       missingPreconnectsCount: missingPreconnects.length,
       missingPreconnects: missingPreconnects.slice(0, 20).map((o) => ({
@@ -10144,6 +10153,7 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
     script: "Script-Loading",
     status: "ok",
     count: scripts.length,
+    corsLimitedAnalysis: scripts.some((s) => !s.sizeKnown),
     rating: agentRating,
     details: {
       totalSizeBytes: totalSize,
@@ -10869,7 +10879,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
     }))
     .sort((a, b) => b.ttfbMs - a.ttfbMs);
   if (resourcesSync.length === 0) {
-    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available", details: { corsRestrictedCount } };
+    return { script: "TTFB-Resources", status: "error", error: "No resources with TTFB data available", corsLimitedAnalysis: corsRestrictedCount > 0, details: { corsRestrictedCount } };
   }
   const ttfbVals = resourcesSync.map((r) => r.ttfbMs);
   // The list keeps the 50 slowest resources (already sorted); count and details cover all of them
@@ -10878,6 +10888,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
     script: "TTFB-Resources",
     status: "ok",
     count: resourcesSync.length,
+    corsLimitedAnalysis: corsRestrictedCount > 0,
     details: {
       avgTtfbMs: Math.round(ttfbVals.reduce((a, b) => a + b, 0) / ttfbVals.length),
       maxTtfbMs: Math.max(...ttfbVals),
@@ -14090,6 +14101,10 @@ Audits all `<img>` elements on the page against image performance best practices
     return ["avif", "webp", "jxl", "auto (cdn)", "auto (cdn?)"].includes(format);
   }
 
+  // Images whose format could not be read from the response (fetch blocked by CORS) and was
+  // guessed from the URL instead
+  let formatGuessedCount = 0;
+
   async function fetchFormat(url) {
     if (!url) return detectFormat(url);
     try {
@@ -14102,7 +14117,9 @@ Audits all `<img>` elements on the page against image performance best practices
       if (ct.includes("gif")) return "gif";
       if (ct.includes("svg")) return "svg";
       if (ct.includes("jpeg")) return "jpg";
-    } catch {}
+    } catch {
+      formatGuessedCount++;
+    }
     return detectFormat(url);
   }
 
@@ -14141,7 +14158,7 @@ Audits all `<img>` elements on the page against image performance best practices
 
   if (images.length === 0) {
     console.log("No <img> elements found on this page.");
-    return { script: "Image-Element-Audit", status: "ok", count: 0, items: [], issues: [] };
+    return { script: "Image-Element-Audit", status: "ok", count: 0, corsLimitedAnalysis: false, items: [], issues: [] };
   }
 
   const lcpCandidate = findLcpCandidate(images);
@@ -14350,8 +14367,10 @@ Audits all `<img>` elements on the page against image performance best practices
     script: "Image-Element-Audit",
     status: "ok",
     count: images.length,
+    corsLimitedAnalysis: formatGuessedCount > 0,
     details: {
       totalImages: images.length,
+      formatGuessedCount,
       inViewport: audited.filter((r) => r.inViewport).length,
       offViewport: audited.filter((r) => !r.inViewport).length,
       totalErrors,

@@ -236,6 +236,7 @@
     script: "First-And-Third-Party-Script-Info",
     status: "ok",
     count: totalScripts,
+    corsLimitedAnalysis: scripts.some((s) => !s.sizeKnown),
     details: {
       firstPartyCount: firstParty.length,
       thirdPartyCount: thirdParty.length,

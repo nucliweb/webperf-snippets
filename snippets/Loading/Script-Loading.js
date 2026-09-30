@@ -325,6 +325,7 @@
     script: "Script-Loading",
     status: "ok",
     count: scripts.length,
+    corsLimitedAnalysis: scripts.some((s) => !s.sizeKnown),
     rating: agentRating,
     details: {
       totalSizeBytes: totalSize,

@@ -60,6 +60,10 @@
     return ["avif", "webp", "jxl", "auto (cdn)", "auto (cdn?)"].includes(format);
   }
 
+  // Images whose format could not be read from the response (fetch blocked by CORS) and was
+  // guessed from the URL instead
+  let formatGuessedCount = 0;
+
   async function fetchFormat(url) {
     if (!url) return detectFormat(url);
     try {
@@ -72,7 +76,9 @@
       if (ct.includes("gif")) return "gif";
       if (ct.includes("svg")) return "svg";
       if (ct.includes("jpeg")) return "jpg";
-    } catch {}
+    } catch {
+      formatGuessedCount++;
+    }
     return detectFormat(url);
   }
 
@@ -111,7 +117,7 @@
 
   if (images.length === 0) {
     console.log("No <img> elements found on this page.");
-    return { script: "Image-Element-Audit", status: "ok", count: 0, items: [], issues: [] };
+    return { script: "Image-Element-Audit", status: "ok", count: 0, corsLimitedAnalysis: false, items: [], issues: [] };
   }
 
   const lcpCandidate = findLcpCandidate(images);
@@ -320,8 +326,10 @@
     script: "Image-Element-Audit",
     status: "ok",
     count: images.length,
+    corsLimitedAnalysis: formatGuessedCount > 0,
     details: {
       totalImages: images.length,
+      formatGuessedCount,
       inViewport: audited.filter((r) => r.inViewport).length,
       offViewport: audited.filter((r) => !r.inViewport).length,
       totalErrors,
