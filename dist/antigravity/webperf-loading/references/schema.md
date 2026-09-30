@@ -100,7 +100,7 @@ Scripts that read DOM or `performance.getEntriesByType()` directly. Return JSON 
 })();
 ```
 
-**Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Resource-Hints, Resource-Hints-Validation, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
+**Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Resource-Hints, Resource-Hints-Validation, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, Compression-Audit, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
 
 ### Pattern 2: Buffered observer
 
@@ -482,6 +482,45 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
   "issues": [
     { "severity": "error", "message": "2 blocking scripts in <head>" },
     { "severity": "error", "message": "1 third-party blocking script" }
+  ]
+}
+```
+
+#### Compression-Audit
+
+Synchronous. `count` is the number of uncompressed text resources; `items` holds the 50 with the largest estimated savings, while `details` totals the whole set. A cross-origin resource without `Timing-Allow-Origin` reports zero for every size, so it is counted in `sizeUnknownCount` (left out of `items`) and `corsLimitedAnalysis` is `true`. Resources under 1 KB are counted in `skippedSmallCount`, so the counts add up to `totalTextResources`. `estimatedSavingsBytes` applies a typical gzip/brotli reduction (70% for JS, CSS, HTML, JSON, SVG and XML; 50% for TTF/OTF), so it is an estimate.
+
+```json
+{
+  "script": "Compression-Audit",
+  "status": "ok",
+  "count": 1,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "totalTextResources": 6,
+    "compressedCount": 4,
+    "uncompressedCount": 1,
+    "sizeUnknownCount": 1,
+    "skippedSmallCount": 0,
+    "totalUncompressedBytes": 61440,
+    "estimatedSavingsBytes": 43008,
+    "byEncoding": { "br": 3, "gzip": 1, "none": 1 },
+    "contentEncodingSupported": true
+  },
+  "items": [
+    {
+      "url": "https://web.dev/app.css",
+      "shortName": "app.css",
+      "type": "css",
+      "encoding": "none",
+      "encodedBytes": 61440,
+      "decodedBytes": 61440,
+      "estimatedSavingsBytes": 43008
+    }
+  ],
+  "issues": [
+    { "severity": "warning", "message": "1 text resource(s) served without compression; enabling gzip or brotli could save about 42.0 KB" },
+    { "severity": "info", "message": "1 cross-origin text resource(s) without Timing-Allow-Origin report zero sizes, so their compression is unknown" }
   ]
 }
 ```

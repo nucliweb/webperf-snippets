@@ -17,6 +17,12 @@ Analyze all @media rules in CSS stylesheets to identify classes and properties t
 
 **Script:** `scripts/Client-Side-Redirect-Detection.js`
 ---
+## Compression audit
+
+Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fonts) served without HTTP compression, and estimates how many bytes gzip or brotli would save. Compressing text typically shrinks it by 60–80%, so an uncompressed script or stylesheet is one of the cheapest fixes for slow loading.
+
+**Script:** `scripts/Compression-Audit.js`
+---
 ## Content visibility
 
 Detect and analyze all elements using content-visibility: auto on a page. This CSS property is a powerful rendering optimization that allows browsers to skip layout and painting work for offscreen content, significantly improving initial page load performance.

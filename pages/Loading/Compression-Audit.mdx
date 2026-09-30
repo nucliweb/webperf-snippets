@@ -1,0 +1,70 @@
+import snippet from '../../snippets/Loading/Compression-Audit.js?raw'
+import { Snippet } from '../../components/Snippet'
+import { Callout } from 'nextra/components'
+
+# Compression audit
+
+Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fonts) served without HTTP compression, and estimates how many bytes gzip or brotli would save. Compressing text typically shrinks it by 60–80%, so an uncompressed script or stylesheet is one of the cheapest fixes for slow loading.
+
+### Why this matters
+
+Text compresses well, and compression happens on the server or CDN with a single configuration change. Every uncompressed kilobyte travels the network in full, which delays the resources that block rendering (CSS and scripts) and can push back First Contentful Paint and Largest Contentful Paint, most of all on slow connections.
+
+### Snippet
+
+<Snippet code={snippet} />
+
+### Understanding the results
+
+The snippet reads `contentEncoding`, `encodedBodySize` and `decodedBodySize` from the Resource Timing and Navigation Timing entries. A resource counts as compressed when it has a `contentEncoding` other than `identity`; on browsers without that property, it counts as compressed when `encodedBodySize` is smaller than `decodedBodySize`.
+
+### Summary
+
+| Field | Description |
+|-------|-------------|
+| `count` | Number of text resources served uncompressed |
+| `details.totalTextResources` | Text resources the snippet inspected |
+| `details.compressedCount` | Resources served with `gzip`, `br`, `zstd` or `deflate` |
+| `details.byEncoding` | Resource count per encoding (`none` for uncompressed, `unspecified` when the browser hides the header but the sizes show compression) |
+| `details.totalUncompressedBytes` | Decoded size of every uncompressed resource |
+| `details.estimatedSavingsBytes` | Estimated bytes saved by compressing them all |
+| `items` | Up to 50 uncompressed resources, sorted by estimated savings |
+
+Resources under 1 KB are skipped, because compression saves too little to matter. They are counted in `details.skippedSmallCount`, so `compressedCount + uncompressedCount + sizeUnknownCount + skippedSmallCount` equals `totalTextResources`.
+
+When the browser does not expose `contentEncoding` for a resource but does expose its sizes, the snippet treats it as compressed if its encoded size is smaller than its decoded size, and lists it as `unspecified` in `details.byEncoding`.
+
+### How the savings are estimated
+
+The estimate applies a typical reduction to the decoded size: 70% for JavaScript, CSS, HTML, JSON, SVG and XML, and 50% for TTF and OTF fonts. Real results depend on the content and the algorithm; brotli usually beats gzip. WOFF and WOFF2 fonts are already compressed, so the snippet ignores them.
+
+### Cross-origin resources without Timing-Allow-Origin
+
+Browsers report every size as zero for a cross-origin resource unless its server sends a `Timing-Allow-Origin` header. The snippet cannot judge those resources, so it counts them in `details.sizeUnknownCount`, leaves them out of `items`, and sets `corsLimitedAnalysis` to `true`.
+
+<Callout type="warning">
+  When `corsLimitedAnalysis` is `true`, treat the result as a lower bound.
+</Callout>
+
+To include a resource you control, send:
+
+```http
+Timing-Allow-Origin: *
+```
+
+### Enabling compression
+
+| Server | Setting |
+|--------|---------|
+| nginx | `gzip on;` with `gzip_types` covering JavaScript, CSS, JSON, SVG and XML, or the `ngx_brotli` module |
+| Apache | `mod_deflate` (`AddOutputFilterByType DEFLATE ...`) or `mod_brotli` |
+| CDN | Turn on automatic gzip or brotli compression |
+
+Prefer brotli for static assets that you compress once at build time, and gzip or brotli at a moderate level for dynamic responses.
+
+### Further reading
+
+- [Optimize resource loading with compression](https://web.dev/articles/reduce-network-payloads-using-text-compression) | web.dev
+- [Enable text compression](https://developer.chrome.com/docs/lighthouse/performance/uses-text-compression) | Chrome Developers
+- [Content-Encoding](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding) | MDN
+- [Cache Strategy Analysis](/Loading/Cache-Strategy-Analysis) | Also flags uncompressed text resources

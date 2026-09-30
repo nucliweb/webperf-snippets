@@ -27,6 +27,7 @@ JavaScript snippets for measuring web performance in Chrome DevTools. Execute wi
 - `scripts/CSS-Media-Queries-Analysis.js` — CSS media queries analysis
 - `scripts/Cache-Strategy-Analysis.js` — Cache Strategy Analysis
 - `scripts/Client-Side-Redirect-Detection.js` — Client Side Redirect Detection
+- `scripts/Compression-Audit.js` — Compression audit
 - `scripts/Content-Visibility.js` — Content visibility
 - `scripts/Critical-CSS-Detection.js` — Critical CSS detection
 - `scripts/Event-Processing-Time.js` — Event processing time
@@ -83,6 +84,14 @@ When the user asks about fonts, FOIT, FOUT, or font performance:
 1. **Fonts-Preloaded-Loaded-and-used-above-the-fold.js** - Full font audit
 2. **Resource-Hints-Validation.js** - Verify font preloads are correct
 3. **Find-render-blocking-resources.js** - Check if fonts block rendering
+
+### Text Compression Audit
+
+When the user asks about compression, gzip, brotli, or large transfer sizes for text resources:
+
+1. **Compression-Audit.js** - Find text resources served without compression and estimate savings
+2. **Find-render-blocking-resources.js** - Prioritize uncompressed CSS/JS that block rendering
+3. **TTFB-Resources.js** - Check server response of the uncompressed resources
 
 ### Script Performance Deep Dive
 
@@ -164,6 +173,12 @@ Use this decision tree to automatically run follow-up snippets based on results:
   1. **Fonts-Preloaded-Loaded-and-used-above-the-fold.js** (fonts)
   2. **Priority-Hints-Audit.js** (LCP candidate)
 - **If preloads on async/defer scripts** → Run **Validate-Preload-Async-Defer-Scripts.js**
+
+### After Compression-Audit.js
+
+- **If uncompressed CSS/JS found** → Run **Find-render-blocking-resources.js** to see if they block rendering
+- **If estimated savings > 100KB** → Recommend enabling gzip or brotli on the server or CDN
+- **If corsLimitedAnalysis is true** → Report the result as a lower bound and suggest `Timing-Allow-Origin` on resources you control
 
 ### After Service-Worker-Analysis.js
 
