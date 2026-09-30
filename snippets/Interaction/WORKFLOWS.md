@@ -58,6 +58,7 @@ When animations feel sluggish or the user asks "debug animation performance":
 2. **Long-Animation-Frames-Helpers.js** - Detailed frame timing analysis
 3. **Long-Animation-Frames-Script-Attribution.js** - Find scripts delaying frames
 4. **Scroll-Performance.js** - If scroll animations are involved
+5. **DOM-Size-and-Depth.js** - Check whether a large or deep DOM makes each style and layout pass expensive
 
 ### Third-Party Script Impact on Interactions
 
@@ -117,6 +118,7 @@ Use this decision tree to automatically run follow-up snippets based on results:
   - Debouncing/throttling event handlers
   - Web Workers for heavy computation
 - **If forced reflow/layout detected** → Analyze DOM manipulation patterns
+- **If time goes to style recalculation or layout** → Run **DOM-Size-and-Depth.js** to check the size of the tree
 
 ### After LongTask.js
 
@@ -129,6 +131,13 @@ Use this decision tree to automatically run follow-up snippets based on results:
   - Heavy computation without Web Workers
   - Excessive DOM manipulation
 - **If long tasks correlate with interactions** → Run **Interactions.js** to see impact
+
+### After DOM-Size-and-Depth.js
+
+- **If total elements > 1400** → Recommend virtualizing long lists and loading off-screen content on demand
+- **If depth > 32** → Recommend flattening wrapper elements added by components
+- **If a single parent has > 60 children** → Recommend pagination or virtualization for that container
+- **If the DOM is within limits but interactions are still slow** → Run **Long-Animation-Frames-Script-Attribution.js** to find the scripts responsible
 
 ### After Scroll-Performance.js
 
