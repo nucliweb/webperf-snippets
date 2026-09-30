@@ -4,7 +4,7 @@ A curated collection of JavaScript snippets to measure and debug Web Performance
 
 [![CI](https://github.com/nucliweb/webperf-snippets/actions/workflows/ci.yml/badge.svg)](https://github.com/nucliweb/webperf-snippets/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/nucliweb/webperf-snippets)](https://github.com/nucliweb/webperf-snippets/releases)
-[![Snippets](https://img.shields.io/badge/snippets-53-0f766e)](https://webperf-snippets.nucliweb.net)
+[![Snippets](https://img.shields.io/badge/snippets-54-0f766e)](https://webperf-snippets.nucliweb.net)
 [![License](https://img.shields.io/github/license/nucliweb/webperf-snippets)](./LICENSE)
 [![Star History](https://img.shields.io/github/stars/nucliweb/webperf-snippets?style=social)](https://star-history.com/#nucliweb/webperf-snippets&Date)
 
@@ -87,11 +87,11 @@ This installs skills to `~/.claude/skills/` for use across any project.
 
 | Skill                     | Snippets | Description                                                      |
 | ------------------------- | -------- | ---------------------------------------------------------------- |
-| `webperf`                 | 53       | Main entry point for all web performance analysis                |
+| `webperf`                 | 54       | Main entry point for all web performance analysis                |
 | `webperf-core-web-vitals` | 7        | LCP, CLS, INP measurements with detailed breakdowns              |
 | `webperf-loading`         | 33       | TTFB, FCP, script/font analysis, resource hints, service workers |
 | `webperf-interaction`     | 9        | Long tasks, animation frames, scroll jank, INP debugging         |
-| `webperf-media`           | 3        | Image/video audits, lazy loading validation, SVG analysis        |
+| `webperf-media`           | 4        | Image/video audits, lazy loading validation, SVG analysis        |
 | `webperf-resources`       | 1        | Network bandwidth, connection quality, adaptive loading          |
 
 ### Intelligent Workflows & Decision Trees

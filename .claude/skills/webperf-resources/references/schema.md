@@ -1033,6 +1033,23 @@ Returns buffered long tasks immediately. Ongoing tracking continues. `items` lis
 }
 ```
 
+#### Oversized-Images (async)
+
+Compares the pixels of each loaded image file with the pixels drawn (rendered size times `devicePixelRatio`, scaled by `object-fit`). `ratio` is file pixels per pixel drawn: `oversized` at 1.5 or more, `undersized` (blurry) under 0.9. `items` lists the flagged images, the most wasted pixels first (at most 50); `count` and `details` cover all of them. `wastedBytes` and `transferBytes` are `null` when the transfer size is hidden (cross-origin without `Timing-Allow-Origin`); `details.wastedBytes` counts each URL once. Images with a zero-size box, unloaded images and SVGs are counted in `details.skipped*`.
+
+```json
+{
+  "script": "Oversized-Images",
+  "status": "ok",
+  "count": 1,
+  "details": { "devicePixelRatio": 2, "totalImages": 9, "imagesChecked": 7, "oversized": 1, "undersized": 0, "wastedPixels": 1800000, "wastedBytes": 1614610, "skippedHidden": 1, "skippedNotLoaded": 1, "skippedVector": 0 },
+  "items": [
+    { "selector": "img#hero", "url": "https://example.com/hero.png", "verdict": "oversized", "naturalWidth": 1600, "naturalHeight": 1200, "renderedWidth": 200, "renderedHeight": 150, "neededWidth": 400, "neededHeight": 300, "ratio": 4, "wastedPixels": 1800000, "transferBytes": 1922153, "wastedBytes": 1614610, "hasSrcset": false, "hasSizes": false }
+  ],
+  "issues": [{ "severity": "warning", "message": "hero.png: 1600x1200 file for a 400x300 slot at 2x (4x too large, about 1577 KB wasted)" }]
+}
+```
+
 #### Video-Element-Audit
 
 Same shape as Image-Element-Audit but for video elements.

@@ -5,6 +5,12 @@ Audits all <img> elements on the page against image performance best practices, 
 
 **Script:** `scripts/Image-Element-Audit.js`
 ---
+## Oversized images
+
+Compares the pixels of each downloaded image file with the pixels the page draws it at (rendered size × devicePixelRatio), and reports the images that are much larger than needed, which waste bytes, and the images that are smaller than needed, which look blurry.
+
+**Script:** `scripts/Oversized-Images.js`
+---
 ## SVG embedded bitmap analysis
 
 Scans all SVG resources on the page, both external files and inline <svg> elements, and flags any that contain embedded bitmap images, reporting name, transfer size, compression encoding, and embedded bitmap details.
