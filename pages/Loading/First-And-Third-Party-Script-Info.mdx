@@ -71,6 +71,10 @@ The snippet automatically detects first-party scripts by comparing root domains:
 | `web.dev`            | `assets.web.dev`       | First-party |
 | `web.dev`            | `google-analytics.com` | Third-party |
 | `shop.example.co.uk` | `cdn.example.co.uk`    | First-party |
+| `www.example.ac.uk`  | `static.example.ac.uk` | First-party |
+| `10.0.0.1`           | `172.16.0.1`           | Third-party |
+
+An IP address is compared as a whole, so two different addresses are never the same party. Script-Loading, Cache-Strategy-Analysis, TTFB-Resources, First-And-Third-Party-Script-Timings and the font preload check apply the same rule.
 
 ### Common third-party script categories
 

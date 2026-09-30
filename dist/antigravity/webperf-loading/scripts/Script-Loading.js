@@ -1,25 +1,29 @@
 (() => {
-  const formatBytes = bytes => {
-    if (!bytes || bytes === 0) return "-";
-    const k = 1024;
-    const sizes = [ "B", "KB", "MB" ];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(1) + " " + sizes[i];
-  };
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = [ "B", "KB", "MB", "GB" ];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
   const formatMs = ms => ms > 0 ? ms.toFixed(0) + "ms" : "-";
-  const getRootDomain = hostname => {
-    const parts = hostname.split(".");
-    if (parts.length > 2) {
-      const sld = parts[parts.length - 2];
-      if ([ "co", "com", "org", "net", "gov", "edu" ].includes(sld) && sld.length <= 3) return parts.slice(-3).join(".");
-      return parts.slice(-2).join(".");
-    }
-    return hostname;
-  };
-  const currentDomain = getRootDomain(location.hostname);
-  const isFirstParty = url => {
+  function getRootDomain(hostname) {
+    const host = hostname.replace(/\.$/, "");
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
+    const parts = host.split(".");
+    if (parts.length <= 2) return host;
+    const secondLevelSuffixes = [ "ac", "co", "com", "edu", "go", "gob", "gouv", "gov", "govt", "mil", "ne", "net", "nom", "or", "org", "sch" ];
+    const tld = parts[parts.length - 1];
+    const sld = parts[parts.length - 2];
+    if (tld.length === 2 && secondLevelSuffixes.includes(sld)) return parts.slice(-3).join(".");
+    return parts.slice(-2).join(".");
+  }
+  function isFirstParty(hostname) {
+    return getRootDomain(hostname) === getRootDomain(location.hostname);
+  }
+  const isFirstPartyUrl = url => {
     try {
-      return getRootDomain(new URL(url).hostname) === currentDomain;
+      return isFirstParty(new URL(url).hostname);
     } catch {
       return true;
     }
@@ -45,7 +49,7 @@
     let strategy = "blocking";
     if (isModule && isAsync) strategy = "async module"; else if (isModule) strategy = "module"; else if (isAsync) strategy = "async"; else if (isDefer) strategy = "defer";
     const isBlocking = strategy === "blocking";
-    const firstParty = isFirstParty(src);
+    const firstParty = isFirstPartyUrl(src);
     return {
       src: src,
       shortSrc: src.split("/").pop()?.split("?")[0] || src,

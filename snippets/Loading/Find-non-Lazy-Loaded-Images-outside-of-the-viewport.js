@@ -78,13 +78,15 @@
     return 0;
   }
 
+  // @shared formatBytes
   function formatBytes(bytes) {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
+  // @end-shared formatBytes
 
   // Find LCP candidate (largest visible image) to exclude from recommendations
   const allViewportImages = Array.from(document.querySelectorAll("img")).filter(

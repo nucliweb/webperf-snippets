@@ -3,13 +3,15 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
-  const formatBytes = (bytes) => {
+  // @shared formatBytes
+  function formatBytes(bytes) {
+    if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
-  };
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
+    return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  // @end-shared formatBytes
 
   const criticalBudget = 14 * 1024; // 14 KB (first TCP round-trip)
 
