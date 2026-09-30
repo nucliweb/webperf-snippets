@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DOM size fixture</title>
+</head>
+<body>
+  <main id="app">
+    <div id="deep"></div>
+    <ul id="wide"></ul>
+    <div id="host"></div>
+  </main>
+  <script>
+    // Deep chain: 40 nested divs, beyond the 32 depth threshold
+    let node = document.getElementById("deep");
+    for (let i = 0; i < 40; i++) {
+      const child = document.createElement("div");
+      child.className = "level";
+      node.appendChild(child);
+      node = child;
+    }
+    // Wide parent: 80 children, beyond the 60 children threshold
+    const list = document.getElementById("wide");
+    for (let i = 0; i < 80; i++) list.appendChild(document.createElement("li"));
+    // Open shadow root: 30 nested spans below a section, plus 10 siblings
+    const shadow = document.getElementById("host").attachShadow({ mode: "open" });
+    let inner = shadow.appendChild(document.createElement("section"));
+    for (let i = 0; i < 30; i++) inner = inner.appendChild(document.createElement("span"));
+    for (let i = 0; i < 10; i++) shadow.appendChild(document.createElement("p"));
+    // Closed shadow root: cannot be traversed
+    document.body.appendChild(document.createElement("div")).attachShadow({ mode: "closed" }).appendChild(document.createElement("i"));
+  </script>
+</body>
+</html>

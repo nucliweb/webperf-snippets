@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Huge DOM fixture</title></head>
+<body>
+  <div id="root"></div>
+  <script>
+    // 500 rows of 3 nodes each: more than 1400 nodes in total
+    const root = document.getElementById("root");
+    for (let i = 0; i < 500; i++) {
+      const row = document.createElement("div");
+      row.innerHTML = "<span></span><span></span>";
+      root.appendChild(row);
+    }
+    // A 5000-deep chain: a recursive traversal would overflow the stack
+    let n = document.body.appendChild(document.createElement("div"));
+    for (let i = 0; i < 5000; i++) n = n.appendChild(document.createElement("b"));
+  </script>
+</body>
+</html>

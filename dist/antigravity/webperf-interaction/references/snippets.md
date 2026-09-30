@@ -1,4 +1,10 @@
 ---
+## DOM size and depth
+
+Measures the total number of DOM elements, the maximum nesting depth, and the parent with the most children, and checks them against the Lighthouse thresholds. The traversal includes open shadow roots.
+
+**Script:** `scripts/DOM-Size-and-Depth.js`
+---
 ## Forced synchronous layout detector
 
 Detects the Forced Synchronous Layout (FSL) pattern at runtime, when JavaScript reads geometric properties from the DOM immediately after mutating styles, forcing the browser to perform layout synchronously on the main thread.

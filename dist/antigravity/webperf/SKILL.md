@@ -16,7 +16,7 @@ metadata:
 
 # WebPerf Snippets Toolkit
 
-A collection of 54 JavaScript snippets for measuring and debugging web performance in Chrome DevTools. Each snippet runs in the browser console and outputs structured, color-coded results.
+A collection of 55 JavaScript snippets for measuring and debugging web performance in Chrome DevTools. Each snippet runs in the browser console and outputs structured, color-coded results.
 
 ## Quick Reference
 
@@ -24,7 +24,7 @@ A collection of 54 JavaScript snippets for measuring and debugging web performan
 |-------|----------|-----------------|
 | webperf-core-web-vitals | 7 | "debug LCP", "slow LCP", "CLS", "layout shifts", "INP", "interaction latency", "responsiveness" |
 | webperf-loading | 33 | "TTFB", "slow server", "FCP", "render blocking", "font loading", "script loading", "resource hints", "service worker" |
-| webperf-interaction | 9 | "jank", "scroll performance", "long tasks", "animation frames", "INP debug" |
+| webperf-interaction | 10 | "jank", "scroll performance", "long tasks", "animation frames", "INP debug" |
 | webperf-media | 4 | "image audit", "lazy loading", "image optimization", "video audit" |
 | webperf-resources | 1 | "network quality", "bandwidth", "connection type", "save-data" |
 

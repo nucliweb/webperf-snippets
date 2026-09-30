@@ -1,0 +1,63 @@
+import snippet from '../../snippets/Interaction/DOM-Size-and-Depth.js?raw'
+import { Snippet } from '../../components/Snippet'
+
+# DOM size and depth
+
+Measures the total number of DOM elements, the maximum nesting depth, and the parent with the most children, and checks them against the Lighthouse thresholds. The traversal includes open shadow roots.
+
+### Why this matters
+
+Every interaction that changes styles or layout makes the browser recalculate styles and layout for the affected part of the tree. The cost grows with the number of elements involved, and deep or wide trees make each recalculation more expensive. A large DOM also increases memory use and slows the initial render. When an interaction is slow and the main thread spends its time in style recalculation or layout, the size of the DOM is often the underlying cause.
+
+### Thresholds
+
+The thresholds come from the Lighthouse "Avoid an excessive DOM size" audit.
+
+| Measure | Warning | Error |
+|---------|---------|-------|
+| Total elements | more than 800 | more than 1400 |
+| Maximum depth | more than 32 levels | |
+| Children of a single parent | more than 60 | |
+
+Depth counts `<html>` as level 1 and continues through open shadow roots, so an element inside a shadow root is one level deeper than its host.
+
+### Snippet
+
+<Snippet code={snippet} />
+
+### Understanding the results
+
+The console shows a summary and a table with the ten parents that have the most children. The script also returns a structured object.
+
+| Field | Description |
+|-------|-------------|
+| `details.totalElements` | Elements in the document, including those inside open shadow roots |
+| `details.maxDepth` | Depth of the deepest element |
+| `details.deepestElement` | Short selector of the deepest element |
+| `details.maxChildren` | Children of the widest parent |
+| `details.widestParent` | Short selector of the widest parent |
+| `details.shadowRoots` | Number of open shadow roots traversed |
+| `items` | Up to ten parents ordered by number of children, each with `selector`, `children` and `depth` |
+| `issues` | One entry for each exceeded threshold |
+
+Selectors are shortened to the nearest `id` or the last four levels, and `>>>` marks a shadow root boundary. A parent whose children live in a shadow root carries the `(shadow root)` suffix.
+
+### Limitations
+
+- Closed shadow roots and cross-origin iframes cannot be inspected, so their contents are not counted.
+- Same-origin iframes are not traversed; run the snippet in the frame context to measure them.
+- The count reflects the DOM at the moment the snippet runs. Run it again after the interaction or the route change you are investigating.
+- Elements only are counted. Text and comment nodes are excluded, as in Lighthouse.
+
+### Reducing DOM size
+
+- Render long lists with virtualization, so that only visible rows exist in the DOM.
+- Load content on demand, such as tabs, accordions and off-screen sections, instead of hiding it with CSS.
+- Flatten wrapper elements added by components and layout helpers.
+- Use `content-visibility: auto` on large off-screen sections to skip their rendering work.
+
+### Further reading
+
+- [Avoid an excessive DOM size](https://developer.chrome.com/docs/lighthouse/performance/dom-size) | Chrome for Developers
+- [How large DOM sizes affect interactivity](https://web.dev/articles/dom-size-and-interactivity) | web.dev
+- [Optimize Interaction to Next Paint](https://web.dev/articles/optimize-inp) | web.dev
