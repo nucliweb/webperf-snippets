@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.PerformancePaintTiming
+  - api.PerformanceObserver
+  - api.PerformanceNavigationTiming
+browserSupportReported:
+  - api.PerformanceResourceTiming.renderBlockingStatus
+---
+
 import snippet from '../../snippets/Loading/FCP.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -39,6 +48,8 @@ On prerendered pages, every phase is measured from `activationStart` (the moment
 <Callout type="warning">
 **Browser support:** The render-blocking phase requires the `renderBlockingStatus` API (Chrome 107+, Edge 107+). In other browsers the render-blocking section will show no resources even if they exist.
 </Callout>
+
+### Browser support
 
 ### Further reading
 

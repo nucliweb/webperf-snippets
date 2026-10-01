@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.encodedBodySize
+  - api.PerformanceResourceTiming.decodedBodySize
+  - api.PerformanceNavigationTiming
+browserSupportReported:
+  - api.PerformanceResourceTiming.contentEncoding
+---
+
 import snippet from '../../snippets/Loading/Compression-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -61,6 +70,8 @@ Timing-Allow-Origin: *
 | CDN | Turn on automatic gzip or brotli compression |
 
 Prefer brotli for static assets that you compress once at build time, and gzip or brotli at a moderate level for dynamic responses.
+
+### Browser support
 
 ### Further reading
 

@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.Element.getBoundingClientRect
+  - api.HTMLImageElement.currentSrc
+  - api.PerformanceResourceTiming.transferSize
+---
+
 import snippet from '../../snippets/Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -186,6 +193,8 @@ Images in tabs, modals, carousels, or other hidden elements:
 - 7 images are in hidden containers (carousel slides, tabs, etc.)
 - The LCP candidate and viewport images are correctly excluded
 - Adding `loading="lazy"` would significantly improve load times
+
+### Browser support
 
 ### Further reading
 

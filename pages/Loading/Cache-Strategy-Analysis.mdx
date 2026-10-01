@@ -1,3 +1,11 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+  - api.fetch
+browserSupportReported:
+  - api.PerformanceResourceTiming.nextHopProtocol
+---
+
 import snippet from "../../snippets/Loading/Cache-Strategy-Analysis.js?raw";
 import { Snippet } from "../../components/Snippet";
 import { Flow } from '../../components/diagrams'
@@ -149,6 +157,8 @@ To get header visibility on your own cross-origin or CDN resources, configure th
 Access-Control-Allow-Origin: *
 Timing-Allow-Origin: *
 ```
+
+## Browser support
 
 ## Further reading
 
