@@ -1,5 +1,6 @@
 import snippet from "../../snippets/Loading/Back-Forward-Cache.js?raw";
 import { Snippet } from "../../components/Snippet";
+import { Flow, Sequence } from '../../components/diagrams'
 
 # Back/forward cache (bfcache)
 
@@ -18,76 +19,76 @@ bfcache is one of the most impactful performance optimizations available - it ca
 
 ### How bfcache works
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant B as Browser
-    participant P1 as Page A
-    participant P2 as Page B
-
-    U->>P1: Visit Page A
-    Note over P1: Page loads normally
-
-    U->>B: Navigate to Page B
-    B->>B: Check bfcache eligibility
-    alt Page is eligible
-        B->>B: Store Page A in bfcache
-        Note over B: Full page state preserved<br/>(DOM, JS state, scroll)
-    else Page is ineligible
-        B->>B: Discard Page A
-        Note over B: Reasons logged
-    end
-
-    B->>P2: Load Page B
-    Note over P2: User on Page B
-
-    U->>B: Click Back button
-    alt Page in bfcache
-        B->>P1: Restore from bfcache
-        Note over P1: Instant restoration (0ms)
-        B->>P1: Fire pageshow event<br/>with persisted=true
-    else Page not cached
-        B->>P1: Full page reload
-        Note over P1: Normal load (1-3s)
-    end
-
-    style B fill:#E5F2FF
-```
+<Sequence
+  title="Sequence of a navigation from Page A to Page B and back: the browser stores Page A in the bfcache when it is eligible, then restores it instantly on back navigation, or discards it and reloads it in full"
+  participants={[
+    { id: "U", label: "User" },
+    { id: "B", label: "Browser" },
+    { id: "P1", label: "Page A" },
+    { id: "P2", label: "Page B" },
+  ]}
+  steps={[
+    { type: "message", from: "U", to: "P1", label: "Visit Page A" },
+    { type: "note", over: "P1", text: "Page loads normally" },
+    { type: "message", from: "U", to: "B", label: "Navigate to Page B" },
+    { type: "message", from: "B", to: "B", label: "Check bfcache eligibility" },
+    { type: "block", kind: "alt", label: "Page is eligible", steps: [
+      { type: "message", from: "B", to: "B", label: "Store Page A in bfcache" },
+      { type: "note", over: "B", text: "Full page state preserved\n(DOM, JS state, scroll)" },
+    ], else: [
+      { label: "Page is ineligible", steps: [
+        { type: "message", from: "B", to: "B", label: "Discard Page A" },
+        { type: "note", over: "B", text: "Reasons logged" },
+      ] },
+    ] },
+    { type: "message", from: "B", to: "P2", label: "Load Page B" },
+    { type: "note", over: "P2", text: "User on Page B" },
+    { type: "message", from: "U", to: "B", label: "Click Back button" },
+    { type: "block", kind: "alt", label: "Page in bfcache", steps: [
+      { type: "message", from: "B", to: "P1", label: "Restore from bfcache" },
+      { type: "note", over: "P1", text: "Instant restoration (0ms)" },
+      { type: "message", from: "B", to: "P1", label: "Fire pageshow event\nwith persisted=true" },
+    ], else: [
+      { label: "Page not cached", steps: [
+        { type: "message", from: "B", to: "P1", label: "Full page reload" },
+        { type: "note", over: "P1", text: "Normal load (1-3s)" },
+      ] },
+    ] },
+  ]}
+/>
 
 ### Common blocking reasons
 
-```mermaid
-flowchart TD
-    Start[Navigate away from page] --> Check{bfcache Eligibility Check}
-
-    Check -->|Eligible| Cache[Store in bfcache]
-    Check -->|Blocked| Reasons{Why blocked?}
-
-    Reasons --> R1["unload/beforeunload<br/>handlers"]
-    Reasons --> R2["Cache-Control:<br/>no-store"]
-    Reasons --> R3["Open connections<br/>WebSocket, WebRTC"]
-    Reasons --> R4["Service Worker<br/>with fetch handler"]
-    Reasons --> R5["Unfinished network<br/>requests"]
-    Reasons --> R6["Embedded pages<br/>with issues"]
-
-    Cache --> Navigate[User navigates back]
-    Navigate --> Restore[Instant restore]
-
-    R1 --> Block[Page discarded]
-    R2 --> Block
-    R3 --> Block
-    R4 --> Block
-    R5 --> Block
-    R6 --> Block
-
-    Block --> Navigate2[User navigates back]
-    Navigate2 --> Reload[Full reload]
-
-    style Cache fill:#E5FFE5
-    style Restore fill:#E5FFE5
-    style Block fill:#FFE5E5
-    style Reload fill:#FFE5E5
-```
+<Flow
+  title="Flow from leaving a page to the bfcache check: an eligible page is stored and restored instantly on back navigation, while a blocked page is discarded for one of six common reasons (unload handlers, no-store, open connections, service worker fetch handler, unfinished requests, embedded pages) and fully reloaded"
+  nodes={[
+    { id: "Start", label: "Navigate away from page" },
+    { id: "Check", label: "bfcache Eligibility Check", shape: "decision" },
+    { id: "Cache", label: "Store in bfcache", tone: "good" },
+    { id: "Why", label: "Why blocked?", shape: "decision" },
+    {
+      id: "Reasons",
+      label: "Common reasons",
+      sub: "unload/beforeunload handlers\nCache-Control: no-store\nOpen connections (WebSocket, WebRTC)\nService Worker with fetch handler\nUnfinished network requests\nEmbedded pages with issues",
+    },
+    { id: "Navigate", label: "User navigates back" },
+    { id: "Restore", label: "Instant restore", tone: "good" },
+    { id: "Block", label: "Page discarded", tone: "bad" },
+    { id: "Navigate2", label: "User navigates back" },
+    { id: "Reload", label: "Full reload", tone: "bad" },
+  ]}
+  edges={[
+    { from: "Start", to: "Check" },
+    { from: "Check", to: "Cache", label: "Eligible" },
+    { from: "Check", to: "Why", label: "Blocked" },
+    { from: "Why", to: "Reasons" },
+    { from: "Reasons", to: "Block" },
+    { from: "Cache", to: "Navigate" },
+    { from: "Navigate", to: "Restore" },
+    { from: "Block", to: "Navigate2" },
+    { from: "Navigate2", to: "Reload" },
+  ]}
+/>
 
 ### Snippet
 

@@ -1,6 +1,7 @@
 import snippet from "../../snippets/Loading/Validate-Preload-Async-Defer-Scripts.js?raw";
 import { Snippet } from "../../components/Snippet";
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Validate preload on async/defer scripts
 
@@ -286,17 +287,29 @@ A common scenario where this anti-pattern appears is with third-party consent ma
 
 ##### What actually happens
 
-```mermaid
-graph LR
-    A[HTML Parser] --> B[Discovers Preload]
-    B --> C[Download at Medium/High Priority]
-    C --> D[Competes with LCP Image]
-    C --> E[Competes with CSS]
-    C --> F[Competes with Fonts]
-    D --> G[⚠️ Delayed LCP]
-    E --> G
-    F --> G
-```
+<Flow
+  direction="LR"
+  title="A preloaded async script is discovered by the HTML parser and downloaded at medium or high priority, so it competes with the LCP image, CSS and fonts and delays the LCP"
+  nodes={[
+    { id: "A", label: "HTML Parser" },
+    { id: "B", label: "Discovers Preload" },
+    { id: "C", label: "Download at Medium/High Priority" },
+    { id: "D", label: "Competes with LCP Image" },
+    { id: "E", label: "Competes with CSS" },
+    { id: "F", label: "Competes with Fonts" },
+    { id: "G", label: "⚠️ Delayed LCP" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C" },
+    { from: "C", to: "D" },
+    { from: "C", to: "E" },
+    { from: "C", to: "F" },
+    { from: "D", to: "G" },
+    { from: "E", to: "G" },
+    { from: "F", to: "G" },
+  ]}
+/>
 
 #### Proposed alternative: `fetchpriority="high"`
 
@@ -309,18 +322,24 @@ Some developers consider using `fetchpriority="high"` instead:
 
 ##### Why this doesn't solve the problem
 
-```mermaid
-graph TD
-    A[fetchpriority='high' on async script] --> B[Same Issue as Preload]
-    B --> C[Elevates to High Priority]
-    C --> D[Competes with LCP]
-    C --> E[Competes with CSS]
-    C --> F[Competes with Fonts]
-
-    style A fill:#ef4444,color:#fff
-    style B fill:#ef4444,color:#fff
-    style C fill:#ef4444,color:#fff
-```
+<Flow
+  title="Adding fetchpriority high to an async script raises it to high priority, which makes it compete with the LCP resource, CSS and fonts in the same way as a plain preload"
+  nodes={[
+    { id: "A", label: "fetchpriority='high' on async script", tone: "bad" },
+    { id: "B", label: "Same Issue as Preload", tone: "bad" },
+    { id: "C", label: "Elevates to High Priority", tone: "bad" },
+    { id: "D", label: "Competes with LCP" },
+    { id: "E", label: "Competes with CSS" },
+    { id: "F", label: "Competes with Fonts" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C" },
+    { from: "C", to: "D" },
+    { from: "C", to: "E" },
+    { from: "C", to: "F" },
+  ]}
+/>
 
 Using `fetchpriority="high"` on an async script has the **same negative effect** as preloading it - both artificially escalate the priority and cause bandwidth competition.
 
@@ -340,17 +359,25 @@ If you truly need early discovery but don't want priority escalation:
 
 ##### How this works
 
-```mermaid
-graph LR
-    A[Preload Hint] --> B[Start Download Early]
-    C[fetchpriority='low'] --> D[Keep Low Priority]
-    B --> E[Early Discovery]
-    D --> E
-    E --> F[No LCP Competition]
-
-    style E fill:#22c55e,color:#fff
-    style F fill:#22c55e,color:#fff
-```
+<Flow
+  direction="LR"
+  title="A preload hint starts the download early while fetchpriority low keeps the script at low priority, which gives early discovery without competing with the LCP"
+  nodes={[
+    { id: "A", label: "Preload Hint" },
+    { id: "B", label: "Start Download Early" },
+    { id: "C", label: "fetchpriority='low'" },
+    { id: "D", label: "Keep Low Priority" },
+    { id: "E", label: "Early Discovery", tone: "good" },
+    { id: "F", label: "No LCP Competition", tone: "good" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "C", to: "D" },
+    { from: "B", to: "E" },
+    { from: "D", to: "E" },
+    { from: "E", to: "F" },
+  ]}
+/>
 
 ##### Benefits
 
@@ -373,15 +400,22 @@ If the script tag is already in `<head>`, preload may not be necessary:
 
 ##### When this is sufficient
 
-```mermaid
-graph TD
-    A[Script in &lt;head&gt;] --> B{Discovered Early?}
-    B -->|Yes| C[Async = Low Priority]
-    B -->|No, late in HTML| D[Consider Preload + Low Priority]
-    C --> E[No Preload Needed]
-
-    style E fill:#22c55e,color:#fff
-```
+<Flow
+  title="Decision flow for a script in the head: if the browser discovers it early, async alone is enough; if it appears late in the HTML, consider preload with low priority"
+  nodes={[
+    { id: "A", label: "Script in <head>" },
+    { id: "B", label: "Discovered Early?", shape: "decision" },
+    { id: "C", label: "Async = Low Priority" },
+    { id: "D", label: "Consider Preload + Low Priority" },
+    { id: "E", label: "No Preload Needed", tone: "good" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C", label: "Yes" },
+    { from: "B", to: "D", label: "No, late in HTML" },
+    { from: "C", to: "E" },
+  ]}
+/>
 
 ##### Why this works
 
@@ -400,21 +434,29 @@ graph TD
 
 #### Decision tree for consent scripts
 
-```mermaid
-graph TD
-    A[Need consent script] --> B{Script in &lt;head&gt;?}
-    B -->|Yes| C[Use: &lt;script async&gt;]
-    B -->|No, late in body| D{Need early download?}
-    D -->|Yes| E[Use: preload + async + fetchpriority='low']
-    D -->|No| F[Use: &lt;script async&gt;]
-
-    C --> G[Loads early, low priority]
-    E --> G
-    F --> H[Loads when discovered, low priority]
-
-    style G fill:#22c55e,color:#fff
-    style H fill:#22c55e,color:#fff
-```
+<Flow
+  title="Decision tree that picks how to load a consent script: async when it is in the head, preload with async and low fetch priority when it is late in the body and needs an early download, plain async otherwise"
+  nodes={[
+    { id: "A", label: "Need consent script" },
+    { id: "B", label: "Script in <head>?", shape: "decision" },
+    { id: "C", label: "Use: <script async>" },
+    { id: "D", label: "Need early download?", shape: "decision" },
+    { id: "E", label: "Use: preload + async + fetchpriority='low'" },
+    { id: "F", label: "Use: <script async>" },
+    { id: "G", label: "Loads early, low priority", tone: "good" },
+    { id: "H", label: "Loads when discovered, low priority", tone: "good" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C", label: "Yes" },
+    { from: "B", to: "D", label: "No, late in body" },
+    { from: "D", to: "E", label: "Yes" },
+    { from: "D", to: "F", label: "No" },
+    { from: "C", to: "G" },
+    { from: "E", to: "G" },
+    { from: "F", to: "H" },
+  ]}
+/>
 
 <Callout type="default">
 **Note:** For scripts late in `<body>` where early download is not needed, plain `<script async>` is appropriate because the consent banner is non-critical. The script will load when discovered by the parser, which is acceptable for this use case.

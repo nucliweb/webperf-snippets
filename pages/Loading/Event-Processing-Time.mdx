@@ -1,5 +1,6 @@
 import snippet from '../../snippets/Loading/Event-Processing-Time.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { EventProcessingTimeline } from '../../components/diagrams/EventProcessingTimeline'
 
 # Event processing time
 
@@ -7,25 +8,7 @@ Analyzes the time spent in each phase of page navigation, from initial redirect 
 
 ### Key phases in page load
 
-```mermaid
-gantt
-    title Page Load Timeline
-    dateFormat X
-    axisFormat %s
-
-    section Network
-    Redirect           :0, 50
-    DNS Lookup         :50, 80
-    TCP Connection     :80, 120
-    SSL/TLS            :120, 180
-    Request/Response   :180, 350
-
-    section Processing
-    DOM Processing     :350, 500
-    DOMContentLoaded   :500, 520
-    Resources Loading  :520, 800
-    Load Event         :800, 820
-```
+<EventProcessingTimeline />
 
 ### What each phase means
 
