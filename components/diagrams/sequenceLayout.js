@@ -22,7 +22,7 @@ export function layoutSequence({ participants, steps }) {
   const gaps = Array.from({ length: Math.max(n - 1, 0) }, (_, k) => Math.max((heads[k].w + heads[k + 1].w) / 2 + 14, MIN_GAP));
 
   const constraints = []; // the distance between lifelines lo and hi must be at least `need`
-  let leftExtra = 0; // space needed left of the first lifeline
+  let leftExtra = 0; // space needed between the left edge of the diagram and the first lifeline, so a note that extends left of it stays inside
   let rightExtra = 0; // space needed right of the last lifeline
 
   const noteSize = (text, maxW) => {
@@ -56,7 +56,7 @@ export function layoutSequence({ participants, steps }) {
         if (s.over) {
           const { w } = noteSize(s.text, lo === hi ? 360 : 400);
           if (lo === hi) {
-            if (lo === 0) leftExtra = Math.max(leftExtra, w / 2 - heads[0].w / 2);
+            if (lo === 0) leftExtra = Math.max(leftExtra, w / 2);
             if (lo === last) rightExtra = Math.max(rightExtra, w / 2);
           } else {
             constraints.push({ lo, hi, need: w - 28 });
@@ -67,7 +67,7 @@ export function layoutSequence({ participants, steps }) {
           else constraints.push({ lo, hi: lo + 1, need: w + 26 });
         } else {
           const { w } = noteSize(s.text, 260);
-          if (lo === 0) leftExtra = Math.max(leftExtra, w + 14 - heads[0].w / 2);
+          if (lo === 0) leftExtra = Math.max(leftExtra, w + 14);
           else constraints.push({ lo: lo - 1, hi: lo, need: w + 26 });
         }
       } else if (s.type === "block") {

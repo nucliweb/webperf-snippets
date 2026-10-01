@@ -141,6 +141,7 @@ pre code {
 /* Diagrams drawn as inline SVG (see components/diagrams). The tokens match the
    palette of the interactive demos in public/demos. */
 .wp-dg {
+  --dg-page: #fff;
   --dg-surface: #f6f8fa;
   --dg-surface2: #eaeef2;
   --dg-border: #d0d7de;
@@ -156,6 +157,7 @@ pre code {
   margin: 1.5rem 0;
 }
 .dark .wp-dg {
+  --dg-page: #111;
   --dg-surface: #161b22;
   --dg-surface2: #21262d;
   --dg-border: #30363d;
@@ -244,7 +246,17 @@ pre code {
 .wp-dg .dg-frame { fill: none; stroke: var(--dg-muted); stroke-width: 1; opacity: 0.6; }
 .wp-dg .dg-lifeline { stroke: var(--dg-border); stroke-width: 1.5; stroke-dasharray: 4 4; }
 .wp-dg .dg-dash { stroke-dasharray: 5 4; }
-.wp-dg .dg-scroll { overflow-x: auto; }
+/* A scroll region fades its edges while there is more to see on that side. The
+   covers use the page background and move with the content (`local`); the
+   shadows stay fixed (`scroll`), so a shadow only shows where a cover is gone. */
+.wp-dg .dg-scroll {
+  overflow-x: auto;
+  background:
+    linear-gradient(to right, var(--dg-page) 30%, transparent) left center / 28px 100% no-repeat local,
+    linear-gradient(to left, var(--dg-page) 30%, transparent) right center / 28px 100% no-repeat local,
+    linear-gradient(to right, color-mix(in srgb, var(--dg-muted) 60%, transparent), transparent) left center / 18px 100% no-repeat scroll,
+    linear-gradient(to left, color-mix(in srgb, var(--dg-muted) 60%, transparent), transparent) right center / 18px 100% no-repeat scroll;
+}
 .wp-dg .dg-scroll:focus-visible { outline: 2px solid var(--dg-accent); outline-offset: 2px; border-radius: 6px; }
 /* A flow has a primary layout and, when that one would shrink too much on a
    narrow column, a compact top-down layout. `dg-bp-N` holds the width (px) of
