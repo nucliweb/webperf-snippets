@@ -452,12 +452,15 @@ function play() {
   const end = total(current);
   if (reduceMotion.matches) return setProgress(end);
   const duration = 900 + (end / MAX_MS) * 1500;
-  const t0 = performance.now();
-  (function tick(now) {
+  // Start the clock on the first frame: the frame timestamp can lag performance.now()
+  let t0 = null;
+  setProgress(0);
+  raf = requestAnimationFrame(function tick(now) {
+    if (t0 === null) t0 = now;
     const k = Math.min(1, (now - t0) / duration);
     setProgress(end * k);
     if (k < 1) raf = requestAnimationFrame(tick);
-  })(t0);
+  });
 }
 
 function selectScenario(s) {
