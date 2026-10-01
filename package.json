@@ -12,6 +12,8 @@
     "postbuild": "next-sitemap",
     "prebuild": "rm -rf .next && node scripts/generate-llms.js",
     "check:consistency": "node scripts/check-consistency.js",
+    "check:emoji": "node scripts/check-emoji.js",
+    "test:icons": "node --test lib/*.test.js",
     "generate-skills": "node scripts/generate-skills.js",
     "generate-skills:check": "node scripts/generate-skills.js && git diff --exit-code -- skills dist .claude/skills",
     "install-skills": "node scripts/install-skills.js",

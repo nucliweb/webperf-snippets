@@ -268,3 +268,69 @@ pre code {
 @container (max-width: 639px) { .wp-dg.dg-bp-640 .dg-v-primary { display: none; } .wp-dg.dg-bp-640 .dg-v-compact { display: block; } }
 @container (max-width: 719px) { .wp-dg.dg-bp-720 .dg-v-primary { display: none; } .wp-dg.dg-bp-720 .dg-v-compact { display: block; } }
 @container (max-width: 799px) { .wp-dg.dg-bp-800 .dg-v-primary { display: none; } .wp-dg.dg-bp-800 .dg-v-compact { display: block; } }
+
+/* Icons that replace emojis while a page renders (see lib/icons.js and
+   lib/rehype-icons.js). The tokens match the status and category colors of the
+   interactive demos in public/demos. */
+:root {
+  --ic-good: #1a7f37;
+  --ic-mid: #9a6700;
+  --ic-poor: #cf222e;
+  --ic-info: #0969da;
+  --ic-orange: #bc4c00;
+  --ic-purple: #8250df;
+  --ic-brown: #8c5a3c;
+  --ic-dark: #424a53;
+  --ic-neutral: #8c959f;
+}
+.dark {
+  --ic-good: #3fb950;
+  --ic-mid: #e3b341;
+  --ic-poor: #f85149;
+  --ic-info: #58a6ff;
+  --ic-orange: #f0883e;
+  --ic-purple: #d2a8ff;
+  --ic-brown: #b08968;
+  --ic-dark: #8b949e;
+  --ic-neutral: #6e7681;
+}
+.wp-ic {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-right: 0.35em;
+  vertical-align: -0.2em;
+}
+.wp-ic svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wp-ic-good { color: var(--ic-good); }
+.wp-ic-mid { color: var(--ic-mid); }
+.wp-ic-poor { color: var(--ic-poor); }
+.wp-ic-info { color: var(--ic-info); }
+.wp-dot {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin: 0 0.5em 0 0.2em;
+  vertical-align: 0.02em;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 0 0.18em color-mix(in srgb, var(--c) 22%, transparent);
+}
+.wp-dot-good { --c: var(--ic-good); }
+.wp-dot-mid { --c: var(--ic-mid); }
+.wp-dot-poor { --c: var(--ic-poor); }
+.wp-dot-info { --c: var(--ic-info); }
+.wp-dot-orange { --c: var(--ic-orange); }
+.wp-dot-purple { --c: var(--ic-purple); }
+.wp-dot-brown { --c: var(--ic-brown); }
+.wp-dot-dark { --c: var(--ic-dark); }
+.wp-dot-neutral { --c: var(--ic-neutral); }
