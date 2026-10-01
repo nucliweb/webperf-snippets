@@ -240,6 +240,26 @@ body {
 .b-ok  { display: inline-block; background: rgba(63,185,80,.18); color: var(--c-ok); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; vertical-align: middle; }
 
 /* ── Reduced motion ────────────────────────── */
+/* Icons (see "Icons" in README.md): a mask draws the shape, the color is the status tone */
+:root { --ic-good: #3fb950; --ic-mid: #e3b341; --ic-poor: #f85149; }
+[data-theme="light"] { --ic-good: #1a7f37; --ic-mid: #9a6700; --ic-poor: #cf222e; }
+.ic {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline-end: .3em;
+  vertical-align: -.2em;
+  background: currentColor;
+  -webkit-mask: var(--ic-shape) center / contain no-repeat;
+  mask: var(--ic-shape) center / contain no-repeat;
+}
+.ic-end { margin-inline: .3em 0; }
+.ic-ok { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-bad { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m9 9 6 6M15 9l-6 6'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+.ic-warn { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9.5v4.2M12 17h.01'/%3E%3C/svg%3E"); color: var(--ic-mid); }
+.ic-check { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-x { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
@@ -259,9 +279,9 @@ body {
 </div>
 
 <div class="tabs" role="group" aria-label="Yield strategies">
-  <button class="tab active" data-s="0" aria-pressed="true">❌ No yield</button>
-  <button class="tab" data-s="1" aria-pressed="false">⚠️ queueMicrotask</button>
-  <button class="tab" data-s="2" aria-pressed="false">✅ setTimeout</button>
+  <button class="tab active" data-s="0" aria-pressed="true"><span class="ic ic-bad" role="img" aria-label="Bad"></span>No yield</button>
+  <button class="tab" data-s="1" aria-pressed="false"><span class="ic ic-warn" role="img" aria-label="Warning"></span>queueMicrotask</button>
+  <button class="tab" data-s="2" aria-pressed="false"><span class="ic ic-ok" role="img" aria-label="Good"></span>setTimeout</button>
 </div>
 
 <div id="viz" class="frames"></div>
@@ -288,13 +308,13 @@ const S = [
             { id: 's0-c1', type: 'dirty', text: 'chunk 1/3', note: '~170ms' },
             { id: 's0-c2', type: 'dirty', text: 'chunk 2/3', note: '~170ms' },
             { id: 's0-c3', type: 'dirty', text: 'chunk 3/3', note: '~170ms' },
-            { id: 's0-badge', type: 'badge-fsl', text: 'Long Task ⚠️' },
+            { id: 's0-badge', type: 'badge-fsl', text: 'Long Task<span class="ic ic-warn ic-end" aria-hidden="true"></span>' },
           ]},
           { label: 'μ Tasks', items: [
             { id: 's0-mt', type: 'empty', text: 'empty' },
           ]},
           { label: 'Render?', items: [
-            { id: 's0-render', type: 'paint', text: '🎨 Paint', note: 'after ~500ms' },
+            { id: 's0-render', type: 'paint', text: 'Paint', note: 'after ~500ms' },
           ]},
         ]
       }
@@ -323,10 +343,10 @@ const S = [
             { id: 's1-mu1', type: 'raf', text: 'μ: chunk 2/3' },
             { id: 's1-qm2', type: 'raf', text: 'queueMicrotask ↓' },
             { id: 's1-mu2', type: 'raf', text: 'μ: chunk 3/3' },
-            { id: 's1-block', type: 'badge-fsl', text: 'Render blocked ⚠️' },
+            { id: 's1-block', type: 'badge-fsl', text: 'Render blocked<span class="ic ic-warn ic-end" aria-hidden="true"></span>' },
           ]},
           { label: 'Render?', items: [
-            { id: 's1-render', type: 'paint', text: '🎨 Paint', note: 'after all 3 chunks' },
+            { id: 's1-render', type: 'paint', text: 'Paint', note: 'after all 3 chunks' },
           ]},
         ]
       }
@@ -337,7 +357,7 @@ const S = [
       { ids: ['s1-mu1'], cls: 't-fsl', expl: '<strong>No!</strong> The event loop order is: macrotask → drain microtasks → render? Microtasks drain <em>before</em> render. <code>resolve()</code> runs → the <code>await</code> continuation becomes a microtask → <strong>chunk 2/3</strong> runs.' },
       { ids: ['s1-qm2'], cls: 't-fsl', expl: 'After chunk 2/3 finishes, another <code>queueMicrotask</code> adds more items to the queue. The drain continues: still no render.' },
       { ids: ['s1-mu2'], cls: 't-fsl', expl: '<strong>chunk 3/3</strong> also runs inside the microtask drain. All three chunks ran with no render opportunity or interaction processing between them.' },
-      { ids: ['s1-block'], cls: 't-fsl', expl: '<span class="b-fsl">⚠️ Render blocked</span> Microtasks drain synchronously within the same cycle. The result is identical to the no-yield scenario: ~500ms of main thread blocking.' },
+      { ids: ['s1-block'], cls: 't-fsl', expl: '<span class="b-fsl"><span class="ic ic-warn" aria-hidden="true"></span>Render blocked</span> Microtasks drain synchronously within the same cycle. The result is identical to the no-yield scenario: ~500ms of main thread blocking.' },
       { ids: ['s1-render'], cls: 't-neutral', expl: 'The queue empties and render can happen. But <code>queueMicrotask</code> <strong>is not yield to main</strong>: it does not yield between chunks. INP does not improve.' },
     ]
   },
@@ -356,7 +376,7 @@ const S = [
             { id: 's2-mt1', type: 'empty', text: 'empty' },
           ]},
           { label: 'Render?', items: [
-            { id: 's2-r1', type: 'ok', text: '✅ Render free' },
+            { id: 's2-r1', type: 'ok', text: '<span class="ic ic-ok" aria-hidden="true"></span>Render free' },
           ]},
         ]
       },
@@ -371,7 +391,7 @@ const S = [
             { id: 's2-mt2', type: 'empty', text: 'empty' },
           ]},
           { label: 'Render?', items: [
-            { id: 's2-r2', type: 'ok', text: '✅ Render free' },
+            { id: 's2-r2', type: 'ok', text: '<span class="ic ic-ok" aria-hidden="true"></span>Render free' },
           ]},
         ]
       },
@@ -385,8 +405,8 @@ const S = [
             { id: 's2-mt3', type: 'empty', text: 'empty' },
           ]},
           { label: 'Render?', items: [
-            { id: 's2-r3', type: 'paint', text: '🎨 Paint' },
-            { id: 's2-badge', type: 'badge-ok', text: 'No Long Tasks ✓' },
+            { id: 's2-r3', type: 'paint', text: 'Paint' },
+            { id: 's2-badge', type: 'badge-ok', text: 'No Long Tasks<span class="ic ic-check ic-end" aria-hidden="true"></span>' },
           ]},
         ]
       }
@@ -395,15 +415,15 @@ const S = [
       { ids: ['s2-c1'], cls: 't-neutral', expl: '<strong>chunk 1/3</strong> runs (~50ms). <code>await new Promise(r => setTimeout(r, 0))</code> puts <code>resolve</code> in the <strong>macrotask queue</strong> and suspends the async function.' },
       { ids: ['s2-st1'], cls: 't-ok', expl: '<code>setTimeout(resolve, 0)</code> schedules a new macrotask. The function suspends and the current macrotask ends. The microtask queue is empty.' },
       { ids: ['s2-mt1'], cls: 't-neutral', expl: 'No pending microtasks. The event loop can move forward.' },
-      { ids: ['s2-r1'], cls: 't-ok', expl: '<span class="b-ok">✅ Render free</span> Between macrotasks, the browser can render and process interactions. If the user clicks now, it responds immediately. Excellent INP.' },
+      { ids: ['s2-r1'], cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-ok" aria-hidden="true"></span>Render free</span> Between macrotasks, the browser can render and process interactions. If the user clicks now, it responds immediately. Excellent INP.' },
       { ids: ['s2-c2'], cls: 't-neutral', expl: 'New macrotask from the <code>setTimeout</code> queue: <strong>chunk 2/3</strong> runs in ~50ms. Processing continues where it left off.' },
       { ids: ['s2-st2'], cls: 't-ok', expl: 'Another <code>setTimeout(resolve, 0)</code>. The process yields to the event loop again.' },
       { ids: ['s2-mt2'], cls: 't-neutral', expl: 'Microtask queue empty.' },
-      { ids: ['s2-r2'], cls: 't-ok', expl: '<span class="b-ok">✅ Render free</span> Second render opportunity. The UI can update (e.g. a progress bar) and users can interact without latency.' },
+      { ids: ['s2-r2'], cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-ok" aria-hidden="true"></span>Render free</span> Second render opportunity. The UI can update (e.g. a progress bar) and users can interact without latency.' },
       { ids: ['s2-c3'], cls: 't-neutral', expl: '<strong>chunk 3/3</strong> completes processing in ~50ms.' },
       { ids: ['s2-mt3'], cls: 't-neutral', expl: 'Microtask queue empty.' },
       { ids: ['s2-r3'], cls: 't-ok', expl: 'Final render. Three tasks of ~50ms instead of one of ~500ms.' },
-      { ids: ['s2-badge'], cls: 't-ok', expl: '<span class="b-ok">✓ No long tasks</span> Each chunk is an independent macrotask under 50ms. The main thread yields between chunks: render and interactions are possible at all times. The same applies to <code>scheduler.postTask()</code>, which also schedules macrotasks.' },
+      { ids: ['s2-badge'], cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-check" aria-hidden="true"></span>No long tasks</span> Each chunk is an independent macrotask under 50ms. The main thread yields between chunks: render and interactions are possible at all times. The same applies to <code>scheduler.postTask()</code>, which also schedules macrotasks.' },
     ]
   }
 ];

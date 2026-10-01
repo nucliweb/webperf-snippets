@@ -217,6 +217,26 @@ body {
 .b-ok  { display: inline-block; background: rgba(63,185,80,.18); color: var(--c-ok); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; vertical-align: middle; }
 
 /* ── Reduced motion ────────────────────────── */
+/* Icons (see "Icons" in README.md): a mask draws the shape, the color is the status tone */
+:root { --ic-good: #3fb950; --ic-mid: #e3b341; --ic-poor: #f85149; }
+[data-theme="light"] { --ic-good: #1a7f37; --ic-mid: #9a6700; --ic-poor: #cf222e; }
+.ic {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline-end: .3em;
+  vertical-align: -.2em;
+  background: currentColor;
+  -webkit-mask: var(--ic-shape) center / contain no-repeat;
+  mask: var(--ic-shape) center / contain no-repeat;
+}
+.ic-end { margin-inline: .3em 0; }
+.ic-ok { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-bad { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m9 9 6 6M15 9l-6 6'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+.ic-warn { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9.5v4.2M12 17h.01'/%3E%3C/svg%3E"); color: var(--ic-mid); }
+.ic-check { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-x { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
@@ -269,14 +289,14 @@ const S = [
             { id: 'n-hit', type: 'parse', text: 'reach &lt;script&gt;', note: 'no async / defer' },
           ]},
           { label: 'Blocked', items: [
-            { id: 'n-pause', type: 'block', text: '⏸ parsing paused', note: 'parser stops' },
-            { id: 'n-download', type: 'net', text: '⬇ download script.js', note: 'nothing else renders' },
-            { id: 'n-exec', type: 'exec', text: '▶ execute script.js', note: 'main thread' },
+            { id: 'n-pause', type: 'block', text: 'parsing paused', note: 'parser stops' },
+            { id: 'n-download', type: 'net', text: 'download script.js', note: 'nothing else renders' },
+            { id: 'n-exec', type: 'exec', text: 'execute script.js', note: 'main thread' },
           ]},
           { label: 'Parser', items: [
-            { id: 'n-resume', type: 'ok', text: '▶ resume parsing', note: 'parse &lt;body&gt;' },
+            { id: 'n-resume', type: 'ok', text: 'resume parsing', note: 'parse &lt;body&gt;' },
             { id: 'n-dcl', type: 'done', text: 'DOMContentLoaded' },
-            { id: 'n-badge', type: 'badge-block', text: 'Blocks parsing ⚠️' },
+            { id: 'n-badge', type: 'badge-block', text: 'Blocks parsing<span class="ic ic-warn ic-end" aria-hidden="true"></span>' },
           ]},
         ]
       }
@@ -300,19 +320,19 @@ const S = [
         rows: [
           { label: 'Parser', items: [
             { id: 'a-head', type: 'parse', text: 'parse <head>' },
-            { id: 'a-hit', type: 'parse', text: 'reach &lt;script async&gt;', note: '✅ keep going' },
+            { id: 'a-hit', type: 'parse', text: 'reach &lt;script async&gt;', note: '<span class="ic ic-ok" aria-hidden="true"></span>keep going' },
           ]},
           { label: 'Parallel', items: [
-            { id: 'a-parse', type: 'ok', text: '▶ keep parsing', note: 'not blocked' },
-            { id: 'a-download', type: 'net', text: '⬇ download', note: 'in background' },
+            { id: 'a-parse', type: 'ok', text: 'keep parsing', note: 'not blocked' },
+            { id: 'a-download', type: 'net', text: 'download', note: 'in background' },
           ]},
           { label: 'Execute', items: [
-            { id: 'a-ready', type: 'exec', text: '⏸ brief pause', note: 'download ready' },
-            { id: 'a-exec', type: 'exec', text: '▶ execute ASAP', note: 'order NOT guaranteed' },
+            { id: 'a-ready', type: 'exec', text: 'brief pause', note: 'download ready' },
+            { id: 'a-exec', type: 'exec', text: 'execute ASAP', note: 'order NOT guaranteed' },
           ]},
           { label: 'Parser', items: [
             { id: 'a-dcl', type: 'done', text: 'DOMContentLoaded', note: 'does not wait for async' },
-            { id: 'a-badge', type: 'badge-ok', text: 'Runs ASAP ⚡' },
+            { id: 'a-badge', type: 'badge-ok', text: 'Runs ASAP' },
           ]},
         ]
       }
@@ -320,7 +340,7 @@ const S = [
     steps: [
       { ids: ['a-head'], cls: 't-neutral', expl: 'The parser starts reading the document, same as before.' },
       { ids: ['a-hit'], cls: 't-neutral', expl: 'It reaches a <code>&lt;script async&gt;</code>. The <code>async</code> attribute tells the browser it may fetch the script <strong>without stopping parsing</strong>.' },
-      { ids: ['a-parse'], cls: 't-ok', expl: '<span class="b-ok">✓</span> The parser <strong>keeps going</strong>. HTML below the script continues to parse and render normally.' },
+      { ids: ['a-parse'], cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-check" aria-hidden="true"></span></span> The parser <strong>keeps going</strong>. HTML below the script continues to parse and render normally.' },
       { ids: ['a-download'], cls: 't-ok', expl: 'Meanwhile the script <strong>downloads in parallel</strong>, in the background, off the main thread.' },
       { ids: ['a-ready'], cls: 't-block', expl: 'As soon as the download <strong>finishes</strong>, the browser interrupts parsing to run the script. This pause can land at any point, even mid-parse.' },
       { ids: ['a-exec'], cls: 't-block', expl: 'The script <strong>executes as soon as it arrives</strong>. With several <code>async</code> scripts, whichever downloads first runs first, so <strong>execution order is not guaranteed</strong>.' },
@@ -336,19 +356,19 @@ const S = [
         rows: [
           { label: 'Parser', items: [
             { id: 'd-head', type: 'parse', text: 'parse <head>' },
-            { id: 'd-hit', type: 'parse', text: 'reach &lt;script defer&gt;', note: '✅ keep going' },
+            { id: 'd-hit', type: 'parse', text: 'reach &lt;script defer&gt;', note: '<span class="ic ic-ok" aria-hidden="true"></span>keep going' },
           ]},
           { label: 'Parallel', items: [
-            { id: 'd-parse', type: 'ok', text: '▶ parse whole document', note: 'never blocks' },
-            { id: 'd-download', type: 'net', text: '⬇ download', note: 'in background' },
+            { id: 'd-parse', type: 'ok', text: 'parse whole document', note: 'never blocks' },
+            { id: 'd-download', type: 'net', text: 'download', note: 'in background' },
           ]},
           { label: 'After parse', items: [
-            { id: 'd-finish', type: 'ok', text: '✓ parsing complete' },
-            { id: 'd-exec', type: 'exec', text: '▶ execute (in order)', note: 'defer scripts, in sequence' },
+            { id: 'd-finish', type: 'ok', text: '<span class="ic ic-check" aria-hidden="true"></span>parsing complete' },
+            { id: 'd-exec', type: 'exec', text: 'execute (in order)', note: 'defer scripts, in sequence' },
           ]},
           { label: 'Done', items: [
             { id: 'd-dcl', type: 'done', text: 'DOMContentLoaded', note: 'waits for defer' },
-            { id: 'd-badge', type: 'badge-ok', text: 'After parse, in order ✓' },
+            { id: 'd-badge', type: 'badge-ok', text: 'After parse, in order<span class="ic ic-check ic-end" aria-hidden="true"></span>' },
           ]},
         ]
       }
@@ -356,7 +376,7 @@ const S = [
     steps: [
       { ids: ['d-head'], cls: 't-neutral', expl: 'The parser starts reading the document.' },
       { ids: ['d-hit'], cls: 't-neutral', expl: 'It reaches a <code>&lt;script defer&gt;</code>. Like <code>async</code>, <code>defer</code> lets the parser continue instead of blocking.' },
-      { ids: ['d-parse'], cls: 't-ok', expl: '<span class="b-ok">✓</span> The parser continues and parses the <strong>entire document</strong> without ever stopping for the script.' },
+      { ids: ['d-parse'], cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-check" aria-hidden="true"></span></span> The parser continues and parses the <strong>entire document</strong> without ever stopping for the script.' },
       { ids: ['d-download'], cls: 't-ok', expl: 'The script <strong>downloads in parallel</strong> in the background while parsing proceeds.' },
       { ids: ['d-finish'], cls: 't-ok', expl: 'The parser <strong>finishes the whole document first</strong>. Unlike <code>async</code>, a deferred script never interrupts parsing to run early.' },
       { ids: ['d-exec'], cls: 't-ok', expl: 'Only after parsing completes do deferred scripts <strong>execute in document order</strong>. Order is <strong>guaranteed</strong>, so scripts that depend on each other stay safe.' },
