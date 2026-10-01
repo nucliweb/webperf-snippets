@@ -212,6 +212,26 @@ body {
 .b-ok  { display: inline-block; background: rgba(63,185,80,.18); color: var(--c-ok); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; vertical-align: middle; }
 
 /* ── Reduced motion ────────────────────────── */
+/* Icons (see "Icons" in README.md): a mask draws the shape, the color is the status tone */
+:root { --ic-good: #3fb950; --ic-mid: #e3b341; --ic-poor: #f85149; }
+[data-theme="light"] { --ic-good: #1a7f37; --ic-mid: #9a6700; --ic-poor: #cf222e; }
+.ic {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline-end: .3em;
+  vertical-align: -.2em;
+  background: currentColor;
+  -webkit-mask: var(--ic-shape) center / contain no-repeat;
+  mask: var(--ic-shape) center / contain no-repeat;
+}
+.ic-end { margin-inline: .3em 0; }
+.ic-ok { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-bad { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m9 9 6 6M15 9l-6 6'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+.ic-warn { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9.5v4.2M12 17h.01'/%3E%3C/svg%3E"); color: var(--ic-mid); }
+.ic-check { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-x { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
@@ -231,8 +251,8 @@ body {
 
 <!-- Tabs -->
 <div class="tabs" role="group" aria-label="Render setups">
-  <button class="tab active" data-s="0" aria-pressed="true">❌ Render-blocking</button>
-  <button class="tab" data-s="1" aria-pressed="false">✅ Optimized</button>
+  <button class="tab active" data-s="0" aria-pressed="true"><span class="ic ic-bad" role="img" aria-label="Bad"></span>Render-blocking</button>
+  <button class="tab" data-s="1" aria-pressed="false"><span class="ic ic-ok" role="img" aria-label="Good"></span>Optimized</button>
 </div>
 
 <!-- Visualization -->
@@ -264,14 +284,14 @@ const S = [
             { id: 'b-find', type: 'parse', text: 'find &lt;link&gt; + &lt;script&gt;', note: 'both in &lt;head&gt;' },
           ]},
           { label: 'Blocked', items: [
-            { id: 'b-css', type: 'net', text: '⬇ download + parse CSS', note: 'needed for CSSOM' },
-            { id: 'b-js', type: 'exec', text: '⬇ download + run JS', note: 'no defer / async' },
-            { id: 'b-blank', type: 'block', text: '⬜ blank screen', note: 'nothing painted yet' },
+            { id: 'b-css', type: 'net', text: 'download + parse CSS', note: 'needed for CSSOM' },
+            { id: 'b-js', type: 'exec', text: 'download + run JS', note: 'no defer / async' },
+            { id: 'b-blank', type: 'block', text: 'blank screen', note: 'nothing painted yet' },
           ]},
           { label: 'Render', items: [
-            { id: 'b-ready', type: 'ok', text: '✓ all blockers done' },
+            { id: 'b-ready', type: 'ok', text: '<span class="ic ic-check" aria-hidden="true"></span>all blockers done' },
             { id: 'b-fcp', type: 'done', text: 'First Contentful Paint', note: 'late' },
-            { id: 'b-badge', type: 'badge-block', text: 'Blank until FCP ⚠️' },
+            { id: 'b-badge', type: 'badge-block', text: 'Blank until FCP<span class="ic ic-warn ic-end" aria-hidden="true"></span>' },
           ]},
         ]
       }
@@ -298,21 +318,21 @@ const S = [
             { id: 'o-defer', type: 'parse', text: '&lt;script defer&gt;', note: 'non-blocking' },
           ]},
           { label: 'Parallel', items: [
-            { id: 'o-parse', type: 'ok', text: '▶ keep parsing', note: 'never blocks' },
+            { id: 'o-parse', type: 'ok', text: 'keep parsing', note: 'never blocks' },
             { id: 'o-async', type: 'net', text: 'non-critical CSS async', note: 'preload + onload' },
             { id: 'o-js', type: 'exec', text: 'JS downloads in background' },
           ]},
           { label: 'Render', items: [
-            { id: 'o-fcp', type: 'done', text: 'First Contentful Paint', note: 'early ✅' },
-            { id: 'o-badge', type: 'badge-ok', text: 'Content visible fast ✓' },
+            { id: 'o-fcp', type: 'done', text: 'First Contentful Paint', note: 'early<span class="ic ic-ok ic-end" aria-hidden="true"></span>' },
+            { id: 'o-badge', type: 'badge-ok', text: 'Content visible fast<span class="ic ic-check ic-end" aria-hidden="true"></span>' },
           ]},
         ]
       }
     ],
     steps: [
       { ids: ['o-head'], cls: 't-neutral', expl: 'The <strong>critical CSS</strong> is inlined directly in <code>&lt;head&gt;</code>, so there is no blocking stylesheet request on the critical path.' },
-      { ids: ['o-defer'], cls: 't-ok', expl: '<span class="b-ok">✓</span> The script uses <code>defer</code>, so it does not block parsing or the first paint.' },
-      { ids: ['o-parse'], cls: 't-ok', expl: '<span class="b-ok">✓</span> With nothing blocking it, the parser keeps going and the browser can paint as soon as it has content and the inlined styles.' },
+      { ids: ['o-defer'], cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-check" aria-hidden="true"></span></span> The script uses <code>defer</code>, so it does not block parsing or the first paint.' },
+      { ids: ['o-parse'], cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-check" aria-hidden="true"></span></span> With nothing blocking it, the parser keeps going and the browser can paint as soon as it has content and the inlined styles.' },
       { ids: ['o-async'], cls: 't-ok', expl: 'The <strong>non-critical CSS</strong> loads asynchronously (<code>preload</code> + <code>onload</code> swap), off the critical path, so it never delays first paint.' },
       { ids: ['o-js'], cls: 't-ok', expl: 'The deferred script downloads in the <strong>background</strong> and will run after parsing, without holding up rendering.' },
       { ids: ['o-fcp', 'o-badge'], cls: 't-ok', expl: '<span class="b-ok">Result</span> First Contentful Paint fires <strong>early</strong> because nothing blocked it. The goal: inline what is critical, and defer or async-load everything else.' },

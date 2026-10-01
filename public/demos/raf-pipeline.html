@@ -245,6 +245,26 @@ body {
 .b-ok  { display: inline-block; background: rgba(63,185,80,.18); color: var(--c-ok); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 3px; vertical-align: middle; }
 
 /* ── Reduced motion ────────────────────────── */
+/* Icons (see "Icons" in README.md): a mask draws the shape, the color is the status tone */
+:root { --ic-good: #3fb950; --ic-mid: #e3b341; --ic-poor: #f85149; }
+[data-theme="light"] { --ic-good: #1a7f37; --ic-mid: #9a6700; --ic-poor: #cf222e; }
+.ic {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline-end: .3em;
+  vertical-align: -.2em;
+  background: currentColor;
+  -webkit-mask: var(--ic-shape) center / contain no-repeat;
+  mask: var(--ic-shape) center / contain no-repeat;
+}
+.ic-end { margin-inline: .3em 0; }
+.ic-ok { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-bad { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m9 9 6 6M15 9l-6 6'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+.ic-warn { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9.5v4.2M12 17h.01'/%3E%3C/svg%3E"); color: var(--ic-mid); }
+.ic-check { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-x { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
@@ -268,9 +288,9 @@ body {
 
 <!-- Tabs -->
 <div class="tabs" role="group" aria-label="Fix strategies">
-  <button class="tab active" data-s="0" aria-pressed="true">❌ No fix</button>
-  <button class="tab" data-s="1" aria-pressed="false">⚠️ Single rAF</button>
-  <button class="tab" data-s="2" aria-pressed="false">✅ Double rAF</button>
+  <button class="tab active" data-s="0" aria-pressed="true"><span class="ic ic-bad" role="img" aria-label="Bad"></span>No fix</button>
+  <button class="tab" data-s="1" aria-pressed="false"><span class="ic ic-warn" role="img" aria-label="Warning"></span>Single rAF</button>
+  <button class="tab" data-s="2" aria-pressed="false"><span class="ic ic-ok" role="img" aria-label="Good"></span>Double rAF</button>
 </div>
 
 <!-- Visualization -->
@@ -299,13 +319,13 @@ const S = [
         rows: [
           { label: 'JS Task', items: [
             { id: 's0-toggle', type: 'js', text: 'classList.toggle()' },
-            { id: 's0-dirty', type: 'dirty', text: 'styles dirty', note: '⚠️' },
+            { id: 's0-dirty', type: 'dirty', text: 'styles dirty', note: '<span class="ic ic-warn" role="img" aria-label="Warning"></span>' },
             { id: 's0-scroll', type: 'fsl', text: 'scrollTop = 0', note: 'geometry access' },
           ]},
           { label: 'FSL', items: [
-            { id: 's0-fslr', type: 'fsl', text: '⚡ Recalc Style', note: 'forced' },
-            { id: 's0-fsll', type: 'fsl', text: '⚡ Layout', note: 'forced' },
-            { id: 's0-badge', type: 'badge-fsl', text: 'FSL ⚠️' },
+            { id: 's0-fslr', type: 'fsl', text: 'Recalc Style', note: 'forced' },
+            { id: 's0-fsll', type: 'fsl', text: 'Layout', note: 'forced' },
+            { id: 's0-badge', type: 'badge-fsl', text: 'FSL<span class="ic ic-warn ic-end" aria-hidden="true"></span>' },
           ]},
           { label: 'Natural', items: [
             { id: 's0-paint', type: 'paint', text: 'Paint' },
@@ -332,15 +352,15 @@ const S = [
         rows: [
           { label: 'JS Task', items: [
             { id: 's1-toggle', type: 'js', text: 'classList.toggle()' },
-            { id: 's1-dirty', type: 'dirty', text: 'styles dirty', note: '⚠️ — rAF registered' },
+            { id: 's1-dirty', type: 'dirty', text: 'styles dirty', note: '<span class="ic ic-warn" aria-hidden="true"></span>— rAF registered' },
           ]},
           { label: 'rAF', items: [
             { id: 's1-raf', type: 'raf', text: 'rAF: scrollTop = 0', note: 'styles STILL dirty' },
           ]},
           { label: 'FSL', items: [
-            { id: 's1-fslr', type: 'fsl', text: '⚡ Recalc Style', note: 'forced inside rAF' },
-            { id: 's1-fsll', type: 'fsl', text: '⚡ Layout', note: 'forced' },
-            { id: 's1-badge', type: 'badge-fsl', text: 'FSL ⚠️' },
+            { id: 's1-fslr', type: 'fsl', text: 'Recalc Style', note: 'forced inside rAF' },
+            { id: 's1-fsll', type: 'fsl', text: 'Layout', note: 'forced' },
+            { id: 's1-badge', type: 'badge-fsl', text: 'FSL<span class="ic ic-warn ic-end" aria-hidden="true"></span>' },
           ]},
           { label: 'Natural', items: [
             { id: 's1-paint', type: 'paint', text: 'Paint' },
@@ -367,15 +387,15 @@ const S = [
         rows: [
           { label: 'JS Task', items: [
             { id: 's2-toggle', type: 'js', text: 'classList.toggle()' },
-            { id: 's2-dirty', type: 'dirty', text: 'styles dirty', note: '⚠️ — rAF1 registered' },
+            { id: 's2-dirty', type: 'dirty', text: 'styles dirty', note: '<span class="ic ic-warn" aria-hidden="true"></span>— rAF1 registered' },
           ]},
           { label: 'rAF1', items: [
             { id: 's2-raf1', type: 'raf', text: 'rAF1: registers rAF2', note: 'no geometry access' },
           ]},
           { label: 'Natural', items: [
-            { id: 's2-nr', type: 'ok', text: '✓ Recalc Style', note: 'natural, non-blocking' },
-            { id: 's2-nl', type: 'ok', text: '✓ Layout', note: 'natural' },
-            { id: 's2-clean', type: 'clean', text: 'styles clean', note: '✅' },
+            { id: 's2-nr', type: 'ok', text: '<span class="ic ic-check" aria-hidden="true"></span>Recalc Style', note: 'natural, non-blocking' },
+            { id: 's2-nl', type: 'ok', text: '<span class="ic ic-check" aria-hidden="true"></span>Layout', note: 'natural' },
+            { id: 's2-clean', type: 'clean', text: 'styles clean', note: '<span class="ic ic-ok" role="img" aria-label="OK"></span>' },
           ]},
           { label: 'Paint', items: [
             { id: 's2-p1', type: 'paint', text: 'Paint' },
@@ -386,11 +406,11 @@ const S = [
         label: 'Frame N+1',
         rows: [
           { label: 'rAF2', items: [
-            { id: 's2-raf2', type: 'raf', text: 'rAF2: scrollTop = 0', note: 'styles already clean ✅' },
+            { id: 's2-raf2', type: 'raf', text: 'rAF2: scrollTop = 0', note: 'styles already clean<span class="ic ic-ok ic-end" aria-hidden="true"></span>' },
           ]},
           { label: 'Natural', items: [
-            { id: 's2-ml', type: 'ok', text: '✓ Minimal layout', note: 'scroll only' },
-            { id: 's2-ok', type: 'badge-ok', text: 'No FSL ✓' },
+            { id: 's2-ml', type: 'ok', text: '<span class="ic ic-check" aria-hidden="true"></span>Minimal layout', note: 'scroll only' },
+            { id: 's2-ok', type: 'badge-ok', text: 'No FSL<span class="ic ic-check ic-end" aria-hidden="true"></span>' },
           ]},
           { label: 'Paint', items: [
             { id: 's2-p2', type: 'paint', text: 'Paint' },
@@ -402,13 +422,13 @@ const S = [
       { ids: ['s2-toggle'], cls: 't-neutral', expl: '<strong>classList.toggle()</strong> invalidates styles. We register the first rAF and JS finishes. The frame will continue with the next phases.' },
       { ids: ['s2-dirty'],  cls: 't-neutral', expl: 'Styles <strong>dirty</strong>. This time we won\'t touch geometry in rAF1, we\'ll just register rAF2 and let the browser do its work.' },
       { ids: ['s2-raf1'],   cls: 't-neutral', expl: '<strong>rAF1 fires.</strong> It only registers a second <code>requestAnimationFrame</code> and finishes. We don\'t access any geometry property. The browser can continue with the next frame phases naturally.' },
-      { ids: ['s2-nr'],     cls: 't-ok', expl: '<span class="b-ok">✓ Natural</span> Since rAF1 didn\'t force any layout, the browser runs <strong>Recalculate Style naturally</strong> at the end of the frame. Even if it\'s costly (<code>:nth-child</code> selectors), it happens outside any JS task: it doesn\'t block.' },
-      { ids: ['s2-nl'],     cls: 't-ok', expl: '<span class="b-ok">✓ Natural</span> <strong>Natural Layout</strong>: the browser computes geometry as part of the normal pipeline. By the end of this frame, the style and layout tree is fully updated.' },
+      { ids: ['s2-nr'],     cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-check" aria-hidden="true"></span>Natural</span> Since rAF1 didn\'t force any layout, the browser runs <strong>Recalculate Style naturally</strong> at the end of the frame. Even if it\'s costly (<code>:nth-child</code> selectors), it happens outside any JS task: it doesn\'t block.' },
+      { ids: ['s2-nl'],     cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-check" aria-hidden="true"></span>Natural</span> <strong>Natural Layout</strong>: the browser computes geometry as part of the normal pipeline. By the end of this frame, the style and layout tree is fully updated.' },
       { ids: ['s2-clean'],  cls: 't-ok', expl: 'End of Frame N. Styles are <strong>clean</strong>. rAF2 is registered for the next frame, when the tree will already be resolved.' },
       { ids: ['s2-p1'],     cls: 't-ok', expl: 'Frame N is painted. The JS task was very short: just the <code>toggle()</code> and registering rAF1. The costly Recalc Style happened naturally, outside the task.' },
       { ids: ['s2-raf2'],   cls: 't-ok', expl: '<strong>rAF2 fires in Frame N+1.</strong> Now we access <code>scrollTop = 0</code>. Styles are already <strong>clean</strong> because Frame N resolved them naturally. The browser doesn\'t need to force anything.' },
       { ids: ['s2-ml'],     cls: 't-ok', expl: '<span class="b-ok">No FSL</span> Only a <strong>minimal Layout</strong> to apply the scroll reset, without forced style recalculation. The main thread is free.' },
-      { ids: ['s2-ok'],     cls: 't-ok', expl: '<span class="b-ok">✓ No FSL</span> The double rAF works because the 1st rAF lets Frame N resolve styles naturally, and the 2nd rAF accesses geometry when the tree is already clean. <strong>The main thread never blocks.</strong>' },
+      { ids: ['s2-ok'],     cls: 't-ok', expl: '<span class="b-ok"><span class="ic ic-check" aria-hidden="true"></span>No FSL</span> The double rAF works because the 1st rAF lets Frame N resolve styles naturally, and the 2nd rAF accesses geometry when the tree is already clean. <strong>The main thread never blocks.</strong>' },
       { ids: ['s2-p2'],     cls: 't-ok', expl: 'Frame N+1 is painted. Two frames instead of one, but no long task blocking interactions. INP improves because the main thread was free between both frames.' },
     ]
   }

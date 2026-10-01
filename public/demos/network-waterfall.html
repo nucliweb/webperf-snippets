@@ -61,7 +61,6 @@ body {
   color: var(--text);
   flex-wrap: wrap;
 }
-.chooser-icon { font-size: 15px; line-height: 1; }
 .chooser-hint { color: var(--muted); font-weight: 500; }
 .chooser-arrow { color: var(--c-dl-fg); font-weight: 700; }
 
@@ -274,6 +273,26 @@ body {
 }
 
 /* ── Reduced motion ────────────────────────── */
+/* Icons (see "Icons" in README.md): a mask draws the shape, the color is the status tone */
+:root { --ic-good: #3fb950; --ic-mid: #e3b341; --ic-poor: #f85149; }
+[data-theme="light"] { --ic-good: #1a7f37; --ic-mid: #9a6700; --ic-poor: #cf222e; }
+.ic {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline-end: .3em;
+  vertical-align: -.2em;
+  background: currentColor;
+  -webkit-mask: var(--ic-shape) center / contain no-repeat;
+  mask: var(--ic-shape) center / contain no-repeat;
+}
+.ic-end { margin-inline: .3em 0; }
+.ic-ok { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-bad { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m9 9 6 6M15 9l-6 6'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+.ic-warn { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9.5v4.2M12 17h.01'/%3E%3C/svg%3E"); color: var(--ic-mid); }
+.ic-check { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-x { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
@@ -284,7 +303,6 @@ body {
 <!-- Tabs -->
 <div class="chooser">
   <div class="chooser-label">
-    <span class="chooser-icon">👆</span>
     <span>Pick a scenario</span>
     <span class="chooser-hint">tap to compare the four waterfalls</span>
     <span class="chooser-arrow" aria-hidden="true">↓</span>
@@ -365,17 +383,17 @@ const S = [
     hs: 2,
     total: 570,
     rows: [
-      { name: 'document', sub: 'origin A', cap: { text: '✕ closes', cls: 'cap-close' }, segs: [
+      { name: 'document', sub: 'origin A', cap: { text: '<span class="ic ic-x" aria-hidden="true"></span>closes', cls: 'cap-close' }, segs: [
         { type: 'hs', start: 0, end: 100 },
         { type: 'ttfb', start: 100, end: 150 },
         { type: 'dl', start: 150, end: 250, label: 'HTML' },
       ]},
-      { name: 'image-1.jpg', sub: 'assets · conn 1', cap: { text: '✕ closes', cls: 'cap-close' }, segs: [
+      { name: 'image-1.jpg', sub: 'assets · conn 1', cap: { text: '<span class="ic ic-x" aria-hidden="true"></span>closes', cls: 'cap-close' }, segs: [
         { type: 'queue', start: 0, end: 250 },
         { type: 'hs', start: 250, end: 350 },
         { type: 'dl', start: 350, end: 570, label: '608 KB' },
       ]},
-      { name: 'image-2.jpg', sub: 'assets · conn 2', cap: { text: '✕ closes', cls: 'cap-close' }, segs: [
+      { name: 'image-2.jpg', sub: 'assets · conn 2', cap: { text: '<span class="ic ic-x" aria-hidden="true"></span>closes', cls: 'cap-close' }, segs: [
         { type: 'queue', start: 0, end: 250 },
         { type: 'hs', start: 250, end: 350 },
         { type: 'dl', start: 350, end: 500, label: '403 KB' },
@@ -397,17 +415,17 @@ const S = [
     total: 570,
     note: '<strong>Notice:</strong> the waterfall is identical to <code>Connection: close</code>. Keep-Alive <strong>does not speed up</strong> this first load; its benefit is reusing the open connection on <strong>later requests</strong>.',
     rows: [
-      { name: 'document', sub: 'origin A', cap: { text: '♻ stays open', cls: 'cap-keep' }, segs: [
+      { name: 'document', sub: 'origin A', cap: { text: 'stays open', cls: 'cap-keep' }, segs: [
         { type: 'hs', start: 0, end: 100 },
         { type: 'ttfb', start: 100, end: 150 },
         { type: 'dl', start: 150, end: 250, label: 'HTML' },
       ]},
-      { name: 'image-1.jpg', sub: 'assets · conn 1', cap: { text: '♻ stays open', cls: 'cap-keep' }, segs: [
+      { name: 'image-1.jpg', sub: 'assets · conn 1', cap: { text: 'stays open', cls: 'cap-keep' }, segs: [
         { type: 'queue', start: 0, end: 250 },
         { type: 'hs', start: 250, end: 350 },
         { type: 'dl', start: 350, end: 570, label: '608 KB' },
       ]},
-      { name: 'image-2.jpg', sub: 'assets · conn 2', cap: { text: '♻ stays open', cls: 'cap-keep' }, segs: [
+      { name: 'image-2.jpg', sub: 'assets · conn 2', cap: { text: 'stays open', cls: 'cap-keep' }, segs: [
         { type: 'queue', start: 0, end: 250 },
         { type: 'hs', start: 250, end: 350 },
         { type: 'dl', start: 350, end: 500, label: '403 KB' },
@@ -433,12 +451,12 @@ const S = [
         { type: 'ttfb', start: 100, end: 150 },
         { type: 'dl', start: 150, end: 250, label: 'HTML' },
       ]},
-      { name: 'image-1.jpg', sub: 'assets · stream 1', cap: { text: '♻ 1 connection', cls: 'cap-mux' }, segs: [
+      { name: 'image-1.jpg', sub: 'assets · stream 1', cap: { text: '1 connection', cls: 'cap-mux' }, segs: [
         { type: 'queue', start: 0, end: 250 },
         { type: 'hs', start: 250, end: 350 },
         { type: 'dl', start: 350, end: 570, label: '608 KB · stream 1' },
       ]},
-      { name: 'image-2.jpg', sub: 'assets · stream 2', cap: { text: '♻ same connection', cls: 'cap-mux' }, segs: [
+      { name: 'image-2.jpg', sub: 'assets · stream 2', cap: { text: 'same connection', cls: 'cap-mux' }, segs: [
         { type: 'queue', start: 0, end: 350 },
         { type: 'dl', start: 350, end: 500, label: '403 KB · stream 2' },
       ]},
@@ -466,11 +484,11 @@ const S = [
       { name: 'preconnect', sub: 'assets', segs: [
         { type: 'pre', start: 0, end: 100, label: 'TCP/TLS in parallel' },
       ]},
-      { name: 'image-1.jpg', sub: 'assets · stream 1', cap: { text: '♻ already open', cls: 'cap-mux' }, segs: [
+      { name: 'image-1.jpg', sub: 'assets · stream 1', cap: { text: 'already open', cls: 'cap-mux' }, segs: [
         { type: 'queue', start: 0, end: 250, label: 'connection ready' },
         { type: 'dl', start: 250, end: 470, label: '608 KB · stream 1' },
       ]},
-      { name: 'image-2.jpg', sub: 'assets · stream 2', cap: { text: '♻ already open', cls: 'cap-mux' }, segs: [
+      { name: 'image-2.jpg', sub: 'assets · stream 2', cap: { text: 'already open', cls: 'cap-mux' }, segs: [
         { type: 'queue', start: 0, end: 250 },
         { type: 'dl', start: 250, end: 400, label: '403 KB · stream 2' },
       ]},

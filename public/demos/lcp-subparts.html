@@ -247,6 +247,26 @@ button { font: inherit; color: inherit; }
   .phase { grid-template-columns: 12px 88px 56px 1fr; }
   .p-cause { grid-column: 1 / -1; }
 }
+/* Icons (see "Icons" in README.md): a mask draws the shape, the color is the status tone */
+:root { --ic-good: #3fb950; --ic-mid: #e3b341; --ic-poor: #f85149; }
+[data-theme="light"] { --ic-good: #1a7f37; --ic-mid: #9a6700; --ic-poor: #cf222e; }
+.ic {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline-end: .3em;
+  vertical-align: -.2em;
+  background: currentColor;
+  -webkit-mask: var(--ic-shape) center / contain no-repeat;
+  mask: var(--ic-shape) center / contain no-repeat;
+}
+.ic-end { margin-inline: .3em 0; }
+.ic-ok { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-bad { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m9 9 6 6M15 9l-6 6'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+.ic-warn { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9.5v4.2M12 17h.01'/%3E%3C/svg%3E"); color: var(--ic-mid); }
+.ic-check { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-x { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
@@ -401,6 +421,9 @@ axisEl.innerHTML =
   `<span class="lbl" style="left:${(pct(POOR_MS) + 100) / 2}%;color:var(--c-poor)">poor</span>`;
 
 /* Rendering */
+const ICON_CHECK = '<span class="ic ic-check" aria-hidden="true"></span>';
+const ICON_X = '<span class="ic ic-x" aria-hidden="true"></span>';
+
 function layout() {
   let start = 0;
   const sum = total(current);
@@ -420,7 +443,7 @@ function layout() {
     const good = p.ok(ms, sum);
     const share = row.querySelector("[data-share]");
     share.className = "p-share " + (good ? "ok" : "over");
-    share.textContent = (good ? "✓ " : "✗ ") +
+    share.innerHTML = (good ? ICON_CHECK : ICON_X) +
       (p.key === "ttfb" ? (good ? "under 800 ms" : "over the 800 ms target") : `${Math.round((ms / sum) * 100)}% of LCP, target ${p.target}`);
   });
 }
