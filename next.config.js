@@ -1,7 +1,11 @@
 const path = require('path')
+const rehypeIcons = require('./lib/rehype-icons')
 const withNextra = require('nextra')({
   theme: 'nextra-theme-docs',
-  themeConfig: './theme.config.jsx'
+  themeConfig: './theme.config.jsx',
+  mdxOptions: {
+    rehypePlugins: [rehypeIcons],
+  },
 })
 
 module.exports = withNextra({

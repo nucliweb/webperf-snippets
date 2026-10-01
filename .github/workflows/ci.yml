@@ -32,6 +32,12 @@ jobs:
       - name: Check consistency
         run: npm run check:consistency
 
+      - name: Check emojis have icons
+        run: npm run check:emoji
+
+      - name: Run icon plugin tests
+        run: npm run test:icons
+
       - name: Check generated skills are up to date
         run: npm run generate-skills:check
 
