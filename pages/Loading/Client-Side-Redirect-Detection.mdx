@@ -1,5 +1,6 @@
 import snippet from "../../snippets/Loading/Client-Side-Redirect-Detection.js?raw";
 import { Snippet } from "../../components/Snippet";
+import { Sequence } from '../../components/diagrams'
 
 # Client-side redirect detection
 
@@ -48,37 +49,39 @@ Result: 81% improvement in LCP
 
 ### Redirect flow comparison
 
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant B as Browser
-    participant S as Server
-    participant JS as JavaScript
-
-    rect rgb(255, 235, 235)
-        Note over U,JS: ❌ Client-Side Redirect (Slow)
-        U->>B: Navigate to /
-        B->>S: GET /
-        S-->>B: 200 OK (HTML + 3.4MB JS)
-        B->>JS: Parse & Execute
-        JS->>B: window.location = '/es/'
-        B->>S: GET /es/
-        S-->>B: 200 OK (HTML)
-        B->>U: Show page
-        Note over U,JS: Total: ~6,300ms 🔴
-    end
-
-    rect rgb(235, 255, 235)
-        Note over U,JS: ✅ Server-Side Redirect (Fast)
-        U->>B: Navigate to /
-        B->>S: GET /
-        S-->>B: 301 Moved to /es/
-        B->>S: GET /es/
-        S-->>B: 200 OK (HTML)
-        B->>U: Show page
-        Note over U,JS: Total: ~1,200ms 🟢
-    end
-```
+<Sequence
+  title="Client-side redirect through JavaScript compared with a server-side 301 redirect, with total times of about 6,300 ms and 1,200 ms"
+  participants={[
+    { id: "U", label: "User" },
+    { id: "B", label: "Browser" },
+    { id: "S", label: "Server" },
+    { id: "JS", label: "JavaScript" },
+  ]}
+  steps={[
+    { type: "block", kind: "rect", tone: "bad", steps: [
+      { type: "note", over: ["U", "JS"], text: "❌ Client-Side Redirect (Slow)" },
+      { type: "message", from: "U", to: "B", label: "Navigate to /" },
+      { type: "message", from: "B", to: "S", label: "GET /" },
+      { type: "message", from: "S", to: "B", label: "200 OK (HTML + 3.4MB JS)", dashed: true },
+      { type: "message", from: "B", to: "JS", label: "Parse & Execute" },
+      { type: "message", from: "JS", to: "B", label: "window.location = '/es/'" },
+      { type: "message", from: "B", to: "S", label: "GET /es/" },
+      { type: "message", from: "S", to: "B", label: "200 OK (HTML)", dashed: true },
+      { type: "message", from: "B", to: "U", label: "Show page" },
+      { type: "note", over: ["U", "JS"], text: "Total: ~6,300ms 🔴" },
+    ] },
+    { type: "block", kind: "rect", tone: "good", steps: [
+      { type: "note", over: ["U", "JS"], text: "✅ Server-Side Redirect (Fast)" },
+      { type: "message", from: "U", to: "B", label: "Navigate to /" },
+      { type: "message", from: "B", to: "S", label: "GET /" },
+      { type: "message", from: "S", to: "B", label: "301 Moved to /es/", dashed: true },
+      { type: "message", from: "B", to: "S", label: "GET /es/" },
+      { type: "message", from: "S", to: "B", label: "200 OK (HTML)", dashed: true },
+      { type: "message", from: "B", to: "U", label: "Show page" },
+      { type: "note", over: ["U", "JS"], text: "Total: ~1,200ms 🟢" },
+    ] },
+  ]}
+/>
 
 ### Snippet
 

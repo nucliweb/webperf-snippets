@@ -1,6 +1,7 @@
 import snippet from '../../snippets/CoreWebVitals/CLS.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Cumulative layout shift (CLS)
 
@@ -44,37 +45,51 @@ CLS = max over session windows of Σ shift scores
 
 ### CLS calculation flow
 
-```mermaid
-flowchart TD
-    Start[Layout Shift Detected] --> Recent{Within 500ms<br/>of user input?}
-
-    Recent -->|Yes| Exclude[❌ Exclude from CLS<br/>hadRecentInput: true]
-    Recent -->|No| Calculate[✅ Include in CLS]
-
-    Calculate --> Impact[Calculate Impact Fraction<br/>% of viewport affected]
-    Impact --> Distance[Calculate Distance Fraction<br/>distance moved / viewport]
-    Distance --> Score[Shift Score = Impact × Distance]
-    Score --> Accumulate[Add to the current session window<br/>CLS = largest window]
-
-    style Exclude fill:#FFE5E5
-    style Calculate fill:#E5FFE5
-    style Accumulate fill:#E5F2FF
-```
+<Flow
+  title="How a layout shift is scored: shifts within 500 ms of user input are excluded, the others multiply impact fraction by distance fraction and add to the session window"
+  nodes={[
+    { id: "Start", label: "Layout Shift Detected" },
+    { id: "Recent", label: "Within 500ms\nof user input?", shape: "decision" },
+    { id: "Exclude", label: "❌ Exclude from CLS\nhadRecentInput: true", tone: "bad" },
+    { id: "Calculate", label: "✅ Include in CLS", tone: "good" },
+    { id: "Impact", label: "Calculate Impact Fraction\n% of viewport affected" },
+    { id: "Distance", label: "Calculate Distance Fraction\ndistance moved / viewport" },
+    { id: "Score", label: "Shift Score = Impact × Distance" },
+    { id: "Accumulate", label: "Add to the current session window\nCLS = largest window", tone: "info" },
+  ]}
+  edges={[
+    { from: "Start", to: "Recent" },
+    { from: "Recent", to: "Exclude", label: "Yes" },
+    { from: "Recent", to: "Calculate", label: "No" },
+    { from: "Calculate", to: "Impact" },
+    { from: "Impact", to: "Distance" },
+    { from: "Distance", to: "Score" },
+    { from: "Score", to: "Accumulate" },
+  ]}
+/>
 
 ### CLS lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> PageLoad: Navigation Start
-    PageLoad --> Accumulating: First Shift
-    Accumulating --> Accumulating: More Shifts<br/>(window += score, CLS = largest window)
-    Accumulating --> Final: Page Hidden
-    Final --> [*]
-
-    note right of Accumulating
-        Only shifts where<br/>hadRecentInput = false<br/>are counted
-    end note
-```
+<Flow
+  title="CLS lifecycle: navigation start, page load, accumulating shifts while the page is visible, final value when the page is hidden"
+  nodes={[
+    { id: "start", shape: "start" },
+    { id: "PageLoad", label: "Page Load" },
+    { id: "Accumulating", label: "Accumulating" },
+    { id: "Final", label: "Final" },
+    { id: "end", shape: "end" },
+  ]}
+  edges={[
+    { from: "start", to: "PageLoad", label: "Navigation Start" },
+    { from: "PageLoad", to: "Accumulating", label: "First Shift" },
+    { from: "Accumulating", to: "Accumulating", label: "More Shifts\n(window += score, CLS = largest window)" },
+    { from: "Accumulating", to: "Final", label: "Page Hidden" },
+    { from: "Final", to: "end" },
+  ]}
+  notes={[
+    { attach: "Accumulating", side: "right", text: "Only shifts where\nhadRecentInput = false\nare counted" },
+  ]}
+/>
 
 ### Common causes
 

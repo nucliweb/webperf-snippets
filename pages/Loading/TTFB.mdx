@@ -4,6 +4,7 @@ import snippet3 from '../../snippets/Loading/TTFB-Resources.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
 import { Callout } from 'nextra/components'
+import { Sequence } from '../../components/diagrams'
 
 # Time to first byte
 
@@ -36,24 +37,27 @@ Breaks down TTFB into its component phases to identify where time is being spent
 
 Based on [pagespeed](https://github.com/corewebvitals/pagespeed) by [Arjen Karel](https://www.linkedin.com/in/arjenkarel/).
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant SW as Service Worker
-    participant DNS as DNS Server
-    participant S as Server
-
-    B->>B: Redirect/Wait
-    B->>SW: Service Worker/Cache
-    SW-->>B: Cache miss
-    B->>DNS: DNS Lookup
-    DNS-->>B: IP Address
-    B->>S: TCP Connection
-    B->>S: SSL/TLS Handshake
-    B->>S: HTTP Request
-    S-->>B: First Byte ✓
-    Note over B,S: ← TTFB ends here
-```
+<Sequence
+  title="The steps that make up TTFB, in order: redirect, service worker, DNS lookup, TCP connection, TLS handshake and HTTP request until the first byte arrives"
+  participants={[
+    { id: "B", label: "Browser" },
+    { id: "SW", label: "Service Worker" },
+    { id: "DNS", label: "DNS Server" },
+    { id: "S", label: "Server" },
+  ]}
+  steps={[
+    { type: "message", from: "B", to: "B", label: "Redirect/Wait" },
+    { type: "message", from: "B", to: "SW", label: "Service Worker/Cache" },
+    { type: "message", from: "SW", to: "B", label: "Cache miss", dashed: true },
+    { type: "message", from: "B", to: "DNS", label: "DNS Lookup" },
+    { type: "message", from: "DNS", to: "B", label: "IP Address", dashed: true },
+    { type: "message", from: "B", to: "S", label: "TCP Connection" },
+    { type: "message", from: "B", to: "S", label: "SSL/TLS Handshake" },
+    { type: "message", from: "B", to: "S", label: "HTTP Request" },
+    { type: "message", from: "S", to: "B", label: "First Byte ✓", dashed: true },
+    { type: "note", over: ["B", "S"], text: "← TTFB ends here" },
+  ]}
+/>
 
 ### Sub-parts explained
 
