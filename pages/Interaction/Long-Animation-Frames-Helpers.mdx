@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.PerformanceLongAnimationFrameTiming
+  - api.PerformanceScriptTiming
+  - api.PerformanceObserver
+---
+
 import snippet from '../../snippets/Interaction/Long-Animation-Frames-Helpers.js?raw'
 import { Snippet } from '../../components/Snippet'
 
@@ -80,6 +87,8 @@ analytics.track("loaf_performance", {
   total_blocking: summary.reduce((sum, f) => sum + f.blockingDuration, 0),
 });
 ```
+
+### Browser support
 
 ### Further reading
 

@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.EventTarget.addEventListener.options_parameter.options_passive_parameter
+browserSupportReported:
+  - css.properties.will-change
+---
+
 import snippet from '../../snippets/Interaction/Scroll-Performance.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -114,6 +121,8 @@ A frame drop occurs when the time between two `requestAnimationFrame` callbacks 
 ### `content-visibility: auto`
 
 Skips rendering work for off-screen content, reducing the amount the browser must recalculate during scroll on long pages. See the [Content Visibility](/Loading/Content-Visibility) snippet for detailed analysis.
+
+### Browser support
 
 ### Further reading
 

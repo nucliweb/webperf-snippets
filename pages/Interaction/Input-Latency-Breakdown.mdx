@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.PerformanceEventTiming
+  - api.PerformanceEventTiming.interactionId
+  - api.PerformanceObserver
+---
+
 import snippet from '../../snippets/Interaction/Input-Latency-Breakdown.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -55,6 +62,8 @@ All values are **P75**, the same percentile INP uses, so they reflect typical be
 | **Input Latency Breakdown** | P75 by event type, reveals systematic patterns across many interactions |
 
 Use both together: `Interactions` to catch individual slow events as they happen, and `getInputLatencyBreakdown()` after several interactions to identify which event type is systematically problematic.
+
+### Browser support
 
 ### Further reading
 
