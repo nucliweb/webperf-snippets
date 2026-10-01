@@ -5,8 +5,10 @@
 // Pages (.mdx): emojis inside code fences are console output and stay. Emojis in
 // lib/icons.js become icons while the page renders. The multi-line props of the
 // diagram components are cleaned by the diagrams themselves. Any other emoji in
-// prose or tables has to be mapped or removed; KNOWN_UNMAPPED lists the ones
-// still waiting to be removed, and it can only shrink.
+// prose or tables has to be mapped or removed. Emojis written as inline code are
+// ignored: they quote what the console prints, and the plugin leaves code alone.
+// KNOWN_UNMAPPED is for emojis that are still waiting to be removed; it is empty
+// and can only shrink.
 //
 // Components (.jsx): an emoji can only appear where it is passed to <Icon>, in
 // a constant named after emoji or icon, or in a file that draws a text glyph on
@@ -23,10 +25,7 @@ const { ICONS } = require('../lib/icons')
 const ROOT = path.join(__dirname, '..')
 const PAGES_DIR = path.join(ROOT, 'pages')
 
-const KNOWN_UNMAPPED = new Set([
-  '🎨', '⚡', '🔧', '⚙️', '⏱️', '👆', '🖱️', '📦', '🔍', '⏳', '📄',
-  '🚫', '📖', '📋', '⭐', '🖼️', '🔗', '👁️', '👈', '❓',
-])
+const KNOWN_UNMAPPED = new Set()
 const NOT_EMOJI = new Set(['©', '®', '™', '↗', '↩'])
 const DEMOS_DIR = path.join(ROOT, 'public', 'demos')
 const COMPONENTS_DIR = path.join(ROOT, 'components')
@@ -67,7 +66,8 @@ function proseEmojis(source) {
       inProps = true
       return
     }
-    for (const match of line.matchAll(/\p{Extended_Pictographic}️?/gu)) {
+    const text = line.replace(/`[^`]*`/g, '')
+    for (const match of text.matchAll(/\p{Extended_Pictographic}️?/gu)) {
       found.push({ emoji: match[0], line: index + 1 })
     }
   })
@@ -98,6 +98,24 @@ function demoEmojis(source) {
   return found
 }
 
+// Emojis in the headings of a page, inline code included: Nextra builds the table
+// of contents from the heading text, so it shows them as plain system emojis.
+function headingEmojis(source) {
+  const found = []
+  let inFence = false
+  source.split('\n').forEach((line, index) => {
+    if (line.trim().startsWith('```')) {
+      inFence = !inFence
+      return
+    }
+    if (inFence || !/^#{1,6} /.test(line)) return
+    for (const match of line.matchAll(/\p{Extended_Pictographic}️?/gu)) {
+      found.push({ emoji: match[0], line: index + 1 })
+    }
+  })
+  return found
+}
+
 function findProblems() {
   const problems = []
   for (const file of listFiles(DEMOS_DIR, ['.html'])) {
@@ -116,6 +134,9 @@ function findProblems() {
   }
   for (const file of listFiles(PAGES_DIR, ['.mdx'])) {
     const rel = path.relative(ROOT, file)
+    for (const { emoji, line } of headingEmojis(fs.readFileSync(file, 'utf8'))) {
+      problems.push(`${rel}:${line} has ${emoji} in a heading, which the table of contents shows as a system emoji`)
+    }
     for (const { emoji, line } of proseEmojis(fs.readFileSync(file, 'utf8'))) {
       if (NOT_EMOJI.has(emoji) || ICONS[emoji] || KNOWN_UNMAPPED.has(emoji)) continue
       problems.push(`${rel}:${line} uses ${emoji}, which has no icon in lib/icons.js`)
@@ -133,4 +154,4 @@ if (require.main === module) {
   console.log('Emoji check passed.')
 }
 
-module.exports = { proseEmojis, componentEmojis, demoEmojis, findProblems }
+module.exports = { proseEmojis, componentEmojis, demoEmojis, headingEmojis, findProblems, KNOWN_UNMAPPED }

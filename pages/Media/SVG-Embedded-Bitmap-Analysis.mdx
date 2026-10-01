@@ -73,8 +73,8 @@ The correct pattern is to reference bitmap assets as separate files:
 
 | Icon | Kind       | Description                                                                                                                                                                |
 | ---- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🖼️   | `inline`   | Base64-encoded bitmap embedded directly as a `data:image/…;base64,` URI. The reported size is an estimate derived from the base64 string length                            |
-| 🔗   | `external` | Bitmap file referenced via `href` or `xlink:href` on an `<image>` element. The bitmap is a separate HTTP request, but it is still discovered only after the SVG has loaded |
+| `🖼️` | `inline`   | Base64-encoded bitmap embedded directly as a `data:image/…;base64,` URI. The reported size is an estimate derived from the base64 string length                            |
+| `🔗` | `external` | Bitmap file referenced via `href` or `xlink:href` on an `<image>` element. The bitmap is a separate HTTP request, but it is still discovered only after the SVG has loaded |
 
 #### SVG sprite opportunity
 

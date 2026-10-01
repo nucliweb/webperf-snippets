@@ -78,13 +78,13 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 
 ## Interpreting the results
 
-### Service worker not controlled (`⚠️ Page is NOT controlled by SW`)
+### Service worker not controlled (`Page is NOT controlled by SW`)
 
 The page was loaded with a hard reload (`Ctrl+Shift+R` / `Cmd+Shift+R`) or it's the very first visit. In this state the SW is registered but doesn't intercept requests.
 
 **Fix:** Do a normal reload (`F5` / `Cmd+R`) and run the snippet again.
 
-### Waiting SW detected (`⏳ Waiting SW detected`)
+### Waiting SW detected (`Waiting SW detected`)
 
 A new SW version was installed but it's waiting for all open tabs to close before activating. This is the default browser behavior to avoid version mismatches.
 
@@ -105,7 +105,7 @@ The overhead is the time between `workerStart` and `fetchStart` in the Navigatio
 
 A high overhead on first load is normal (SW cold start). On subsequent navigations it should be near zero if the SW is already running. Enable **Navigation Preload** to eliminate this overhead regardless.
 
-### Navigation preload disabled (`❌ Disabled`)
+### Navigation preload disabled (`Disabled`)
 
 Without Navigation Preload, the browser must wait for the SW to start before sending the navigation request to the network. Enable it in the SW `activate` event:
 
