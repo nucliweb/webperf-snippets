@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.Navigator.connection
+  - api.NetworkInformation.effectiveType
+  - api.NetworkInformation.saveData
+---
+
 import snippet from '../../snippets/Resources/Network-Bandwidth-Connection-Quality.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -137,6 +144,8 @@ analytics.send("page_view", {
   save_data:      connection?.saveData ?? false,
 });
 ```
+
+## Browser support
 
 ## Further reading
 

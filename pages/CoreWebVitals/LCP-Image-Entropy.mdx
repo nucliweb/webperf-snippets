@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.LargestContentfulPaint
+  - api.PerformanceObserver
+  - api.PerformanceResourceTiming.encodedBodySize
+---
+
 import snippet from '../../snippets/CoreWebVitals/LCP-Image-Entropy.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -60,6 +67,8 @@ BPP = (file size in bits) / (width × height)
 | Placeholder as LCP | Chrome skips it, unexpected LCP | Load real image faster |
 | Gradient hero | Not counted as LCP | Use image with detail or text LCP |
 | Lazy-loaded hero | Initial low-res placeholder skipped | Eager load hero image |
+
+### Browser support
 
 ### Further reading
 
