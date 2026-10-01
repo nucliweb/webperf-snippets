@@ -1,6 +1,7 @@
 import snippet from '../../snippets/Loading/JS-Execution-Time-Breakdown.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from 'nextra/components'
+import { Flow, Sequence } from '../../components/diagrams'
 
 # JavaScript execution time breakdown
 
@@ -18,21 +19,24 @@ Knowing a script is "slow" isn't enough, the bottleneck can be the network downl
 
 ### JS cost phases during page load
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant N as Network
-    participant V as V8 Engine
-
-    B->>N: Fetch script
-    N-->>B: Download complete
-    Note over V: Parse + Compile
-    V->>V: Build AST
-    V->>V: Optimize bytecode
-    Note over V: Execute
-    V->>B: Script done
-    Note over B: DOM continues parsing
-```
+<Sequence
+  title="Browser fetches a script from the network, then the V8 engine parses, compiles and executes it before reporting done so the DOM can keep parsing"
+  participants={[
+    { id: "B", label: "Browser" },
+    { id: "N", label: "Network" },
+    { id: "V", label: "V8 Engine" },
+  ]}
+  steps={[
+    { type: "message", from: "B", to: "N", label: "Fetch script" },
+    { type: "message", from: "N", to: "B", label: "Download complete", dashed: true },
+    { type: "note", over: "V", text: "Parse + Compile" },
+    { type: "message", from: "V", to: "V", label: "Build AST" },
+    { type: "message", from: "V", to: "V", label: "Optimize bytecode" },
+    { type: "note", over: "V", text: "Execute" },
+    { type: "message", from: "V", to: "B", label: "Script done" },
+    { type: "note", right: "B", text: "DOM continues parsing" },
+  ]}
+/>
 
 ### How parse time relates to file size
 
@@ -90,18 +94,26 @@ Scripts over 50KB decoded are flagged because:
 - Parsing cost applies even when the script is served from cache (no network, but still CPU work)
 - Splitting at route or feature boundaries lets the browser skip parsing unused code
 
-```mermaid
-flowchart TD
-    Bundle["Large Bundle<br/><small>200KB</small>"] --> Parse["Parse ALL 200KB<br/><small>Every page load</small>"]
-    Parse --> Execute["Execute needed code<br/><small>~20KB used on this page</small>"]
-    Parse --> Waste["Ignore unused code<br/><small>~180KB wasted parse</small>"]
-
-    SplitMain["Main Chunk<br/><small>20KB</small>"] --> ParseMain["Parse 20KB<br/><small>10× faster</small>"]
-    SplitLazy["Lazy Chunk<br/><small>180KB</small>"] --> Skip["Skip on this route<br/><small>0ms cost</small>"]
-
-    style Waste fill:#FFE5E5,stroke:#FF4444
-    style Skip fill:#E5FFE5,stroke:#44AA44
-```
+<Flow
+  title="Comparison of one large 200 KB bundle where all code is parsed but about 180 KB is wasted, against a 20 KB main chunk parsed quickly and a 180 KB lazy chunk skipped on the current route"
+  nodes={[
+    { id: "Bundle", label: "Large Bundle", sub: "200KB" },
+    { id: "Parse", label: "Parse ALL 200KB", sub: "Every page load" },
+    { id: "Execute", label: "Execute needed code", sub: "~20KB used on this page" },
+    { id: "Waste", label: "Ignore unused code", sub: "~180KB wasted parse", tone: "bad" },
+    { id: "SplitMain", label: "Main Chunk", sub: "20KB" },
+    { id: "ParseMain", label: "Parse 20KB", sub: "10× faster" },
+    { id: "SplitLazy", label: "Lazy Chunk", sub: "180KB" },
+    { id: "Skip", label: "Skip on this route", sub: "0ms cost", tone: "good" },
+  ]}
+  edges={[
+    { from: "Bundle", to: "Parse" },
+    { from: "Parse", to: "Execute" },
+    { from: "Parse", to: "Waste" },
+    { from: "SplitMain", to: "ParseMain" },
+    { from: "SplitLazy", to: "Skip" },
+  ]}
+/>
 
 ### Limitations
 

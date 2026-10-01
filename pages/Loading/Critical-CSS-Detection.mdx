@@ -1,5 +1,6 @@
 import snippet from '../../snippets/Loading/Critical-CSS-Detection.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Sequence } from '../../components/diagrams'
 
 # Critical CSS detection
 
@@ -40,18 +41,21 @@ First round-trip capacity:
 
 Everything that fits within those 14 KB arrives in a **single round-trip**. Anything beyond requires at least one more RTT before the browser receives it.
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant S as Server
-
-    B->>S: HTTP Request
-    S-->>B: Round-trip 1: up to 14 KB (initcwnd = 10 segments)
-    Note right of B: ✓ Can render above-the-fold if CSS fits here
-    S-->>B: Round-trip 2: up to 28 KB
-    S-->>B: Round-trip 3: up to 56 KB
-    Note over B,S: Congestion window doubles each RTT (Slow Start)
-```
+<Sequence
+  title="Browser requests a page and the server replies over successive round trips of about 14, 28 and 56 KB as the congestion window doubles; content in the first round trip can render above the fold"
+  participants={[
+    { id: "B", label: "Browser" },
+    { id: "S", label: "Server" },
+  ]}
+  steps={[
+    { type: "message", from: "B", to: "S", label: "HTTP Request" },
+    { type: "message", from: "S", to: "B", label: "Round-trip 1: up to 14 KB (initcwnd = 10 segments)", dashed: true },
+    { type: "note", text: "✓ Can render above-the-fold if CSS fits here", right: "B" },
+    { type: "message", from: "S", to: "B", label: "Round-trip 2: up to 28 KB", dashed: true },
+    { type: "message", from: "S", to: "B", label: "Round-trip 3: up to 56 KB", dashed: true },
+    { type: "note", over: ["B", "S"], text: "Congestion window doubles each RTT (Slow Start)" },
+  ]}
+/>
 
 This is why the web performance community targets **HTML + critical CSS + critical JS under 14 KB** for the fastest possible First Contentful Paint, it means the browser can render above-the-fold content after just one network round-trip.
 

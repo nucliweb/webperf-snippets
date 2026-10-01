@@ -2,6 +2,7 @@ import snippet from '../../snippets/Loading/Script-Loading.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Scripts loading
 
@@ -80,23 +81,28 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 
 ### Script loading decision tree
 
-```mermaid
-flowchart TD
-    Start[Script Loading Strategy] --> Critical{Critical for<br/>initial render?}
-
-    Critical -->|Yes| Small{Very small<br/>< 1 KB?}
-    Small -->|Yes| Inline[✓ Inline the script<br/><code>&lt;script&gt;...&lt;/script&gt;</code>]
-    Small -->|No| EndBody[✓ Place at end of &lt;body&gt;<br/>or use preload]
-
-    Critical -->|No| Order{Needs to run<br/>in order?}
-    Order -->|Yes| Defer[✓ Use defer<br/><code>&lt;script defer&gt;</code>]
-    Order -->|No| Async[✓ Use async<br/><code>&lt;script async&gt;</code>]
-
-    style Inline fill:#E5FFE5
-    style EndBody fill:#E5FFE5
-    style Defer fill:#E5F2FF
-    style Async fill:#FFE5F2
-```
+<Flow
+  title="Decision tree for script loading: critical tiny scripts are inlined, other critical scripts go at the end of body or are preloaded, non-critical scripts use defer when order matters and async otherwise"
+  nodes={[
+    { id: "Start", label: "Script Loading Strategy" },
+    { id: "Critical", label: "Critical for\ninitial render?", shape: "decision" },
+    { id: "Small", label: "Very small\n< 1 KB?", shape: "decision" },
+    { id: "Inline", label: "✓ Inline the script\n<script>...</script>", tone: "good" },
+    { id: "EndBody", label: "✓ Place at end of <body>\nor use preload", tone: "good" },
+    { id: "Order", label: "Needs to run\nin order?", shape: "decision" },
+    { id: "Defer", label: "✓ Use defer\n<script defer>", tone: "info" },
+    { id: "Async", label: "✓ Use async\n<script async>", tone: "render" },
+  ]}
+  edges={[
+    { from: "Start", to: "Critical" },
+    { from: "Critical", to: "Small", label: "Yes" },
+    { from: "Small", to: "Inline", label: "Yes" },
+    { from: "Small", to: "EndBody", label: "No" },
+    { from: "Critical", to: "Order", label: "No" },
+    { from: "Order", to: "Defer", label: "Yes" },
+    { from: "Order", to: "Async", label: "No" },
+  ]}
+/>
 
 ### Further reading
 

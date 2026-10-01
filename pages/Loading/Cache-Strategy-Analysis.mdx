@@ -1,5 +1,6 @@
 import snippet from "../../snippets/Loading/Cache-Strategy-Analysis.js?raw";
 import { Snippet } from "../../components/Snippet";
+import { Flow } from '../../components/diagrams'
 
 # Cache strategy analysis
 
@@ -18,19 +19,30 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 
 ### How the browser decides to serve a resource
 
-```mermaid
-flowchart TD
-    A[Resource Request] --> B{In browser cache?}
-    B -- No --> C[Fetch from network]
-    B -- Yes --> D{Cache-Control directive?}
-    D -- no-store --> C
-    D -- no-cache / max-age=0 --> E[Revalidate with server]
-    D -- max-age not expired --> F[Serve from cache ✅]
-    D -- max-age expired --> E
-    E -- 304 Not Modified --> F
-    E -- 200 OK --> G[New response + update cache]
-    C --> G
-```
+<Flow
+  title="Decision tree for a resource request: a cache miss or a no-store directive goes to the network, a fresh max-age serves from cache, and no-cache or an expired max-age revalidates with the server, where a 304 serves from cache and a 200 updates it"
+  nodes={[
+    { id: "A", label: "Resource Request" },
+    { id: "B", label: "In browser cache?", shape: "decision" },
+    { id: "C", label: "Fetch from network" },
+    { id: "D", label: "Cache-Control directive?", shape: "decision" },
+    { id: "E", label: "Revalidate with server" },
+    { id: "F", label: "Serve from cache ✅" },
+    { id: "G", label: "New response + update cache" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C", label: "No" },
+    { from: "B", to: "D", label: "Yes" },
+    { from: "D", to: "F", label: "max-age not expired" },
+    { from: "D", to: "E", label: "max-age expired" },
+    { from: "D", to: "E", label: "no-cache / max-age=0" },
+    { from: "D", to: "C", label: "no-store" },
+    { from: "E", to: "F", label: "304 Not Modified" },
+    { from: "E", to: "G", label: "200 OK" },
+    { from: "C", to: "G" },
+  ]}
+/>
 
 ### Why caching matters for performance
 
