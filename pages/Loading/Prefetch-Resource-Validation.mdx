@@ -130,7 +130,7 @@ The snippet shows detailed information for each prefetched resource:
 | **Search Results**    | ❌ Don't prefetch all results     | Unknown user intent               | Low         |
 | **Video Content**     | ❌ Too large for prefetch         | Use adaptive streaming instead    | N/A         |
 
-### ✅ Good: Next.js route prefetching
+### Good: Next.js route prefetching
 
 ```html
 <!-- Next.js automatically prefetches visible <Link> components -->
@@ -140,7 +140,7 @@ The snippet shows detailed information for each prefetched resource:
 <!-- Small scripts for likely next pages - excellent use of prefetch -->
 ```
 
-### ✅ Good: Predictable user journey
+### Good: Predictable user journey
 
 ```html
 <!-- Multi-step form: prefetch step 2 while user fills step 1 -->
@@ -150,7 +150,7 @@ The snippet shows detailed information for each prefetched resource:
 <!-- User intent is clear, resources are small -->
 ```
 
-### ❌ Bad: Prefetching current page hero image
+### Bad: Prefetching current page hero image
 
 ```html
 <!-- WRONG: Hero image is needed NOW, not for future navigation -->
@@ -160,7 +160,7 @@ The snippet shows detailed information for each prefetched resource:
 <link rel="preload" href="/hero-image.jpg" as="image" fetchpriority="high" />
 ```
 
-### ❌ Bad: Excessive prefetch without user intent
+### Bad: Excessive prefetch without user intent
 
 ```html
 <!-- Prefetching 20+ product images "just in case" -->
@@ -172,7 +172,7 @@ The snippet shows detailed information for each prefetched resource:
 <!-- SOLUTION: Use Intersection Observer to prefetch when user scrolls near links -->
 ```
 
-### ✅ Good: Analytics-driven prefetch
+### Good: Analytics-driven prefetch
 
 ```javascript
 // Prefetch based on analytics: 80% of users go to /pricing after landing

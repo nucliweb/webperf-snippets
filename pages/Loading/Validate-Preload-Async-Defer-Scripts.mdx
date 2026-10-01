@@ -121,7 +121,7 @@ The snippet provides specific guidance on:
 
 ### Real-world example
 
-### ❌ Anti-pattern (hurts performance)
+### Anti-pattern (hurts performance)
 
 ```html
 <!-- Preloading Google Analytics (async) - BAD -->
@@ -131,7 +131,7 @@ The snippet provides specific guidance on:
 <!-- Result: Analytics competes with critical resources like fonts/CSS -->
 ```
 
-### ✅ Correct approach
+### Correct approach
 
 ```html
 <!-- No preload - async is enough -->
@@ -211,14 +211,14 @@ For scripts that:
 
 ES modules (`type="module"`) behave like `defer` scripts by default, loading at low priority. If you need to preload them, use the **`rel="modulepreload"`** attribute instead of `rel="preload"`:
 
-### ❌ Incorrect (detected as anti-pattern)
+### Incorrect (detected as anti-pattern)
 
 ```html
 <link rel="preload" href="/app.js" as="script" />
 <script type="module" src="/app.js"></script>
 ```
 
-### ✅ Correct approach for modules
+### Correct approach for modules
 
 ```html
 <link rel="modulepreload" href="/app.js" />
@@ -237,7 +237,7 @@ ES modules (`type="module"`) behave like `defer` scripts by default, loading at 
 
 If you need to keep the preload for early discovery (e.g., the script is defined late in the HTML but needs to start downloading early), you can use `fetchpriority="low"` on the **script tag** to reduce its bandwidth priority while keeping the preload:
 
-### ❌ Problem: Preload escalates async script priority
+### Problem: Preload escalates async script priority
 
 ```html
 <link rel="preload" href="/analytics.js" as="script" />
@@ -246,7 +246,7 @@ If you need to keep the preload for early discovery (e.g., the script is defined
 <!-- Priority escalated to Medium/High, competes with critical resources -->
 ```
 
-### ✅ Solution: Keep preload for discovery, but lower script priority
+### Solution: Keep preload for discovery, but lower script priority
 
 ```html
 <link rel="preload" href="/analytics.js" as="script" />
