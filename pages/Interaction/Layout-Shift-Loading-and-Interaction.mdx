@@ -1,6 +1,7 @@
 import snippet from '../../snippets/Interaction/Layout-Shift-Loading-and-Interaction.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Layout shift tracking
 
@@ -34,34 +35,44 @@ While the [CLS quick check](/CoreWebVitals/CLS) gives you a score, this snippet 
 
 ### Layout shift phases
 
-```mermaid
-flowchart LR
-    Start([Page<br/>Load]) --> Loading["📄 Loading Phase<br/><small>Initial layout shifts<br/>✅ Count toward CLS</small>"]
-    Loading --> Interact[👆 User<br/>Interaction]
-    Interact --> Window["⏱️ 500ms Window<br/><small>❌ Shifts excluded</small>"]
-    Window --> After["⏳ After Window<br/><small>✅ Count toward CLS</small>"]
-
-    style Loading fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
-    style Window fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
-    style After fill:#FFFBE5,stroke:#FF8800,stroke-width:2px
-```
+<Flow
+  direction="LR"
+  title="Phases of layout shifts: shifts during page load count toward CLS, shifts in the 500 ms window after a user interaction are excluded, and shifts after that window count again"
+  nodes={[
+    { id: "Start", label: "Page\nLoad", shape: "pill" },
+    { id: "Loading", label: "📄 Loading Phase", sub: "Initial layout shifts\n✅ Count toward CLS", tone: "good" },
+    { id: "Interact", label: "👆 User\nInteraction" },
+    { id: "Window", label: "⏱️ 500ms Window", sub: "❌ Shifts excluded", tone: "bad" },
+    { id: "After", label: "⏳ After Window", sub: "✅ Count toward CLS", tone: "warn" },
+  ]}
+  edges={[
+    { from: "Start", to: "Loading" },
+    { from: "Loading", to: "Interact" },
+    { from: "Interact", to: "Window" },
+    { from: "Window", to: "After" },
+  ]}
+/>
 
 ### CLS counting logic
 
-```mermaid
-flowchart TD
-    Start[Layout Shift Detected] --> Input{hadRecentInput?<br/>User input within 500ms?}
-
-    Input -->|true| Exclude[❌ Exclude from CLS<br/>Shift within interaction window]
-    Input -->|false| LoadingPhase{During loading<br/>or interaction?}
-
-    LoadingPhase -->|Loading| CountLoad[✅ Count toward CLS<br/>Loading phase shift]
-    LoadingPhase -->|After loading| CountNormal[✅ Count toward CLS<br/>Post-load shift]
-
-    style Exclude fill:#FFE5E5
-    style CountLoad fill:#FFE5F2
-    style CountNormal fill:#FFF3E5
-```
+<Flow
+  title="Decision flow for counting a layout shift: shifts with recent user input are excluded from CLS, the others count whether they happen during loading or after it"
+  nodes={[
+    { id: "Start", label: "Layout Shift Detected" },
+    { id: "Input", label: "hadRecentInput?\nUser input within 500ms?", shape: "decision" },
+    { id: "Exclude", label: "❌ Exclude from CLS\nShift within interaction window", tone: "bad" },
+    { id: "LoadingPhase", label: "During loading\nor interaction?", shape: "decision" },
+    { id: "CountLoad", label: "✅ Count toward CLS\nLoading phase shift", tone: "render" },
+    { id: "CountNormal", label: "✅ Count toward CLS\nPost-load shift", tone: "warn" },
+  ]}
+  edges={[
+    { from: "Start", to: "Input" },
+    { from: "Input", to: "LoadingPhase", label: "false" },
+    { from: "Input", to: "Exclude", label: "true" },
+    { from: "LoadingPhase", to: "CountNormal", label: "After loading" },
+    { from: "LoadingPhase", to: "CountLoad", label: "Loading" },
+  ]}
+/>
 
 ### Snippet
 

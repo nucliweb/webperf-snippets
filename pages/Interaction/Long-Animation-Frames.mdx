@@ -1,6 +1,7 @@
 import snippet from '../../snippets/Interaction/Long-Animation-Frames.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Long animation frames (LoAF)
 
@@ -37,48 +38,53 @@ A frame is considered "long" when it takes more than 50ms. The API provides deta
 
 ### LoAF timeline breakdown
 
-```mermaid
-flowchart LR
-    Start([Frame Start]) --> JS1[Script 1<br/>Execution]
-    JS1 --> JS2[Script 2<br/>Execution]
-    JS2 --> Render{Rendering Phase}
-    Render --> Style[Style<br/>Calculation]
-    Style --> Layout[Layout]
-    Layout --> Paint[Paint]
-    Paint --> End([Frame Complete])
-
-    Threshold[50ms Threshold] -.-> Render
-
-    style JS1 fill:#FFE5E5
-    style JS2 fill:#FFE5E5
-    style Style fill:#E5F2FF
-    style Layout fill:#E5F2FF
-    style Paint fill:#E5F2FF
-    style Threshold fill:#FFA500
-```
+<Flow
+  direction="LR"
+  title="Timeline of a long animation frame: two script executions, then the rendering phase with style calculation, layout and paint; the 50 ms threshold applies to the rendering phase"
+  nodes={[
+    { id: "Start", label: "Frame Start", shape: "pill" },
+    { id: "JS1", label: "Script 1\nExecution", tone: "bad" },
+    { id: "JS2", label: "Script 2\nExecution", tone: "bad" },
+    { id: "Render", label: "Rendering Phase", shape: "decision" },
+    { id: "Style", label: "Style\nCalculation", tone: "info" },
+    { id: "Layout", label: "Layout", tone: "info" },
+    { id: "Paint", label: "Paint", tone: "info" },
+    { id: "End", label: "Frame Complete", shape: "pill" },
+    { id: "Threshold", label: "50ms Threshold", tone: "warn" },
+  ]}
+  edges={[
+    { from: "Start", to: "JS1" },
+    { from: "JS1", to: "JS2" },
+    { from: "JS2", to: "Render" },
+    { from: "Render", to: "Style" },
+    { from: "Style", to: "Layout" },
+    { from: "Layout", to: "Paint" },
+    { from: "Paint", to: "End" },
+    { from: "Threshold", to: "Render", dashed: true },
+  ]}
+/>
 
 ### Comparison: Long tasks vs LoAF
 
-```mermaid
-graph TB
-    subgraph LT[" Long Tasks API ❌ "]
-        LT1["⏱️ Task > 50ms"]
-        LT2["❓ Limited Attribution"]
-        LT3["🚫 No Render Time"]
-    end
-
-    subgraph LA[" Long Animation Frames API ✅ "]
-        LA1["⏱️ Frame > 50ms"]
-        LA2["✅ Full Script Attribution"]
-        LA3["🎨 Includes Render Time"]
-        LA4["🔍 Detects Forced Layouts"]
-    end
-
-    LT -->|Replaced by| LA
-
-    style LT fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
-    style LA fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
-```
+<Flow
+  title="Long Tasks API with limited attribution and no render time, replaced by the Long Animation Frames API with full script attribution, render time and forced layout detection"
+  nodes={[
+    { id: "LT1", label: "⏱️ Task > 50ms" },
+    { id: "LT2", label: "❓ Limited Attribution" },
+    { id: "LT3", label: "🚫 No Render Time" },
+    { id: "LA1", label: "⏱️ Frame > 50ms" },
+    { id: "LA2", label: "✅ Full Script Attribution" },
+    { id: "LA3", label: "🎨 Includes Render Time" },
+    { id: "LA4", label: "🔍 Detects Forced Layouts" },
+  ]}
+  edges={[
+    { from: "LT2", to: "LA2", label: "Replaced by" },
+  ]}
+  groups={[
+    { id: "LT", label: "Long Tasks API ❌", tone: "bad", nodes: ["LT1", "LT2", "LT3"] },
+    { id: "LA", label: "Long Animation Frames API ✅", tone: "good", nodes: ["LA1", "LA2", "LA3", "LA4"] },
+  ]}
+/>
 
 ### Snippet
 

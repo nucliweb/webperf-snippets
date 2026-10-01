@@ -1,5 +1,6 @@
 import snippet from '../../snippets/Interaction/Long-Animation-Frames-Script-Attribution.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Flow } from '../../components/diagrams'
 
 # Long animation frames script attribution
 
@@ -21,28 +22,36 @@ Analyzes and visualizes which scripts are responsible for blocking the main thre
 - Specific file names and function names responsible
 - Actionable recommendations based on data
 
-```mermaid
-graph LR
-    A[Capture LoAF] --> B[Extract Scripts]
-    B --> C{Categorize}
-    C --> D[Your Code]
-    C --> E[Framework]
-    C --> F[Third-Party]
-    C --> G[Unknown]
-
-    D --> H[Calculate %]
-    E --> H
-    F --> H
-    G --> H
-
-    H --> I[Visual Report]
-    I --> J[Optimization Priority]
-
-    style D fill:#3b82f6,color:#fff
-    style E fill:#8b5cf6,color:#fff
-    style F fill:#f59e0b,color:#fff
-    style G fill:#6b7280,color:#fff
-```
+<Flow
+  direction="LR"
+  title="Report pipeline: capture long animation frames, extract scripts, categorize them as your code, framework, third-party or unknown, calculate percentages, then produce a visual report and optimization priorities"
+  nodes={[
+    { id: "A", label: "Capture LoAF" },
+    { id: "B", label: "Extract Scripts" },
+    { id: "C", label: "Categorize", shape: "decision" },
+    { id: "D", label: "Your Code", tone: "info" },
+    { id: "E", label: "Framework", tone: "violet" },
+    { id: "F", label: "Third-Party", tone: "warn" },
+    { id: "G", label: "Unknown" },
+    { id: "H", label: "Calculate %" },
+    { id: "I", label: "Visual Report" },
+    { id: "J", label: "Optimization Priority" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C" },
+    { from: "C", to: "G" },
+    { from: "C", to: "F" },
+    { from: "C", to: "E" },
+    { from: "C", to: "D" },
+    { from: "G", to: "H" },
+    { from: "F", to: "H" },
+    { from: "E", to: "H" },
+    { from: "D", to: "H" },
+    { from: "H", to: "I" },
+    { from: "I", to: "J" },
+  ]}
+/>
 
 ## Overview
 
