@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.PerformanceEventTiming
+  - api.PerformanceEventTiming.interactionId
+  - api.PerformanceObserver
+---
+
 import snippet from '../../snippets/Interaction/Interactions.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -135,6 +142,8 @@ Call `getInteractionSummary()` in the console to see:
     { from: "PresDelay", to: "PresFix", label: "Yes" },
   ]}
 />
+
+### Browser support
 
 ### Further reading
 

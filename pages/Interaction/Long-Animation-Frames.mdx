@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.PerformanceLongAnimationFrameTiming
+  - api.PerformanceScriptTiming
+  - api.PerformanceObserver
+---
+
 import snippet from '../../snippets/Interaction/Long-Animation-Frames.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -130,6 +137,8 @@ Call `getLoAFSummary()` in the console to see:
 | Layout thrashing | Forced S&L > 0 | Batch DOM reads before writes |
 | Many small scripts | High script count | Consolidate event handlers |
 | Render bottleneck | High render duration | Reduce DOM size, use content-visibility |
+
+### Browser support
 
 ### Further reading
 
