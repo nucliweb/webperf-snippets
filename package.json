@@ -12,6 +12,7 @@
     "postbuild": "next-sitemap",
     "prebuild": "rm -rf .next && node scripts/generate-llms.js",
     "check:consistency": "node scripts/check-consistency.js",
+    "test:demos": "node --test scripts/demos.test.js",
     "check:emoji": "node scripts/check-emoji.js",
     "test:icons": "node --test lib/*.test.js",
     "generate-skills": "node scripts/generate-skills.js",

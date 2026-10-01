@@ -32,6 +32,9 @@ jobs:
       - name: Check consistency
         run: npm run check:consistency
 
+      - name: Run demo tests
+        run: npm run test:demos
+
       - name: Check emojis have icons
         run: npm run check:emoji
 
