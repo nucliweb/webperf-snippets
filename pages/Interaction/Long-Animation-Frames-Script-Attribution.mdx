@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.PerformanceLongAnimationFrameTiming
+  - api.PerformanceScriptTiming
+  - api.PerformanceObserver
+---
+
 import snippet from '../../snippets/Interaction/Long-Animation-Frames-Script-Attribution.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Flow } from '../../components/diagrams'
@@ -195,11 +202,6 @@ The exported `rumData` object structure:
 - **A/B test impact** - Did removing analytics improve frameRate?
 
 ## Browser support
-
-| Feature                   | Chrome | Firefox | Safari | Edge |
-| ------------------------- | ------ | ------- | ------ | ---- |
-| **Long Animation Frames** | 116+   | ❌      | ❌     | 116+ |
-| **Script Attribution**    | 116+   | ❌      | ❌     | 116+ |
 
 **Fallback**: For browsers without LoAF, use the [Long Tasks API](/Interaction/LongTask) but you'll lose script attribution detail.
 

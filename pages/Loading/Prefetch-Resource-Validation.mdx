@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+browserSupportReported:
+  - html.elements.link.rel.prefetch
+---
+
 import snippet from '../../snippets/Loading/Prefetch-Resource-Validation.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -430,8 +437,6 @@ if (!goodConnection) {
   ]}
 />
 
-### Browser support & caching
-
 ### Prefetch resource lifecycle
 
 <Flow
@@ -469,12 +474,9 @@ if (!goodConnection) {
 
 ### Browser support
 
-| Browser         | Prefetch Support | Notes                                     |
-| --------------- | ---------------- | ----------------------------------------- |
-| Chrome/Edge     | ✅ Full          | Prefetch during idle time                 |
-| Firefox         | ✅ Full          | Prefetch in background                    |
-| Safari          | ⚠️ Limited       | Supports prefetch but behavior differs    |
-| Mobile browsers | ✅ Most          | May ignore on slow connections/data saver |
+- Chrome and Edge prefetch during idle time.
+- Firefox prefetches in the background.
+- Mobile browsers may ignore prefetch on slow connections or with data saver enabled.
 
 ### Cache requirements
 

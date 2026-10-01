@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.PerformanceNavigationTiming
+browserSupportReported:
+  - api.PerformanceServerTiming
+  - api.PerformanceResourceTiming.firstInterimResponseStart
+  - api.PerformanceResourceTiming.finalResponseHeadersStart
+---
+
 import snippet from '../../snippets/Loading/Server-Timing-Early-Hints.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -75,7 +84,7 @@ Send the same `Link` headers only for resources that every response for the URL 
 
 ### Browser support
 
-`serverTiming` is available in Chromium, Firefox and Safari. `firstInterimResponseStart` and `finalResponseHeadersStart` are Chromium features. Where a property is missing the snippet reports `0` for it.
+Where a property is missing the snippet reports `0` for it.
 
 ### Further reading
 

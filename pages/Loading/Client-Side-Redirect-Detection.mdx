@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.PerformanceNavigationTiming.redirectCount
+  - api.PerformanceResourceTiming
+  - api.Document.referrer
+---
+
 import snippet from "../../snippets/Loading/Client-Side-Redirect-Detection.js?raw";
 import { Snippet } from "../../components/Snippet";
 import { Sequence } from '../../components/diagrams'
@@ -268,12 +275,6 @@ After implementing server-side redirects:
 - Check that redirect time is minimal (under 50ms)
 
 ### Browser support
-
-| Feature           | Chrome | Edge | Firefox | Safari |
-| ----------------- | ------ | ---- | ------- | ------ |
-| Navigation Timing | 57     | 12   | 58      | 11     |
-| Resource Timing   | 43     | 12   | 40      | 11     |
-| document.referrer | All    | All  | All     | All    |
 
 The snippet works in all modern browsers. Older browsers may show reduced information.
 

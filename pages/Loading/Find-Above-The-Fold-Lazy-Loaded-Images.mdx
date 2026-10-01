@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming
+  - api.HTMLImageElement.currentSrc
+browserSupportReported:
+  - html.elements.img.loading
+  - html.elements.img.fetchpriority
+---
+
 import snippet from '../../snippets/Loading/Find-Above-The-Fold-Lazy-Loaded-Images.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -210,21 +219,7 @@ document.querySelectorAll('img[data-src]').forEach(img => {
 
 ### Browser support
 
-Native lazy loading (`loading="lazy"`) is supported in:
-
-- Chrome 77+
-- Edge 79+
-- Firefox 75+
-- Safari 15.4+
-- Opera 64+
-
-The `fetchpriority` attribute is supported in:
-
-- Chrome 101+
-- Edge 101+
-- Opera 87+
-
-Not yet in Firefox and Safari, but they ignore the attribute safely.
+Browsers without support ignore these attributes safely.
 
 ### Further reading
 
