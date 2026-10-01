@@ -1,3 +1,9 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+  - api.HTMLImageElement.currentSrc
+---
+
 import snippet from '../../snippets/Media/Oversized-Images.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -49,6 +55,8 @@ Images with a zero-size box (`display: none`, or `width: 0`), images that have n
 - For an undersized image, serve a file with at least the needed pixels, and add a `2x` candidate for high-density screens.
 
 The result depends on the viewport and on `devicePixelRatio`. Run it in the device mode you care about.
+
+### Browser support
 
 ### Further reading
 

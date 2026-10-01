@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.LargestContentfulPaint
+  - api.PerformanceObserver
+  - api.PerformanceNavigationTiming
+---
+
 import snippet from '../../snippets/CoreWebVitals/LCP-Video-Candidate.js?raw'
 import { Snippet } from '../../components/Snippet'
 
@@ -110,6 +117,8 @@ Timing-Allow-Origin: *
 #### When to run this snippet
 
 LCP entries accumulate from page load until the first user interaction (click, key press, or scroll). Run the snippet immediately after the page finishes loading, before interacting with it. After a user interaction, `performance.getEntriesByType('largest-contentful-paint')` still returns the entries collected up to that point.
+
+### Browser support
 
 ### Further reading
 

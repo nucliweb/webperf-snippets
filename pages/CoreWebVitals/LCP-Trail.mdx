@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.LargestContentfulPaint
+  - api.PerformanceObserver
+  - api.PerformanceNavigationTiming
+---
+
 import snippet from '../../snippets/CoreWebVitals/LCP-Trail.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -28,6 +35,8 @@ The snippet observes `largest-contentful-paint` entries with `buffered: true`, w
 - An image loads after a text element that was initially larger in the viewport
 - A hero image replaces a heading as the largest content
 - Lazy-loaded or late-loading resources become the largest visible element
+
+### Browser support
 
 ### Further reading
 

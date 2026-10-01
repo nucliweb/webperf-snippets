@@ -1,3 +1,9 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+  - api.fetch
+---
+
 import snippet from '../../snippets/Media/SVG-Embedded-Bitmap-Analysis.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -103,6 +109,8 @@ Inline <svg> elements : 211  (5 using <use>, 206 standalone)
 <Callout type="warning">
 **CORS note**: The snippet fetches each SVG with `cache: "force-cache"` to read headers and content without triggering new network requests. Cross-origin SVGs without CORS headers cannot be read, in that case the snippet falls back to Performance API timing data for size and compression, and bitmap detection is skipped for that resource.
 </Callout>
+
+### Browser support
 
 ### Further reading
 
