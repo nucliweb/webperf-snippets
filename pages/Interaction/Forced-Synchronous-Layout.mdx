@@ -1,6 +1,7 @@
 import snippet from '../../snippets/Interaction/Forced-Synchronous-Layout.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
+import { Sequence } from '../../components/diagrams'
 
 # Forced synchronous layout detector
 
@@ -87,21 +88,24 @@ With the double-`requestAnimationFrame` fix applied, no warnings appear, the dir
 
 ### How it works
 
-```mermaid
-sequenceDiagram
-    participant JS as JavaScript
-    participant MO as MutationObserver
-    participant RAF as requestAnimationFrame
-    participant Det as FSL Detector
-
-    JS->>JS: element.classList.toggle(...)
-    MO->>Det: mutation fired → isDirty = true
-    Det->>RAF: schedule clean (isDirty = false)
-    JS->>Det: element.scrollTop = 0
-    Det->>Det: isDirty? YES → ⚠️ warn FSL
-    RAF->>Det: callback fires → isDirty = false
-    Note over Det: Next access after rAF: no warning
-```
+<Sequence
+  title="How the detector works: a DOM mutation marks the layout dirty, a requestAnimationFrame callback cleans it, and a layout read while dirty triggers a forced layout warning"
+  participants={[
+    { id: "JS", label: "JavaScript" },
+    { id: "MO", label: "MutationObserver" },
+    { id: "RAF", label: "requestAnimationFrame" },
+    { id: "Det", label: "FSL Detector" },
+  ]}
+  steps={[
+    { type: "message", from: "JS", to: "JS", label: "element.classList.toggle(...)" },
+    { type: "message", from: "MO", to: "Det", label: "mutation fired → isDirty = true" },
+    { type: "message", from: "Det", to: "RAF", label: "schedule clean (isDirty = false)" },
+    { type: "message", from: "JS", to: "Det", label: "element.scrollTop = 0" },
+    { type: "message", from: "Det", to: "Det", label: "isDirty? YES → ⚠️ warn FSL" },
+    { type: "message", from: "RAF", to: "Det", label: "callback fires → isDirty = false" },
+    { type: "note", over: "Det", text: "Next access after rAF: no warning" },
+  ]}
+/>
 
 ### Limitations
 

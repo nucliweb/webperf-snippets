@@ -2,6 +2,7 @@ import snippet from '../../snippets/Interaction/LongTask.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Long tasks
 
@@ -77,17 +78,23 @@ Total Blocking Time (TBT) is a key metric for understanding main thread responsi
 
 ### Blocking time visualization
 
-```mermaid
-flowchart LR
-    Start([Task<br/>Start]) --> Normal["✅ First 50ms<br/><small>Non-blocking</small>"]
-    Normal --> Threshold{50ms<br/>Threshold}
-    Threshold --> Block["⚠️ Blocking Time<br/><small>Everything beyond 50ms</small>"]
-    Block --> End([Task<br/>Complete])
-
-    style Normal fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
-    style Threshold fill:#FFF3E5,stroke:#FF8800,stroke-width:2px
-    style Block fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
-```
+<Flow
+  direction="LR"
+  title="A task splits at 50 ms: the first 50 ms are non-blocking and everything beyond is blocking time"
+  nodes={[
+    { id: "Start", label: "Task\nStart", shape: "pill" },
+    { id: "Normal", label: "✅ First 50ms", sub: "Non-blocking", tone: "good" },
+    { id: "Threshold", label: "50ms\nThreshold", shape: "decision", tone: "warn" },
+    { id: "Block", label: "⚠️ Blocking Time", sub: "Everything beyond 50ms", tone: "bad" },
+    { id: "End", label: "Task\nComplete", shape: "pill" },
+  ]}
+  edges={[
+    { from: "Start", to: "Normal" },
+    { from: "Normal", to: "Threshold" },
+    { from: "Threshold", to: "Block" },
+    { from: "Block", to: "End" },
+  ]}
+/>
 
 ### Breaking up long tasks
 

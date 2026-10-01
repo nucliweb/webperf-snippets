@@ -1,6 +1,7 @@
 import snippet from '../../snippets/Interaction/Scroll-Performance.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Scroll performance analysis
 
@@ -64,29 +65,32 @@ By default, `scroll`, `wheel`, `touchstart`, and `touchmove` listeners can call 
 
 Marking a listener `passive: true` is a contract: you promise never to call `preventDefault()`. The browser can then move the page immediately on the compositor thread, without touching the main thread at all.
 
-```mermaid
-graph TB
-    subgraph NP[" ❌ Non-passive (default) "]
-        direction TB
-        NP1["🖱️ User scrolls"] --> NP2["⏳ Wait for JS\n(main thread)"]
-        NP2 --> NP3["🎨 Compositor moves page"]
-        NP3 --> NP4["Frame rendered"]
-    end
-
-    subgraph P[" ✅ passive: true "]
-        direction TB
-        P1["🖱️ User scrolls"] --> P2["🎨 Compositor moves page\n(immediately)"]
-        P1 --> P3["⚙️ JS runs in parallel\n(main thread)"]
-        P2 --> P4["Frame rendered"]
-        P3 --> P4
-    end
-
-    style NP fill:#FFE5E5,stroke:#FF4444,stroke-width:2px
-    style P fill:#E5FFE5,stroke:#44AA44,stroke-width:2px
-    style NP2 fill:#FFE5E5
-    style P2 fill:#E5FFE5
-    style P3 fill:#E5FFE5
-```
+<Flow
+  title="Non-passive listeners make the compositor wait for JavaScript on the main thread before moving the page, while passive listeners let the compositor move the page immediately and JavaScript run in parallel"
+  nodes={[
+    { id: "NP1", label: "🖱️ User scrolls" },
+    { id: "NP2", label: "⏳ Wait for JS\n(main thread)", tone: "bad" },
+    { id: "NP3", label: "🎨 Compositor moves page" },
+    { id: "NP4", label: "Frame rendered" },
+    { id: "P1", label: "🖱️ User scrolls" },
+    { id: "P2", label: "🎨 Compositor moves page\n(immediately)", tone: "good" },
+    { id: "P3", label: "⚙️ JS runs in parallel\n(main thread)", tone: "good" },
+    { id: "P4", label: "Frame rendered" },
+  ]}
+  edges={[
+    { from: "NP1", to: "NP2" },
+    { from: "NP2", to: "NP3" },
+    { from: "NP3", to: "NP4" },
+    { from: "P1", to: "P3" },
+    { from: "P1", to: "P2" },
+    { from: "P2", to: "P4" },
+    { from: "P3", to: "P4" },
+  ]}
+  groups={[
+    { id: "NP", label: "❌ Non-passive (default)", tone: "bad", nodes: ["NP1", "NP2", "NP3", "NP4"] },
+    { id: "P", label: "✅ passive: true", tone: "good", nodes: ["P1", "P2", "P3", "P4"] },
+  ]}
+/>
 
 ```js
 // Slow: browser must wait for JS on every scroll frame

@@ -1,6 +1,7 @@
 import snippet from '../../snippets/CoreWebVitals/INP.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Interaction to next paint (INP)
 
@@ -24,28 +25,31 @@ INP directly measures user frustration. When users click a button and nothing ha
 
 ### INP measurement approach
 
-```mermaid
-flowchart TD
-    Start[User Interaction] --> Queue[Input Queued]
-    Queue --> Process[Event Handlers Execute]
-    Process --> Render[Browser Renders Update]
-    Render --> Paint[Next Paint Visible]
-
-    Queue -.->|Input Delay| Process
-    Process -.->|Processing Time| Render
-    Render -.->|Presentation Delay| Paint
-
-    Paint --> Measure[Measure Total Duration]
-    Measure --> Record[Record Interaction]
-    Record --> Check{More Interactions?}
-    Check -->|Yes| Start
-    Check -->|No| Calculate[Calculate INP<br/>p98 of all interactions]
-
-    style Start fill:#E5F2FF
-    style Process fill:#FFE5E5
-    style Paint fill:#E5FFE5
-    style Calculate fill:#FFF4E5
-```
+<Flow
+  title="How INP is measured: each interaction goes through input queue, event handlers, render and next paint, its total duration is recorded, and INP is the 98th percentile of all interactions"
+  nodes={[
+    { id: "Start", label: "User Interaction", tone: "info" },
+    { id: "Queue", label: "Input Queued" },
+    { id: "Process", label: "Event Handlers Execute", tone: "bad" },
+    { id: "Render", label: "Browser Renders Update" },
+    { id: "Paint", label: "Next Paint Visible", tone: "good" },
+    { id: "Measure", label: "Measure Total Duration" },
+    { id: "Record", label: "Record Interaction" },
+    { id: "Check", label: "More Interactions?", shape: "decision" },
+    { id: "Calculate", label: "Calculate INP\np98 of all interactions", tone: "warn" },
+  ]}
+  edges={[
+    { from: "Start", to: "Queue" },
+    { from: "Queue", to: "Process", label: "Input Delay" },
+    { from: "Process", to: "Render", label: "Processing Time" },
+    { from: "Render", to: "Paint", label: "Presentation Delay" },
+    { from: "Paint", to: "Measure" },
+    { from: "Measure", to: "Record" },
+    { from: "Record", to: "Check" },
+    { from: "Check", to: "Start", label: "Yes" },
+    { from: "Check", to: "Calculate", label: "No" },
+  ]}
+/>
 
 ### INP vs FID comparison
 
