@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+  - api.Document.scripts
+browserSupportReported:
+  - html.elements.link.rel.preconnect
+  - html.elements.link.rel.dns-prefetch
+---
+
 import snippet from '../../snippets/Loading/First-And-Third-Party-Script-Timings.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -89,6 +98,8 @@ Scripts taking more than 500ms are highlighted with their slowest phases identif
 | Request (TTFB) | < 100ms | 100-300ms | > 300ms |
 | Response | Depends on size | - | - |
 | Total | < 200ms | 200-500ms | > 500ms |
+
+### Browser support
 
 ### Further reading
 

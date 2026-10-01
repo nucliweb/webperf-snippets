@@ -1,3 +1,9 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+  - api.PerformanceNavigationTiming
+---
+
 import snippet from '../../snippets/Loading/JS-Execution-Time-Breakdown.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -124,6 +130,8 @@ Scripts over 50KB decoded are flagged because:
 | LoAF not included | Execution time during interactions requires the Long Animation Frames snippet |
 | Cross-origin timing | CORS may restrict resource timing data for some third-party scripts |
 | Script streaming | V8 can begin parsing before download finishes, making actual parse time lower than estimated |
+
+### Browser support
 
 ### Further reading
 

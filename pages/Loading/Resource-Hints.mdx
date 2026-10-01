@@ -1,3 +1,13 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+browserSupportReported:
+  - html.elements.link.rel.preload
+  - html.elements.link.rel.preconnect
+  - html.elements.link.rel.dns-prefetch
+  - html.elements.link.rel.modulepreload
+---
+
 import snippet from '../../snippets/Loading/Resource-Hints.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
@@ -103,6 +113,8 @@ For **preconnect/dns-prefetch**:
 | Third-party scripts | `preconnect` to origin |
 | Below-fold images | None (use `loading="lazy"`) |
 | Next page resources | `prefetch` |
+
+### Browser support
 
 ### Further reading
 

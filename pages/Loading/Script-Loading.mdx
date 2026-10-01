@@ -1,3 +1,9 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+  - api.Document.scripts
+---
+
 import snippet from '../../snippets/Loading/Script-Loading.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
@@ -103,6 +109,8 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
     { from: "Order", to: "Async", label: "No" },
   ]}
 />
+
+### Browser support
 
 ### Further reading
 

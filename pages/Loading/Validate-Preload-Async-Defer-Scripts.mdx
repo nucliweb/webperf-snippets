@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.initiatorType
+browserSupportReported:
+  - html.elements.link.rel.preload
+  - html.elements.link.rel.modulepreload
+  - html.elements.script.fetchpriority
+---
+
 import snippet from "../../snippets/Loading/Validate-Preload-Async-Defer-Scripts.js?raw";
 import { Snippet } from "../../components/Snippet";
 import { Callout } from '../../components/Callout'
@@ -531,6 +540,8 @@ For production scenarios with consent scripts, a more sophisticated approach inv
 **Key insight:** If you have a consent cookie, the user has already made their choice. The CMP script doesn't need high priority because the banner won't be shown. This server-side detection allows you to optimize resource prioritization dynamically based on user state.
 
 This approach is beyond the scope of this validation snippet, as it requires architectural changes to your server-side rendering logic.
+
+### Browser support
 
 ### Further reading
 
