@@ -1,5 +1,7 @@
+import { Icon } from "../Icon";
+
 const RATING_COLOR = { good: "#22c55e", "needs-improvement": "#f59e0b", poor: "#ef4444" };
-const RATING_ICON = { good: "🟢", "needs-improvement": "🟡", poor: "🔴" };
+const RATING_EMOJI = { good: "🟢", "needs-improvement": "🟡", poor: "🔴" };
 
 function formatValue(value, unit) {
   if (unit === "ms") return value >= 1000 ? `${(value / 1000).toFixed(2)}s` : `${value}ms`;
@@ -21,7 +23,7 @@ export function CWVRenderer({ result }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", paddingBottom: "16px" }}>
-        <span style={{ fontSize: "2rem" }}>{RATING_ICON[result.rating] ?? "·"}</span>
+        <span style={{ fontSize: "2rem" }}>{RATING_EMOJI[result.rating] ? <Icon emoji={RATING_EMOJI[result.rating]} /> : "·"}</span>
         <div>
           <div style={{ fontSize: "1.5rem", fontWeight: "bold", color }}>
             {formatValue(result.value, result.unit)}
@@ -59,7 +61,7 @@ export function CWVRenderer({ result }) {
                     <td style={{ padding: "6px 8px" }}>{label}</td>
                     <td style={{ textAlign: "right", padding: "6px 8px" }}>{info.value}ms</td>
                     <td style={{ textAlign: "right", padding: "6px 8px" }}>{info.percent}%</td>
-                    <td style={{ textAlign: "right", padding: "6px 8px" }}>{info.overTarget ? "🔴" : "✅"}</td>
+                    <td style={{ textAlign: "right", padding: "6px 8px" }}><Icon emoji={info.overTarget ? "🔴" : "✅"} /></td>
                   </tr>
                 );
               })}

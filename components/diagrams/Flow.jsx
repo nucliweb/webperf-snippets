@@ -1,4 +1,5 @@
 import { useId, useMemo } from "react";
+import { cleanSpec, stripEmoji } from "../../lib/strip-emoji";
 import { describeFlow } from "./shared";
 import { layoutFlow, LH, FS, SUB, EDGE_FS, NOTE_FS } from "./flowLayout";
 
@@ -161,8 +162,14 @@ function FlowSvg({ layout, markerId, titleId, title, desc, compact }) {
   );
 }
 
-export function Flow({ direction = "TD", nodes, edges = [], groups = [], notes = [], title = "Flow diagram" }) {
+export function Flow({ direction = "TD", nodes: rawNodes, edges: rawEdges = [], groups: rawGroups = [], notes: rawNotes = [], title: rawTitle = "Flow diagram" }) {
   const uid = useId().replace(/:/g, "");
+  // Emojis in the labels would draw with the system emoji font; the tone says the same.
+  const { nodes, edges, groups, notes } = useMemo(
+    () => cleanSpec({ nodes: rawNodes, edges: rawEdges, groups: rawGroups, notes: rawNotes }),
+    [rawNodes, rawEdges, rawGroups, rawNotes],
+  );
+  const title = stripEmoji(rawTitle);
   const plan = useMemo(
     () => planLayouts({ direction, nodes, edges, groups, notes }),
     [direction, nodes, edges, groups, notes],

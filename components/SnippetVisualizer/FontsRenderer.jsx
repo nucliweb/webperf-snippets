@@ -1,3 +1,5 @@
+import { Icon } from "../Icon";
+
 const DISPLAY_WARN = new Set(["auto", "unknown"]);
 
 const TABLE_STYLE = { width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" };
@@ -33,7 +35,7 @@ export function FontsRenderer({ result }) {
       </div>
 
       {result.items?.length > 0 && (
-        <Section title="📦 Loaded Fonts">
+        <Section title="Loaded Fonts">
           <table style={TABLE_STYLE}>
             <thead>
               <tr>{["Family", "Weight", "Style", "Display"].map((h) => <th key={h} style={TH_STYLE}>{h}</th>)}</tr>
@@ -45,7 +47,7 @@ export function FontsRenderer({ result }) {
                   <td style={TD_STYLE}>{f.weight}</td>
                   <td style={TD_STYLE}>{f.style}</td>
                   <td style={{ ...TD_STYLE, color: DISPLAY_WARN.has(f.display) ? "#f59e0b" : "inherit" }}>
-                    {DISPLAY_WARN.has(f.display) ? `⚠️ ${f.display}` : f.display}
+                    {DISPLAY_WARN.has(f.display) ? <><Icon emoji="⚠️" />{f.display}</> : f.display}
                   </td>
                 </tr>
               ))}
@@ -55,7 +57,7 @@ export function FontsRenderer({ result }) {
       )}
 
       {result.usedFonts?.length > 0 && (
-        <Section title="👁️ Used Above Fold">
+        <Section title="Used Above Fold">
           <table style={TABLE_STYLE}>
             <thead>
               <tr>{["Family", "Weight", "Style", "Elements"].map((h) => <th key={h} style={TH_STYLE}>{h}</th>)}</tr>
@@ -79,12 +81,12 @@ export function FontsRenderer({ result }) {
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {result.issues.map((issue, i) => (
               <li key={i} style={{ color: issue.severity === "error" ? "#ef4444" : "#f59e0b", padding: "4px 0", fontSize: "0.875rem" }}>
-                {issue.severity === "error" ? "✗" : "⚠"} {issue.message}
+                <Icon emoji={issue.severity === "error" ? "✗" : "⚠"} />{issue.message}
               </li>
             ))}
           </ul>
         ) : (
-          <p style={{ color: "#22c55e", margin: 0 }}>✅ Font loading looks optimized</p>
+          <p style={{ color: "#22c55e", margin: 0 }}><Icon emoji="✅" />Font loading looks optimized</p>
         )}
       </Section>
     </div>

@@ -1,4 +1,5 @@
 import { useId, useMemo } from "react";
+import { cleanSpec, stripEmoji } from "../../lib/strip-emoji";
 import { describeSequence } from "./shared";
 import { layoutSequence, SEQ_FS, SEQ_LH } from "./sequenceLayout";
 
@@ -49,8 +50,14 @@ function Lines({ x, y, lines, anchor = "middle", className = "dg-text", size = S
   );
 }
 
-export function Sequence({ participants, steps, title = "Sequence diagram" }) {
+export function Sequence({ participants: rawParticipants, steps: rawSteps, title: rawTitle = "Sequence diagram" }) {
   const uid = useId().replace(/:/g, "");
+  // Emojis in the labels would draw with the system emoji font, so they are dropped.
+  const { participants, steps } = useMemo(
+    () => cleanSpec({ participants: rawParticipants, steps: rawSteps }),
+    [rawParticipants, rawSteps],
+  );
+  const title = stripEmoji(rawTitle);
   const layout = useMemo(() => layoutSequence({ participants, steps }), [participants, steps]);
   const names = Object.fromEntries(participants.map((p) => [p.id, p.label]));
   const desc = describeSequence(steps, names);

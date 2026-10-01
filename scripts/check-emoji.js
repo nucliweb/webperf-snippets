@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
-// Fails when a documentation page uses an emoji that has no icon mapping.
+// Fails when the website would show a system emoji instead of an icon.
 //
-// Emojis inside code fences are console output and stay. Emojis in lib/icons.js
-// become icons while the page renders. Any other emoji in prose or tables would
-// show up as a system emoji on the site, so it has to be mapped or removed.
-// KNOWN_UNMAPPED lists the ones still waiting to be removed; it can only shrink.
+// Pages (.mdx): emojis inside code fences are console output and stay. Emojis in
+// lib/icons.js become icons while the page renders. The multi-line props of the
+// diagram components are cleaned by the diagrams themselves. Any other emoji in
+// prose or tables has to be mapped or removed; KNOWN_UNMAPPED lists the ones
+// still waiting to be removed, and it can only shrink.
+//
+// Components (.jsx): an emoji can only appear where it is passed to <Icon>, in
+// a constant named after emoji or icon, or in a file that draws a text glyph on
+// purpose (GLYPH_FILES).
 
 const fs = require('fs')
 const path = require('path')
@@ -18,13 +23,20 @@ const KNOWN_UNMAPPED = new Set([
   '🎨', '⚡', '🔧', '⚙️', '⏱️', '👆', '🖱️', '📦', '🔍', '⏳', '📄',
   '🚫', '📖', '📋', '⭐', '🖼️', '🔗', '👁️', '👈', '❓',
 ])
-const NOT_EMOJI = new Set(['©', '®', '™'])
+const NOT_EMOJI = new Set(['©', '®', '™', '↗'])
+const COMPONENTS_DIR = path.join(ROOT, 'components')
+// Files that write emojis or glyphs on purpose: the SVG text of the LCP diagram, and the
+// Markdown that "Copy as Markdown" puts on the clipboard (it is pasted into issues, not shown).
+const GLYPH_FILES = new Set([
+  'components/diagrams/LcpSubparts.jsx',
+  'components/SnippetVisualizer/exportMarkdown.js',
+])
 
-function listMdx(dir) {
+function listFiles(dir, extensions) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) return listMdx(full)
-    return entry.name.endsWith('.mdx') ? [full] : []
+    if (entry.isDirectory()) return listFiles(full, extensions)
+    return extensions.some((ext) => entry.name.endsWith(ext)) ? [full] : []
   })
 }
 
@@ -57,9 +69,29 @@ function proseEmojis(source) {
   return found
 }
 
+// Emojis of a component that would reach the page as text instead of an icon.
+function componentEmojis(source) {
+  const found = []
+  source.split('\n').forEach((line, index) => {
+    if (/emoji|icon/i.test(line)) return
+    for (const match of line.matchAll(/[\p{Extended_Pictographic}\u2713\u2717]\uFE0F?/gu)) {
+      found.push({ emoji: match[0], line: index + 1 })
+    }
+  })
+  return found
+}
+
 function findProblems() {
   const problems = []
-  for (const file of listMdx(PAGES_DIR)) {
+  for (const file of listFiles(COMPONENTS_DIR, ['.jsx', '.js'])) {
+    const rel = path.relative(ROOT, file)
+    if (GLYPH_FILES.has(rel)) continue
+    for (const { emoji, line } of componentEmojis(fs.readFileSync(file, 'utf8'))) {
+      if (NOT_EMOJI.has(emoji)) continue
+      problems.push(`${rel}:${line} draws ${emoji} as text; use <Icon emoji="${emoji}" /> or remove it`)
+    }
+  }
+  for (const file of listFiles(PAGES_DIR, ['.mdx'])) {
     const rel = path.relative(ROOT, file)
     for (const { emoji, line } of proseEmojis(fs.readFileSync(file, 'utf8'))) {
       if (NOT_EMOJI.has(emoji) || ICONS[emoji] || KNOWN_UNMAPPED.has(emoji)) continue
@@ -78,4 +110,4 @@ if (require.main === module) {
   console.log('Emoji check passed.')
 }
 
-module.exports = { proseEmojis, findProblems }
+module.exports = { proseEmojis, componentEmojis, findProblems }
