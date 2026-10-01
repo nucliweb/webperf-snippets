@@ -14,7 +14,8 @@
     "check:consistency": "node scripts/check-consistency.js",
     "test:demos": "node --test scripts/demos.test.js",
     "check:emoji": "node scripts/check-emoji.js",
-    "test:icons": "node --test lib/*.test.js scripts/check-emoji.test.js",
+    "test:icons": "node --test lib/rehype-icons.test.js lib/strip-emoji.test.js scripts/check-emoji.test.js",
+    "test:support": "node --test lib/browser-support.test.js lib/remark-browser-support.test.js",
     "generate-skills": "node scripts/generate-skills.js",
     "generate-skills:check": "node scripts/generate-skills.js && git diff --exit-code -- skills dist .claude/skills",
     "install-skills": "node scripts/install-skills.js",
@@ -36,6 +37,8 @@
   "license": "MIT",
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",
+    "@mdn/browser-compat-data": "^8.1.4",
+    "gray-matter": "^4.0.3",
     "highlight.js": "^10.7.3",
     "next": "^13.4.19",
     "next-sitemap": "^4.2.3",
