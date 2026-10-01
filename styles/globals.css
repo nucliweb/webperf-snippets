@@ -315,6 +315,8 @@ pre code {
 .wp-ic-mid { color: var(--ic-mid); }
 .wp-ic-poor { color: var(--ic-poor); }
 .wp-ic-info { color: var(--ic-info); }
+.wp-ic-orange { color: var(--ic-orange); }
+.wp-callout-icon .wp-ic { margin-right: 0; width: 1.25rem; height: 1.25rem; vertical-align: middle; }
 .wp-dot {
   display: inline-block;
   width: 0.7em;

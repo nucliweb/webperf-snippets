@@ -1,4 +1,6 @@
 const SEVERITY_COLOR = { error: "#ef4444", warning: "#f59e0b", info: "#3b82f6" };
+import { Icon } from "../Icon";
+
 const SEVERITY_ICON = { error: "✗", warning: "⚠", info: "ℹ" };
 
 const IGNORED_COLS = new Set(["raw", "html", "element", "selector"]);
@@ -6,7 +8,7 @@ const IGNORED_COLS = new Set(["raw", "html", "element", "selector"]);
 export function AuditRenderer({ result }) {
   const errors = (result.issues ?? []).filter((i) => i.severity === "error");
   const warnings = (result.issues ?? []).filter((i) => i.severity === "warning");
-  const statusIcon = errors.length ? "🔴" : warnings.length ? "🟡" : "🟢";
+  const statusEmoji = errors.length ? "🔴" : warnings.length ? "🟡" : "🟢";
 
   const items = result.items ?? [];
   const columns = items.length > 0
@@ -16,7 +18,7 @@ export function AuditRenderer({ result }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", paddingBottom: "16px" }}>
-        <span style={{ fontSize: "1.5rem" }}>{statusIcon}</span>
+        <span style={{ fontSize: "1.5rem" }}><Icon emoji={statusEmoji} /></span>
         <div>
           <div style={{ fontWeight: "600" }}>{result.script}</div>
           {result.count != null && (
@@ -27,7 +29,7 @@ export function AuditRenderer({ result }) {
 
       {result.corsLimitedAnalysis === true && (
         <p style={{ color: "#f59e0b", fontSize: "0.875rem", margin: "0 0 16px" }}>
-          ⚠ Partial analysis: cross-origin resources without Timing-Allow-Origin hid their sizes or timings, so the totals are a lower bound.
+          <Icon emoji="⚠" />Partial analysis: cross-origin resources without Timing-Allow-Origin hid their sizes or timings, so the totals are a lower bound.
         </p>
       )}
 
@@ -37,13 +39,13 @@ export function AuditRenderer({ result }) {
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {result.issues.map((issue, i) => (
               <li key={i} style={{ color: SEVERITY_COLOR[issue.severity] ?? "#6b7280", padding: "4px 0", fontSize: "0.875rem" }}>
-                {SEVERITY_ICON[issue.severity] ?? "·"} {issue.message}
+                {SEVERITY_ICON[issue.severity] ? <Icon emoji={SEVERITY_ICON[issue.severity]} /> : "· "}{issue.message}
               </li>
             ))}
           </ul>
         </section>
       ) : (
-        <p style={{ color: "#22c55e", marginBottom: "24px" }}>✅ No issues found</p>
+        <p style={{ color: "#22c55e", marginBottom: "24px" }}><Icon emoji="✅" />No issues found</p>
       )}
 
       {items.length > 0 && columns.length > 0 && (

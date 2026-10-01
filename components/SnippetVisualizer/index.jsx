@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { CWVRenderer } from "./CWVRenderer";
 import { FontsRenderer } from "./FontsRenderer";
 import { AuditRenderer } from "./AuditRenderer";
+import { Icon } from "../Icon";
 import { exportMarkdown } from "./exportMarkdown";
 
 const PLACEHOLDER = `Paste the return value of any snippet here.
@@ -114,7 +115,7 @@ export function SnippetVisualizer() {
           }}
         >
           {parseError ? (
-            <div style={{ color: "#ef4444", fontSize: "0.8rem" }}>✗ {parseError}</div>
+            <div style={{ color: "#ef4444", fontSize: "0.8rem" }}><Icon emoji="✗" />{parseError}</div>
           ) : (
             <span />
           )}
@@ -163,7 +164,7 @@ export function SnippetVisualizer() {
                 transition: "background 0.15s",
               }}
             >
-              {copied ? "✓ Copied!" : "Copy as Markdown"}
+              {copied ? <><Icon emoji="✓" style={{ color: "#fff" }} />Copied!</> : "Copy as Markdown"}
             </button>
           </div>
 
