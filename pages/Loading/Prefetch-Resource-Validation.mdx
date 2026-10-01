@@ -1,6 +1,7 @@
 import snippet from '../../snippets/Loading/Prefetch-Resource-Validation.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from 'nextra/components'
+import { Flow, Sequence } from '../../components/diagrams'
 
 # Prefetch resource validation
 
@@ -19,26 +20,33 @@ Detects potential performance issues with `rel="prefetch"` resource hints by ana
 
 ### Visual comparison
 
-```mermaid
-graph LR
-    A[User loads page] --> B{Resource hint type?}
-    B -->|preload| C[High Priority]
-    B -->|prefetch| D[Lowest Priority]
-
-    C --> E[Memory Cache]
-    D --> F[Disk Cache]
-
-    C --> G[Use: Current Page Critical Resources]
-    D --> H[Use: Future Navigation]
-
-    E --> I[Fast access for current page]
-    F --> J[Available for next navigation]
-
-    style C fill:#ef4444,color:#fff
-    style D fill:#22c55e,color:#fff
-    style G fill:#3b82f6,color:#fff
-    style H fill:#3b82f6,color:#fff
-```
+<Flow
+  direction="LR"
+  title="Preload runs at high priority into the memory cache for critical resources of the current page, while prefetch runs at the lowest priority into the disk cache for future navigations"
+  nodes={[
+    { id: "A", label: "User loads page" },
+    { id: "B", label: "Resource hint type?", shape: "decision" },
+    { id: "C", label: "High Priority", tone: "bad" },
+    { id: "D", label: "Lowest Priority", tone: "good" },
+    { id: "E", label: "Memory Cache" },
+    { id: "F", label: "Disk Cache" },
+    { id: "G", label: "Use: Current Page Critical Resources", tone: "info" },
+    { id: "H", label: "Use: Future Navigation", tone: "info" },
+    { id: "I", label: "Fast access for current page" },
+    { id: "J", label: "Available for next navigation" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C", label: "preload" },
+    { from: "B", to: "D", label: "prefetch" },
+    { from: "C", to: "E" },
+    { from: "D", to: "F" },
+    { from: "C", to: "G" },
+    { from: "D", to: "H" },
+    { from: "E", to: "I" },
+    { from: "F", to: "J" },
+  ]}
+/>
 
 ### Problems commonly detected
 
@@ -226,24 +234,30 @@ Next.js automatically prefetches routes for `<Link>` components in the viewport.
 
 ### Adaptive prefetch decision flow
 
-```mermaid
-graph TD
-    A[User on page] --> B{Check saveData}
-    B -->|Enabled| C[Skip all prefetch]
-    B -->|Disabled| D{Check effectiveType}
-
-    D -->|4g| E[Prefetch aggressively]
-    D -->|3g| F[Prefetch selectively]
-    D -->|2g/slow-2g| G[Skip prefetch]
-
-    E --> H[Load 5-10 resources]
-    F --> I[Load 1-3 most likely resources]
-
-    style C fill:#ef4444,color:#fff
-    style E fill:#22c55e,color:#fff
-    style F fill:#f59e0b,color:#fff
-    style G fill:#ef4444,color:#fff
-```
+<Flow
+  title="Adaptive prefetch flow: skip all prefetching when data saver is enabled, otherwise prefetch aggressively on 4g, selectively on 3g and not at all on 2g or slow-2g"
+  nodes={[
+    { id: "A", label: "User on page" },
+    { id: "B", label: "Check saveData", shape: "decision" },
+    { id: "C", label: "Skip all prefetch", tone: "bad" },
+    { id: "D", label: "Check effectiveType", shape: "decision" },
+    { id: "E", label: "Prefetch aggressively", tone: "good" },
+    { id: "F", label: "Prefetch selectively", tone: "warn" },
+    { id: "G", label: "Skip prefetch", tone: "bad" },
+    { id: "H", label: "Load 5-10 resources" },
+    { id: "I", label: "Load 1-3 most likely resources" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C", label: "Enabled" },
+    { from: "B", to: "D", label: "Disabled" },
+    { from: "D", to: "E", label: "4g" },
+    { from: "D", to: "F", label: "3g" },
+    { from: "D", to: "G", label: "2g/slow-2g" },
+    { from: "E", to: "H" },
+    { from: "F", to: "I" },
+  ]}
+/>
 
 ### Adaptive prefetch based on connection
 
@@ -293,33 +307,32 @@ document.querySelectorAll("a.important-nav").forEach((link) => {
 
 ### How prefetch affects page load timeline
 
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant Network
-    participant Cache
-
-    Note over Browser,Cache: Page Load Starts
-
-    Browser->>Network: Request HTML (High Priority)
-    Browser->>Network: Request CSS (High Priority)
-    Browser->>Network: Request LCP Image (High Priority)
-
-    alt With Excessive Prefetch
-        Browser->>Network: Request 15 prefetch resources (Lowest Priority)
-        Note over Network: Bandwidth congestion on slow connections
-        Network-->>Browser: Delayed critical resources ⚠️
-    end
-
-    alt With Smart Prefetch
-        Note over Browser: Wait for page interactive
-        Browser->>Network: Request 3 prefetch resources (Lowest Priority)
-        Note over Network: Minimal impact on critical resources
-        Network-->>Cache: Store in disk cache
-    end
-
-    Note over Browser,Cache: Page Interactive ✅
-```
+<Sequence
+  title="Sequence comparing excessive prefetch, which congests the network and delays critical resources, with smart prefetch, which waits until the page is interactive and stores a few resources in the disk cache"
+  participants={[
+    { id: "Browser", label: "Browser" },
+    { id: "Network", label: "Network" },
+    { id: "Cache", label: "Cache" },
+  ]}
+  steps={[
+    { type: "note", over: ["Browser", "Cache"], text: "Page Load Starts" },
+    { type: "message", from: "Browser", to: "Network", label: "Request HTML (High Priority)" },
+    { type: "message", from: "Browser", to: "Network", label: "Request CSS (High Priority)" },
+    { type: "message", from: "Browser", to: "Network", label: "Request LCP Image (High Priority)" },
+    { type: "block", kind: "alt", label: "With Excessive Prefetch", steps: [
+      { type: "message", from: "Browser", to: "Network", label: "Request 15 prefetch resources (Lowest Priority)" },
+      { type: "note", over: "Network", text: "Bandwidth congestion on slow connections" },
+      { type: "message", from: "Network", to: "Browser", label: "Delayed critical resources ⚠️", dashed: true },
+    ] },
+    { type: "block", kind: "alt", label: "With Smart Prefetch", steps: [
+      { type: "note", right: "Browser", text: "Wait for page interactive" },
+      { type: "message", from: "Browser", to: "Network", label: "Request 3 prefetch resources (Lowest Priority)" },
+      { type: "note", over: "Network", text: "Minimal impact on critical resources" },
+      { type: "message", from: "Network", to: "Cache", label: "Store in disk cache", dashed: true },
+    ] },
+    { type: "note", over: ["Browser", "Cache"], text: "Page Interactive ✅" },
+  ]}
+/>
 
 ### Potential negative impacts
 
@@ -390,48 +403,69 @@ if (!goodConnection) {
 
 ### Quick decision tree
 
-```mermaid
-graph TD
-    A[Is resource needed on current page?] --> B{Answer}
-    B -->|YES| C[Use rel='preload']
-    B -->|NO| D[Is user likely to navigate to page that needs it?]
-
-    D --> E{Probability?}
-    E -->|>50%| F[Use rel='prefetch']
-    E -->|<50%| G[Don't use resource hints]
-
-    C --> H[High priority, memory cache]
-    F --> I[Low priority, disk cache]
-    G --> J[Let browser handle naturally]
-
-    style C fill:#22c55e,color:#fff
-    style F fill:#3b82f6,color:#fff
-    style G fill:#6b7280,color:#fff
-```
+<Flow
+  title="Decision tree for choosing a resource hint: preload when the current page needs the resource, prefetch when the user is more than 50% likely to navigate to a page that needs it, otherwise no hint"
+  nodes={[
+    { id: "A", label: "Is resource needed on current page?" },
+    { id: "B", label: "Answer", shape: "decision" },
+    { id: "C", label: "Use rel='preload'", tone: "good" },
+    { id: "D", label: "Is user likely to navigate to page that needs it?" },
+    { id: "E", label: "Probability?", shape: "decision" },
+    { id: "F", label: "Use rel='prefetch'", tone: "info" },
+    { id: "G", label: "Don't use resource hints" },
+    { id: "H", label: "High priority, memory cache" },
+    { id: "I", label: "Low priority, disk cache" },
+    { id: "J", label: "Let browser handle naturally" },
+  ]}
+  edges={[
+    { from: "A", to: "B" },
+    { from: "B", to: "C", label: "YES" },
+    { from: "B", to: "D", label: "NO" },
+    { from: "D", to: "E" },
+    { from: "E", to: "F", label: ">50%" },
+    { from: "E", to: "G", label: "<50%" },
+    { from: "C", to: "H" },
+    { from: "F", to: "I" },
+    { from: "G", to: "J" },
+  ]}
+/>
 
 ### Browser support & caching
 
 ### Prefetch resource lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> Discovered: Browser finds prefetch hint
-    Discovered --> Queued: Added to prefetch queue (lowest priority)
-    Queued --> Downloading: Browser idle time starts
-    Downloading --> DiskCache: Resource downloaded
-    DiskCache --> NextPage: User navigates to next page
-    NextPage --> MemoryCache: Resource promoted to memory
-    MemoryCache --> Used: Page consumes resource
-
-    Queued --> Cancelled: User navigates before download
-    Downloading --> Cancelled: Network congestion or navigation
-
-    state DiskCache {
-        [*] --> CheckCache: Check cache headers
-        CheckCache --> Stored: Good cache headers ✅
-        CheckCache --> Discarded: No-cache headers ❌
-    }
-```
+<Flow
+  title="Lifecycle of a prefetched resource: it is discovered, queued and downloaded, then checked against its cache headers and stored in or dropped from the disk cache; a stored resource is promoted to the memory cache on the next navigation and used, while a queued or downloading resource can be cancelled"
+  nodes={[
+    { id: "start", label: "Start", shape: "start" },
+    { id: "Discovered", label: "Discovered" },
+    { id: "Queued", label: "Queued" },
+    { id: "Downloading", label: "Downloading" },
+    { id: "Cancelled", label: "Cancelled", tone: "bad" },
+    { id: "dcStart", label: "Disk cache entry", shape: "start" },
+    { id: "CheckCache", label: "CheckCache" },
+    { id: "Stored", label: "Stored", tone: "good" },
+    { id: "Discarded", label: "Discarded", tone: "bad" },
+    { id: "NextPage", label: "NextPage" },
+    { id: "MemoryCache", label: "MemoryCache" },
+    { id: "Used", label: "Used", tone: "good" },
+  ]}
+  edges={[
+    { from: "start", to: "Discovered", label: "Browser finds prefetch hint" },
+    { from: "Discovered", to: "Queued", label: "Added to prefetch queue (lowest priority)" },
+    { from: "Queued", to: "Downloading", label: "Browser idle time starts" },
+    { from: "Downloading", to: "dcStart", label: "Resource downloaded" },
+    { from: "dcStart", to: "CheckCache", label: "Check cache headers" },
+    { from: "CheckCache", to: "Stored", label: "Good cache headers ✅" },
+    { from: "CheckCache", to: "Discarded", label: "No-cache headers ❌" },
+    { from: "Stored", to: "NextPage", label: "User navigates to next page" },
+    { from: "NextPage", to: "MemoryCache", label: "Resource promoted to memory" },
+    { from: "MemoryCache", to: "Used", label: "Page consumes resource" },
+    { from: "Queued", to: "Cancelled", label: "User navigates before download" },
+    { from: "Downloading", to: "Cancelled", label: "Network congestion or navigation" },
+  ]}
+  groups={[{ id: "DiskCache", label: "DiskCache", tone: "info", nodes: ["dcStart", "CheckCache", "Stored", "Discarded"] }]}
+/>
 
 ### Browser support
 

@@ -52,7 +52,7 @@
   Analyzes the CSS loading strategy of a page, identifying render-blocking stylesheets, measuring their size against the critical 14 KB budget, and detecting whether critical CSS is properly inlined for above-the-fold content.
 
 - [Event processing time](https://webperf-snippets.nucliweb.net/Loading/Event-Processing-Time)
-  Analyzes the time spent in each phase of page navigation, from initial redirect to the load event. This helps identify bottlenecks in the page loading process and understand where time is being spent. ```mermaid gantt     title Page Load Timeline     dateFormat X     axisFormat %s     section Network     Redirect           :0, 50     DNS Lookup         :50, 80     TCP Connection     :80, 120     SSL/TLS            :120, 180     Request/Response   :180, 350     section Processing     DOM Processing     :350, 500     DOMContentLoaded   :500, 520     Resources Loading  :520, 800     Load Event         :800, 820 ```
+  Analyzes the time spent in each phase of page navigation, from initial redirect to the load event. This helps identify bottlenecks in the page loading process and understand where time is being spent.
 
 - [First contentful paint (FCP)](https://webperf-snippets.nucliweb.net/Loading/FCP)
   Quick check for First Contentful Paint, the metric that marks when the browser renders the first piece of DOM content, text, image, canvas, or SVG. FCP measures the user's perception of whether the page is loading. Unlike LCP, FCP fires as soon as _any_ content appears, making it the earliest signal of loading progress. A slow FCP almost always points to TTFB or render-blocking resources.
