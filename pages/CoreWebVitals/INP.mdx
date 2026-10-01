@@ -1,5 +1,6 @@
 import snippet from '../../snippets/CoreWebVitals/INP.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Demo } from '../../components/Demo'
 import { Callout } from 'nextra/components'
 import { Flow } from '../../components/diagrams'
 
@@ -82,6 +83,12 @@ INP measures the latency of ALL user interactions during the page's lifetime. Un
 | **Input Delay** | Time from user action to handler start | Long tasks blocking main thread |
 | **Processing Time** | Event handler execution | Heavy computation, DOM manipulation |
 | **Presentation Delay** | Time to render update | Large render tree, forced layouts |
+
+<Demo
+  src="/demos/inp-phases.html"
+  title="Timeline of the three INP phases (input delay, processing time and presentation delay) for five scenarios: responsive, long task running, heavy handler, expensive render and slow device"
+  caption="Switch scenarios to see which phase dominates the interaction, and select a phase to highlight it."
+/>
 
 ### INP updates throughout the page lifetime
 
