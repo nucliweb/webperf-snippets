@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.Element.getBoundingClientRect
+  - api.HTMLImageElement.currentSrc
+browserSupportReported:
+  - html.elements.img.loading
+  - html.elements.img.fetchpriority
+---
+
 import snippet from '../../snippets/Loading/Find-Images-With-Lazy-and-Fetchpriority.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -76,6 +85,8 @@ Based on the image position, the snippet suggests which attribute to keep:
 <!-- ❌ Contradictory - don't do this -->
 <img src="image.jpg" loading="lazy" fetchpriority="high" alt="...">
 ```
+
+### Browser support
 
 ### Further reading
 

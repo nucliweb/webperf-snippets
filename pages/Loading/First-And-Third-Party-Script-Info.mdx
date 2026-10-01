@@ -1,3 +1,10 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+browserSupportReported:
+  - api.PerformanceResourceTiming.renderBlockingStatus
+---
+
 import snippet from "../../snippets/Loading/First-And-Third-Party-Script-Info.js?raw";
 import { Snippet } from "../../components/Snippet";
 import { Callout } from '../../components/Callout'
@@ -86,6 +93,8 @@ An IP address is compared as a whole, so two different addresses are never the s
 | Social       | Facebook SDK, Twitter widgets       | 100-300 KB, heavy                  |
 | Chat/Support | Intercom, Zendesk, Drift            | 100-500 KB, often deferred         |
 | A/B Testing  | Optimizely, VWO                     | 50-150 KB, often blocking          |
+
+### Browser support
 
 ### Further reading
 

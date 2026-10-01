@@ -1,3 +1,9 @@
+---
+browserSupport:
+  - api.PerformanceNavigationTiming
+  - api.PerformanceObserver
+---
+
 import snippet from '../../snippets/Loading/Event-Processing-Time.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { EventProcessingTimeline } from '../../components/diagrams/EventProcessingTimeline'
@@ -62,6 +68,8 @@ Run the snippet after the load event. While the page is still loading it reports
 | Total Load Time | < 2.5s | 2.5s - 4s | > 4s |
 | TTFB | < 800ms | 800ms - 1800ms | > 1800ms |
 | DOMContentLoaded | < 1.5s | 1.5s - 3s | > 3s |
+
+### Browser support
 
 ### Further reading
 
