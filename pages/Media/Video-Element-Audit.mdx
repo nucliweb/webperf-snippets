@@ -1,3 +1,13 @@
+---
+browserSupport:
+  - api.HTMLMediaElement.currentSrc
+browserSupportReported:
+  - html.elements.video.autoplay
+  - html.elements.video.playsinline
+  - html.elements.video.preload
+  - html.elements.video.poster
+---
+
 import snippet from '../../snippets/Media/Video-Element-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
 
@@ -128,16 +138,9 @@ Being explicit avoids relying on browser defaults, which vary across devices and
 
 ### Browser support
 
-| Feature           | Chrome | Edge | Firefox | Safari |
-| ----------------- | ------ | ---- | ------- | ------ |
-| `autoplay` + `muted` | 66  | 79   | 65      | 11     |
-| `playsinline`     | 60     | 79   |,       | 10     |
-| `preload`         | 3      | 12   | 4       | 4      |
-| `poster`          | 8      | 12   | 3.6     | 4      |
-| VP9 (WebM)        | 29     | 14   | 28      | 14.1   |
-| AV1               | 70     | 75   | 67      | 17     |
-
 `playsinline` has no effect on desktop browsers, it is a no-op outside of iOS Safari's fullscreen enforcement.
+
+The snippet also detects the video codec (VP9, AV1). For the support of each codec, see MDN's [web video codec guide](https://developer.mozilla.org/docs/Web/Media/Guides/Formats/Video_codecs).
 
 ### Further reading
 

@@ -1,3 +1,11 @@
+---
+browserSupport:
+  - api.PerformanceNavigationTiming
+  - api.PageTransitionEvent.persisted
+browserSupportReported:
+  - api.PerformanceNavigationTiming.notRestoredReasons
+---
+
 import snippet from "../../snippets/Loading/Back-Forward-Cache.js?raw";
 import { Snippet } from "../../components/Snippet";
 import { Flow, Sequence } from '../../components/diagrams'
@@ -354,13 +362,6 @@ This tells us:
 - The panel lists the blocking reasons immediately
 
 ### Browser support
-
-| Browser     | bfcache Support | NotRestoredReasons API |
-| ----------- | --------------- | ---------------------- |
-| Chrome 96+  | ✅              | ✅ (123+)              |
-| Edge 96+    | ✅              | ✅ (123+)              |
-| Safari 14+  | ✅              | ❌                     |
-| Firefox 86+ | ✅              | ❌                     |
 
 All modern browsers support bfcache, but diagnostics vary.
 

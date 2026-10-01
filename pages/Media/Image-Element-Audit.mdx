@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.HTMLImageElement.currentSrc
+browserSupportReported:
+  - html.elements.img.loading
+  - html.elements.img.decoding
+  - html.elements.img.fetchpriority
+---
+
 import snippet from '../../snippets/Media/Image-Element-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
 
@@ -167,18 +176,9 @@ The browser already assigns low priority to off-viewport images during initial l
 
 ### Browser support
 
-| Attribute        | Chrome | Edge | Firefox | Safari |
-| ---------------- | ------ | ---- | ------- | ------ |
-| `loading="lazy"` | 77     | 79   | 75      | 15.4   |
-| `decoding`       | 65     | 79   | 63      | 11.1   |
-| `fetchpriority`  | 101    | 101  | 132     | 17.2   |
-| WebP             | 32     | 18   | 65      | 14     |
-| AVIF             | 85     | 121  | 93      | 16     |
-| JPEG XL          |,      |,    |,       | 17 ⚠️  |
-
-⚠️ Safari 17 supports JPEG XL for still images only, animated sequences are not supported. Chrome and Firefox require enabling an experimental flag and do not support JPEG XL by default.
-
 Browsers that do not support `fetchpriority` or `loading` ignore the attributes safely, no polyfill is needed.
+
+The snippet also names the image format of each image (WebP, AVIF, JPEG XL). For the support of each format, see MDN's [image file type and format guide](https://developer.mozilla.org/docs/Web/Media/Guides/Formats/Image_types).
 
 ### Further reading
 
