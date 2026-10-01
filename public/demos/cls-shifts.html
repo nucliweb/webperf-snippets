@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How layout shifts become CLS</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --tab-active-bg: #1c2a3f;
+  --accent: #58a6ff;
+  --c-shift: #f0883e;
+  --c-win: #8b949e;
+  --c-good: #3fb950;
+  --c-mid: #e3b341;
+  --c-poor: #f85149;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --tab-active-bg: #dbeafe;
+  --accent: #0969da;
+  --c-shift: #bc4c00;
+  --c-win: #656d76;
+  --c-good: #1a7f37;
+  --c-mid: #9a6700;
+  --c-poor: #cf222e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+button { font: inherit; color: inherit; }
+
+/* Scenario tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tab:hover { color: var(--text); border-color: var(--accent); }
+.tab[aria-pressed="true"] { color: var(--text); background: var(--tab-active-bg); border-color: var(--accent); }
+.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Legend strip */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid var(--lg);
+  color: var(--lg);
+  background: color-mix(in srgb, var(--lg) 12%, transparent);
+}
+
+/* Frame with a title bar */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Counters */
+.counters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.counter-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+}
+.counter-card .name { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.counter-card .val { font-size: 26px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.counter-card .rate { font-size: 11px; font-weight: 600; }
+.counter-card.real { border-color: var(--accent); }
+.good { color: var(--c-good); }
+.mid  { color: var(--c-mid); }
+.poor { color: var(--c-poor); }
+
+/* Timeline */
+.timeline { position: relative; margin: 0 6px; padding-top: 22px; }
+.plot {
+  position: relative;
+  height: 96px;
+  border-bottom: 1px solid var(--border);
+}
+.bar {
+  position: absolute;
+  bottom: 0;
+  width: 8px;
+  margin-left: -4px;
+  height: 0;
+  background: var(--c-shift);
+  border-radius: 2px 2px 0 0;
+  transition: height .35s ease-out, background .2s;
+}
+.bar.dim { background: color-mix(in srgb, var(--c-shift) 45%, var(--bg)); }
+.bar-val {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 1px;
+  text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg);
+}
+.win {
+  position: absolute;
+  top: -4px;
+  bottom: 0;
+  border: 1.5px dashed var(--c-win);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.win.largest { border-style: solid; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.win-label {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 3px;
+}
+.win.largest .win-label { color: var(--accent); }
+.cap {
+  position: absolute;
+  top: -4px;
+  bottom: 0;
+  border-left: 1.5px dotted var(--c-poor);
+}
+.cap span {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  font-size: 10px;
+  color: var(--c-poor);
+  white-space: nowrap;
+}
+.axis { position: relative; height: 18px; margin-top: 3px; }
+.tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Controls */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn:disabled { opacity: .4; cursor: default; }
+.btn-reset { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-next  { background: #1f6feb; color: #fff; }
+.btn-next:not(:disabled):hover { background: #388bfd; }
+.step-counter { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+/* Explanation */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl strong { color: var(--text); }
+.expl code { font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; background: var(--surface2); padding: 1px 4px; border-radius: 3px; }
+.expl.t-neutral { border-left-color: var(--accent); }
+.expl.t-warn    { border-left-color: var(--c-mid); }
+.expl.t-ok      { border-left-color: var(--c-good); }
+.expl.t-block   { border-left-color: var(--c-poor); }
+
+@media (max-width: 480px) {
+  .counter-card .val { font-size: 22px; }
+  .counter-card .name { min-height: 2.6em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <span class="legend-label">Legend</span>
+  <span class="lg" style="--lg: var(--c-shift)">Layout shift (height = score)</span>
+  <span class="lg" style="--lg: var(--c-win)">Session window</span>
+  <span class="lg" style="--lg: var(--accent)">Largest window = CLS</span>
+</div>
+
+<div class="tabs" role="group" aria-label="Scenario" id="tabs"></div>
+
+<div class="frame">
+  <div class="frame-label">Layout shifts over 10 seconds</div>
+  <div class="frame-body">
+    <div class="counters">
+      <div class="counter-card">
+        <div class="name">Sum of all shifts</div>
+        <div class="val" id="naive">0.00</div>
+        <div class="rate" id="naiveRate">&nbsp;</div>
+      </div>
+      <div class="counter-card real">
+        <div class="name">CLS (largest window)</div>
+        <div class="val" id="cls">0.00</div>
+        <div class="rate" id="clsRate">&nbsp;</div>
+      </div>
+    </div>
+    <div class="timeline" id="timeline" role="img" aria-label="">
+      <div class="plot" id="plot"></div>
+      <div class="axis" id="axis"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-reset" id="btnReset">↩ Reset</button>
+  <button class="btn btn-next" id="btnNext">Next shift →</button>
+  <span class="step-counter" id="stepCounter"></span>
+</div>
+
+<div class="expl t-neutral" id="expl" aria-live="polite"></div>
+
+<script>
+// Illustrative values, not measured. Times in tenths of a second and scores in
+// thousandths so the window rules (gap < 1 s, span < 5 s) use exact integers.
+const SCENARIOS = [
+  {
+    id: "one",
+    label: "One burst",
+    intro: "A page loads and a late banner pushes content down three times in quick succession. Click <strong>Next shift</strong> to replay each shift in order.",
+    shifts: [[12, 40], [16, 60], [21, 30]],
+  },
+  {
+    id: "two",
+    label: "Two bursts",
+    intro: "The page shifts while it loads, settles for a while, and shifts again when a lazy embed arrives. Click <strong>Next shift</strong> to replay each shift in order.",
+    shifts: [[10, 50], [15, 40], [40, 80], [46, 60], [52, 30]],
+  },
+  {
+    id: "long",
+    label: "Long burst (5 s cap)",
+    intro: "An infinite feed keeps inserting content, one shift every 0.8 s. No gap ever reaches 1 s, so only the 5 s cap can close the window. Click <strong>Next shift</strong> to replay each shift in order.",
+    shifts: [[5, 30], [13, 30], [21, 30], [29, 30], [37, 30], [45, 30], [53, 30], [61, 30], [69, 30], [77, 30], [85, 30]],
+  },
+];
+
+const GAP = 10;   // a window closes after a 1 s gap between shifts
+const CAP = 50;   // a window never lasts longer than 5 s
+const MAX_T = 100;
+const BAR_SCALE = 90; // a shift of 0.090 fills the plot height
+
+const $ = (id) => document.getElementById(id);
+const fmt = (v) => (v / 1000).toFixed(2);
+const sec = (t) => (t / 10).toFixed(1);
+const rating = (v) => (v <= 100 ? ["good", "Good"] : v <= 250 ? ["mid", "Needs improvement"] : ["poor", "Poor"]);
+
+function toWindows(shifts) {
+  const windows = [];
+  for (const [t, v] of shifts) {
+    const cur = windows[windows.length - 1];
+    if (cur && t - cur.last < GAP && t - cur.start < CAP) {
+      cur.last = t;
+      cur.sum += v;
+      cur.count += 1;
+    } else {
+      windows.push({ start: t, last: t, sum: v, count: 1 });
+    }
+  }
+  return windows;
+}
+
+let scenario = SCENARIOS[0];
+let step = 0;
+
+function buildTabs() {
+  const box = $("tabs");
+  SCENARIOS.forEach((s) => {
+    const b = document.createElement("button");
+    b.className = "tab";
+    b.textContent = s.label;
+    b.setAttribute("aria-pressed", s === scenario ? "true" : "false");
+    b.addEventListener("click", () => {
+      scenario = s;
+      step = 0;
+      box.querySelectorAll(".tab").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+      buildPlot();
+      render();
+    });
+    box.appendChild(b);
+  });
+}
+
+function buildPlot() {
+  const plot = $("plot");
+  plot.innerHTML = "";
+  scenario.shifts.forEach(([t, v], i) => {
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.dataset.i = i;
+    bar.style.left = (t / MAX_T) * 100 + "%";
+    const label = document.createElement("span");
+    label.className = "bar-val";
+    label.textContent = fmt(v);
+    bar.appendChild(label);
+    plot.appendChild(bar);
+  });
+  const axis = $("axis");
+  axis.innerHTML = "";
+  for (let s = 0; s <= 10; s += 2) {
+    const tick = document.createElement("span");
+    tick.className = "tick";
+    tick.style.left = (s * 10 / MAX_T) * 100 + "%";
+    tick.textContent = s + " s";
+    axis.appendChild(tick);
+  }
+}
+
+function explain(k) {
+  if (k === 0) return { cls: "t-neutral", html: scenario.intro };
+  const shifts = scenario.shifts.slice(0, k);
+  const [t, v] = shifts[k - 1];
+  const prevT = k > 1 ? shifts[k - 2][0] : null;
+  const wins = toWindows(shifts);
+  const prevWins = toWindows(scenario.shifts.slice(0, k - 1));
+  const cur = wins[wins.length - 1];
+  const best = Math.max(...wins.map((w) => w.sum));
+  const naive = shifts.reduce((a, [, x]) => a + x, 0);
+  const head = `<strong>Shift at ${sec(t)} s</strong> with a score of <code>${fmt(v)}</code>. `;
+  let body;
+  let tone = "t-neutral";
+  if (k === 1) {
+    body = `It opens <strong>window 1</strong>.`;
+  } else if (wins.length === prevWins.length) {
+    body = `Only ${sec(t - prevT)} s since the previous shift (under 1 s) and ${sec(t - cur.start)} s since the window opened (under 5 s), so it joins <strong>window ${wins.length}</strong>, now at <code>${fmt(cur.sum)}</code>.`;
+  } else {
+    tone = "t-warn";
+    const why = t - prevT >= GAP
+      ? `${sec(t - prevT)} s passed since the previous shift, which is 1 s or more`
+      : `it arrives ${sec(t - prevWins[prevWins.length - 1].start)} s after the window opened, past the 5 s cap`;
+    body = `${why[0].toUpperCase() + why.slice(1)}, so window ${wins.length - 1} closes and this shift opens <strong>window ${wins.length}</strong>.`;
+  }
+  let tail = ` Sum of all shifts: <code>${fmt(naive)}</code>. CLS (largest window): <code>${fmt(best)}</code>.`;
+  if (k === scenario.shifts.length) {
+    const [, nr] = rating(naive);
+    const [rc, cr] = rating(best);
+    tail += ` That was the last shift. CLS reports <strong>${fmt(best)} (${cr})</strong>; adding every shift would have reported ${fmt(naive)} (${nr}).`;
+    tone = rc === "good" ? "t-ok" : rc === "mid" ? "t-warn" : "t-block";
+  }
+  return { cls: tone, html: head + body + tail };
+}
+
+function render() {
+  const k = step;
+  const shifts = scenario.shifts.slice(0, k);
+  const wins = toWindows(shifts);
+  const best = wins.length ? Math.max(...wins.map((w) => w.sum)) : 0;
+  const naive = shifts.reduce((a, [, x]) => a + x, 0);
+  const bestIdx = wins.findIndex((w) => w.sum === best);
+
+  // Bars
+  $("plot").querySelectorAll(".bar").forEach((bar) => {
+    const i = Number(bar.dataset.i);
+    bar.style.height = i < k ? Math.min(scenario.shifts[i][1] / BAR_SCALE, 1) * 100 + "%" : "0";
+    bar.style.visibility = i < k ? "visible" : "hidden";
+    const w = wins.findIndex((x) => scenario.shifts[i][0] >= x.start && scenario.shifts[i][0] <= x.last);
+    bar.classList.toggle("dim", i < k && w !== bestIdx);
+  });
+
+  // Windows and cap marker
+  $("plot").querySelectorAll(".win, .cap").forEach((n) => n.remove());
+  const pad = 2;
+  wins.forEach((w, i) => {
+    const el = document.createElement("div");
+    el.className = "win" + (i === bestIdx ? " largest" : "");
+    el.style.left = ((w.start - pad) / MAX_T) * 100 + "%";
+    el.style.width = ((w.last - w.start + pad * 2) / MAX_T) * 100 + "%";
+    const label = document.createElement("span");
+    label.className = "win-label";
+    label.textContent = fmt(w.sum);
+    el.appendChild(label);
+    $("plot").appendChild(el);
+  });
+  if (wins.length) {
+    const cur = wins[wins.length - 1];
+    if (cur.start + CAP <= MAX_T) {
+      const cap = document.createElement("div");
+      cap.className = "cap";
+      cap.style.left = ((cur.start + CAP) / MAX_T) * 100 + "%";
+      cap.innerHTML = "<span>5 s cap</span>";
+      $("plot").appendChild(cap);
+    }
+  }
+
+  // Counters
+  const [nc, nl] = rating(naive);
+  const [cc, cl] = rating(best);
+  $("naive").textContent = fmt(naive);
+  $("naive").className = "val " + (k ? nc : "");
+  $("naiveRate").textContent = k ? nl : " ";
+  $("naiveRate").className = "rate " + (k ? nc : "");
+  $("cls").textContent = fmt(best);
+  $("cls").className = "val " + (k ? cc : "");
+  $("clsRate").textContent = k ? cl : " ";
+  $("clsRate").className = "rate " + (k ? cc : "");
+
+  // Text
+  const e = explain(k);
+  $("expl").className = "expl " + e.cls;
+  $("expl").innerHTML = e.html;
+  $("timeline").setAttribute(
+    "aria-label",
+    `Timeline from 0 to 10 seconds with ${k} of ${scenario.shifts.length} layout shifts shown in ${wins.length} session window${wins.length === 1 ? "" : "s"}.`
+  );
+  $("stepCounter").textContent = `Shift ${k} / ${scenario.shifts.length}`;
+  $("btnNext").disabled = k === scenario.shifts.length;
+}
+
+$("btnNext").addEventListener("click", () => {
+  if (step < scenario.shifts.length) { step++; render(); }
+});
+$("btnReset").addEventListener("click", () => { step = 0; render(); });
+
+buildTabs();
+buildPlot();
+render();
+
+// Theme
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
+(function initTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) return applyTheme(stored);
+  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+})();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
+});
+
+// Height
+function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>

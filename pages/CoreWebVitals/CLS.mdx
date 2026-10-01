@@ -1,5 +1,6 @@
 import snippet from '../../snippets/CoreWebVitals/CLS.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Demo } from '../../components/Demo'
 import { Callout } from 'nextra/components'
 import { Flow } from '../../components/diagrams'
 
@@ -38,6 +39,12 @@ CLS = max over session windows of Σ shift scores
 
 - **Impact fraction**: How much of the viewport was affected
 - **Distance fraction**: How far elements moved
+
+<Demo
+  src="/demos/cls-shifts.html"
+  title="Timeline of layout shifts grouped into session windows, comparing the sum of all shifts with the CLS value for three scenarios: one burst, two bursts and a long burst cut at 5 seconds"
+  caption="Step through the shifts to see when a session window opens and closes, and why CLS reports only the largest window."
+/>
 
 ### What's excluded
 - Shifts within 500ms of user input (`hadRecentInput: true`)
