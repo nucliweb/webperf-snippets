@@ -1,6 +1,7 @@
 import snippet from '../../snippets/Loading/First-And-Third-Party-Script-Timings.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from 'nextra/components'
+import { Sequence } from '../../components/diagrams'
 
 # First and third party script timings
 
@@ -8,21 +9,24 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
 
 ### Timing phases explained
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant D as DNS
-    participant S as Server
-
-    B->>B: Redirect (if any)
-    B->>D: DNS Lookup
-    D-->>B: IP Address
-    B->>S: TCP Connection
-    B->>S: TLS/SSL Handshake
-    B->>S: Request
-    S-->>B: Response Start
-    S-->>B: Response End
-```
+<Sequence
+  title="Order of the network phases that precede a script response: redirect, DNS lookup, TCP connection, TLS handshake, request, then response start and end"
+  participants={[
+    { id: "B", label: "Browser" },
+    { id: "D", label: "DNS" },
+    { id: "S", label: "Server" },
+  ]}
+  steps={[
+    { type: "message", from: "B", to: "B", label: "Redirect (if any)" },
+    { type: "message", from: "B", to: "D", label: "DNS Lookup" },
+    { type: "message", from: "D", to: "B", label: "IP Address", dashed: true },
+    { type: "message", from: "B", to: "S", label: "TCP Connection" },
+    { type: "message", from: "B", to: "S", label: "TLS/SSL Handshake" },
+    { type: "message", from: "B", to: "S", label: "Request" },
+    { type: "message", from: "S", to: "B", label: "Response Start", dashed: true },
+    { type: "message", from: "S", to: "B", label: "Response End", dashed: true },
+  ]}
+/>
 
 | Phase | What it measures | Why it matters |
 |-------|------------------|----------------|

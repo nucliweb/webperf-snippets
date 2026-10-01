@@ -1,5 +1,6 @@
 import snippet from '../../snippets/Loading/Service-Worker-Analysis.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Sequence } from '../../components/diagrams'
 
 # Service worker analysis
 
@@ -16,54 +17,60 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 
 ### SW impact on navigation timing
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant SW as Service Worker
-    participant C as Cache Storage
-    participant N as Network
-
-    B->>SW: Navigation request
-    Note over SW: workerStart → fetchStart<br/>(SW startup overhead)
-
-    alt Cache hit
-        SW->>C: respondWith(caches.match())
-        C-->>SW: Cached response
-        SW-->>B: Response (transferSize = 0)
-        Note over B: Fast ✓ No network
-    else Cache miss
-        SW->>N: fetch(request)
-        N-->>SW: Network response
-        SW-->>B: Response (transferSize > 0)
-        Note over B: Network fallback
-    end
-```
+<Sequence
+  title="Navigation request passes through the service worker, which either answers from Cache Storage with no network transfer or falls back to the network after a cache miss"
+  participants={[
+    { id: "B", label: "Browser" },
+    { id: "SW", label: "Service Worker" },
+    { id: "C", label: "Cache Storage" },
+    { id: "N", label: "Network" },
+  ]}
+  steps={[
+    { type: "message", from: "B", to: "SW", label: "Navigation request" },
+    { type: "note", over: "SW", text: "workerStart → fetchStart\n(SW startup overhead)" },
+    { type: "block", kind: "alt", label: "Cache hit", steps: [
+      { type: "message", from: "SW", to: "C", label: "respondWith(caches.match())" },
+      { type: "message", from: "C", to: "SW", label: "Cached response", dashed: true },
+      { type: "message", from: "SW", to: "B", label: "Response (transferSize = 0)", dashed: true },
+      { type: "note", right: "B", text: "Fast ✓ No network" },
+    ], else: [
+      { label: "Cache miss", steps: [
+        { type: "message", from: "SW", to: "N", label: "fetch(request)" },
+        { type: "message", from: "N", to: "SW", label: "Network response", dashed: true },
+        { type: "message", from: "SW", to: "B", label: "Response (transferSize > 0)", dashed: true },
+        { type: "note", right: "B", text: "Network fallback" },
+      ] },
+    ] },
+  ]}
+/>
 
 ### Navigation preload reduces SW startup cost
 
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant SW as Service Worker
-    participant N as Network
-
-    rect rgb(255, 235, 235)
-        Note over B,N: Without Navigation Preload
-        B->>SW: Start SW
-        Note over SW: Startup delay...
-        SW->>N: fetch(event.request)
-        N-->>B: Response
-    end
-
-    rect rgb(235, 255, 235)
-        Note over B,N: With Navigation Preload
-        B->>SW: Start SW
-        B->>N: Preload request (parallel!)
-        Note over SW: Startup runs in parallel
-        N-->>SW: Preloaded response
-        SW-->>B: Response (no extra delay)
-    end
-```
+<Sequence
+  title="Comparison of a navigation without preload, where the network request waits for service worker startup, and with navigation preload, where the request runs in parallel with startup"
+  participants={[
+    { id: "B", label: "Browser" },
+    { id: "SW", label: "Service Worker" },
+    { id: "N", label: "Network" },
+  ]}
+  steps={[
+    { type: "block", kind: "rect", tone: "bad", steps: [
+      { type: "note", over: ["B", "N"], text: "Without Navigation Preload" },
+      { type: "message", from: "B", to: "SW", label: "Start SW" },
+      { type: "note", over: "SW", text: "Startup delay..." },
+      { type: "message", from: "SW", to: "N", label: "fetch(event.request)" },
+      { type: "message", from: "N", to: "B", label: "Response", dashed: true },
+    ] },
+    { type: "block", kind: "rect", tone: "good", steps: [
+      { type: "note", over: ["B", "N"], text: "With Navigation Preload" },
+      { type: "message", from: "B", to: "SW", label: "Start SW" },
+      { type: "message", from: "B", to: "N", label: "Preload request (parallel!)" },
+      { type: "note", over: "SW", text: "Startup runs in parallel" },
+      { type: "message", from: "N", to: "SW", label: "Preloaded response", dashed: true },
+      { type: "message", from: "SW", to: "B", label: "Response (no extra delay)", dashed: true },
+    ] },
+  ]}
+/>
 
 ### Snippet
 

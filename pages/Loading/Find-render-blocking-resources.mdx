@@ -2,6 +2,7 @@ import snippet from '../../snippets/Loading/Find-render-blocking-resources.js?ra
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
 import { Callout } from 'nextra/components'
+import { Flow } from '../../components/diagrams'
 
 # Find render-blocking resources
 
@@ -65,33 +66,36 @@ Resources are sorted by completion time (latest first), so you can see which res
 
 ### Optimization decision tree
 
-```mermaid
-flowchart TD
-    Start[Render-Blocking Resource] --> Type{Resource Type?}
-
-    Type -->|CSS| Critical{Critical for<br/>initial render?}
-    Type -->|JavaScript| JSCritical{Critical for<br/>initial render?}
-    Type -->|Font| FontStrategy[Use font-display: swap]
-
-    Critical -->|Yes| Inline[✓ Inline critical CSS<br/>in &lt;head&gt;]
-    Critical -->|No| Async[✓ Load asynchronously<br/>media='print' onload trick]
-
-    JSCritical -->|Yes| JSSmall{Very small<br/>< 1KB?}
-    JSCritical -->|No| Defer[✓ Add defer attribute]
-
-    JSSmall -->|Yes| JSInline[✓ Inline the script]
-    JSSmall -->|No| EndBody[✓ Move to end of &lt;body&gt;]
-
-    FontStrategy --> Preload[✓ Preload critical fonts]
-
-    style Inline fill:#E5FFE5
-    style Async fill:#FFE5F2
-    style Defer fill:#E5F2FF
-    style JSInline fill:#E5FFE5
-    style EndBody fill:#FFF3E5
-    style FontStrategy fill:#FFE5E5
-    style Preload fill:#E5FFE5
-```
+<Flow
+  title="Decision tree for a render-blocking resource: critical CSS is inlined, other CSS loads asynchronously, critical small scripts are inlined, other critical scripts move to the end of body, non-critical scripts use defer, and fonts use font-display swap plus preload"
+  nodes={[
+    { id: "Start", label: "Render-Blocking Resource" },
+    { id: "Type", label: "Resource Type?", shape: "decision" },
+    { id: "Critical", label: "Critical for\ninitial render?", shape: "decision" },
+    { id: "JSCritical", label: "Critical for\ninitial render?", shape: "decision" },
+    { id: "FontStrategy", label: "Use font-display: swap", tone: "bad" },
+    { id: "Inline", label: "✓ Inline critical CSS\nin <head>", tone: "good" },
+    { id: "Async", label: "✓ Load asynchronously\nmedia='print' onload trick", tone: "render" },
+    { id: "JSSmall", label: "Very small\n< 1KB?", shape: "decision" },
+    { id: "Defer", label: "✓ Add defer attribute", tone: "info" },
+    { id: "JSInline", label: "✓ Inline the script", tone: "good" },
+    { id: "EndBody", label: "✓ Move to end of <body>", tone: "warn" },
+    { id: "Preload", label: "✓ Preload critical fonts", tone: "good" },
+  ]}
+  edges={[
+    { from: "Start", to: "Type" },
+    { from: "Type", to: "Critical", label: "CSS" },
+    { from: "Type", to: "JSCritical", label: "JavaScript" },
+    { from: "Type", to: "FontStrategy", label: "Font" },
+    { from: "Critical", to: "Inline", label: "Yes" },
+    { from: "Critical", to: "Async", label: "No" },
+    { from: "JSCritical", to: "JSSmall", label: "Yes" },
+    { from: "JSCritical", to: "Defer", label: "No" },
+    { from: "JSSmall", to: "JSInline", label: "Yes" },
+    { from: "JSSmall", to: "EndBody", label: "No" },
+    { from: "FontStrategy", to: "Preload" },
+  ]}
+/>
 
 ### Common render-blocking patterns
 
