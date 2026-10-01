@@ -336,3 +336,26 @@ pre code {
 .wp-dot-brown { --c: var(--ic-brown); }
 .wp-dot-dark { --c: var(--ic-dark); }
 .wp-dot-neutral { --c: var(--ic-neutral); }
+
+/* Browser support drawn at build time (see lib/remark-browser-support.js): a row of
+   browsers under the title. Each item is tinted with the status tone of the site. */
+.wp-support > p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0 0 !important;
+  font-size: 0.8125rem;
+}
+.wp-support-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border: 1px solid var(--c);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--c) 10%, transparent);
+  white-space: nowrap;
+}
+.wp-support-item { --c: color-mix(in srgb, var(--ic-good) 45%, transparent); }
+.wp-support-partial { --c: color-mix(in srgb, var(--ic-mid) 55%, transparent); }
+.wp-support-no { --c: color-mix(in srgb, var(--ic-poor) 45%, transparent); }

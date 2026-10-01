@@ -1,9 +1,11 @@
 const path = require('path')
 const rehypeIcons = require('./lib/rehype-icons')
+const remarkBrowserSupport = require('./lib/remark-browser-support')
 const withNextra = require('nextra')({
   theme: 'nextra-theme-docs',
   themeConfig: './theme.config.jsx',
   mdxOptions: {
+    remarkPlugins: [remarkBrowserSupport],
     rehypePlugins: [rehypeIcons],
   },
 })

@@ -1,3 +1,9 @@
+---
+browserSupport:
+  - api.PerformanceNavigationTiming
+  - api.PerformanceObserver
+---
+
 import snippet from '../../snippets/Loading/TTFB.js?raw'
 import snippet2 from '../../snippets/Loading/TTFB-Sub-Parts.js?raw'
 import snippet3 from '../../snippets/Loading/TTFB-Resources.js?raw'
@@ -93,12 +99,6 @@ Analyzes TTFB for every resource loaded on the page (scripts, stylesheets, image
 <Snippet code={snippet3} />
 
 ## Browser support
-
-| API | Chrome | Firefox | Safari | Edge |
-|-----|--------|---------|--------|------|
-| Navigation Timing | ✅ 65 | ✅ 58 | ✅ 11 | ✅ 79 |
-| Resource Timing | ✅ 43 | ✅ 36 | ✅ 11 | ✅ 12 |
-| PerformanceObserver | ✅ 52 | ✅ 57 | ✅ 11 | ✅ 79 |
 
 ## Further reading
 

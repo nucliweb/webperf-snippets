@@ -1,3 +1,9 @@
+---
+browserSupport:
+  - api.PerformanceEventTiming
+  - api.PerformanceEventTiming.interactionId
+---
+
 import snippet from '../../snippets/CoreWebVitals/INP.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
@@ -168,15 +174,6 @@ Different interaction types have different performance profiles:
 | `pointerup` | 16-50ms | Usually fast unless triggering complex actions |
 
 ### Browser support
-
-| Browser | INP Support | Event Timing API | Phase Breakdown |
-|---------|-------------|------------------|-----------------|
-| Chrome 96+ | ✅ | ✅ | ✅ |
-| Edge 96+ | ✅ | ✅ | ✅ |
-| Firefox | ❌* | Partial | ❌ |
-| Safari | ❌* | ❌ | ❌ |
-
-\* Firefox and Safari don't support `interactionId` yet. The snippet will track events but won't group them into interactions correctly.
 
 ### Troubleshooting
 
