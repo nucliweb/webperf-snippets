@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [0.3.0] — 2026-10-02
+
 ### Added
 - GitHub Action at `.github/actions/webperf-snippets`: installs the CLI and Chromium, runs a workflow with LCP and CLS budgets, and exposes `markdown` and `exit-code` outputs. The markdown is written to the job summary and handled as untrusted text.
 - `--crux-key <key>` (or `CRUX_API_KEY`): add CrUX field data at the 75th percentile for LCP, CLS and INP next to the measured values, in the human, markdown and JSON output. The form factor follows `--viewport`; a page without data falls back to its origin and is labeled `origin-level`; a CrUX error only skips the section.
