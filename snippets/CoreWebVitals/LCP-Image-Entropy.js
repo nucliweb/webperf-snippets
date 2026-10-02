@@ -2,6 +2,10 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP-Image-Entropy", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   // @shared formatBytes
   function formatBytes(bytes) {
     if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";

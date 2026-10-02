@@ -1,4 +1,11 @@
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    return {
+      script: "LCP-Video-Candidate",
+      status: "unsupported",
+      error: "largest-contentful-paint entries not supported in this browser"
+    };
+  }
   const collectBuffered = (type, timeoutMs = 100) => new Promise(resolve => {
     const entries = [];
     try {

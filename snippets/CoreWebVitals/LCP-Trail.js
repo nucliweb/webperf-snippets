@@ -3,6 +3,10 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP-Trail", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   const PALETTE = [
     { color: "#EF4444", name: "Red" },
     { color: "#F97316", name: "Orange" },

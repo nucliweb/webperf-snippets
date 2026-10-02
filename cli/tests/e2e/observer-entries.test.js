@@ -85,6 +85,10 @@ describe("snippets on browsers without the required entry type", () => {
     ["CoreWebVitals/CLS", "layout-shift"],
     ["CoreWebVitals/INP", "event"],
     ["CoreWebVitals/LCP", "largest-contentful-paint"],
+    ["CoreWebVitals/LCP-Trail", "largest-contentful-paint"],
+    ["CoreWebVitals/LCP-Image-Entropy", "largest-contentful-paint"],
+    ["CoreWebVitals/LCP-Subparts", "largest-contentful-paint"],
+    ["CoreWebVitals/LCP-Video-Candidate", "largest-contentful-paint"],
     ["Interaction/LongTask", "longtask"],
     ["Interaction/Layout-Shift-Loading-and-Interaction", "layout-shift"],
   ];

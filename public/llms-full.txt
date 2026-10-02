@@ -579,6 +579,10 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP-Image-Entropy", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   // @shared formatBytes
   function formatBytes(bytes) {
     if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
@@ -801,6 +805,10 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP-Subparts", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   const formatMs = (ms) => `${Math.round(ms)}ms`;
   const formatPercent = (value, total) => `${Math.round((value / total) * 100)}%`;
 
@@ -1098,6 +1106,10 @@ Tracks every LCP candidate element during page load and highlights each one with
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP-Trail", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   const PALETTE = [
     { color: "#EF4444", name: "Red" },
     { color: "#F97316", name: "Orange" },
@@ -1298,6 +1310,10 @@ Detects whether the LCP element is a `<video>` and audits the poster image confi
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP-Video-Candidate", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver, so
   // performance.getEntriesByType() returns [] here. Collect via a buffered observer.
   const collectBuffered = (type, timeoutMs = 100) =>

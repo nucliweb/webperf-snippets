@@ -2,6 +2,10 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP-Subparts", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   const formatMs = (ms) => `${Math.round(ms)}ms`;
   const formatPercent = (value, total) => `${Math.round((value / total) * 100)}%`;
 
