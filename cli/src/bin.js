@@ -19,6 +19,7 @@ const WORKFLOWS = {
 const SNIPPET_ALIASES = {
   LCP: "CoreWebVitals/LCP",
   CLS: "CoreWebVitals/CLS",
+  INP: "CoreWebVitals/INP",
   "LCP-Subparts": "CoreWebVitals/LCP-Subparts",
   fonts: "Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold",
   "Fonts-Preloaded-Loaded-and-used-above-the-fold":
@@ -58,7 +59,7 @@ Options:
   --workflow <name>     Workflow to run (default: core-web-vitals)
                         Workflows: core-web-vitals, audit, loading
   --snippet <name>      Run a single snippet by alias or Category/Name path
-                        Aliases: LCP, CLS, LCP-Subparts, fonts,
+                        Aliases: LCP, CLS, INP, LCP-Subparts, fonts,
                                  render-blocking, resource-hints, preload-scripts,
                                  priority-hints, critical-css, ttfb,
                                  script-parties, script-loading,
