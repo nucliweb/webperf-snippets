@@ -150,7 +150,7 @@ The repository includes a headless CLI (`cli/`) that runs WebPerf Snippets via P
 npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 ```
 
-See [`cli/README.md`](./cli/README.md) for installation, usage, and CI integration. The CLI is published to npm as [`webperf-snippets`](https://www.npmjs.com/package/webperf-snippets) via a tag-based release workflow — pushing a `cli-v*` tag triggers the publish pipeline.
+A composite GitHub Action (`nucliweb/webperf-snippets/.github/actions/webperf-snippets`) wraps the CLI for CI, with budgets and a markdown output ready to post as a pull request comment. See [`cli/README.md`](./cli/README.md) for installation, usage, and CI integration. The CLI is published to npm as [`webperf-snippets`](https://www.npmjs.com/package/webperf-snippets) via a tag-based release workflow — pushing a `cli-v*` tag triggers the publish pipeline.
 
 ## Documentation
 

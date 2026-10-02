@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ## [Unreleased]
 
 ### Added
+- GitHub Action at `.github/actions/webperf-snippets`: installs the CLI and Chromium, runs a workflow with LCP and CLS budgets, and exposes `markdown` and `exit-code` outputs. The markdown is written to the job summary and handled as untrusted text.
 - `--crux-key <key>` (or `CRUX_API_KEY`): add CrUX field data at the 75th percentile for LCP, CLS and INP next to the measured values, in the human, markdown and JSON output. The form factor follows `--viewport`; a page without data falls back to its origin and is labeled `origin-level`; a CrUX error only skips the section.
 - `--report-to <url>` and `--api-key <key>`: POST the results as JSON to an `https` endpoint after the run. Without the flag the CLI makes no external calls. A failed POST only prints a warning and never changes the exit code. The key can also come from `PERF_REVIEWS_API_KEY`.
 - `--storage-state <path>`: measure pages behind a login with a Playwright storage state (cookies and localStorage).
