@@ -74,6 +74,18 @@ Synthetic INP measurement with an interaction script:
 npx webperf-snippets https://web.dev --snippet INP --interact-script interactions.json
 ```
 
+Pages behind a login, with a Playwright storage state (cookies and localStorage):
+
+```bash
+# Step 1: sign in once and save the session
+npx playwright codegen --save-storage=auth.json https://example.com/login
+
+# Step 2: measure an authenticated page
+npx webperf-snippets https://example.com/dashboard --storage-state auth.json
+```
+
+The file holds live session cookies. Keep it out of version control (add it to `.gitignore`) and use a throwaway account when you run it in CI. The CLI exits with code `2` if the path does not exist.
+
 CI gating:
 
 ```bash
@@ -91,6 +103,7 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 | `--viewport <preset>`        | Viewport preset: `mobile` (default), `tablet`, `desktop`.             |
 | `--wait <ms>`                | Post-load wait before evaluating snippets. Default: `3000`.            |
 | `--interact-script <path>`   | JSON file with interactions to run before evaluation (for INP).        |
+| `--storage-state <path>`     | Playwright storage state (cookies and localStorage) for pages that require authentication. |
 | `--budget-lcp <ms>`          | Exit `1` if LCP exceeds this value.                                    |
 | `--budget-cls <score>`       | Exit `1` if CLS exceeds this value.                                    |
 | `--verbose`                  | Show all items, including passing checks.                              |

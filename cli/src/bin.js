@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { loadSnippet } from "./load-snippet.js";
 import { runSnippets, runMeasurement, VIEWPORT_PRESETS } from "./runner.js";
@@ -72,6 +73,8 @@ Options:
   --budget-cls <score>  Exit 1 if CLS exceeds this value
   --interact-script <path>  JSON file with interactions to run before evaluation
                             Actions: scroll, click, hover, type, wait
+  --storage-state <path>    Playwright storage state (cookies + localStorage) to
+                            measure pages that require authentication
   --verbose             Show all items, even for passing checks
   --headed              Show the browser window (debug)
   -h, --help            Show this help
@@ -85,6 +88,7 @@ Examples:
   npx webperf-snippets https://web.dev --snippet fonts
   npx webperf-snippets https://web.dev --budget-lcp 2500
   npx webperf-snippets https://web.dev --snippet INP --interact-script interactions.json
+  npx webperf-snippets https://example.com/dashboard --storage-state auth.json
 `;
 
 function fail(message, code = 2) {
@@ -132,6 +136,7 @@ async function main() {
         "budget-cls": { type: "string" },
         viewport: { type: "string" },
         "interact-script": { type: "string" },
+        "storage-state": { type: "string" },
         verbose: { type: "boolean" },
         headed: { type: "boolean" },
         help: { type: "boolean", short: "h" },
@@ -163,16 +168,20 @@ async function main() {
   }
 
   const interactScript = values["interact-script"];
+  const storageState = values["storage-state"];
+  if (storageState && !existsSync(storageState)) {
+    fail(`Storage state file not found: ${storageState}`);
+  }
 
   let payload;
   if (values.snippet) {
     const items = buildSnippetItem(values);
-    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript });
+    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState });
   } else {
     const workflowName = values.workflow ?? "core-web-vitals";
     const workflow = WORKFLOWS[workflowName];
     if (!workflow) fail(`Unknown workflow: ${workflowName}`);
-    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript });
+    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState });
   }
 
   let output;

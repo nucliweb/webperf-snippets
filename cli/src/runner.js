@@ -46,10 +46,11 @@ export async function runSnippets({
   viewport = VIEWPORT_PRESETS.mobile,
   navTimeout = DEFAULT_NAV_TIMEOUT,
   interactScript,
+  storageState,
 }) {
   const browser = await chromium.launch({ headless });
   try {
-    const context = await browser.newContext({ viewport });
+    const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
@@ -74,10 +75,11 @@ export async function runMeasurement({
   viewport = VIEWPORT_PRESETS.mobile,
   navTimeout = DEFAULT_NAV_TIMEOUT,
   interactScript,
+  storageState,
 }) {
   const browser = await chromium.launch({ headless });
   try {
-    const context = await browser.newContext({ viewport });
+    const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
