@@ -86,6 +86,26 @@ npx webperf-snippets https://example.com/dashboard --storage-state auth.json
 
 The file holds live session cookies. Keep it out of version control (add it to `.gitignore`) and use a throwaway account when you run it in CI. The CLI exits with code `2` if the path does not exist.
 
+Compare the measured values with CrUX field data (what real users experience at the 75th percentile):
+
+```bash
+CRUX_API_KEY=your-key npx webperf-snippets https://web.dev
+```
+
+```
+Field data (CrUX p75, mobile)
+  🟡 LCP    2.80s      needs-improvement    (synthetic: 2.10s)
+  🟢 CLS    0.0800     good                 (synthetic: 0.0500)
+  🟡 INP    220ms      needs-improvement    (synthetic: n/a)
+```
+
+Get a key for the [Chrome UX Report API](https://developer.chrome.com/docs/crux/api) and pass it with `--crux-key` or the `CRUX_API_KEY` environment variable; prefer the variable, because a flag ends up in shell history and CI logs. The section appears in the human and markdown output and under `crux` in the `--json` output.
+
+- The population follows `--viewport`: `desktop` uses desktop data, `mobile` and `tablet` use phone data. The heading says which one.
+- When the page itself has no data, the CLI looks the origin up instead and labels the section `origin-level`, so it is not mistaken for page-level data. If the origin has none either, the output says `Field data: not available`.
+- A CrUX error (quota, network, no answer within 10 seconds) only skips the section. It never changes the exit code, and the key is never printed.
+- INP shows `n/a` as the synthetic value unless you run an interaction script.
+
 Send the results to an endpoint after the run with `--report-to`:
 
 ```bash
@@ -131,6 +151,7 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 | `--wait <ms>`                | Post-load wait before evaluating snippets. Default: `3000`.            |
 | `--interact-script <path>`   | JSON file with interactions to run before evaluation (for INP).        |
 | `--storage-state <path>`     | Playwright storage state (cookies and localStorage) for pages that require authentication. |
+| `--crux-key <key>`           | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`. |
 | `--report-to <url>`          | POST the results to this `https` URL after the run. No external calls without it. |
 | `--api-key <key>`            | Sent as a Bearer token with `--report-to`. Prefer `PERF_REVIEWS_API_KEY`. |
 | `--budget-lcp <ms>`          | Exit `1` if LCP exceeds this value.                                    |
