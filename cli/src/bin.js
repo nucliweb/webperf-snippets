@@ -10,6 +10,7 @@ import { RULES } from "./decision-tree.js";
 import { reportHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMarkdown } from "./reporters/markdown.js";
+import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
 
 const WORKFLOWS = {
   "core-web-vitals": cwvWorkflow,
@@ -75,6 +76,10 @@ Options:
                             Actions: scroll, click, hover, type, wait
   --storage-state <path>    Playwright storage state (cookies + localStorage) to
                             measure pages that require authentication
+  --report-to <url>         POST the results to this https URL after the run
+                            (without it the CLI makes no external calls)
+  --api-key <key>           Sent as "Authorization: Bearer <key>" with --report-to.
+                            Prefer the PERF_REVIEWS_API_KEY environment variable
   --verbose             Show all items, even for passing checks
   --headed              Show the browser window (debug)
   -h, --help            Show this help
@@ -137,6 +142,8 @@ async function main() {
         viewport: { type: "string" },
         "interact-script": { type: "string" },
         "storage-state": { type: "string" },
+        "report-to": { type: "string" },
+        "api-key": { type: "string" },
         verbose: { type: "boolean" },
         headed: { type: "boolean" },
         help: { type: "boolean", short: "h" },
@@ -167,6 +174,12 @@ async function main() {
     fail(`Unknown viewport preset: "${viewportName}". Choose from: ${Object.keys(VIEWPORT_PRESETS).join(", ")}`);
   }
 
+  const reportUrl = values["report-to"];
+  if (reportUrl) {
+    const problem = validateReportUrl(reportUrl);
+    if (problem) fail(problem);
+  }
+
   const interactScript = values["interact-script"];
   const storageState = values["storage-state"];
   if (storageState && !existsSync(storageState)) {
@@ -193,6 +206,27 @@ async function main() {
     output = reportHuman({ ...payload, verbose: values.verbose });
   }
   process.stdout.write(output + "\n");
+
+  if (reportUrl) {
+    const outcome = await reportTo({
+      url: reportUrl,
+      apiKey: values["api-key"] || process.env.PERF_REVIEWS_API_KEY,
+      body: {
+        url,
+        workflow: values.snippet ? null : (values.workflow ?? "core-web-vitals"),
+        ...(values.snippet ? { snippet: values.snippet } : {}),
+        timestamp: new Date().toISOString(),
+        navMs: payload.navMs,
+        results: payload.results,
+        meta: { viewport: viewportName, waitMs, cli_version: cliVersion },
+      },
+    });
+    if (!outcome.ok) {
+      process.stderr.write(`Warning: could not report results to ${new URL(reportUrl).origin} (${outcome.warning})\n`);
+    } else if (outcome.regressions.length > 0) {
+      process.stderr.write(`Regressions detected:\n${outcome.regressions.map((r) => `  - ${typeof r === "string" ? r : JSON.stringify(r)}`).join("\n")}\n`);
+    }
+  }
 
   // Exit codes.
   const violations = checkBudgets(payload.results, values);

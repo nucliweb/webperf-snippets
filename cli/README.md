@@ -86,6 +86,33 @@ npx webperf-snippets https://example.com/dashboard --storage-state auth.json
 
 The file holds live session cookies. Keep it out of version control (add it to `.gitignore`) and use a throwaway account when you run it in CI. The CLI exits with code `2` if the path does not exist.
 
+Send the results to an endpoint after the run with `--report-to`:
+
+```bash
+npx webperf-snippets https://example.com --workflow audit \
+  --report-to https://reports.example.com/api/report \
+  --api-key $REPORT_API_KEY
+```
+
+Without `--report-to` the CLI makes no external calls. With it, the results are POSTed as JSON once the snippets have finished:
+
+```json
+{
+  "url": "https://example.com",
+  "workflow": "audit",
+  "timestamp": "2026-05-06T10:00:00.000Z",
+  "navMs": 1240,
+  "results": [],
+  "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "0.2.0" }
+}
+```
+
+For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the name. `results` is the same list the `--json` output contains, so it can include URLs and details of the measured page; send it only to an endpoint you trust.
+
+- The URL must be `https`. `http` is accepted only for `localhost`, so a key is never sent in clear text.
+- `--api-key` is sent as `Authorization: Bearer <key>`. Prefer the `PERF_REVIEWS_API_KEY` environment variable, because a flag ends up in shell history and CI logs. The key is never printed.
+- The exit code never depends on the report. A failed POST (error status, unreachable endpoint, or no answer within 5 seconds) prints a warning and the exit code stays the one the budgets and snippets decide. If the endpoint answers `{ "ok": false, "regressions": [...] }`, the regressions are printed as a warning, again without changing the exit code.
+
 CI gating:
 
 ```bash
@@ -104,6 +131,8 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 | `--wait <ms>`                | Post-load wait before evaluating snippets. Default: `3000`.            |
 | `--interact-script <path>`   | JSON file with interactions to run before evaluation (for INP).        |
 | `--storage-state <path>`     | Playwright storage state (cookies and localStorage) for pages that require authentication. |
+| `--report-to <url>`          | POST the results to this `https` URL after the run. No external calls without it. |
+| `--api-key <key>`            | Sent as a Bearer token with `--report-to`. Prefer `PERF_REVIEWS_API_KEY`. |
 | `--budget-lcp <ms>`          | Exit `1` if LCP exceeds this value.                                    |
 | `--budget-cls <score>`       | Exit `1` if CLS exceeds this value.                                    |
 | `--verbose`                  | Show all items, including passing checks.                              |
