@@ -1,4 +1,5 @@
 import { styleText } from "node:util";
+import { fieldDataView } from "../crux.js";
 
 const RATING_ICON = {
   good: "🟢",
@@ -164,12 +165,30 @@ function renderResult(r, verbose) {
   return out;
 }
 
-export function reportHuman({ url, navMs, results, pageErrors, verbose }) {
+function renderFieldData(crux, results) {
+  if (crux.unavailable) return [styleText("dim", `Field data: not available (${crux.unavailable})`)];
+  const { title, rows } = fieldDataView(crux, results);
+  const lines = [styleText("bold", title)];
+  for (const row of rows) {
+    const icon = RATING_ICON[row.rating] ?? "·";
+    const synthetic = row.synthetic == null ? "n/a" : formatValue(row.synthetic, row.unit);
+    lines.push(
+      `  ${icon} ${pad(row.metric, 6)} ${pad(paint(row.rating, formatValue(row.p75, row.unit)), 10)} ${pad(styleText("dim", row.rating), 20)} ${styleText("dim", `(synthetic: ${synthetic})`)}`
+    );
+  }
+  return lines;
+}
+
+export function reportHuman({ url, navMs, results, pageErrors, verbose, crux }) {
   const lines = [];
   lines.push(styleText(["bold"], `WebPerf Snippets — ${url}`));
   lines.push(styleText("dim", `Navigated in ${navMs}ms`));
   lines.push("");
   for (const r of results) lines.push(renderResult(r, verbose));
+  if (crux) {
+    lines.push("");
+    lines.push(...renderFieldData(crux, results));
+  }
   if (pageErrors?.length) {
     lines.push("");
     lines.push(styleText("yellow", "Page errors during run:"));

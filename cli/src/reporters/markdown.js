@@ -1,3 +1,5 @@
+import { fieldDataView } from "../crux.js";
+
 const RATING_ICON = {
   good: "✅",
   "needs-improvement": "⚠️",
@@ -50,7 +52,21 @@ function renderSection(title, results) {
   ].join("\n");
 }
 
-export function reportMarkdown({ url, navMs, results, pageErrors }) {
+function renderFieldData(crux, results) {
+  if (crux.unavailable) return [`> Field data: not available (${crux.unavailable})`];
+  const { title, rows } = fieldDataView(crux, results);
+  return [
+    `### ${title}`,
+    "| Metric | Field p75 | Status | Synthetic |",
+    "|--------|-----------|--------|-----------|",
+    ...rows.map((row) => {
+      const synthetic = row.synthetic == null ? "n/a" : formatValue(row.synthetic, row.unit);
+      return `| ${row.metric} | ${formatValue(row.p75, row.unit)} | ${RATING_ICON[row.rating] ?? "·"} ${row.rating} | ${synthetic} |`;
+    }),
+  ];
+}
+
+export function reportMarkdown({ url, navMs, results, pageErrors, crux }) {
   const lines = [];
   lines.push(`## WebPerf Results — ${url}`);
   lines.push(`> Navigated in ${navMs}ms`);
@@ -70,6 +86,11 @@ export function reportMarkdown({ url, navMs, results, pageErrors }) {
   for (const [reason, group] of byReason) {
     lines.push("");
     lines.push(renderSection(`Follow-up *(${reason})*`, group));
+  }
+
+  if (crux) {
+    lines.push("");
+    lines.push(...renderFieldData(crux, results));
   }
 
   if (pageErrors?.length) {

@@ -11,6 +11,7 @@ import { reportHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMarkdown } from "./reporters/markdown.js";
 import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
+import { fetchCrux, formFactorFor } from "./crux.js";
 
 const WORKFLOWS = {
   "core-web-vitals": cwvWorkflow,
@@ -76,6 +77,8 @@ Options:
                             Actions: scroll, click, hover, type, wait
   --storage-state <path>    Playwright storage state (cookies + localStorage) to
                             measure pages that require authentication
+  --crux-key <key>          Add CrUX field data (p75) next to the measured values.
+                            Also read from the CRUX_API_KEY environment variable
   --report-to <url>         POST the results to this https URL after the run
                             (without it the CLI makes no external calls)
   --api-key <key>           Sent as "Authorization: Bearer <key>" with --report-to.
@@ -142,6 +145,7 @@ async function main() {
         viewport: { type: "string" },
         "interact-script": { type: "string" },
         "storage-state": { type: "string" },
+        "crux-key": { type: "string" },
         "report-to": { type: "string" },
         "api-key": { type: "string" },
         verbose: { type: "boolean" },
@@ -196,6 +200,10 @@ async function main() {
     if (!workflow) fail(`Unknown workflow: ${workflowName}`);
     payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState });
   }
+
+  const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;
+  const crux = cruxKey ? await fetchCrux({ url, apiKey: cruxKey, formFactor: formFactorFor(viewportName) }) : undefined;
+  if (crux) payload.crux = crux;
 
   let output;
   if (values.markdown) {
