@@ -86,7 +86,7 @@ Every resource is classified into one of these strategies:
 | `unknown (CORS)`    | Cross-origin, headers not readable        | Add `Timing-Allow-Origin` for visibility      |
 | `cached (inferred)` | `transferSize=0` but no readable headers  | Browser cached, strategy unknown              |
 
-The **Cache Efficiency Score** shows what percentage of resources have an effective cache strategy (`immutable`, `long`, `medium`, `swr`, or `must-revalidate`).
+The **Cache Efficiency Score** shows what percentage of the resources whose cache headers could be read have an effective cache strategy (`immutable`, `long`, `medium`, `swr`, or `must-revalidate`). Resources whose headers cannot be read (`unknown`, `unknown (CORS)`) and resources only inferred as cached do not count either way, because they say nothing about the cache policy. `details.cacheEfficiencyResources` is the number of resources the score is based on, and the score and its rating are `null` when no header could be read.
 
 ### Resources without cache
 
@@ -111,7 +111,11 @@ Resources with `max-age < 3600` (less than 1 hour). Pay attention to:
 | `expires-without-cc`      | 🟡 Warning | Uses only `Expires` header, outdated, less reliable than `Cache-Control`        |
 | `maxage-zero-static`      | 🟡 Warning | Static asset with `max-age=0`, browser revalidates on every request             |
 | `short-cache-static`      | 🟡 Warning | Static asset with `max-age < 3600`, increase TTL for better performance         |
+| `uncompressed`            | 🟡 Warning | A script, stylesheet, or fetch response over 1 KB was sent without Brotli or gzip |
+| `duplicate-uncached`      | 🟡 Warning | The same URL was loaded more than once and at least one load went to the network |
 | `versioned-not-immutable` | 🔵 Info    | Hashed URL without `immutable`, adding it avoids conditional GET requests       |
+
+The last two patterns need no response headers, so they apply to resources on any origin. A duplicated URL is reported once, on its first request.
 
 ### CDN cache status
 
@@ -150,6 +154,10 @@ These resources are still visible in the summary via Tier 1 data:
 
 - `transferSize === 0` and `encodedBodySize > 0` → served from browser cache
 - `transferSize > 0` → fetched from the network
+
+### How much of the page was analyzed
+
+`details.headerCoveragePercent` is the share of resources whose cache headers were read. Many sites serve their static assets from another origin, for example `static.example-cdn.net`, so the page can read the headers of few or none of them, and an empty list of header-based findings does not mean the cache is fine. When coverage is below 50%, `issues` carries an `info` entry named `header-coverage` that says how many resources were analyzed and names the hosts that hold most of the rest. To inspect those hosts, use the Network panel or `curl -I` on a few of their assets.
 
 To get header visibility on your own cross-origin or CDN resources, configure the server to send:
 
