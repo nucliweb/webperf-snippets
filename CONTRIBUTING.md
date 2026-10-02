@@ -163,7 +163,7 @@ import { Flow, Sequence } from '../../components/diagrams'
 - Every diagram needs a `title`: one sentence, written by hand, that says what the diagram shows. Screen readers announce it.
 - A tone says the same thing an emoji would, so do not put emojis in labels; the component strips them.
 - The nodes a node points to are drawn in the order of its edges: the first edge goes on the left in a top down flow and on top in a left to right one, so write `Yes` before `No`. The order is never bought with a crossing edge. If the edges you wrote could only be ordered by crossing them, the pair that would cross keeps the arrangement without crossings, so reorder the edges of that node. Children on different ranks have no order.
-- Known limits: no edges to or from a group (use a node inside it), no solid and dashed edge between the same pair of nodes, and `start` and `end` shapes ignore their label.
+- An edge can start or end at a group: it attaches to the box of the group. Two edges between the same pair of nodes, for example a solid one and a dashed one, are drawn as two separate routes. A `start` or `end` shape can carry a `label`, drawn next to the dot on the side the edge does not use: above a `start` and below an `end` in a top down flow, left of a `start` and right of an `end` in a left to right one.
 - A diagram that needs something the components do not do (a timeline, the LCP phases) is a component of its own next to them, such as `LcpSubparts.jsx` or `EventProcessingTimeline.jsx`.
 
 Check a new diagram with `npm run dev` at 1280 px and at 420 px, in the light and the dark theme, with no console errors and no horizontal scroll of the page. A sequence that does not fit the column scrolls inside its own region, which is expected.

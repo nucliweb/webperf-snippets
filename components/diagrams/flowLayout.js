@@ -16,11 +16,21 @@ const PADY = 10;
 const GROUP_PAD = 14;
 const GROUP_TOP = 34;
 const MARGIN = 4;
+export const MARK_GAP = 8; // between the dot of a start or end shape and its label
 
 function measureNode(node, cfg) {
   const shape = node.shape || "rect";
   if (shape === "start" || shape === "end") {
-    return { ...node, shape, w: 20, h: 20, lines: [], sub: [] };
+    const lines = node.label ? wrapText(node.label, Math.min(cfg.maxText, 160), FS, 500) : [];
+    if (lines.length === 0) return { ...node, shape, w: 20, h: 20, lines: [], sub: [] };
+    // The label sits on the side the edge does not use, so the dot stays on the side where dagre meets
+    // the box: above a start and below an end in a top down flow, left of a start and right of an end in
+    // a left to right one.
+    const lr = cfg.direction === "LR";
+    const side = lr ? (shape === "start" ? "left" : "right") : shape === "start" ? "top" : "bottom";
+    const textW = Math.ceil(Math.max(...lines.map((l) => textWidth(l, FS, 500))));
+    const size = lr ? { w: 20 + MARK_GAP + textW, h: Math.max(20, lines.length * LH) } : { w: Math.max(20, textW), h: 20 + MARK_GAP + lines.length * LH };
+    return { ...node, shape, ...size, lines, sub: [], side };
   }
   const marker = shape === "decision" ? 20 : 0;
   const padX = shape === "pill" ? 20 : PADX;

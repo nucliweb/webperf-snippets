@@ -131,6 +131,86 @@ describe("the order of the siblings follows the order of the edges", () => {
   });
 });
 
+// The edges come back with the edges between groups and nodes first and the edges inside a group
+// after them, so a test finds an edge by its label.
+const edgeLabelled = (layout, text) => layout.edges.find((e) => e.label?.lines.join(" ") === text);
+
+describe("edges to and from a group", () => {
+  const spec = {
+    nodes: [{ id: "x", label: "Start" }, { id: "p", label: "Parse" }, { id: "q", label: "Render" }, { id: "z", label: "Done" }],
+    groups: [{ id: "g", label: "Main thread", tone: "info", nodes: ["p", "q"] }],
+    edges: [{ from: "x", to: "g", label: "enters" }, { from: "p", to: "q" }, { from: "g", to: "z", label: "leaves" }],
+  };
+
+  it("attach to the box of the group: in at the top, out at the bottom", () => {
+    for (const l of layoutsOf(spec)) {
+      const group = l.layout.groups.find((g) => g.id === "g");
+      const enterY = route(edgeLabelled(l.layout, "enters").path).at(-1).y;
+      const leaveY = route(edgeLabelled(l.layout, "leaves").path)[0].y;
+      expect(enterY, l.name).toBeCloseTo(group.y, 0);
+      expect(leaveY, l.name).toBeCloseTo(group.y + group.h, 0);
+    }
+  });
+
+  it("keep the nodes of the group inside it and the edge between them", () => {
+    const [wide] = layoutsOf(spec);
+    const group = wide.layout.groups.find((g) => g.id === "g");
+    for (const id of ["p", "q"]) {
+      const n = node(wide.layout, id);
+      expect(n.x >= group.x && n.x + n.w <= group.x + group.w && n.y >= group.y && n.y + n.h <= group.y + group.h, id).toBe(true);
+    }
+    expect(wide.layout.edges).toHaveLength(3);
+  });
+
+  it("connect one group to another", () => {
+    const two = {
+      nodes: [{ id: "a", label: "A" }, { id: "b", label: "B" }, { id: "c", label: "C" }, { id: "d", label: "D" }],
+      groups: [{ id: "g1", label: "One", nodes: ["a", "b"] }, { id: "g2", label: "Two", nodes: ["c", "d"] }],
+      edges: [{ from: "a", to: "b" }, { from: "c", to: "d" }, { from: "g1", to: "g2", label: "then" }],
+    };
+    for (const l of layoutsOf(two)) {
+      const [one, other] = ["g1", "g2"].map((id) => l.layout.groups.find((g) => g.id === id));
+      const between = route(edgeLabelled(l.layout, "then").path);
+      expect(between[0].y, l.name).toBeCloseTo(one.y + one.h, 0);
+      expect(between.at(-1).y, l.name).toBeCloseTo(other.y, 0);
+    }
+  });
+});
+
+describe("a solid and a dashed edge between the same pair of nodes", () => {
+  const spec = {
+    nodes: [{ id: "a", label: "Browser" }, { id: "b", label: "Server" }],
+    edges: [{ from: "a", to: "b", label: "request" }, { from: "a", to: "b", label: "cached", dashed: true }],
+  };
+
+  it("are drawn as two routes, each with its own style", () => {
+    for (const l of layoutsOf(spec)) {
+      const [solid, dashed] = l.layout.edges;
+      expect([solid.dashed, dashed.dashed], l.name).toEqual([false, true]);
+      expect(solid.path, l.name).not.toBe(dashed.path);
+    }
+  });
+
+  it("start at the first box and end at the second", () => {
+    for (const l of layoutsOf(spec)) {
+      const [a, b] = [node(l.layout, "a"), node(l.layout, "b")];
+      for (const e of l.layout.edges) {
+        const points = route(e.path);
+        expect(points[0].y, l.name).toBeCloseTo(a.y + a.h, 0);
+        expect(points.at(-1).y, l.name).toBeCloseTo(b.y, 0);
+      }
+    }
+  });
+
+  it("keep their labels apart", () => {
+    for (const l of layoutsOf(spec)) {
+      const [one, two] = l.layout.edges.map((e) => e.label);
+      const apart = one.x + one.w / 2 <= two.x - two.w / 2 || two.x + two.w / 2 <= one.x - one.w / 2 || one.y + one.h / 2 <= two.y - two.h / 2 || two.y + two.h / 2 <= one.y - one.h / 2;
+      expect(apart, l.name).toBe(true);
+    }
+  });
+});
+
 // Every <Flow /> of the docs pages
 const walk = (dir) => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
 
