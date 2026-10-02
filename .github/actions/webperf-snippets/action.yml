@@ -1,0 +1,58 @@
+name: webperf-snippets
+description: Run webperf-snippets headlessly and gate on performance budgets
+branding:
+  icon: activity
+  color: blue
+
+inputs:
+  url:
+    description: URL to measure
+    required: true
+  workflow:
+    description: Workflow to run (core-web-vitals, loading, audit)
+    default: core-web-vitals
+  budget-lcp:
+    description: LCP budget in ms. The run fails if it is exceeded. Empty disables the check.
+    default: "2500"
+  budget-cls:
+    description: CLS budget. The run fails if it is exceeded. Empty disables the check.
+    default: "0.1"
+  fail-on-budget:
+    description: Fail the step when a budget is exceeded or a snippet errors. Set to "false" to read the exit-code output and decide yourself, for example to post the markdown first.
+    default: "true"
+  cli-version:
+    description: Version of the webperf-snippets npm package to run
+    default: latest
+
+outputs:
+  markdown:
+    description: Formatted results as markdown
+    value: ${{ steps.run.outputs.markdown }}
+  exit-code:
+    description: Exit code of the CLI (0 passed, 1 budget exceeded or a snippet errored, 2 usage error)
+    value: ${{ steps.run.outputs.exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install webperf-snippets and Playwright
+      shell: bash
+      env:
+        WEBPERF_CLI_VERSION: ${{ inputs.cli-version }}
+      run: npm install --no-save --prefix "$RUNNER_TEMP/webperf-snippets" "webperf-snippets@$WEBPERF_CLI_VERSION" playwright
+
+    - name: Install Chromium
+      shell: bash
+      run: '"$RUNNER_TEMP/webperf-snippets/node_modules/.bin/playwright" install --with-deps chromium'
+
+    - name: Measure
+      id: run
+      shell: bash
+      env:
+        WEBPERF_CMD: node ${{ runner.temp }}/webperf-snippets/node_modules/webperf-snippets/src/bin.js
+        WEBPERF_URL: ${{ inputs.url }}
+        WEBPERF_WORKFLOW: ${{ inputs.workflow }}
+        WEBPERF_BUDGET_LCP: ${{ inputs.budget-lcp }}
+        WEBPERF_BUDGET_CLS: ${{ inputs.budget-cls }}
+        WEBPERF_FAIL_ON_BUDGET: ${{ inputs.fail-on-budget }}
+      run: bash "${{ github.action_path }}/run.sh"

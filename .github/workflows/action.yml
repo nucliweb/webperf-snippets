@@ -1,0 +1,56 @@
+name: Action
+
+on:
+  pull_request:
+    paths:
+      - ".github/actions/**"
+      - ".github/workflows/action.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/actions/**"
+      - ".github/workflows/action.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Serve a fixture page
+        run: |
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory cli/tests/fixtures &
+          sleep 1
+          curl -fsS http://127.0.0.1:8080/index.html > /dev/null
+
+      - name: Measure with a budget the page cannot meet
+        id: over
+        uses: ./.github/actions/webperf-snippets
+        with:
+          url: http://127.0.0.1:8080/index.html
+          budget-lcp: "0"
+          fail-on-budget: "false"
+
+      - name: Check the outputs of the failing run
+        env:
+          MARKDOWN: ${{ steps.over.outputs.markdown }}
+          EXIT_CODE: ${{ steps.over.outputs.exit-code }}
+        run: |
+          test "$EXIT_CODE" = "1"
+          printf '%s\n' "$MARKDOWN" | grep -q "## WebPerf Results"
+
+      - name: Measure with budgets the page meets
+        id: within
+        uses: ./.github/actions/webperf-snippets
+        with:
+          url: http://127.0.0.1:8080/index.html
+          budget-lcp: "60000"
+          budget-cls: "10"
+
+      - name: Check the outputs of the passing run
+        env:
+          EXIT_CODE: ${{ steps.within.outputs.exit-code }}
+        run: test "$EXIT_CODE" = "0"

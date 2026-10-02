@@ -209,6 +209,57 @@ GitHub Actions example, fail the PR if LCP exceeds 2.5s:
     npx webperf-snippets https://staging.web.dev --budget-lcp 2500 --budget-cls 0.1
 ```
 
+### GitHub Action
+
+The repository ships a composite action that installs the CLI and Chromium, runs a workflow and exposes the result as markdown, so any repository can gate on performance budgets without extra setup:
+
+```yaml copy
+jobs:
+  webperf:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: nucliweb/webperf-snippets/.github/actions/webperf-snippets@main
+        id: webperf
+        with:
+          url: https://staging.example.com
+          budget-lcp: 2500
+          fail-on-budget: "false"
+
+      - uses: actions/github-script@v7
+        env:
+          BODY: ${{ steps.webperf.outputs.markdown }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: process.env.BODY,
+            });
+
+      - if: steps.webperf.outputs.exit-code != '0'
+        run: exit 1
+```
+
+| Input            | Default             | Description                                                                                  |
+| ---------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| `url`            | required            | URL to measure.                                                                              |
+| `workflow`       | `core-web-vitals`   | Workflow to run: `core-web-vitals`, `loading` or `audit`.                                    |
+| `budget-lcp`     | `2500`              | LCP budget in ms. An empty value disables the check.                                         |
+| `budget-cls`     | `0.1`               | CLS budget. An empty value disables the check.                                               |
+| `fail-on-budget` | `true`              | Fail the step when a budget is exceeded or a snippet errors. Use `"false"` to read `exit-code` and decide yourself. |
+| `cli-version`    | `latest`            | Version of the `webperf-snippets` npm package to run.                                        |
+
+| Output      | Description                                                                          |
+| ----------- | ------------------------------------------------------------------------------------ |
+| `markdown`  | The results as markdown. Also written to the job summary.                            |
+| `exit-code` | Exit code of the CLI: `0` passed, `1` budget exceeded or a snippet errored, `2` usage error. |
+
+The markdown includes text taken from the measured page, so pass it to other steps through an environment variable (`env:` and `process.env`) as above, never by interpolating `${{ steps.webperf.outputs.markdown }}` inside a script. With `fail-on-budget: "false"` the action step always succeeds, which lets later steps post the comment before the job fails. Without `permissions: pull-requests: write` the comment step cannot post on a pull request.
+
+LCP, CLS and INP vary by 15 to 30% on shared runners; prefer the deterministic `audit` workflow for a gate, or generous budgets.
+
 ## How it works
 
 1. Launches headless Chromium via Playwright.
