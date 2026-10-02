@@ -1,7 +1,7 @@
 import { useId, useMemo } from "react";
 import { cleanSpec, stripEmoji } from "../../lib/strip-emoji";
 import { describeFlow } from "./shared";
-import { layoutFlow, LH, FS, SUB, EDGE_FS, NOTE_FS } from "./flowLayout";
+import { layoutFlow, LH, FS, SUB, EDGE_FS, NOTE_FS, MARK_GAP } from "./flowLayout";
 
 // Declarative flow diagram drawn as inline SVG. Nodes are laid out with dagre,
 // colors come from the `--dg-*` tokens in `styles/globals.css`, and the diagram
@@ -22,7 +22,10 @@ import { layoutFlow, LH, FS, SUB, EDGE_FS, NOTE_FS } from "./flowLayout";
 // keeps the arrangement without crossings, and children that sit on different ranks have no order.
 //
 // Shapes: rect (default), pill, decision (accent border and a diamond marker),
-// start and end (small dot and ring, for state diagrams).
+// start and end (small dot and ring, for state diagrams). A start or an end may have a label, drawn
+// on the side the edge does not use: above a start and below an end in a top down flow, left of a
+// start and right of an end in a left to right one.
+// An edge may start or end at a group id, and two edges may join the same pair of nodes.
 // Tones: neutral (default), info, good, warn, bad, violet, ttfb, delay, load, render.
 //
 // A wide layout would shrink its text on a narrow column, so the component also
@@ -55,17 +58,42 @@ function Lines({ x, y, lines, lh, size, className, anchor = "middle", weight }) 
   );
 }
 
+// Where the dot of a start or end shape is, and the label next to it. The layout puts the label on the
+// side of the box the edge does not use, so the dot is at the other end of the box.
+function markGeometry(n) {
+  const DOT = 20; // the space the dot takes in the direction of the label
+  const mid = n.y + n.h / 2;
+  const firstLine = (lines) => mid - ((lines - 1) * LH) / 2 + FS * 0.35;
+  switch (n.side) {
+    case "top":
+      return { cx: n.x + n.w / 2, cy: n.y + n.h - DOT / 2, label: { x: n.x + n.w / 2, y: n.y + FS * 0.95, anchor: "middle" } };
+    case "bottom":
+      return { cx: n.x + n.w / 2, cy: n.y + DOT / 2, label: { x: n.x + n.w / 2, y: n.y + DOT + MARK_GAP + FS * 0.95, anchor: "middle" } };
+    case "left":
+      return { cx: n.x + n.w - DOT / 2, cy: mid, label: { x: n.x + n.w - DOT - MARK_GAP, y: firstLine(n.lines.length), anchor: "end" } };
+    case "right":
+      return { cx: n.x + DOT / 2, cy: mid, label: { x: n.x + DOT + MARK_GAP, y: firstLine(n.lines.length), anchor: "start" } };
+    default:
+      return { cx: n.x + n.w / 2, cy: mid, label: null };
+  }
+}
+
 function NodeShape({ n }) {
   const tone = n.tone || (n.shape === "decision" ? "info" : "neutral");
   const cx = n.x + n.w / 2;
-  if (n.shape === "start") {
-    return <circle cx={cx} cy={n.y + n.h / 2} r="7" className="dg-dot" />;
-  }
-  if (n.shape === "end") {
+  if (n.shape === "start" || n.shape === "end") {
+    const { cx: dx, cy: dy, label } = markGeometry(n);
     return (
       <g>
-        <circle cx={cx} cy={n.y + n.h / 2} r="9" className="dg-ring" />
-        <circle cx={cx} cy={n.y + n.h / 2} r="5" className="dg-dot" />
+        {n.shape === "start" ? (
+          <circle cx={dx} cy={dy} r="7" className="dg-dot" />
+        ) : (
+          <>
+            <circle cx={dx} cy={dy} r="9" className="dg-ring" />
+            <circle cx={dx} cy={dy} r="5" className="dg-dot" />
+          </>
+        )}
+        {label && <Lines x={label.x} y={label.y} lines={n.lines} lh={LH} size={FS} weight={500} className="dg-text" anchor={label.anchor} />}
       </g>
     );
   }
