@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { runSnippets, runMeasurement } from "../../src/runner.js";
+import { cliEnv } from "../helpers/cli-env.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "../../src/bin.js");
@@ -90,7 +91,7 @@ describe("storageState in the runner", () => {
 
 describe("--storage-state flag", () => {
   const cli = (...args) =>
-    run("node", [BIN, baseUrl, "--snippet", "LCP", "--json", "--wait", "0", ...args]).then(
+    run("node", [BIN, baseUrl, "--snippet", "LCP", "--json", "--wait", "0", ...args], { env: cliEnv() }).then(
       ({ stdout }) => ({ code: 0, stdout, stderr: "" }),
       (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr })
     );

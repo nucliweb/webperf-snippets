@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { fetchCrux } from "../../src/crux.js";
+import { cliEnv } from "../helpers/cli-env.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "../../src/bin.js");
@@ -142,7 +143,7 @@ describe("CrUX in the CLI", () => {
       execFile(
         "node",
         [BIN, pageUrl, "--snippet", "LCP", "--wait", "0", ...args],
-        { env: { ...process.env, CRUX_API_KEY: "", WEBPERF_CRUX_ENDPOINT: cruxEndpoint, ...env } },
+        { env: cliEnv({ WEBPERF_CRUX_ENDPOINT: cruxEndpoint, ...env }) },
         (err, stdout, stderr) => resolve({ code: err ? err.code : 0, stdout, stderr })
       );
     });

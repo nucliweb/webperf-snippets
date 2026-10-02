@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { cliEnv } from "../helpers/cli-env.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "../../src/bin.js");
@@ -63,7 +64,7 @@ function cli(args, env = {}) {
     execFile(
       "node",
       [BIN, pageUrl, "--snippet", "LCP", "--json", "--wait", "0", ...args],
-      { env: { ...process.env, PERF_REVIEWS_API_KEY: "", ...env } },
+      { env: cliEnv(env) },
       (err, stdout, stderr) => resolve({ code: err ? err.code : 0, stdout, stderr })
     );
   });
