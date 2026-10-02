@@ -7,7 +7,7 @@ all CSS and JS are inline, so it works offline and inside a sandboxed iframe.
 A demo is worth building only for a **temporal or stateful** phenomenon, something
 the reader benefits from watching move (the parser pausing on a script, request
 waterfalls, metric sub-parts accumulating). Static mechanism diagrams and decision
-trees stay as mermaid in the MDX page.
+trees are diagrams (see "Diagrams" in `CONTRIBUTING.md`).
 
 ## The contract
 

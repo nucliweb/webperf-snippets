@@ -85,7 +85,7 @@ Conventions:
 - Headings use sentence case (`# My new snippet`, `### Further reading`).
 - The `<Snippet>` component takes the code through the `code` prop; it renders its own copy button.
 - Each Further reading link ends with `| source`.
-- Use the Nextra `Callout` component for tips and warnings (`import { Callout } from 'nextra/components'`; types `info`, `warning`, `default`), not bold text or plain `>` blockquotes. Reserve `>` for real quotations.
+- Use the `Callout` component for tips and warnings (`import { Callout } from '../../components/Callout'`; types `info`, `warning`, `default`), not bold text or plain `>` blockquotes. Reserve `>` for real quotations. It wraps the Nextra callout and draws the site icons instead of emojis.
 
 Use the `copy` prop in code blocks to enable easy copying to DevTools:
 
@@ -125,6 +125,65 @@ This reads all snippets and their MDX documentation and rebuilds the skills in `
 npm run lint
 npm run build
 ```
+
+## Diagrams
+
+Pages draw their diagrams with the SVG components in `components/diagrams`, not with Mermaid. They follow the light and dark theme, and the colors come from the `--dg-*` tokens at the end of `styles/globals.css`.
+
+```mdx
+import { Flow, Sequence } from '../../components/diagrams'
+
+<Flow
+  title="Decision tree: critical scripts are inlined or preloaded, the rest use defer or async"
+  nodes={[
+    { id: "Start", label: "Script loading strategy" },
+    { id: "Critical", label: "Critical for\ninitial render?", shape: "decision" },
+    { id: "Inline", label: "Inline the script", tone: "good" },
+    { id: "Defer", label: "Use defer", tone: "info" },
+  ]}
+  edges={[
+    { from: "Start", to: "Critical" },
+    { from: "Critical", to: "Inline", label: "Yes" },
+    { from: "Critical", to: "Defer", label: "No" },
+  ]}
+/>
+
+<Sequence
+  title="The browser requests a page and the server answers"
+  participants={[{ id: "B", label: "Browser" }, { id: "S", label: "Server" }]}
+  steps={[
+    { type: "message", from: "B", to: "S", label: "GET /" },
+    { type: "message", from: "S", to: "B", label: "200 OK", dashed: true },
+  ]}
+/>
+```
+
+- `Flow` draws flowcharts, decision trees and state diagrams. Nodes take a `shape` (`rect`, `pill`, `decision`, `start`, `end`) and a `tone` (`neutral`, `info`, `good`, `warn`, `bad`, `violet`, `ttfb`, `delay`, `load`, `render`). Edges take a `label` and `dashed`. Optional `groups`, `notes` and `direction` (`TD` or `LR`). The props are documented at the top of `components/diagrams/Flow.jsx`.
+- `Sequence` draws messages between participants, with `note` steps and `alt`, `loop`, `opt` and `rect` blocks. A message from a participant to itself draws a loop. The props are documented at the top of `components/diagrams/Sequence.jsx`.
+- Every diagram needs a `title`: one sentence, written by hand, that says what the diagram shows. Screen readers announce it.
+- A tone says the same thing an emoji would, so do not put emojis in labels; the component strips them.
+- Known limits: no edges to or from a group (use a node inside it), no solid and dashed edge between the same pair of nodes, and `start` and `end` shapes ignore their label.
+- A diagram that needs something the components do not do (a timeline, the LCP phases) is a component of its own next to them, such as `LcpSubparts.jsx` or `EventProcessingTimeline.jsx`.
+
+Check a new diagram with `npm run dev` at 1280 px and at 420 px, in the light and the dark theme, with no console errors and no horizontal scroll of the page. A sequence that does not fit the column scrolls inside its own region, which is expected.
+
+## Interactive demos
+
+A demo is a self-contained HTML file in `public/demos/`, embedded in a page with the `Demo` component. Build one only for something that moves or changes over time (a request waterfall, the parser pausing on a script, a metric adding up its sub-parts). A static mechanism or a decision tree is a diagram.
+
+```mdx
+import { Demo } from '../../components/Demo'
+
+<Demo
+  src="/demos/render-blocking-timeline.html"
+  title="Interactive timeline comparing how render-blocking resources delay First Contentful Paint"
+  caption="Switch between the two setups, then step through to see when the first paint can happen."
+/>
+```
+
+A demo has no external scripts, styles, fonts or requests. It reports its height to the page, follows the theme of the site, respects reduced motion, and works with a keyboard and a screen reader. The full contract, the shared components (legend, tabs, frame, controls, explanation box) and the icons are in [`public/demos/README.md`](public/demos/README.md); copy an existing demo instead of restyling one. `npm run test:demos` checks the contract and runs in CI.
+
+Demos and pages draw icons instead of emojis, and `npm run check:emoji` fails when an emoji slips into rendered text. An emoji in an MDX page is fine: the site swaps it for an icon when the page renders.
 
 ## Improving workflows and decision trees
 
@@ -166,6 +225,7 @@ See `snippets/Loading/WORKFLOWS.md` for a complete reference.
 - [ ] `npm run generate-skills` run and output committed
 - [ ] `npm run lint` passes with no errors
 - [ ] `npm run build` succeeds
+- [ ] If the page has a diagram or a demo: it follows the sections above, and `npm run test:demos` and `npm run check:emoji` pass
 
 ## Code style
 
