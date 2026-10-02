@@ -103,6 +103,7 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 | ------------------ | ---------------------------------------------- |
 | `LCP`              | CoreWebVitals/LCP                              |
 | `CLS`              | CoreWebVitals/CLS                              |
+| `INP`              | CoreWebVitals/INP                              |
 | `LCP-Subparts`     | CoreWebVitals/LCP-Subparts                     |
 | `fonts`            | Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold |
 | `render-blocking`  | Loading/Find-render-blocking-resources         |
