@@ -1,3 +1,13 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+browserSupportReported:
+  - html.elements.link.rel.preload
+  - html.elements.link.rel.preconnect
+  - html.elements.link.rel.dns-prefetch
+  - html.elements.link.rel.prefetch
+---
+
 import snippet from "../../snippets/Loading/Resource-Hints-Validation.js?raw";
 import { Snippet } from "../../components/Snippet";
 
@@ -116,6 +126,8 @@ Shows the overall state of resource hints:
 <!-- Preconnect to domain never accessed -->
 <link rel="preconnect" href="https://unused-cdn.web.dev" />
 ```
+
+### Browser support
 
 ### Further reading
 

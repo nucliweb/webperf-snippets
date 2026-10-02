@@ -1,3 +1,13 @@
+---
+browserSupport:
+  - api.Element.getBoundingClientRect
+  - api.PerformanceResourceTiming.decodedBodySize
+browserSupportReported:
+  - html.elements.img.fetchpriority
+  - html.elements.link.fetchpriority
+  - html.elements.script.fetchpriority
+---
+
 import snippet from '../../snippets/Loading/Priority-Hints-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -105,6 +115,8 @@ Audits all `fetchpriority` attribute usage across the page, covering non-image r
 <!-- ✅ Correct -->
 <link rel="preload" href="font.woff2" as="font" fetchpriority="high" crossorigin>
 ```
+
+### Browser support
 
 ### Further reading
 

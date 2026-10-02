@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.PerformanceResourceTiming.transferSize
+  - api.PerformanceResourceTiming.encodedBodySize
+browserSupportReported:
+  - api.PerformanceLongAnimationFrameTiming
+  - api.PerformanceResourceTiming.renderBlockingStatus
+---
+
 import snippet from '../../snippets/Loading/Third-Party-Impact-by-Domain.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -81,6 +90,8 @@ Browsers report every size as zero for a cross-origin resource unless its server
 | High `loafMs` | Delay the script until interaction or idle time, use a facade, or remove it |
 | Many requests, low size | Consolidate tags or remove unused ones |
 | Large `transferBytes` | Lazy-load the widget or replace it with a lighter alternative |
+
+### Browser support
 
 ### Further reading
 

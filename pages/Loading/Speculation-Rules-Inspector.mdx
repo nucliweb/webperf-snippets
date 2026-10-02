@@ -1,3 +1,13 @@
+---
+browserSupport:
+  - api.Document.querySelectorAll
+browserSupportReported:
+  - html.elements.script.type.speculationrules
+  - api.HTMLScriptElement.supports_static
+  - api.PerformanceResourceTiming.deliveryType
+  - api.Document.prerendering
+---
+
 import snippet from '../../snippets/Loading/Speculation-Rules-Inspector.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
@@ -57,6 +67,8 @@ The snippet returns the following structure.
 #### Checking a prerendered page
 
 Run the snippet in a page that is prerendering to get `status: "tracking"`. After the page is activated, call `getSpeculationRulesInspection()` to read `activated`, `activatedAt` and `activationStart`. In DevTools, the Application panel lists speculative loads under Speculative loads, with the status and failure reason of each one.
+
+### Browser support
 
 ### Further reading
 

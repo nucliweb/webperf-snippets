@@ -1,3 +1,12 @@
+---
+browserSupport:
+  - api.ServiceWorkerContainer.getRegistrations
+  - api.PerformanceResourceTiming.workerStart
+  - api.PerformanceResourceTiming.transferSize
+browserSupportReported:
+  - api.NavigationPreloadManager
+---
+
 import snippet from '../../snippets/Loading/Service-Worker-Analysis.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Sequence } from '../../components/diagrams'
@@ -159,6 +168,8 @@ Resources with `workerStart = 0` were not intercepted. Common reasons:
 ### Cache storage is empty
 
 The SW is registered but hasn't cached anything yet. This happens on first visit before the `install` event pre-caches assets, or if the caching strategy is purely runtime (cache-on-first-use).
+
+## Browser support
 
 ## Further reading
 
