@@ -8,6 +8,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `--report-to <url>` and `--api-key <key>`: POST the results as JSON to an `https` endpoint after the run. Without the flag the CLI makes no external calls. A failed POST only prints a warning and never changes the exit code. The key can also come from `PERF_REVIEWS_API_KEY`.
+- `--storage-state <path>`: measure pages behind a login with a Playwright storage state (cookies and localStorage).
+- `INP` snippet alias for `--snippet INP`.
+
 ### Changed
 - The snippets the CLI runs include the fixes released in the collection version 1.3.0. Results differ for existing users: CLS is the largest session window instead of the sum of all shifts, and `TTFB` and `FCP` are measured from `activationStart` on prerendered pages.
 
