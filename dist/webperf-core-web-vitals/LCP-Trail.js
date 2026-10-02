@@ -1,4 +1,11 @@
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    return {
+      script: "LCP-Trail",
+      status: "unsupported",
+      error: "largest-contentful-paint entries not supported in this browser"
+    };
+  }
   const PALETTE = [ {
     color: "#EF4444",
     name: "Red"

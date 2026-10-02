@@ -2,6 +2,10 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
+    return { script: "LCP-Video-Candidate", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
+  }
   // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver, so
   // performance.getEntriesByType() returns [] here. Collect via a buffered observer.
   const collectBuffered = (type, timeoutMs = 100) =>

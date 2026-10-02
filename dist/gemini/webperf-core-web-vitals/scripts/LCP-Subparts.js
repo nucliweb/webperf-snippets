@@ -1,4 +1,11 @@
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    return {
+      script: "LCP-Subparts",
+      status: "unsupported",
+      error: "largest-contentful-paint entries not supported in this browser"
+    };
+  }
   const formatMs = ms => `${Math.round(ms)}ms`;
   const formatPercent = (value, total) => `${Math.round(value / total * 100)}%`;
   const valueToRating = ms => ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";

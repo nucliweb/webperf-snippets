@@ -1,4 +1,11 @@
 (async () => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+    return {
+      script: "LCP-Image-Entropy",
+      status: "unsupported",
+      error: "largest-contentful-paint entries not supported in this browser"
+    };
+  }
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
