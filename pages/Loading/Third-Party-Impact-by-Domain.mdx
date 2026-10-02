@@ -51,6 +51,8 @@ Each entry in `items` describes one domain:
 | `details.thirdPartyRequests` | Third-party requests |
 | `details.thirdPartyBytes` | Transfer size of the third-party requests with a readable size |
 | `details.thirdPartyLoafMs` | Third-party script time in long animation frames |
+| `details.longFrames` | Long animation frames on the page, or `null` when the browser does not support them |
+| `details.unattributedLoafMs` | Time in long animation frames that no third-party script accounts for, or `null` when unsupported |
 | `details.firstPartyRequests` | First-party resource requests, for comparison |
 | `details.blockingDomains` | Domains with a render-blocking request |
 | `details.loafSupported` | `false` when the browser has no Long Animation Frames API |
@@ -62,6 +64,7 @@ Each entry in `items` describes one domain:
 |----------|------|
 | `warning` | One or more third-party domains serve render-blocking resources |
 | `warning` | A domain's scripts take more than 250 ms of main-thread time in long animation frames |
+| `info` | Long animation frames exist but no third-party script was attributed in them |
 | `info` | Some sizes are hidden because of a missing `Timing-Allow-Origin` header |
 
 ### Main-thread time
@@ -71,6 +74,8 @@ The snippet reads `long-animation-frame` entries and adds up the `duration` of e
 <Callout type="warning">
   Long Animation Frames need Chrome 123 or later. Elsewhere `details.loafSupported` is `false` and `loafMs` is `null`; the rest of the report still works.
 </Callout>
+
+When the page has third-party domains and long animation frames, but no third-party script was attributed in any of them, every `Main thread` value is `0 ms` and the snippet adds an `info` note with the number of frames and their total time. The `0 ms` means that no third-party script ran for 5 ms or more inside those frames; it does not mean that third parties cost nothing. The frames can come from first-party code, from third-party scripts shorter than the threshold, or from style, layout and rendering work, which is the time `details.unattributedLoafMs` reports.
 
 The buffer holds the frames since the page started, so run the snippet after the page settled or after the interaction you want to measure.
 

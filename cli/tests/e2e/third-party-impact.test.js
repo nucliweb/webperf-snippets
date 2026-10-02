@@ -43,8 +43,17 @@ beforeAll(async () => {
         return html(`<script src="${tp}/blocking.js?ms=180"></script><script src="${tp}/blocking.js?ms=180&n=2"></script>`);
       }
       if (path === "/first-party") return html(`<script src="/own.js"></script>`);
+      // A long frame caused by first-party code, next to a third party that does almost nothing
+      if (path === "/first-party-long-frame") {
+        return html(`<script src="/own-blocking.js?ms=150"></script><script src="${tp}/quiet.js" async></script>`);
+      }
       if (path === "/hidden-only") return html(`<script src="${hidden}/pixel.js" async></script>`);
       if (path === "/async-only") return html(`<script src="${tp}/quiet.js" async></script>`);
+      if (path === "/own-blocking.js") {
+        const ms = Number(url.searchParams.get("ms"));
+        res.writeHead(200, { "Content-Type": "application/javascript" });
+        return res.end(`(() => { const end = performance.now() + ${ms}; while (performance.now() < end) {} })();`);
+      }
       res.writeHead(200, { "Content-Type": "application/javascript" });
       return res.end("window.__own = 1;");
     }
@@ -123,6 +132,61 @@ async function runWithOwnDomains(route, own) {
     await browser.close();
   }
 }
+
+async function runWithLines(route) {
+  return runWithOwnDomains(route, []);
+}
+
+describe("Third-Party-Impact-by-Domain, long frames without a third-party script", () => {
+  it("counts the long frames and the time not attributed to a third party", async () => {
+    const r = await run("/first-party-long-frame");
+    expect(r.details.loafSupported).toBe(true);
+    expect(r.details.thirdPartyLoafMs).toBe(0);
+    expect(r.details.longFrames).toBeGreaterThanOrEqual(1);
+    expect(r.details.unattributedLoafMs).toBeGreaterThanOrEqual(100);
+  }, 30000);
+
+  it("says that 0 ms per domain does not rule out third-party cost", async () => {
+    const { result, lines } = await runWithLines("/first-party-long-frame");
+    const issue = result.issues.find((i) => i.severity === "info" && /long animation frame/i.test(i.message));
+    expect(issue).toBeDefined();
+    expect(issue.message).toMatch(/no third-party script/i);
+    expect(issue.message).toMatch(/5 ms/);
+    expect(lines.some((l) => /long animation frame/i.test(l) && /no third-party script/i.test(l))).toBe(true);
+  }, 30000);
+
+  it("does not add the note when a third-party script was attributed", async () => {
+    const r = await run("/");
+    expect(r.details.thirdPartyLoafMs).toBeGreaterThan(0);
+    expect(r.details.longFrames).toBeGreaterThanOrEqual(1);
+    expect(r.issues.some((i) => /no third-party script/i.test(i.message))).toBe(false);
+  }, 30000);
+
+  it("counts the same long frames the page recorded, and adds the note only when there are some", async () => {
+    // A page can have a long frame of its own while it loads, so the count is compared with the
+    // entries the browser recorded instead of being assumed to be zero.
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage();
+      await page.goto(`${pageBase}/async-only`, { waitUntil: "load" });
+      await page.waitForTimeout(500);
+      const r = await page.evaluate(asExpression("Loading/Third-Party-Impact-by-Domain"));
+      const recorded = await page.evaluate(() => performance.getEntriesByType("long-animation-frame").length);
+      expect(r.details.longFrames).toBe(recorded);
+      expect(r.details.unattributedLoafMs).toBeGreaterThanOrEqual(0);
+      const noted = r.issues.some((i) => /no third-party script/i.test(i.message));
+      expect(noted).toBe(recorded > 0 && r.details.thirdPartyLoafMs === 0);
+    } finally {
+      await browser.close();
+    }
+  }, 30000);
+
+  it("reports null when Long Animation Frames are unavailable", async () => {
+    const r = await run("/first-party-long-frame", { withoutLoaf: true });
+    expect(r.details.longFrames).toBeNull();
+    expect(r.details.unattributedLoafMs).toBeNull();
+  }, 30000);
+});
 
 describe("Third-Party-Impact-by-Domain", () => {
   it("explains how to set OWN_DOMAINS when the list is empty", async () => {
