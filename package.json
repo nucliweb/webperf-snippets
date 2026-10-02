@@ -17,6 +17,7 @@
     "test:icons": "node --test lib/rehype-icons.test.js lib/strip-emoji.test.js scripts/check-emoji.test.js",
     "test:support": "node --test lib/browser-support.test.js lib/remark-browser-support.test.js",
     "test:ci": "node --test scripts/ci-skip-slow-steps.test.js",
+    "test:diagrams": "vitest run components/diagrams",
     "generate-skills": "node scripts/generate-skills.js",
     "generate-skills:check": "node scripts/generate-skills.js && git diff --exit-code -- skills dist .claude/skills",
     "install-skills": "node scripts/install-skills.js",

@@ -73,6 +73,9 @@ jobs:
       - name: Run CI helper tests
         run: npm run test:ci
 
+      - name: Run diagram layout tests
+        run: npm run test:diagrams
+
       - name: Run unit tests
         run: npm run test:unit --prefix cli
 
