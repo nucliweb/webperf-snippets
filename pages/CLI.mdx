@@ -66,6 +66,18 @@ npx webperf-snippets https://web.dev --snippet render-blocking
 npx webperf-snippets https://web.dev --snippet fonts
 ```
 
+Measure pages behind a login with a Playwright storage state (cookies and localStorage):
+
+```bash copy
+# Step 1: sign in once and save the session
+npx playwright codegen --save-storage=auth.json https://example.com/login
+
+# Step 2: measure an authenticated page
+npx webperf-snippets https://example.com/dashboard --storage-state auth.json
+```
+
+The file holds live session cookies. Keep it out of version control (add it to `.gitignore`) and use a throwaway account when you run it in CI. The CLI exits with code `2` if the path does not exist.
+
 ### Snippet aliases
 
 | Alias              | Snippet                                          | Category        |
@@ -121,6 +133,7 @@ npx webperf-snippets https://web.dev --verbose
 | `--json`               | Output JSON instead of formatted text.                                            |
 | `--viewport <preset>`  | Viewport preset. Default: `mobile`. Options: `mobile`, `tablet`, `desktop`.       |
 | `--wait <ms>`          | Post-load wait before evaluating snippets. Default: `3000`.                       |
+| `--storage-state <path>` | Playwright storage state (cookies and localStorage) for pages that require authentication. |
 | `--budget-lcp <ms>`    | Exit `1` if LCP exceeds this value.                                               |
 | `--budget-cls <score>` | Exit `1` if CLS exceeds this value.                                               |
 | `--verbose`            | Show all items, including passing checks.                                         |
