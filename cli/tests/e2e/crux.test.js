@@ -5,9 +5,14 @@ import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { fetchCrux } from "../../src/crux.js";
+import { cliEnv } from "../helpers/cli-env.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "../../src/bin.js");
+
+// The LCP entry needs a moment after load to be reported; with no wait a loaded runner
+// sometimes returns "No LCP entries buffered" and the CLI exits 1.
+const WAIT_MS = "500";
 
 let pageServer;
 let pageUrl;
@@ -141,8 +146,8 @@ describe("CrUX in the CLI", () => {
     return new Promise((resolve) => {
       execFile(
         "node",
-        [BIN, pageUrl, "--snippet", "LCP", "--wait", "0", ...args],
-        { env: { ...process.env, CRUX_API_KEY: "", WEBPERF_CRUX_ENDPOINT: cruxEndpoint, ...env } },
+        [BIN, pageUrl, "--snippet", "LCP", "--wait", WAIT_MS, ...args],
+        { env: cliEnv({ WEBPERF_CRUX_ENDPOINT: cruxEndpoint, ...env }) },
         (err, stdout, stderr) => resolve({ code: err ? err.code : 0, stdout, stderr })
       );
     });
