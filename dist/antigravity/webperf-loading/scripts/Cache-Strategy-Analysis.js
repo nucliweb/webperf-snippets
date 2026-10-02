@@ -240,8 +240,9 @@
   const cdnEntries = entries.filter(e => e.cdnInfo && e.cdnInfo.cdn !== "none" && e.cdnInfo.cdn !== "unknown");
   const cdnHits = cdnEntries.filter(e => e.cdnInfo.status.toUpperCase().startsWith("HIT")).length;
   const cdnHitRate = cdnEntries.length > 0 ? Math.round(cdnHits / cdnEntries.length * 100) : null;
-  const effectiveEntries = entries.filter(e => EFFECTIVE_CACHE_STRATEGIES.has(e.cacheStrategy));
-  const cacheEfficiencyPercent = entries.length > 0 ? Math.round(effectiveEntries.length / entries.length * 100) : 0;
+  const analyzableEntries = entries.filter(e => e.headers !== null);
+  const effectiveEntries = analyzableEntries.filter(e => EFFECTIVE_CACHE_STRATEGIES.has(e.cacheStrategy));
+  const cacheEfficiencyPercent = analyzableEntries.length > 0 ? Math.round(effectiveEntries.length / analyzableEntries.length * 100) : null;
   const bandwidthSavedBytes = entries.filter(e => e.isCached).reduce((sum, e) => sum + e.decodedBodySize, 0);
   const protocolDistribution = {};
   for (const entry of entries) {
@@ -263,6 +264,16 @@
   });
   const costlyDuplicates = uniqueDuplicates.filter(d => d.costly);
   const cachedDuplicates = uniqueDuplicates.filter(d => !d.costly);
+  for (const entry of uncompressedResources) entry.antiPatterns.push({
+    id: "uncompressed",
+    severity: "warning",
+    message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}) — enable Brotli or gzip`
+  });
+  for (const duplicate of costlyDuplicates) entries.find(e => e.url === duplicate.url).antiPatterns.push({
+    id: "duplicate-uncached",
+    severity: "warning",
+    message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network — load it once or make it cacheable`
+  });
   if (entries.length === 0) {
     return {
       script: "Cache-Strategy-Analysis",
@@ -284,8 +295,21 @@
   const noCacheEntries = entries.filter(e => [ "none", "no-store", "no-cache" ].includes(e.cacheStrategy));
   const shortCacheEntries = entries.filter(e => e.cacheStrategy === "short");
   const headersAnalyzed = entries.filter(e => e.headers !== null).length;
+  const headerCoveragePercent = Math.round(headersAnalyzed / entries.length * 100);
   const corsRestricted = entries.filter(e => e.isCorsRestricted).length;
   const excludedFromHeaders = entries.filter(e => e.headers === null && !e.isCorsRestricted && (!e.url.startsWith(location.origin + "/") || !FETCHABLE_TYPES.has(e.type)));
+  let coverageIssue = null;
+  if (headerCoveragePercent < 50) {
+    const hostCounts = new Map;
+    for (const e of entries.filter(e => e.headers === null)) hostCounts.set(e.host, (hostCounts.get(e.host) || 0) + 1);
+    const topHosts = [ ...hostCounts.entries() ].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([host]) => host).join(", ");
+    coverageIssue = {
+      severity: "info",
+      id: "header-coverage",
+      message: `Cache headers were read for ${headersAnalyzed} of ${entries.length} resources (${headerCoveragePercent}%): the rest are on other origins or are not static assets, so their Cache-Control cannot be read from the page. Most of them are on ${topHosts}; check those hosts in the Network panel or with curl -I`
+    };
+  }
+  if (coverageIssue) void 0;
   if (excludedFromHeaders.length > 0) {
     [ ...new Set(excludedFromHeaders.map(e => e.type)) ].join(", ");
   }
@@ -329,7 +353,7 @@
   if (noCacheEntries.filter(e => isStaticAsset(e.type)).length > 0) recommendations.push("🔴 Add Cache-Control headers to static assets (JS, CSS, fonts, images). Start with max-age=86400 and move to immutable for versioned files.");
   if (shortCacheEntries.filter(e => e.hasHash).length > 0) recommendations.push("🟡 Versioned files (with content hash) should use long cache or Cache-Control: immutable — they can be cached indefinitely since the URL changes on update.");
   if (allAntiPatterns.some(p => p.id === "expires-without-cc")) recommendations.push("🟡 Replace Expires headers with Cache-Control: max-age — Expires is an outdated mechanism and less reliable.");
-  if (entries.length > 0 && cacheEfficiencyPercent < 50) recommendations.push(`🔴 Cache efficiency is low (${cacheEfficiencyPercent}%). Review caching strategy for all static assets.`);
+  if (cacheEfficiencyPercent !== null && cacheEfficiencyPercent < 50) recommendations.push(`🔴 Cache efficiency is low (${cacheEfficiencyPercent}%, measured on the ${analyzableEntries.length} resources whose cache headers could be read). Review caching strategy for those static assets.`);
   if (cdnHitRate !== null && cdnHitRate < 70) recommendations.push(`🟡 CDN hit rate is ${cdnHitRate}%. Check CDN cache rules and ensure static assets have appropriate TTLs.`);
   if (protocolDistribution["http/1.1"] > 0) recommendations.push(`🟡 ${protocolDistribution["http/1.1"]} resources still use HTTP/1.1. Consider upgrading to HTTP/2 for better multiplexing.`);
   if (uncompressedResources.length > 0) recommendations.push(`🟡 ${uncompressedResources.length} text resources appear uncompressed. Enable Brotli or gzip compression on your server.`);
@@ -338,7 +362,7 @@
   if (recommendations.length > 0) {
     for (const rec of recommendations) void 0;
   }
-  const cacheEfficiencyRating = cacheEfficiencyPercent >= 80 ? "good" : cacheEfficiencyPercent >= 50 ? "needs-improvement" : "poor";
+  const cacheEfficiencyRating = cacheEfficiencyPercent === null ? null : cacheEfficiencyPercent >= 80 ? "good" : cacheEfficiencyPercent >= 50 ? "needs-improvement" : "poor";
   const MAX_ITEMS = 50;
   const actionableEntries = entries.filter(e => e.antiPatterns.length > 0 || [ "none", "no-store", "no-cache", "short" ].includes(e.cacheStrategy));
   return {
@@ -352,8 +376,10 @@
       headersAnalyzed: headersAnalyzed,
       corsRestricted: corsRestricted,
       excludedFromHeaders: excludedFromHeaders.length,
+      headerCoveragePercent: headerCoveragePercent,
       cacheEfficiencyPercent: cacheEfficiencyPercent,
       cacheEfficiencyRating: cacheEfficiencyRating,
+      cacheEfficiencyResources: analyzableEntries.length,
       bandwidthSavedBytes: bandwidthSavedBytes,
       strategyDistribution: strategyGroups,
       cdnDetected: cdnEntries.length > 0,
@@ -374,12 +400,12 @@
       isCached: e.isCached,
       antiPatterns: e.antiPatterns.map(p => p.id)
     })),
-    issues: allAntiPatterns.map(p => ({
+    issues: [ ...allAntiPatterns.map(p => ({
       severity: p.severity,
       id: p.id,
       resource: p.resource,
       message: p.message
-    })),
+    })), ...coverageIssue ? [ coverageIssue ] : [] ],
     recommendations: recommendations
   };
 })();

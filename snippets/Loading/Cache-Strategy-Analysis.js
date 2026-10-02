@@ -377,13 +377,17 @@
 
   // --- Phase 6: Value-add metrics ---
 
-  const effectiveEntries = entries.filter((e) =>
+  // Only resources whose cache headers were read have a cache policy to judge. One whose headers
+  // could not be read, or that was only inferred as cached, says nothing about the policy: counting it
+  // as "not effective" made the figure measure how much was analyzable instead of the cache.
+  const analyzableEntries = entries.filter((e) => e.headers !== null);
+  const effectiveEntries = analyzableEntries.filter((e) =>
     EFFECTIVE_CACHE_STRATEGIES.has(e.cacheStrategy)
   );
   const cacheEfficiencyPercent =
-    entries.length > 0
-      ? Math.round((effectiveEntries.length / entries.length) * 100)
-      : 0;
+    analyzableEntries.length > 0
+      ? Math.round((effectiveEntries.length / analyzableEntries.length) * 100)
+      : null;
 
   const bandwidthSavedBytes = entries
     .filter((e) => e.isCached)
@@ -425,6 +429,24 @@
   const costlyDuplicates = uniqueDuplicates.filter((d) => d.costly);
   const cachedDuplicates = uniqueDuplicates.filter((d) => !d.costly);
 
+  // These two findings need no cache headers, so they also cover resources on other origins. They
+  // are anti-patterns like the header-based ones: they reach `items` and `issues`.
+  for (const entry of uncompressedResources) {
+    entry.antiPatterns.push({
+      id: "uncompressed",
+      severity: "warning",
+      message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}) — enable Brotli or gzip`,
+    });
+  }
+  for (const duplicate of costlyDuplicates) {
+    // One finding per URL, on the first request, not one per request
+    entries.find((e) => e.url === duplicate.url).antiPatterns.push({
+      id: "duplicate-uncached",
+      severity: "warning",
+      message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network — load it once or make it cacheable`,
+    });
+  }
+
   // --- Phase 7: Console output ---
 
   if (entries.length === 0) {
@@ -459,6 +481,7 @@
   );
 
   const headersAnalyzed = entries.filter((e) => e.headers !== null).length;
+  const headerCoveragePercent = Math.round((headersAnalyzed / entries.length) * 100);
   const corsRestricted = entries.filter((e) => e.isCorsRestricted).length;
 
   // Resources excluded from header analysis — cross-origin or non-static types.
@@ -474,6 +497,26 @@
         !FETCHABLE_TYPES.has(e.type))
   );
 
+  // Header analysis only reaches same-origin static assets. When most of the page is elsewhere (a CDN
+  // or another origin for the assets), say so and name the hosts, so an empty list is not read as "clean".
+  let coverageIssue = null;
+  if (headerCoveragePercent < 50) {
+    const hostCounts = new Map();
+    for (const e of entries.filter((e) => e.headers === null)) {
+      hostCounts.set(e.host, (hostCounts.get(e.host) || 0) + 1);
+    }
+    const topHosts = [...hostCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([host]) => host)
+      .join(", ");
+    coverageIssue = {
+      severity: "info",
+      id: "header-coverage",
+      message: `Cache headers were read for ${headersAnalyzed} of ${entries.length} resources (${headerCoveragePercent}%): the rest are on other origins or are not static assets, so their Cache-Control cannot be read from the page. Most of them are on ${topHosts}; check those hosts in the Network panel or with curl -I`,
+    };
+  }
+
   console.group(
     "%c🔍 Cache Strategy Analysis",
     "font-weight: bold; font-size: 14px;"
@@ -485,13 +528,18 @@
   console.log(
     `   Headers analyzed: ${headersAnalyzed} | CORS-restricted: ${corsRestricted} | Excluded (non-static/cross-origin): ${excludedFromHeaders.length}`
   );
+  if (coverageIssue) console.log(`   ℹ️  ${coverageIssue.message}`);
   if (excludedFromHeaders.length > 0) {
     const excludedTypes = [...new Set(excludedFromHeaders.map((e) => e.type))].join(", ");
     console.log(
       `   ℹ️  Excluded resources (${excludedTypes}) are analyzed with Tier 1 data only (Performance API) — header inspection requires same-origin static assets due to CORS restrictions.`
     );
   }
-  console.log(`   Cache efficiency: ${cacheEfficiencyPercent}%`);
+  console.log(
+    cacheEfficiencyPercent === null
+      ? `   Cache efficiency: n/a (no cache headers could be read)`
+      : `   Cache efficiency: ${cacheEfficiencyPercent}% (of the ${analyzableEntries.length} resources whose cache headers could be read)`
+  );
   console.log(`   Bandwidth saved by cache: ${formatBytes(bandwidthSavedBytes)}`);
   if (cdnHitRate !== null) {
     console.log(
@@ -596,6 +644,8 @@
       { Pattern: "expires-without-cc",      Severity: "🟡 warning", Meaning: "Uses Expires header without Cache-Control — outdated pattern, less reliable" },
       { Pattern: "maxage-zero-static",      Severity: "🟡 warning", Meaning: "Static asset with max-age=0 — browser revalidates on every request" },
       { Pattern: "short-cache-static",      Severity: "🟡 warning", Meaning: "Static asset with max-age < 3600 — consider a longer cache duration" },
+      { Pattern: "uncompressed",            Severity: "🟡 warning", Meaning: "Text resource sent without Brotli or gzip — works for any origin, no headers needed" },
+      { Pattern: "duplicate-uncached",      Severity: "🟡 warning", Meaning: "Same URL loaded more than once with at least one request to the network" },
       { Pattern: "versioned-not-immutable", Severity: "🔵 info",    Meaning: "Hashed URL without immutable directive — adding it avoids conditional GET requests" },
     ]);
     console.groupEnd();
@@ -719,9 +769,9 @@
       "🟡 Replace Expires headers with Cache-Control: max-age — Expires is an outdated mechanism and less reliable."
     );
   }
-  if (entries.length > 0 && cacheEfficiencyPercent < 50) {
+  if (cacheEfficiencyPercent !== null && cacheEfficiencyPercent < 50) {
     recommendations.push(
-      `🔴 Cache efficiency is low (${cacheEfficiencyPercent}%). Review caching strategy for all static assets.`
+      `🔴 Cache efficiency is low (${cacheEfficiencyPercent}%, measured on the ${analyzableEntries.length} resources whose cache headers could be read). Review caching strategy for those static assets.`
     );
   }
   if (cdnHitRate !== null && cdnHitRate < 70) {
@@ -768,7 +818,9 @@
   // --- Return structured object ---
 
   const cacheEfficiencyRating =
-    cacheEfficiencyPercent >= 80
+    cacheEfficiencyPercent === null
+      ? null
+      : cacheEfficiencyPercent >= 80
       ? "good"
       : cacheEfficiencyPercent >= 50
       ? "needs-improvement"
@@ -791,8 +843,10 @@
       headersAnalyzed,
       corsRestricted,
       excludedFromHeaders: excludedFromHeaders.length,
+      headerCoveragePercent,
       cacheEfficiencyPercent,
       cacheEfficiencyRating,
+      cacheEfficiencyResources: analyzableEntries.length,
       bandwidthSavedBytes,
       strategyDistribution: strategyGroups,
       cdnDetected: cdnEntries.length > 0,
@@ -804,8 +858,9 @@
       uncompressedCount: uncompressedResources.length,
       protocolDistribution,
     },
-    // Only resources with actionable issues, at most 50: the ones with the most anti-patterns
-    // first, then the largest. Clean resources are left out to reduce noise.
+    // Only resources with actionable findings (cache anti-patterns, a weak cache strategy, a costly
+    // duplicate or uncompressed text), at most 50: the ones with the most anti-patterns first, then the
+    // largest. Clean resources are left out to reduce noise.
     items: actionableEntries
       .sort((a, b) => b.antiPatterns.length - a.antiPatterns.length || b.decodedBodySize - a.decodedBodySize)
       .slice(0, MAX_ITEMS)
@@ -819,12 +874,15 @@
         isCached: e.isCached,
         antiPatterns: e.antiPatterns.map((p) => p.id),
       })),
-    issues: allAntiPatterns.map((p) => ({
-      severity: p.severity,
-      id: p.id,
-      resource: p.resource,
-      message: p.message,
-    })),
+    issues: [
+      ...allAntiPatterns.map((p) => ({
+        severity: p.severity,
+        id: p.id,
+        resource: p.resource,
+        message: p.message,
+      })),
+      ...(coverageIssue ? [coverageIssue] : []),
+    ],
     recommendations,
   };
 })();
