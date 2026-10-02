@@ -97,46 +97,141 @@ function boundsOf(parts) {
   return { minX, minY, maxX, maxY };
 }
 
-// Places pre-measured boxes with dagre. Coordinates come back as top-left corners.
-function place(boxes, edges, cfg) {
-  const g = new graphlib.Graph({ multigraph: true });
-  g.setGraph({
-    rankdir: cfg.direction === "LR" ? "LR" : "TB",
-    nodesep: cfg.nodesep,
-    ranksep: cfg.ranksep,
-    edgesep: 14,
-    marginx: 0,
-    marginy: 0,
-  });
-  g.setDefaultEdgeLabel(() => ({}));
-  for (const b of boxes) g.setNode(b.id, { width: b.w, height: b.h });
-  const named = edges.map((e, i) => {
-    const label = measureEdgeLabel(e.label, cfg.labelMax);
-    const name = `e${i}`;
-    g.setEdge(e.from, e.to, { width: label ? label.w : 0, height: label ? label.h : 0, labelpos: "c" }, name);
-    return { ...e, label, name };
-  });
-  layout(g);
-  const pos = new Map(boxes.map((b) => [b.id, { x: g.node(b.id).x - b.w / 2, y: g.node(b.id).y - b.h / 2 }]));
-  const out = named.map((e) => {
-    const de = g.edge(e.from, e.to, e.name);
-    const common = { dashed: !!e.dashed, arrow: e.arrow !== false, label: e.label && { ...e.label, x: de.x, y: de.y } };
-    if (e.from === e.to) {
-      // A self loop leaves the right side of its box; dagre only reserves the room for it.
-      const b = boxes.find((bx) => bx.id === e.from);
-      const p = pos.get(e.from);
-      const rx = p.x + b.w;
-      const cy = p.y + b.h / 2;
-      return {
-        ...common,
-        pts: [{ x: rx, y: cy - 8 }, { x: rx + 30, y: cy - 8 }, { x: rx + 30, y: cy + 8 }, { x: rx + 1, y: cy + 8 }],
-        label: e.label && { ...e.label, x: rx + 36 + e.label.w / 2, y: cy },
-        selfLoop: e.from,
-      };
+// Number of pairs of edges whose routes cross. Edges that meet at a box share an end point, which is
+// not a crossing.
+function countCrossings(routed) {
+  const near = (a, b) => Math.abs(a.x - b.x) < 1 && Math.abs(a.y - b.y) < 1;
+  const side = (a, b, c) => Math.sign((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
+  const cross = (a, b, c, d) => {
+    if (near(a, c) || near(a, d) || near(b, c) || near(b, d)) return false;
+    return side(a, b, c) !== side(a, b, d) && side(c, d, a) !== side(c, d, b);
+  };
+  const routes = routed.filter((e) => !e.selfLoop).map((e) => e.pts);
+  let count = 0;
+  for (let i = 0; i < routes.length; i++) {
+    for (let j = i + 1; j < routes.length; j++) {
+      const hit = routes[i].some((p, a) => a > 0 && routes[j].some((q, b) => b > 0 && cross(routes[i][a - 1], p, routes[j][b - 1], q)));
+      if (hit) count++;
     }
-    return { ...common, pts: de.points.map((pt) => ({ x: pt.x, y: pt.y })) };
-  });
-  return { pos, edges: out };
+  }
+  return count;
+}
+
+// Places pre-measured boxes with dagre. Coordinates come back as top-left corners.
+//
+// The siblings of a node keep the order of its edges: the first edge goes first, on the left in a top
+// down flow and on top in a left to right one. dagre finds the arrangement with the fewest crossings
+// and places siblings in whatever order that gives, so the order is only asked for when it costs no
+// crossing; the pairs that would cross are left as dagre arranged them, and the whole arrangement is
+// mirrored when that follows the edges better.
+function place(boxes, edges, cfg) {
+  const lr = cfg.direction === "LR";
+  const build = () => {
+    const g = new graphlib.Graph({ multigraph: true });
+    g.setGraph({
+      rankdir: lr ? "LR" : "TB",
+      nodesep: cfg.nodesep,
+      ranksep: cfg.ranksep,
+      edgesep: 14,
+      marginx: 0,
+      marginy: 0,
+    });
+    g.setDefaultEdgeLabel(() => ({}));
+    for (const b of boxes) g.setNode(b.id, { width: b.w, height: b.h });
+    const named = edges.map((e, i) => {
+      const label = measureEdgeLabel(e.label, cfg.labelMax);
+      const name = `e${i}`;
+      g.setEdge(e.from, e.to, { width: label ? label.w : 0, height: label ? label.h : 0, labelpos: "c" }, name);
+      return { ...e, label, name };
+    });
+    return { g, named };
+  };
+
+  const solve = (constraints) => {
+    const { g, named } = build();
+    layout(g, constraints.length > 0 ? { constraints } : undefined);
+    const pos = new Map(boxes.map((b) => [b.id, { x: g.node(b.id).x - b.w / 2, y: g.node(b.id).y - b.h / 2 }]));
+    const out = named.map((e) => {
+      const de = g.edge(e.from, e.to, e.name);
+      const common = { dashed: !!e.dashed, arrow: e.arrow !== false, label: e.label && { ...e.label, x: de.x, y: de.y } };
+      if (e.from === e.to) {
+        // A self loop leaves the right side of its box; dagre only reserves the room for it.
+        const b = boxes.find((bx) => bx.id === e.from);
+        const p = pos.get(e.from);
+        const rx = p.x + b.w;
+        const cy = p.y + b.h / 2;
+        return {
+          ...common,
+          pts: [{ x: rx, y: cy - 8 }, { x: rx + 30, y: cy - 8 }, { x: rx + 30, y: cy + 8 }, { x: rx + 1, y: cy + 8 }],
+          label: e.label && { ...e.label, x: rx + 36 + e.label.w / 2, y: cy },
+          selfLoop: e.from,
+        };
+      }
+      return { ...common, pts: de.points.map((pt) => ({ x: pt.x, y: pt.y })) };
+    });
+    return { pos, edges: out };
+  };
+
+  const base = solve([]);
+
+  // Consecutive siblings, in the order of their edges, that sit on the same rank: only those have an order.
+  const targets = new Map();
+  for (const e of edges) {
+    if (e.from === e.to) continue;
+    if (!targets.has(e.from)) targets.set(e.from, []);
+    if (!targets.get(e.from).includes(e.to)) targets.get(e.from).push(e.to);
+  }
+  const size = new Map(boxes.map((b) => [b.id, b]));
+  const center = (res, id, axis) => res.pos.get(id)[axis] + (axis === "x" ? size.get(id).w : size.get(id).h) / 2;
+  const rankAxis = lr ? "x" : "y";
+  const orderAxis = lr ? "y" : "x";
+  const pairs = [];
+  for (const list of targets.values()) {
+    for (let i = 0; i + 1 < list.length; i++) {
+      if (Math.abs(center(base, list[i], rankAxis) - center(base, list[i + 1], rankAxis)) < 0.5) pairs.push([list[i], list[i + 1]]);
+    }
+  }
+  if (pairs.length === 0) return base;
+
+  const agreement = (res) => pairs.filter(([a, b]) => center(res, a, orderAxis) < center(res, b, orderAxis)).length;
+  if (agreement(base) === pairs.length) return base;
+
+  // Ask for the order of the siblings, but never at the price of a crossing: try every pair at once, and
+  // if that crosses edges, add the pairs one at a time and keep each one that does not.
+  const limit = countCrossings(base.edges);
+  const asConstraints = (list) => list.map(([left, right]) => ({ left, right }));
+  const everything = solve(asConstraints(pairs));
+  if (countCrossings(everything.edges) <= limit) return everything;
+  const accepted = [];
+  let current = base;
+  for (const pair of pairs) {
+    const trial = solve(asConstraints([...accepted, pair]));
+    if (countCrossings(trial.edges) <= limit) {
+      accepted.push(pair);
+      current = trial;
+    }
+  }
+
+  // A mirror image keeps an arrangement crossing-free (x for a top down flow, y for a left to right one)
+  const extent = (id) => (lr ? size.get(id).h : size.get(id).w);
+  const mirror = (res) => {
+    const coords = [];
+    for (const [id, p] of res.pos) coords.push(p[orderAxis], p[orderAxis] + extent(id));
+    for (const e of res.edges) for (const pt of e.pts) coords.push(pt[orderAxis]);
+    const flip = Math.min(...coords) + Math.max(...coords);
+    return {
+      pos: new Map([...res.pos].map(([id, p]) => [id, { ...p, [orderAxis]: flip - p[orderAxis] - extent(id) }])),
+      edges: res.edges.map((e) => ({
+        ...e,
+        pts: e.pts.map((pt) => ({ ...pt, [orderAxis]: flip - pt[orderAxis] })),
+        label: e.label && { ...e.label, [orderAxis]: flip - e.label[orderAxis] },
+      })),
+    };
+  };
+
+  // The candidate that follows the most pairs wins; on a tie the earlier one does
+  const candidates = [current, mirror(base), mirror(current)];
+  return candidates.reduce((best, c) => (agreement(c) > agreement(best) ? c : best));
 }
 
 // Returns drawing primitives in a coordinate system that starts at (0, 0).

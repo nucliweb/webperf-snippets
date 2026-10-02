@@ -162,6 +162,7 @@ import { Flow, Sequence } from '../../components/diagrams'
 - `Sequence` draws messages between participants, with `note` steps and `alt`, `loop`, `opt` and `rect` blocks. A message from a participant to itself draws a loop. The props are documented at the top of `components/diagrams/Sequence.jsx`.
 - Every diagram needs a `title`: one sentence, written by hand, that says what the diagram shows. Screen readers announce it.
 - A tone says the same thing an emoji would, so do not put emojis in labels; the component strips them.
+- The nodes a node points to are drawn in the order of its edges: the first edge goes on the left in a top down flow and on top in a left to right one, so write `Yes` before `No`. The order is never bought with a crossing edge. If the edges you wrote could only be ordered by crossing them, the pair that would cross keeps the arrangement without crossings, so reorder the edges of that node. Children on different ranks have no order.
 - Known limits: no edges to or from a group (use a node inside it), no solid and dashed edge between the same pair of nodes, and `start` and `end` shapes ignore their label.
 - A diagram that needs something the components do not do (a timeline, the LCP phases) is a component of its own next to them, such as `LcpSubparts.jsx` or `EventProcessingTimeline.jsx`.
 

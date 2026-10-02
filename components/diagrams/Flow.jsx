@@ -16,6 +16,11 @@ import { layoutFlow, LH, FS, SUB, EDGE_FS, NOTE_FS } from "./flowLayout";
 //     notes={[{ attach: "a", text: "Side note", side: "right" }]}
 //   />
 //
+// Siblings: the nodes a node points to are drawn in the order of its edges, the first edge on the left
+// in a top down flow and on top in a left to right one, so `Yes` before `No` reads as written. The
+// order is never bought with a crossing edge: a pair that could only be ordered by crossing edges
+// keeps the arrangement without crossings, and children that sit on different ranks have no order.
+//
 // Shapes: rect (default), pill, decision (accent border and a diamond marker),
 // start and end (small dot and ring, for state diagrams).
 // Tones: neutral (default), info, good, warn, bad, violet, ttfb, delay, load, render.
