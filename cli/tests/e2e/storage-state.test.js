@@ -13,6 +13,10 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "../../src/bin.js");
 const run = promisify(execFile);
 
+// The LCP entry needs a moment after load to be reported; with no wait a loaded runner
+// sometimes returns "No LCP entries buffered" and the CLI exits 1.
+const WAIT_MS = "500";
+
 let server;
 let baseUrl;
 let storageStatePath;
@@ -91,7 +95,7 @@ describe("storageState in the runner", () => {
 
 describe("--storage-state flag", () => {
   const cli = (...args) =>
-    run("node", [BIN, baseUrl, "--snippet", "LCP", "--json", "--wait", "0", ...args], { env: cliEnv() }).then(
+    run("node", [BIN, baseUrl, "--snippet", "LCP", "--json", "--wait", WAIT_MS, ...args], { env: cliEnv() }).then(
       ({ stdout }) => ({ code: 0, stdout, stderr: "" }),
       (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr })
     );

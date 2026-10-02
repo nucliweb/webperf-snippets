@@ -10,6 +10,10 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "../../src/bin.js");
 const CLI_VERSION = JSON.parse(readFileSync(join(HERE, "../../package.json"), "utf8")).version;
 
+// The LCP entry needs a moment after load to be reported; with no wait a loaded runner
+// sometimes returns "No LCP entries buffered" and the CLI exits 1.
+const WAIT_MS = "500";
+
 let pageServer;
 let pageUrl;
 let reportServer;
@@ -63,7 +67,7 @@ function cli(args, env = {}) {
   return new Promise((resolve) => {
     execFile(
       "node",
-      [BIN, pageUrl, "--snippet", "LCP", "--json", "--wait", "0", ...args],
+      [BIN, pageUrl, "--snippet", "LCP", "--json", "--wait", WAIT_MS, ...args],
       { env: cliEnv(env) },
       (err, stdout, stderr) => resolve({ code: err ? err.code : 0, stdout, stderr })
     );
@@ -78,7 +82,7 @@ describe("--report-to", () => {
   }, 30000);
 
   it("POSTs the results after the snippets complete", async () => {
-    const { code } = await cli(["--report-to", reportUrl, "--viewport", "desktop", "--wait", "10"]);
+    const { code } = await cli(["--report-to", reportUrl, "--viewport", "desktop", "--wait", "600"]);
     expect(code).toBe(0);
     expect(received).toHaveLength(1);
     const { method, headers, body } = received[0];
@@ -89,7 +93,7 @@ describe("--report-to", () => {
     expect(Number.isNaN(Date.parse(body.timestamp))).toBe(false);
     expect(typeof body.navMs).toBe("number");
     expect(body.results[0].id).toBe("LCP");
-    expect(body.meta).toEqual({ viewport: "desktop", waitMs: 10, cli_version: CLI_VERSION });
+    expect(body.meta).toEqual({ viewport: "desktop", waitMs: 600, cli_version: CLI_VERSION });
   }, 30000);
 
   it("sends --api-key as a Bearer token", async () => {
