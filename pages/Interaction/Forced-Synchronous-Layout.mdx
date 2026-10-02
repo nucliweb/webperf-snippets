@@ -103,7 +103,7 @@ With the double-`requestAnimationFrame` fix applied, no warnings appear, the dir
     { id: "Det", label: "FSL Detector" },
   ]}
   steps={[
-    { type: "message", from: "JS", to: "JS", label: "element.classList.toggle(...)" },
+    { type: "message", from: "JS", to: "JS", label: "classList.toggle(...)" },
     { type: "message", from: "MO", to: "Det", label: "mutation fired → isDirty = true" },
     { type: "message", from: "Det", to: "RAF", label: "schedule clean (isDirty = false)" },
     { type: "message", from: "JS", to: "Det", label: "element.scrollTop = 0" },

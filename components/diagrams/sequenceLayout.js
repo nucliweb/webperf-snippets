@@ -11,6 +11,9 @@ const HEAD_H = 32;
 const PAD_X = 12;
 const MIN_GAP = 110;
 const INDENT = 8;
+// A message from the last participant to itself draws its loop and its label to the right of the last
+// lifeline, so the label adds its whole width to the diagram. A long label wraps at this width instead.
+export const LAST_SELF_LABEL_MAX = 110;
 
 const maxLine = (lines, size, weight) => Math.max(...lines.map((l) => textWidth(l, size, weight)));
 
@@ -33,6 +36,7 @@ export function layoutSequence({ participants, steps }) {
     const cols = ids.map((id) => index.get(id));
     return [Math.min(...cols), Math.max(...cols)];
   };
+  const messageLabelWidth = (i, j) => (i === j && i === last ? LAST_SELF_LABEL_MAX : 320);
   const noteAnchor = (s) => s.over ?? s.left ?? s.right;
   const noteIds = (s) => [].concat(noteAnchor(s));
 
@@ -40,10 +44,10 @@ export function layoutSequence({ participants, steps }) {
   const measure = (list) => {
     for (const s of list) {
       if (s.type === "message") {
-        const lines = wrapText(s.label, 320, SEQ_FS);
-        const lw = Math.ceil(maxLine(lines, SEQ_FS));
         const i = index.get(s.from);
         const j = index.get(s.to);
+        const lines = wrapText(s.label, messageLabelWidth(i, j), SEQ_FS);
+        const lw = Math.ceil(maxLine(lines, SEQ_FS));
         if (i === j) {
           const need = 56 + lw;
           if (i === last) rightExtra = Math.max(rightExtra, need);
@@ -100,9 +104,9 @@ export function layoutSequence({ participants, steps }) {
     let y = y0;
     for (const s of list) {
       if (s.type === "message") {
-        const lines = wrapText(s.label, 320, SEQ_FS);
         const i = index.get(s.from);
         const j = index.get(s.to);
+        const lines = wrapText(s.label, messageLabelWidth(i, j), SEQ_FS);
         const lw = maxLine(lines, SEQ_FS);
         if (i === j) {
           const loopTop = y + 6;
