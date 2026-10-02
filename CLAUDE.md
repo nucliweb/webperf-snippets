@@ -2,109 +2,90 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Project overview
 
-**WebPerf Snippets** is a curated collection of web performance measurement JavaScript snippets designed for use in browser consoles or Chrome DevTools. The project is a documentation website built with Next.js and Nextra, serving as a comprehensive resource for web performance analysis tools.
+**WebPerf Snippets** is a curated collection of web performance measurement JavaScript snippets for the browser console and Chrome DevTools. The repository is a documentation site (Next.js + Nextra) plus the tooling that packages the same snippets as Agent Skills, a CLI and `llms.txt` files.
 
-## Architecture
+The snippet source files in `snippets/` are the single source of truth. Documentation pages, skills, the CLI and `llms-full.txt` are all derived from them.
 
-### Technology Stack
-- **Framework**: Next.js 13+ with Nextra documentation theme
-- **Theme**: nextra-theme-docs for documentation layout
-- **Media**: Cloudinary integration via next-cloudinary for optimized images/videos
-- **Deployment**: Vercel
-- **Analytics**: Google Analytics and DebugBear monitoring
+## Technology stack
 
-### Project Structure
+- **Site**: Next.js 13 with Nextra 2 (`nextra-theme-docs`), deployed on Vercel
+- **Media**: Cloudinary through `next-cloudinary`
+- **Analytics**: Google Analytics and DebugBear
+- **CLI** (`cli/`, npm workspace `webperf-snippets`): Playwright runner for the snippets, tested with Vitest
+
+## Repository layout
 
 ```
-pages/
-├── _app.js                  # Next.js app wrapper with analytics scripts
-├── _meta.json              # Top-level navigation configuration
-├── index.mdx               # Homepage with introduction and video
-├── CoreWebVitals/          # LCP, CLS, and related metrics
-│   ├── _meta.json
-│   └── *.mdx
-├── Loading/                # Resource loading, TTFB, scripts, fonts analysis
-│   ├── _meta.json
-│   └── *.mdx
-└── Interaction/            # User interaction and animation frame metrics
-    ├── _meta.json
-    └── *.mdx
-
-theme.config.jsx            # Nextra theme configuration (branding, SEO, footer)
-next.config.js              # Next.js + Nextra configuration with redirects
+pages/                  MDX pages, file-system routing, one _meta.json per directory
+  CoreWebVitals/ Loading/ Interaction/ Media/ Resources/ DevTools-Overrides/
+  index.mdx, which-snippet.mdx, CLI.mdx, visualizer.mdx, case-studies/
+snippets/               The snippet sources (*.js), same categories as pages/
+  SCHEMA.md             Return-value contract every snippet must follow
+  _shared/              Helpers marked with `// @shared`
+components/             Snippet (code block), Callout, Icon, Demo, SnippetVisualizer, diagrams/
+components/diagrams/    Own SVG diagrams (Flow, Sequence, custom), styled with --dg-* tokens
+lib/                    remark/rehype plugins: browser support, icons, emoji stripping
+styles/globals.css      Global styles, including the --dg-* tokens and .wp-support*
+public/demos/           Interactive HTML demos; see public/demos/README.md for the contract
+skills/, dist/, .claude/skills/   Generated Agent Skills (do not edit by hand)
+public/llms.txt, public/llms-full.txt   Generated
+cli/                    Playwright CLI, workflows, e2e tests and fixtures
+scripts/                Generators, checks and their tests
+workspace/              Local notes, ignored by git
 ```
 
-### Content Organization
-
-The documentation uses Nextra's file-system based routing:
-- Each category has its own directory under `pages/`
-- Individual snippets are documented in `.mdx` files with executable JavaScript code
-- Navigation structure is controlled by `_meta.json` files in each directory
-- All snippets are JavaScript code meant for Chrome DevTools console execution
-
-### Key Configuration Files
-
-- **theme.config.jsx**: Site branding (logo SVG), SEO meta tags, Open Graph settings, footer, sidebar configuration
-- **pages/_app.js**: Next.js app wrapper that includes DebugBear and Google Analytics scripts
-- **next.config.js**: Nextra integration and URL redirects for renamed pages
-
-## Development Commands
+## Commands
 
 ```bash
-# Build the production site
-npm run build
+npm run dev                  # development server (port 3000)
+npm run build                # production build (regenerates llms files first)
+npm run lint                 # eslint
+npm run generate-skills      # regenerate skills/, dist/, .claude/skills/ from snippets/
+npm run generate-skills:check  # CI check: generation leaves no diff
+node scripts/generate-llms.js  # regenerate public/llms*.txt
 
-# Development server (standard Next.js command - not in package.json)
-npx next dev
+npm run check:consistency    # shared helpers must carry the `// @shared` marker
+npm run check:emoji          # no emoji left in rendered text where an icon exists
+npm run test:demos           # demo contract
+npm run test:icons           # emoji to icon plugins
+npm run test:support         # browser support plugin
 
-# No tests configured
-npm test  # Will show error message
+npm run test:unit --prefix cli
+npm run test:e2e --prefix cli   # Playwright against local fixtures (cli/tests/fixtures)
 ```
 
-## Content Guidelines
+CI (`.github/workflows/ci.yml`) runs lint, build, all the checks above, `generate-skills:check` and the CLI unit and e2e tests. The pre-commit hook (`.githooks/pre-commit`) runs `check:consistency`, `check:emoji` and `lint`.
 
-When working with snippet documentation:
+## Snippets
 
-1. **Code Blocks**: Use the `copy` prop in code fences to enable easy copying to DevTools
-   ```mdx
-   ```js copy
-   // snippet code here
-   ```
-   ```
+- Every snippet is an IIFE that returns a structured object with `script`, `status` (`ok`, `tracking`, `error`, `unsupported`) and the metric data. The contract is in `snippets/SCHEMA.md` and is enforced by `cli/tests/e2e/snippet-contract.test.js`.
+- A snippet that needs a `PerformanceObserver` entry type checks `PerformanceObserver.supportedEntryTypes` first and returns `status: "unsupported"` when it is missing.
+- Chrome exposes some entry types only through observers (`largest-contentful-paint`, `layout-shift`, `longtask`, `event`, `first-input`), so they are read with a buffered observer, not `getEntriesByType`.
+- Helpers duplicated across snippets (`formatBytes`, `getRootDomain`) carry a `// @shared` marker and stay identical.
+- After changing a snippet: `npm run generate-skills` and `node scripts/generate-llms.js`, and commit the regenerated files.
+- Tests come first and use the e2e harness in `cli/tests/helpers/contract.js` and the fixtures in `cli/tests/fixtures/`.
 
-2. **Snippet Structure**: Each snippet should include:
-   - Clear title and description
-   - Reference to relevant web.dev documentation for metrics
-   - Usage instructions
-   - Executable JavaScript code optimized for Chrome DevTools
+## Documentation pages
 
-3. **Performance Context**: Snippets focus on measuring:
-   - Core Web Vitals (LCP, CLS, etc.)
-   - Resource loading metrics (TTFB, render-blocking resources)
-   - User interaction and animation frames
-   - Script and font analysis
+`CONTRIBUTING.md` describes the page template step by step. In short:
 
-4. **MDX Features**: Pages can import and use:
-   - `CldVideoPlayer` from next-cloudinary for video embeds
-   - Standard React components
-   - Cloudinary URLs for optimized images
+1. Create `pages/<Category>/<Name>.mdx` (kebab-case or the existing naming of the category) and import the snippet with `import snippet from '../../snippets/<Category>/<Name>.js?raw'`, rendered with `<Snippet code={snippet} />`.
+2. Register it in the `_meta.json` of the category.
+3. Add the `browserSupport` frontmatter and a `### Browser support` section before "Further reading". The badge and tables are generated from MDN browser-compat-data by `lib/remark-browser-support.js`, and the build fails if a key does not exist or the title is missing. `browserSupport` lists what the snippet needs to run; the optional `browserSupportReported` lists what it only audits.
+4. If a page is renamed, add a redirect in `next.config.js`.
 
-## Navigation Management
+Emojis in MDX are replaced by icons at render time (rehype plugin); the MDX source keeps the emoji.
 
-To add a new snippet or category:
+Writing rules for pages are in the `webperf-docs-reviewer` skill: sentence-case headings, no bold as headers, timeless language.
 
-1. Create the `.mdx` file in the appropriate category directory
-2. Add an entry to the corresponding `_meta.json` file with title and ordering
-3. Use kebab-case for file names (e.g., `LCP-Subparts.mdx`)
-4. If creating a redirect for a renamed page, update `next.config.js`
+## Diagrams and demos
 
-Example `_meta.json` entry:
-```json
-{
-  "LCP": {
-    "title": "LCP"
-  }
-}
-```
+- Diagrams are SVG components in `components/diagrams`, not Mermaid. Use `Flow` or `Sequence`, or a custom component, and the `--dg-*` tokens from `styles/globals.css`.
+- Demos are standalone HTML files in `public/demos`, embedded with `<Demo>`. They share a style, an icon block (`.ic`) and a contract documented in `public/demos/README.md`, checked by `npm run test:demos`.
+
+## Notes
+
+- The dev server does not pick up changes in `lib/`; restart it after editing a plugin.
+- Cloudinary URLs and `CldVideoPlayer` are available in MDX for media.
