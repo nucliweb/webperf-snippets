@@ -2,13 +2,25 @@ name: CI
 
 on:
   pull_request:
+    # labeled and unlabeled re-run the checks when the skip-e2e label changes
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches:
       - main
 
+# A new run for the same pull request cancels the one in progress, so adding the
+# label after the pull request is open replaces the full run that was started.
+# A push to main is never cancelled.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
 
     steps:
       - name: Checkout repository
@@ -20,6 +32,16 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      - name: Decide whether to skip the slow steps
+        id: slow
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: node scripts/ci-skip-slow-steps.js
+
       - name: Install dependencies
         run: npm ci
 
@@ -27,6 +49,7 @@ jobs:
         run: npm run lint
 
       - name: Build
+        if: steps.slow.outputs.skip != 'true'
         run: npm run build
 
       - name: Check consistency
@@ -47,12 +70,17 @@ jobs:
       - name: Check generated skills are up to date
         run: npm run generate-skills:check
 
+      - name: Run CI helper tests
+        run: npm run test:ci
+
       - name: Run unit tests
         run: npm run test:unit --prefix cli
 
       - name: Install Playwright Chromium
+        if: steps.slow.outputs.skip != 'true'
         run: npx playwright install --with-deps chromium
         working-directory: cli
 
       - name: Run E2E tests
+        if: steps.slow.outputs.skip != 'true'
         run: npm run test:e2e --prefix cli

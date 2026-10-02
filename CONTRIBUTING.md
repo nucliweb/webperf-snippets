@@ -233,3 +233,14 @@ See `snippets/Loading/WORKFLOWS.md` for a complete reference.
 - English for all code, variable names, and comments
 - No external dependencies in snippets — they run in browser consoles
 - `console.log` is fine; snippets are diagnostic tools
+
+## Skipping the slow CI steps
+
+CI takes about five minutes, most of it the build, the Chromium install and the e2e tests. A pull request that only changes documentation can skip those three steps by carrying the `skip-e2e` label. Lint, the consistency, emoji and generated-skills checks, and the unit tests still run.
+
+- Put the label on when you open the pull request (`gh pr create --label skip-e2e`) or add it later; adding it re-runs CI and cancels the run in progress.
+- The label is honored only when every changed file is documentation: `*.md`, `docs/**` and `LICENSE`. If the pull request changes anything else, including pages (`.mdx`), snippets, tests, scripts, workflows or `package.json`, the label is ignored and everything runs. A later push that touches code therefore cannot skip the tests by accident.
+- The job summary says what the label did, or why it was ignored.
+- A push to `main` always runs every step.
+- Only people with write access can add a label, so it cannot be used from a fork.
+
