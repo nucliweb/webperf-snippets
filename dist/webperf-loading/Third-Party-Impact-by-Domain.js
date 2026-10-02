@@ -69,12 +69,17 @@
   });
   const loafSupported = !!PerformanceObserver.supportedEntryTypes?.includes("long-animation-frame");
   let thirdPartyLoafMs = null;
+  let longFrames = null;
+  let longFramesMs = null;
   if (loafSupported) {
     thirdPartyLoafMs = 0;
     domains.forEach(d => {
       d.loafMs = 0;
     });
-    performance.getEntriesByType("long-animation-frame").forEach(frame => {
+    const frames = performance.getEntriesByType("long-animation-frame");
+    longFrames = frames.length;
+    longFramesMs = frames.reduce((total, frame) => total + frame.duration, 0);
+    frames.forEach(frame => {
       (frame.scripts || []).forEach(script => {
         const parsed = rootDomainOf(script.sourceURL);
         if (!parsed || parsed.first) return;
@@ -88,7 +93,10 @@
       d.loafMs = Math.round(d.loafMs || 0);
     });
     thirdPartyLoafMs = Math.round(thirdPartyLoafMs);
+    longFramesMs = Math.round(longFramesMs);
   }
+  const unattributedLoafMs = loafSupported ? Math.max(0, longFramesMs - thirdPartyLoafMs) : null;
+  const loafUnattributed = loafSupported && domains.size > 0 && thirdPartyLoafMs === 0 && longFrames > 0;
   const all = [ ...domains.values() ].sort((a, b) => Number(b.renderBlocking) - Number(a.renderBlocking) || (b.loafMs || 0) - (a.loafMs || 0) || b.transferBytes - a.transferBytes || a.domain.localeCompare(b.domain));
   const blocking = all.filter(d => d.renderBlocking);
   const heavy = all.filter(d => (d.loafMs || 0) > LOAF_WARNING_MS);
@@ -108,12 +116,17 @@
       message: `${d.domain} scripts take ${d.loafMs} ms of main-thread time in long animation frames (over ${LOAF_WARNING_MS} ms); defer, delay or remove them`
     });
   });
+  if (loafUnattributed) issues.push({
+    severity: "info",
+    message: `${longFrames} long animation frame(s) took ${longFramesMs} ms, but no third-party script was attributed in them (Long Animation Frames only list scripts over 5 ms), so 0 ms per domain does not rule out third-party cost`
+  });
   if (corsLimitedAnalysis) issues.push({
     severity: "info",
     message: `${sizeUnknownCount} third-party request(s) without Timing-Allow-Origin report zero sizes, so the transfer size is a lower bound`
   });
   if (all.length > 0) void 0; else void 0;
   if (!loafSupported) void 0;
+  if (loafUnattributed) void 0;
   if (corsLimitedAnalysis) void 0;
   if (OWN_DOMAINS.length === 0 && all.length > 0) void 0;
   return {
@@ -125,6 +138,8 @@
       thirdPartyRequests: thirdPartyRequests,
       thirdPartyBytes: thirdPartyBytes,
       thirdPartyLoafMs: thirdPartyLoafMs,
+      longFrames: longFrames,
+      unattributedLoafMs: unattributedLoafMs,
       firstPartyRequests: firstPartyRequests,
       blockingDomains: blocking.length,
       loafSupported: loafSupported,

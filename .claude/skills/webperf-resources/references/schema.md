@@ -527,7 +527,7 @@ Synchronous. `count` is the number of uncompressed text resources; `items` holds
 
 #### Third-Party-Impact-by-Domain
 
-Synchronous. `count` is the number of third-party root domains; `items` holds the 50 to look at first (render-blocking, then the most main-thread time, then the largest transfer), while `details` totals every domain. `loafMs` is the script time attributed to the domain in `long-animation-frame` entries (sum of `scripts[].duration` by `sourceURL`), or `null` for every item when `details.loafSupported` is `false`. A cross-origin request without `Timing-Allow-Origin` reports zero for every size, so it is counted in `sizeUnknownCount` (per domain and in `details`), left out of the byte totals, and `corsLimitedAnalysis` is `true`.
+Synchronous. `count` is the number of third-party root domains; `items` holds the 50 to look at first (render-blocking, then the most main-thread time, then the largest transfer), while `details` totals every domain. `loafMs` is the script time attributed to the domain in `long-animation-frame` entries (sum of `scripts[].duration` by `sourceURL`), or `null` for every item when `details.loafSupported` is `false`. `details.longFrames` counts the long animation frames on the page and `details.unattributedLoafMs` is the time in them that no third-party script accounts for (first-party scripts, scripts under the 5 ms that the API lists, and style, layout and rendering work); both are `null` when `loafSupported` is `false`. A cross-origin request without `Timing-Allow-Origin` reports zero for every size, so it is counted in `sizeUnknownCount` (per domain and in `details`), left out of the byte totals, and `corsLimitedAnalysis` is `true`.
 
 ```json
 {
@@ -539,6 +539,8 @@ Synchronous. `count` is the number of third-party root domains; `items` holds th
     "thirdPartyRequests": 3,
     "thirdPartyBytes": 5120,
     "thirdPartyLoafMs": 128,
+    "longFrames": 2,
+    "unattributedLoafMs": 74,
     "firstPartyRequests": 1,
     "blockingDomains": 1,
     "loafSupported": true,
