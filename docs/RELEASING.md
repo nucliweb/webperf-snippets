@@ -50,3 +50,5 @@ The release workflow:
 - `skills/` or `dist/` are stale relative to `snippets/` or `pages/`
 - `_meta.json` entries drift from the actual MDX files
 - Published snippet counts in `README.md`, `SKILLS.md`, or `skills/webperf/SKILL.md` are outdated
+
+<!-- skip-e2e verification, do not merge -->
