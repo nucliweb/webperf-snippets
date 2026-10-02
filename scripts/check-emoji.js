@@ -155,3 +155,5 @@ if (require.main === module) {
 }
 
 module.exports = { proseEmojis, componentEmojis, demoEmojis, headingEmojis, findProblems, KNOWN_UNMAPPED }
+
+// skip-e2e verification, do not merge
