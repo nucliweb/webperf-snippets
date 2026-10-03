@@ -44,7 +44,7 @@ Loading audit (TTFB, FCP, render-blocking, scripts, fonts):
 npx webperf-snippets https://web.dev --workflow loading
 ```
 
-Structural checks for CI (render-blocking, fonts, priority hints, resource hints):
+Structural checks for CI (22 checks: render-blocking, compression, fonts, images, hints, DOM size and more; the list is in the [CLI page](https://webperf-snippets.nucliweb.net/CLI)):
 
 ```bash
 npx webperf-snippets https://web.dev --workflow audit
