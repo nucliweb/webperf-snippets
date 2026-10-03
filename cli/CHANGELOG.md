@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `--snippet` accepts the name of any snippet (`--snippet Compression-Audit`), in any case, besides the short aliases and `Category/Name` paths. An unknown name exits with code `2` and lists the closest snippets.
+
+### Fixed
+- `--snippet` only resolves a listed snippet. Before, any `.js` file reachable from the snippets directory by a relative path could be loaded and run in the page.
+
 ---
 
 ## [0.3.0] — 2026-10-02

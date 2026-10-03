@@ -74,3 +74,32 @@ describe("--snippet aliases", () => {
     expect(payload.results[0].script).toBe(alias);
   }, 30000);
 });
+
+describe("--snippet by snippet name", () => {
+  it("runs a snippet that has no alias by its bare name, in any case", async () => {
+    const { code, stdout } = await runCli("compression-audit");
+    expect(code).toBe(0);
+    const payload = JSON.parse(stdout);
+    expect(payload.results[0].id).toBe("compression-audit");
+    expect(payload.results[0].script).toBe("Compression-Audit");
+  }, 30000);
+
+  it("runs a snippet from another category by its Category/Name path", async () => {
+    const { stdout } = await runCli("Interaction/DOM-Size-and-Depth");
+    expect(JSON.parse(stdout).results[0].script).toBe("DOM-Size-and-Depth");
+  }, 30000);
+
+  it("exits with code 2 and names the closest snippet when the name is unknown", async () => {
+    const { code, stdout, stderr } = await runCli("Compresion-Audit");
+    expect(code).toBe(2);
+    expect(stdout).toBe("");
+    expect(stderr).toMatch(/Unknown snippet "Compresion-Audit"/);
+    expect(stderr).toContain("Loading/Compression-Audit");
+  }, 30000);
+
+  it("does not read a file outside the snippets", async () => {
+    const { code, stderr } = await runCli("../package");
+    expect(code).toBe(2);
+    expect(stderr).toMatch(/Unknown snippet/);
+  }, 30000);
+});

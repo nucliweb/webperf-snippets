@@ -58,13 +58,17 @@ JSON output (for piping into `jq` or CI scripts):
 npx webperf-snippets https://web.dev --json
 ```
 
-Run a single snippet by alias:
+Run a single snippet by alias or by its own name, in any case. Every snippet of the collection runs this way, with or without its category:
 
 ```bash copy
 npx webperf-snippets https://web.dev --snippet LCP-Subparts
 npx webperf-snippets https://web.dev --snippet render-blocking
 npx webperf-snippets https://web.dev --snippet fonts
+npx webperf-snippets https://web.dev --snippet Compression-Audit
+npx webperf-snippets https://web.dev --snippet Interaction/DOM-Size-and-Depth
 ```
+
+An unknown name exits with code `2` and lists the closest snippets.
 
 Measure pages behind a login with a Playwright storage state (cookies and localStorage):
 
@@ -176,7 +180,7 @@ npx webperf-snippets https://web.dev --verbose
 | Option                 | Description                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------- |
 | `--workflow <name>`    | Workflow to run. Default: `core-web-vitals`. Options: `core-web-vitals`, `audit`. |
-| `--snippet <name>`     | Run a single snippet by alias or `Category/Name` path.                            |
+| `--snippet <name>`     | Run a single snippet by name, alias or `Category/Name` path.                      |
 | `--json`               | Output JSON instead of formatted text.                                            |
 | `--viewport <preset>`  | Viewport preset. Default: `mobile`. Options: `mobile`, `tablet`, `desktop`.       |
 | `--wait <ms>`          | Post-load wait before evaluating snippets. Default: `3000`.                       |
