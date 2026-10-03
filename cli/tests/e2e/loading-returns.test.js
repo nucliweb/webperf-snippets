@@ -209,6 +209,24 @@ describe("Resource-Hints-Validation, unused hints", () => {
   }, 60000);
 });
 
+describe("TTFB-Resources, a page without measurable resources", () => {
+  it("returns an empty result, not an error, so a static page does not fail a workflow", async () => {
+    const r = await runOn("/empty", "Loading/TTFB-Resources");
+    expect(r.status).toBe("ok");
+    expect(r.count).toBe(0);
+    expect(r.items).toEqual([]);
+    expect(r.details).toEqual({
+      avgTtfbMs: null,
+      maxTtfbMs: null,
+      minTtfbMs: null,
+      thirdPartyCount: 0,
+      slowCount: 0,
+      corsRestrictedCount: 0,
+    });
+    expect(r.issues).toEqual([{ severity: "info", message: "No resources with TTFB data available" }]);
+  }, 60000);
+});
+
 describe("Resource-Hints", () => {
   it("returns the origins without preconnect, with their request data", async () => {
     const r = await runOn("/hints-host", "Loading/Resource-Hints");
