@@ -6348,6 +6348,12 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
         timings.tcp = r.secureConnectionStart - r.connectStart;
       }
 
+      // Without Timing-Allow-Origin the browser reports the phases as 0, so response would be
+      // the whole duration since the epoch. Only the total is real, the phases are unknown.
+      if (!hasTiming) {
+        for (const phase of ["dns", "tcp", "tls", "request", "response"]) timings[phase] = null;
+      }
+
       return {
         name: r.name,
         shortName: url.pathname.split("/").pop() || url.hostname,
@@ -6393,6 +6399,7 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
   const thirdStats = calcStats(thirdParty);
 
   // Format helpers
+  const roundOrNull = (ms) => (ms === null ? null : Math.round(ms));
   const formatMs = (ms) => (ms > 0 ? ms.toFixed(1) + "ms" : "-");
   const formatBar = (value, max) => {
     if (value <= 0 || max <= 0) return "";
@@ -6590,7 +6597,7 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
       firstPartyAvgTotalMs: Math.round(firstStats.stats.total?.avg || 0),
       thirdPartyAvgTotalMs: Math.round(thirdStats.stats.total?.avg || 0),
     },
-    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: Math.round(s.dns), tcpMs: Math.round(s.tcp), requestMs: Math.round(s.request), responseMs: Math.round(s.response), hasTiming: s.hasTiming })),
+    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: roundOrNull(s.dns), tcpMs: roundOrNull(s.tcp), requestMs: roundOrNull(s.request), responseMs: roundOrNull(s.response), hasTiming: s.hasTiming })),
     issues: [
       ...(slowScripts.length > 0 ? [{ severity: "warning", message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load` }] : []),
       ...(hasSlowDns ? [{ severity: "warning", message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect." }] : []),
@@ -9215,15 +9222,32 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
     } catch {}
   });
 
-  const totalIssues = preloadLinks.filter(l => !usedResourceUrls.has(normalizeUrl(l.href))).length +
-    preconnectLinks.filter(l => {
-      const domain = getDomain(l.href);
-      return domain && !usedDomains.has(domain) && !lazyLoadedDomainsForSummary.has(domain);
-    }).length +
-    dnsPrefetchLinks.filter(l => {
-      const domain = getDomain(l.href);
-      return domain && !usedDomains.has(domain) && !lazyLoadedDomainsForSummary.has(domain);
-    }).length;
+  // A preload with a media query that does not match this viewport is conditional, not unused
+  const isConditionalPreload = (l) => {
+    const media = l.getAttribute("media");
+    if (!media) return false;
+    try {
+      return !window.matchMedia(media).matches;
+    } catch {
+      return true;
+    }
+  };
+  const isUnusedConnection = (l) => {
+    const domain = getDomain(l.href);
+    return domain && !usedDomains.has(domain) && !lazyLoadedDomainsForSummary.has(domain);
+  };
+  const unusedHintItems = [
+    ...preloadLinks
+      .filter((l) => !usedResourceUrls.has(normalizeUrl(l.href)) && !isConditionalPreload(l))
+      .map((l) => ({ domain: getDomain(l.href), href: l.href, requestCount: 0, action: "remove-unused-preload", recommendedHint: null })),
+    ...preconnectLinks
+      .filter(isUnusedConnection)
+      .map((l) => ({ domain: getDomain(l.href), href: l.href, requestCount: 0, action: "remove-unused-preconnect", recommendedHint: null })),
+    ...dnsPrefetchLinks
+      .filter(isUnusedConnection)
+      .map((l) => ({ domain: getDomain(l.href), href: l.href, requestCount: 0, action: "remove-unused-dns-prefetch", recommendedHint: null })),
+  ];
+  const totalIssues = unusedHintItems.length;
 
   console.log("");
   if (totalIssues === 0 && missingHints.length === 0) {
@@ -9248,16 +9272,19 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
       missingPreconnects: missingHints.length,
       redundantHints: redundantDomains.length,
     },
-    // Origins that need a hint, and those with a redundant dns-prefetch (at most 50)
+    // The hints to remove (unused), the origins that need a hint and those with a redundant dns-prefetch (at most 50)
     items: [
+      ...unusedHintItems,
       ...missingHints.map(([domain, count]) => ({
         domain,
+        href: null,
         requestCount: count,
         action: count >= 5 ? "add-preconnect" : "add-dns-prefetch",
         recommendedHint: count >= 5 ? "preconnect" : "dns-prefetch",
       })),
       ...redundantDomains.map((domain) => ({
         domain,
+        href: null,
         requestCount: domainRequestCounts[domain] || 0,
         action: "remove-dns-prefetch",
         recommendedHint: "preconnect",

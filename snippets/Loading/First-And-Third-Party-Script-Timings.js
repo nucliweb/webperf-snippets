@@ -68,6 +68,12 @@
         timings.tcp = r.secureConnectionStart - r.connectStart;
       }
 
+      // Without Timing-Allow-Origin the browser reports the phases as 0, so response would be
+      // the whole duration since the epoch. Only the total is real, the phases are unknown.
+      if (!hasTiming) {
+        for (const phase of ["dns", "tcp", "tls", "request", "response"]) timings[phase] = null;
+      }
+
       return {
         name: r.name,
         shortName: url.pathname.split("/").pop() || url.hostname,
@@ -113,6 +119,7 @@
   const thirdStats = calcStats(thirdParty);
 
   // Format helpers
+  const roundOrNull = (ms) => (ms === null ? null : Math.round(ms));
   const formatMs = (ms) => (ms > 0 ? ms.toFixed(1) + "ms" : "-");
   const formatBar = (value, max) => {
     if (value <= 0 || max <= 0) return "";
@@ -310,7 +317,7 @@
       firstPartyAvgTotalMs: Math.round(firstStats.stats.total?.avg || 0),
       thirdPartyAvgTotalMs: Math.round(thirdStats.stats.total?.avg || 0),
     },
-    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: Math.round(s.dns), tcpMs: Math.round(s.tcp), requestMs: Math.round(s.request), responseMs: Math.round(s.response), hasTiming: s.hasTiming })),
+    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: roundOrNull(s.dns), tcpMs: roundOrNull(s.tcp), requestMs: roundOrNull(s.request), responseMs: roundOrNull(s.response), hasTiming: s.hasTiming })),
     issues: [
       ...(slowScripts.length > 0 ? [{ severity: "warning", message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load` }] : []),
       ...(hasSlowDns ? [{ severity: "warning", message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect." }] : []),
