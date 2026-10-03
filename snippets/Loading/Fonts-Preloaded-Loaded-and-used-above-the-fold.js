@@ -2,6 +2,10 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // Helper to extract font filename from URL
   function getFontName(url) {
     try {
@@ -30,9 +34,22 @@
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // Check if URL is third-party (a different root domain)
   function isThirdParty(url) {
@@ -313,6 +330,7 @@
   console.log("4. Self-host fonts when possible for better control");
   console.log("5. Subset fonts to include only needed characters");
   console.log("6. Use WOFF2 format for best compression");
+  logOwnDomainsHint(preloadedFonts.filter((f) => f.thirdParty).length);
   console.groupEnd();
 
   console.groupEnd();

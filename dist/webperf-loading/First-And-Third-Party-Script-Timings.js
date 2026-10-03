@@ -1,4 +1,5 @@
 (() => {
+  const OWN_DOMAINS = [];
   function getRootDomain(hostname) {
     const host = hostname.replace(/\.$/, "");
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
@@ -11,7 +12,12 @@
     return parts.slice(-2).join(".");
   }
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
+  }
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) void 0;
   }
   const scripts = performance.getEntriesByType("resource").filter(r => r.initiatorType === "script").map(r => {
     const url = new URL(r.name);
@@ -26,6 +32,7 @@
       total: r.responseEnd - r.startTime
     };
     if (r.secureConnectionStart > 0) timings.tcp = r.secureConnectionStart - r.connectStart;
+    if (!hasTiming) for (const phase of [ "dns", "tcp", "tls", "request", "response" ]) timings[phase] = null;
     return {
       name: r.name,
       shortName: url.pathname.split("/").pop() || url.hostname,
@@ -63,6 +70,7 @@
   }
   const firstStats = calcStats(firstParty);
   const thirdStats = calcStats(thirdParty);
+  const roundOrNull = ms => ms === null ? null : Math.round(ms);
   const formatMs = ms => ms > 0 ? ms.toFixed(1) + "ms" : "-";
   const formatBar = (value, max) => {
     if (value <= 0 || max <= 0) return "";
@@ -159,6 +167,7 @@
     if (hasCorsIssues) {
     }
   }
+  logOwnDomainsHint(thirdParty.length);
   const MAX_ITEMS = 50;
   const slowestScripts = [ ...scripts ].sort((a, b) => b.total - a.total);
   return {
@@ -179,10 +188,10 @@
       host: s.host,
       firstParty: s.firstParty,
       totalMs: Math.round(s.total),
-      dnsMs: Math.round(s.dns),
-      tcpMs: Math.round(s.tcp),
-      requestMs: Math.round(s.request),
-      responseMs: Math.round(s.response),
+      dnsMs: roundOrNull(s.dns),
+      tcpMs: roundOrNull(s.tcp),
+      requestMs: roundOrNull(s.request),
+      responseMs: roundOrNull(s.response),
       hasTiming: s.hasTiming
     })),
     issues: [ ...slowScripts.length > 0 ? [ {

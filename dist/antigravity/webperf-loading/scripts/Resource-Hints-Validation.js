@@ -188,13 +188,39 @@
       if (domain && domain !== location.origin && !usedDomains.has(domain)) lazyLoadedDomainsForSummary.add(domain);
     } catch {}
   });
-  const totalIssues = preloadLinks.filter(l => !usedResourceUrls.has(normalizeUrl(l.href))).length + preconnectLinks.filter(l => {
+  const isConditionalPreload = l => {
+    const media = l.getAttribute("media");
+    if (!media) return false;
+    try {
+      return !window.matchMedia(media).matches;
+    } catch {
+      return true;
+    }
+  };
+  const isUnusedConnection = l => {
     const domain = getDomain(l.href);
     return domain && !usedDomains.has(domain) && !lazyLoadedDomainsForSummary.has(domain);
-  }).length + dnsPrefetchLinks.filter(l => {
-    const domain = getDomain(l.href);
-    return domain && !usedDomains.has(domain) && !lazyLoadedDomainsForSummary.has(domain);
-  }).length;
+  };
+  const unusedHintItems = [ ...preloadLinks.filter(l => !usedResourceUrls.has(normalizeUrl(l.href)) && !isConditionalPreload(l)).map(l => ({
+    domain: getDomain(l.href),
+    href: l.href,
+    requestCount: 0,
+    action: "remove-unused-preload",
+    recommendedHint: null
+  })), ...preconnectLinks.filter(isUnusedConnection).map(l => ({
+    domain: getDomain(l.href),
+    href: l.href,
+    requestCount: 0,
+    action: "remove-unused-preconnect",
+    recommendedHint: null
+  })), ...dnsPrefetchLinks.filter(isUnusedConnection).map(l => ({
+    domain: getDomain(l.href),
+    href: l.href,
+    requestCount: 0,
+    action: "remove-unused-dns-prefetch",
+    recommendedHint: null
+  })) ];
+  const totalIssues = unusedHintItems.length;
   if (totalIssues === 0 && missingHints.length === 0) void 0; else {
   }
   return {
@@ -210,13 +236,15 @@
       missingPreconnects: missingHints.length,
       redundantHints: redundantDomains.length
     },
-    items: [ ...missingHints.map(([domain, count]) => ({
+    items: [ ...unusedHintItems, ...missingHints.map(([domain, count]) => ({
       domain: domain,
+      href: null,
       requestCount: count,
       action: count >= 5 ? "add-preconnect" : "add-dns-prefetch",
       recommendedHint: count >= 5 ? "preconnect" : "dns-prefetch"
     })), ...redundantDomains.map(domain => ({
       domain: domain,
+      href: null,
       requestCount: domainRequestCounts[domain] || 0,
       action: "remove-dns-prefetch",
       recommendedHint: "preconnect"

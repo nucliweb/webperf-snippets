@@ -15,15 +15,19 @@
     return parts.slice(-2).join(".");
   }
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
-  const ownRoots = new Set(OWN_DOMAINS.map(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0])));
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) void 0;
+  }
   const rootDomainOf = url => {
     try {
       const u = new URL(url);
       return /^https?:$/.test(u.protocol) ? {
         root: getRootDomain(u.hostname),
-        first: isFirstParty(u.hostname) || ownRoots.has(getRootDomain(u.hostname))
+        first: isFirstParty(u.hostname)
       } : null;
     } catch {
       return null;
@@ -128,7 +132,7 @@
   if (!loafSupported) void 0;
   if (loafUnattributed) void 0;
   if (corsLimitedAnalysis) void 0;
-  if (OWN_DOMAINS.length === 0 && all.length > 0) void 0;
+  logOwnDomainsHint(all.length);
   return {
     script: "Third-Party-Impact-by-Domain",
     status: "ok",

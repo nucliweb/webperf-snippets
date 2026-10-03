@@ -53,7 +53,7 @@ The full contract is in [`snippets/SCHEMA.md`](snippets/SCHEMA.md), which is als
 - Chrome only exposes `largest-contentful-paint`, `layout-shift`, `longtask`, `event` and `first-input` entries through a `PerformanceObserver`. `performance.getEntriesByType()` returns `[]` for them, and ESLint rejects it. Use a buffered observer.
 - Never wrap the IIFE in `void`, which discards the return value.
 
-A snippet runs pasted into the console, so it cannot import a helper. The helpers several snippets share (`getRootDomain`, `isFirstParty`, `formatBytes`) live in [`snippets/_shared/helpers.js`](snippets/_shared/helpers.js). Copy the block between the `// @shared <name>` and `// @end-shared <name>` markers into the snippet, markers included. `npm run check:consistency` fails when a copy differs from the canonical block, or when a snippet defines one of these helpers without the markers.
+A snippet runs pasted into the console, so it cannot import a helper. The helpers several snippets share (`getRootDomain`, `isFirstParty`, `logOwnDomainsHint`, `formatBytes`) live in [`snippets/_shared/helpers.js`](snippets/_shared/helpers.js). Copy the block between the `// @shared <name>` and `// @end-shared <name>` markers into the snippet, markers included. `npm run check:consistency` fails when a copy differs from the canonical block, or when a snippet defines one of these helpers without the markers. A snippet that carries `isFirstParty` also declares `const OWN_DOMAINS = [];` at the top, which the helper reads, and calls `logOwnDomainsHint(thirdPartyCount)` once at the end of its console output.
 
 ### 2. Create the MDX documentation page
 

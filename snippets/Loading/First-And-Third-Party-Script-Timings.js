@@ -2,6 +2,10 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // Auto-detect first-party by root domain
   // @shared getRootDomain
   function getRootDomain(hostname) {
@@ -21,9 +25,22 @@
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // Gather script timing data
   const scripts = performance
@@ -49,6 +66,12 @@
       // Adjust TCP to exclude TLS time
       if (r.secureConnectionStart > 0) {
         timings.tcp = r.secureConnectionStart - r.connectStart;
+      }
+
+      // Without Timing-Allow-Origin the browser reports the phases as 0, so response would be
+      // the whole duration since the epoch. Only the total is real, the phases are unknown.
+      if (!hasTiming) {
+        for (const phase of ["dns", "tcp", "tls", "request", "response"]) timings[phase] = null;
       }
 
       return {
@@ -96,6 +119,7 @@
   const thirdStats = calcStats(thirdParty);
 
   // Format helpers
+  const roundOrNull = (ms) => (ms === null ? null : Math.round(ms));
   const formatMs = (ms) => (ms > 0 ? ms.toFixed(1) + "ms" : "-");
   const formatBar = (value, max) => {
     if (value <= 0 || max <= 0) return "";
@@ -274,6 +298,7 @@
     console.groupEnd();
   }
 
+  logOwnDomainsHint(thirdParty.length);
   console.groupEnd();
 
   // The list keeps the 50 slowest scripts; count and details cover all of them
@@ -292,7 +317,7 @@
       firstPartyAvgTotalMs: Math.round(firstStats.stats.total?.avg || 0),
       thirdPartyAvgTotalMs: Math.round(thirdStats.stats.total?.avg || 0),
     },
-    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: Math.round(s.dns), tcpMs: Math.round(s.tcp), requestMs: Math.round(s.request), responseMs: Math.round(s.response), hasTiming: s.hasTiming })),
+    items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: roundOrNull(s.dns), tcpMs: roundOrNull(s.tcp), requestMs: roundOrNull(s.request), responseMs: roundOrNull(s.response), hasTiming: s.hasTiming })),
     issues: [
       ...(slowScripts.length > 0 ? [{ severity: "warning", message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load` }] : []),
       ...(hasSlowDns ? [{ severity: "warning", message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect." }] : []),

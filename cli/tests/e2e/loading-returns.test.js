@@ -177,6 +177,38 @@ describe("Resource-Hints-Validation", () => {
   }, 60000);
 });
 
+describe("Resource-Hints-Validation, unused hints", () => {
+  // The preload is requested, but its Resource Timing entry is hidden so that it counts as never used
+  const hideEntry = () => {
+    const real = performance.getEntriesByType.bind(performance);
+    performance.getEntriesByType = (t) => real(t).filter((e) => !String(e.name).includes("/hidden.css"));
+  };
+
+  it("lists each unused hint with what to remove, so the count in details can be acted on", async () => {
+    const r = await runOn("/hints-unused", "Loading/Resource-Hints-Validation", { init: hideEntry });
+    const unused = r.items.filter((i) => i.action.startsWith("remove-unused-"));
+    expect(r.details.unusedHints).toBe(3);
+    expect(unused.map((i) => i.action).sort()).toEqual(["remove-unused-dns-prefetch", "remove-unused-preconnect", "remove-unused-preload"]);
+    const byAction = Object.fromEntries(unused.map((i) => [i.action, i]));
+    expect(byAction["remove-unused-preload"].href).toBe(`${servers.base}/hidden.css`);
+    expect(byAction["remove-unused-preconnect"].domain).toBe(servers.otherBase);
+    expect(byAction["remove-unused-dns-prefetch"].domain).toBe(servers.otherBase.replace("127.0.0.1", "localhost"));
+    expect(unused.every((i) => i.requestCount === 0 && i.recommendedHint === null)).toBe(true);
+    expect(new Set(r.items.map(keysOf)).size).toBe(1);
+  }, 60000);
+
+  it("does not call a preload for another viewport unused", async () => {
+    const r = await runOn("/hints-conditional", "Loading/Resource-Hints-Validation");
+    expect(r.details.unusedHints).toBe(0);
+    expect(r.items.some((i) => i.action.startsWith("remove-unused-"))).toBe(false);
+  }, 60000);
+
+  it("lists no unused hint when every hint is used", async () => {
+    const r = await runOn("/hints", "Loading/Resource-Hints-Validation");
+    expect(r.items.some((i) => i.action.startsWith("remove-unused-"))).toBe(false);
+  }, 60000);
+});
+
 describe("Resource-Hints", () => {
   it("returns the origins without preconnect, with their request data", async () => {
     const r = await runOn("/hints-host", "Loading/Resource-Hints");
