@@ -38,7 +38,7 @@ Run the default Core Web Vitals workflow (LCP + CLS, plus LCP-Subparts if LCP > 
 npx webperf-snippets https://web.dev
 ```
 
-Loading audit (TTFB, FCP, render-blocking, scripts, fonts):
+Loading audit (11 steps: TTFB, FCP, render-blocking, scripts, resource timings, third-party impact, fonts, cache; the list is in the [CLI page](https://webperf-snippets.nucliweb.net/CLI)):
 
 ```bash
 npx webperf-snippets https://web.dev --workflow loading

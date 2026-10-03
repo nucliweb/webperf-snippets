@@ -16,9 +16,16 @@ let baseUrl;
 beforeAll(
   () =>
     new Promise((resolve) => {
-      server = createServer((_req, res) => {
+      server = createServer((req, res) => {
+        // The page loads one script, so the Resource Timing buffer is not empty (Cache-Strategy-Analysis
+        // reports an error for an empty buffer)
+        if (req.url === "/app.js") {
+          res.writeHead(200, { "Content-Type": "application/javascript" });
+          res.end("window.__app = true;");
+          return;
+        }
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(FIXTURE_HTML);
+        res.end(FIXTURE_HTML.replace("</body>", '<script src="/app.js"></script></body>'));
       });
       server.listen(0, "127.0.0.1", () => {
         const { port } = server.address();
@@ -115,5 +122,50 @@ describe("loading workflow", () => {
       expect(navMs).toBeGreaterThan(0);
     },
     30000
+  );
+});
+
+describe("loading workflow, resource and script steps", () => {
+  const NEW_STEPS = {
+    "script-timings": "Loading/First-And-Third-Party-Script-Timings",
+    "ttfb-resources": "Loading/TTFB-Resources",
+    "js-execution": "Loading/JS-Execution-Time-Breakdown",
+    "third-party-impact": "Loading/Third-Party-Impact-by-Domain",
+    "cache-strategy": "Loading/Cache-Strategy-Analysis",
+  };
+
+  it("has unique step ids and paths, and the new steps point at their snippets", () => {
+    const ids = loadingWorkflow.steps.map((s) => s.id);
+    const paths = loadingWorkflow.steps.map((s) => s.path);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(paths).size).toBe(paths.length);
+    for (const [id, path] of Object.entries(NEW_STEPS)) {
+      expect(loadingWorkflow.steps.find((s) => s.id === id)?.path, `step "${id}"`).toBe(path);
+    }
+  });
+
+  it("runs the step that makes its own requests last", () => {
+    expect(loadingWorkflow.steps.at(-1).id).toBe("cache-strategy");
+  });
+
+  it(
+    "returns the structured result of each new step",
+    async () => {
+      const { results } = await runMeasurement({
+        url: baseUrl,
+        workflow: loadingWorkflow,
+        rules: RULES,
+        waitMs: 500,
+        viewport: VIEWPORT_PRESETS.mobile,
+      });
+      for (const [id, path] of Object.entries(NEW_STEPS)) {
+        const r = results.find((r) => r.id === id);
+        expect(r, `step "${id}" missing from results`).toBeDefined();
+        expect(r.status, `${id}: ${r.error}`).toBe("ok");
+        expect(r.script).toBe(path.split("/")[1]);
+        expect(Array.isArray(r.items), `${id} has no items array`).toBe(true);
+      }
+    },
+    60000
   );
 });

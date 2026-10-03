@@ -191,6 +191,30 @@ The audit runs these checks on one page load. Only an issue of severity `error` 
 
 The steps that make requests of their own run last, so those requests do not change what the earlier steps read.
 
+Run the loading workflow, which measures timing on a real page load:
+
+```bash copy
+npx webperf-snippets https://web.dev --workflow loading
+```
+
+It runs these steps on one page load. As in the audit, only an issue of severity `error` makes the command exit with code `1`.
+
+| Step                 | Measures                                                               |
+| -------------------- | ---------------------------------------------------------------------- |
+| `TTFB`               | Time to first byte, with a rating                                      |
+| `FCP`                | First Contentful Paint, with a rating                                  |
+| `render-blocking`    | Render-blocking CSS and scripts                                        |
+| `resource-hints`     | Preload, preconnect and dns-prefetch hints that nothing uses, and origins that need one |
+| `scripts`            | Loading strategy and size of every script                              |
+| `script-timings`     | DNS, connection, request and response time of first-party and third-party scripts |
+| `ttfb-resources`     | Time to first byte of every resource, slowest first                    |
+| `js-execution`       | Script execution time by script                                        |
+| `third-party-impact` | Requests, size and main-thread time per third-party domain             |
+| `fonts`              | Preloaded fonts, and whether the page uses them above the fold         |
+| `cache-strategy`     | Cache headers of the resources, anti-patterns and uncompressed text    |
+
+The step that makes requests of its own (`cache-strategy` reads cache headers with HEAD requests) runs last, so those requests do not change what the earlier steps read.
+
 Simulate a mobile viewport (default) or switch to desktop:
 
 ```bash copy
@@ -208,7 +232,7 @@ npx webperf-snippets https://web.dev --verbose
 
 | Option                 | Description                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------- |
-| `--workflow <name>`    | Workflow to run. Default: `core-web-vitals`. Options: `core-web-vitals`, `audit`. |
+| `--workflow <name>`    | Workflow to run. Default: `core-web-vitals`. Options: `core-web-vitals`, `loading`, `audit`. |
 | `--snippet <name>`     | Run a single snippet by name, alias or `Category/Name` path.                      |
 | `--json`               | Output JSON instead of formatted text.                                            |
 | `--viewport <preset>`  | Viewport preset. Default: `mobile`. Options: `mobile`, `tablet`, `desktop`.       |
