@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { runSnippets, VIEWPORT_PRESETS } from "../../src/runner.js";
 import { loadSnippet } from "../../src/load-snippet.js";
+import { auditWorkflow } from "../../src/workflows/audit.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(HERE, "../fixtures");
@@ -35,9 +36,29 @@ beforeAll(
           res.end("body { color: black; font-family: sans-serif; }");
           return;
         }
+        if (req.url === "/big.js") {
+          res.writeHead(200, { "Content-Type": "application/javascript" });
+          res.end("/* padding */\n".repeat(400));
+          return;
+        }
         if (req.url.endsWith(".js")) {
           res.writeHead(200, { "Content-Type": "application/javascript" });
           res.end("// placeholder");
+          return;
+        }
+        if (req.url === "/wide") {
+          // A 3 KB parser-blocking inline script, a prefetch of a file the page also loads, and a bare video
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end(
+            `<!DOCTYPE html><html><head><meta charset="utf-8"><title>t</title><script>/* ${"x".repeat(3000)} */ window.__inline = 1;</script>` +
+              `<script src="/used.js"></script><link rel="prefetch" href="/used.js"></head>` +
+              `<body><h1>t</h1><video src="/clip.mp4" autoplay></video></body></html>`
+          );
+          return;
+        }
+        if (req.url === "/uncompressed") {
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end('<!DOCTYPE html><html><head><meta charset="utf-8"><title>t</title><script src="/big.js"></script></head><body><h1>t</h1></body></html>');
           return;
         }
         const html = req.url === "/violations" ? VIOLATIONS_HTML : GREEN_HTML;
@@ -60,19 +81,8 @@ afterAll(
     })
 );
 
-const AUDIT_STEPS = [
-  { id: "render-blocking", path: "Loading/Find-render-blocking-resources" },
-  { id: "resource-hints", path: "Loading/Resource-Hints-Validation" },
-  { id: "preload-scripts", path: "Loading/Validate-Preload-Async-Defer-Scripts" },
-  { id: "priority-hints", path: "Loading/Priority-Hints-Audit" },
-  { id: "critical-css", path: "Loading/Critical-CSS-Detection" },
-  { id: "ttfb", path: "Loading/TTFB-Sub-Parts" },
-  { id: "script-parties", path: "Loading/First-And-Third-Party-Script-Info" },
-  { id: "script-loading", path: "Loading/Script-Loading" },
-  { id: "lazy-atf", path: "Loading/Find-Above-The-Fold-Lazy-Loaded-Images" },
-  { id: "lazy-conflict", path: "Loading/Find-Images-With-Lazy-and-Fetchpriority" },
-  { id: "eager-below-fold", path: "Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport" },
-];
+// The steps of the real audit workflow, so a step added there is covered by every test below
+const AUDIT_STEPS = auditWorkflow.steps;
 
 function makeItems(steps) {
   return steps.map((step) => ({
@@ -97,6 +107,23 @@ function step(id) {
 }
 
 // ─── Green fixture — expects no violations ────────────────────────────────────
+
+describe("Audit workflow", () => {
+  it("has unique step ids and paths", () => {
+    const ids = AUDIT_STEPS.map((s) => s.id);
+    const paths = AUDIT_STEPS.map((s) => s.path);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(paths).size).toBe(paths.length);
+  });
+
+  it("runs the steps that make their own requests after the rest", () => {
+    const ids = AUDIT_STEPS.map((s) => s.id);
+    for (const late of ["oversized-images", "image-audit", "svg-bitmaps"]) {
+      expect(ids.indexOf(late)).toBeGreaterThan(ids.indexOf("compression"));
+      expect(ids.indexOf(late)).toBeGreaterThan(ids.indexOf("dom-size"));
+    }
+  });
+});
 
 describe("Audit snippets — green fixture (no violations)", () => {
   it(
@@ -139,6 +166,17 @@ describe("Audit snippets — green fixture (no violations)", () => {
       const [r] = await runAudit(baseUrl, step("render-blocking"));
       // renderBlockingStatus requires Chrome 107+; skip gracefully if unavailable
       if (r.status === "unsupported") return;
+      expect(r.status).toBe("ok");
+      expect(r.count).toBe(0);
+      expect(r.issues).toEqual([]);
+    },
+    30000,
+  );
+
+  it(
+    "compression — 🟢 no text resource goes out uncompressed",
+    async () => {
+      const [r] = await runAudit(baseUrl, step("compression"));
       expect(r.status).toBe("ok");
       expect(r.count).toBe(0);
       expect(r.issues).toEqual([]);
@@ -190,6 +228,60 @@ describe("Audit snippets — violations fixture (deliberate issues)", () => {
       expect(r.status).toBe("ok");
       expect(r.count).toBeGreaterThan(0);
       expect(r.issues.some((i) => i.severity === "error")).toBe(true);
+    },
+    30000,
+  );
+
+  it(
+    "compression — 🟡 flags a text resource sent without compression",
+    async () => {
+      const [r] = await runAudit(`${baseUrl}/uncompressed`, step("compression"));
+      expect(r.status).toBe("ok");
+      expect(r.count).toBeGreaterThan(0);
+      expect(r.issues.some((i) => i.severity === "warning")).toBe(true);
+      expect(r.items.some((i) => i.url?.endsWith("/big.js") || i.shortName === "big.js")).toBe(true);
+    },
+    30000,
+  );
+
+  it(
+    "the audit steps all run without errors on a page with deliberate violations",
+    async () => {
+      const results = await runAudit(`${baseUrl}/wide`);
+      expect(results).toHaveLength(AUDIT_STEPS.length);
+      for (const r of results) {
+        expect(r.status, `${r.id} threw: ${r.error}`).not.toBe("error");
+      }
+    },
+    60000,
+  );
+
+  it(
+    "inline-scripts — 🔴 flags a large inline script that blocks the parser in the head",
+    async () => {
+      const [r] = await runAudit(`${baseUrl}/wide`, step("inline-scripts"));
+      expect(r.status).toBe("ok");
+      expect(r.issues.some((i) => i.severity === "error")).toBe(true);
+    },
+    30000,
+  );
+
+  it(
+    "prefetch — 🔴 flags a prefetch for a file the current page already uses",
+    async () => {
+      const [r] = await runAudit(`${baseUrl}/wide`, step("prefetch"));
+      expect(r.status).toBe("ok");
+      expect(r.issues.some((i) => i.severity === "error")).toBe(true);
+    },
+    30000,
+  );
+
+  it(
+    "video — 🟡 flags a video without a poster",
+    async () => {
+      const [r] = await runAudit(`${baseUrl}/wide`, step("video"));
+      expect(r.status).toBe("ok");
+      expect(r.issues.some((i) => i.severity === "warning" && /poster/.test(i.message))).toBe(true);
     },
     30000,
   );
