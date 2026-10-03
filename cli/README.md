@@ -77,6 +77,12 @@ npx webperf-snippets https://web.dev --snippet Interaction/Interactions --intera
 
 The Interaction snippets (`Interactions`, `Input-Latency-Breakdown`, `LongTask`, `Forced-Synchronous-Layout`...) are installed before the first step and read after the last one, so their result holds what the steps caused.
 
+Interaction audit (long tasks, long animation frames, scroll, layout shifts, forced layouts, interaction latency). It scrolls the page, or runs your `--interact-script`; the steps that need a click are skipped when the script has none:
+
+```bash
+npx webperf-snippets https://web.dev --workflow interaction
+```
+
 Pages behind a login, with a Playwright storage state (cookies and localStorage):
 
 ```bash
@@ -146,7 +152,7 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 
 | Option                       | Description                                                            |
 | ---------------------------- | ---------------------------------------------------------------------- |
-| `--workflow <name>`          | Workflow to run. Default: `core-web-vitals`. Options: `core-web-vitals`, `loading`, `audit`. |
+| `--workflow <name>`          | Workflow to run. Default: `core-web-vitals`. Options: `core-web-vitals`, `loading`, `audit`, `interaction`. |
 | `--snippet <name>`           | Run a single snippet by name, alias or `Category/Name` path.           |
 | `--json`                     | Output JSON instead of formatted text.                                 |
 | `--markdown`                 | Output GitHub-renderable markdown (for PR comments).                   |
@@ -239,7 +245,7 @@ jobs:
 | Input            | Default             | Description                                                                                  |
 | ---------------- | ------------------- | -------------------------------------------------------------------------------------------- |
 | `url`            | required            | URL to measure.                                                                              |
-| `workflow`       | `core-web-vitals`   | Workflow to run: `core-web-vitals`, `loading` or `audit`.                                    |
+| `workflow`       | `core-web-vitals`   | Workflow to run: `core-web-vitals`, `loading`, `audit` or `interaction`.                                    |
 | `budget-lcp`     | `2500`              | LCP budget in ms. An empty value disables the check.                                         |
 | `budget-cls`     | `0.1`               | CLS budget. An empty value disables the check.                                               |
 | `fail-on-budget` | `true`              | Fail the step when a budget is exceeded or a snippet errors. Use `"false"` to read `exit-code` and decide yourself. |

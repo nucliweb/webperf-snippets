@@ -304,3 +304,88 @@ describe("reportMarkdown", () => {
     expect(output).not.toContain("Page Errors");
   });
 });
+
+describe("a skipped result", () => {
+  const skipped = {
+    ...samplePayload,
+    results: [
+      ...samplePayload.results,
+      { id: "interactions", status: "skipped", reason: "The interactions have no click or type step" },
+    ],
+  };
+
+  it("shows in the human report with its reason, and not as an error", () => {
+    const output = reportHuman(skipped);
+    expect(output).toContain("interactions");
+    expect(output).toContain("skipped");
+    expect(output).toContain("The interactions have no click or type step");
+    expect(output).not.toContain("✗");
+  });
+
+  it("shows in the markdown report as skipped with its reason, and not as an error", () => {
+    const output = reportMarkdown(skipped);
+    expect(output).toMatch(/\| interactions \| .*skipped .*\| The interactions have no click or type step \|/);
+    expect(output).not.toContain("❌");
+  });
+
+  it("is kept as it is in the JSON report", () => {
+    const parsed = JSON.parse(reportJson(skipped));
+    expect(parsed.results.at(-1)).toEqual({
+      id: "interactions",
+      status: "skipped",
+      reason: "The interactions have no click or type step",
+    });
+  });
+});
+
+describe("the human report for the Interaction snippets", () => {
+  const strip = (text) => text.replace(/\x1b\[[0-9;]*m/g, "");
+  const payload = (results) => ({ url: "https://web.dev", navMs: 100, results, pageErrors: [] });
+
+  it("summarizes a result that has a count and details but no value and no issues", () => {
+    const output = strip(
+      reportHuman(
+        payload([
+          {
+            id: "long-tasks",
+            status: "ok",
+            count: 4,
+            details: { totalBlockingTimeMs: 36, worstTaskMs: 77, bySeverity: { low: 4 } },
+            items: [{ startTimeMs: 2271, durationMs: 77, severity: "low" }],
+          },
+        ])
+      )
+    );
+    expect(output).not.toContain("undefined");
+    expect(output).toMatch(/long-tasks\s+4/);
+    expect(output).toContain("totalBlockingTimeMs 36");
+    expect(output).toContain("worstTaskMs 77");
+    expect(output).not.toContain("bySeverity");
+  });
+
+  it("says there is nothing to report for a result with a count of 0", () => {
+    const output = strip(reportHuman(payload([{ id: "long-tasks", status: "ok", count: 0, details: {}, items: [] }])));
+    expect(output).not.toContain("undefined");
+    expect(output).toMatch(/long-tasks\s+0/);
+  });
+
+  it("lists the items of a result that names them by kind, target and detail", () => {
+    const output = strip(
+      reportHuman(
+        payload([
+          {
+            id: "scroll",
+            status: "ok",
+            details: {},
+            issues: [{ severity: "warning", message: "2 non-passive listener(s)" }],
+            items: [{ kind: "non-passive-listener", target: "Window", detail: "touchstart" }],
+          },
+        ])
+      )
+    );
+    expect(output).toContain("non-passive-listener");
+    expect(output).toContain("Window");
+    expect(output).toContain("touchstart");
+    expect(output).not.toMatch(/·\s*$/m);
+  });
+});

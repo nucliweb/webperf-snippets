@@ -9,6 +9,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ## [Unreleased]
 
 ### Added
+- `interaction` workflow (`--workflow interaction`): `long-tasks`, `long-frames`, `scroll`, `layout-shifts`, `forced-layout`, `interactions` and `input-latency`. It runs the steps of `--interact-script`, or a scroll of its own when there is none. `interactions` and `input-latency` are `skipped`, with the reason and without failing the run, when the interactions have no click or type step.
+- `skipped` result status, shown in the human, markdown and JSON reports. It does not count toward the exit code.
+- The human report summarizes a result with a count and details but no issues (long tasks, long animation frames) and names the items that use `kind`, `target` and `detail`, which printed `undefined` and empty lines.
 - With `--interact-script`, the snippets of the Interaction category are installed before the interactions and read through their data function afterwards. A run such as `--snippet Interaction/Interactions --interact-script interactions.json` returns `ok` with the interactions it caused, where it used to stop at `tracking`.
 - `loading` workflow runs 5 more snippets, 11 in total: `script-timings`, `ttfb-resources`, `js-execution`, `third-party-impact` and `cache-strategy`. `cache-strategy` makes HEAD requests of its own, so it runs last.
 - `audit` workflow runs 11 more snippets, 22 in total: `compression`, `inline-scripts`, `inline-css`, `webfonts`, `content-visibility`, `prefetch`, `video`, `dom-size`, `oversized-images`, `image-audit` and `svg-bitmaps`. Their `error` issues now count toward the exit code (an inline script that blocks the parser in the head, a prefetch of a file the page already uses, a font that fails to load, an excessive DOM). The steps that make their own requests run last.

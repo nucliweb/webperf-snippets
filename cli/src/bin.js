@@ -7,6 +7,7 @@ import { runSnippets, runMeasurement, VIEWPORT_PRESETS } from "./runner.js";
 import { cwvWorkflow } from "./workflows/cwv.js";
 import { auditWorkflow } from "./workflows/audit.js";
 import { loadingWorkflow } from "./workflows/loading.js";
+import { interactionWorkflow } from "./workflows/interaction.js";
 import { RULES } from "./decision-tree.js";
 import { reportHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
@@ -18,6 +19,7 @@ const WORKFLOWS = {
   "core-web-vitals": cwvWorkflow,
   audit: auditWorkflow,
   loading: loadingWorkflow,
+  interaction: interactionWorkflow,
 };
 
 
@@ -27,7 +29,7 @@ Run curated WebPerf Snippets headlessly via Playwright.
 
 Options:
   --workflow <name>     Workflow to run (default: core-web-vitals)
-                        Workflows: core-web-vitals, audit, loading
+                        Workflows: core-web-vitals, audit, loading, interaction
   --snippet <name>      Run a single snippet by name, alias or Category/Name path
                         Any of the 56 snippets, such as Compression-Audit
                         Aliases: LCP, CLS, INP, LCP-Subparts, fonts,
@@ -41,7 +43,8 @@ Options:
   --wait <ms>           Post-load wait before evaluating (default: 3000)
   --budget-lcp <ms>     Exit 1 if LCP exceeds this value
   --budget-cls <score>  Exit 1 if CLS exceeds this value
-  --interact-script <path>  JSON file with interactions to run before evaluation
+  --interact-script <path>  JSON file with interactions to run after the load; the
+                            Interaction snippets are installed first and read last
                             Actions: scroll, click, hover, type, wait
   --storage-state <path>    Playwright storage state (cookies + localStorage) to
                             measure pages that require authentication
