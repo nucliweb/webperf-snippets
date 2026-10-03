@@ -1,6 +1,6 @@
 {
   "name": "webperf-snippets",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Run curated WebPerf Snippets headlessly via Playwright. Diagnose Core Web Vitals beyond what Lighthouse exposes.",
   "type": "module",
   "bin": "./src/bin.js",
