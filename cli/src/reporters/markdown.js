@@ -31,7 +31,12 @@ function renderErrorRow(r) {
   return `| ${r.id} | ❌ error | ${r.error} |`;
 }
 
+function renderSkippedRow(r) {
+  return `| ${r.id} | ⏭ skipped | ${r.reason} |`;
+}
+
 function renderRow(r) {
+  if (r.status === "skipped") return renderSkippedRow(r);
   if (r.status === "error") return renderErrorRow(r);
   if (Array.isArray(r.issues)) return renderAuditRow(r);
   return renderMetricRow(r);

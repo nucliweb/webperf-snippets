@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 import { loadSnippet } from "./load-snippet.js";
-import { runInteractions } from "./interactions.js";
+import { runInteractions, loadInteractionSteps, isInputStep } from "./interactions.js";
 import { isTrackingSnippet } from "./tracking.js";
 
 export const VIEWPORT_PRESETS = {
@@ -123,12 +123,28 @@ export async function runMeasurement({
     if (waitMs > 0) await page.waitForTimeout(waitMs);
     const navMs = Date.now() - navStart;
 
-    const items = workflow.steps.map((step) => ({
-      id: step.id,
-      path: step.path,
-      source: loadSnippet(step.path),
-    }));
-    const initialResults = await evaluateAroundInteractions(page, items, interactions);
+    // The steps of the user's script, or the workflow's own. A step that needs a click or a key press
+    // is skipped when the interactions have none, so it does not fail for lack of data.
+    const steps = interactions ?? workflow.defaultInteractions;
+    const hasInput = steps ? loadInteractionSteps(steps).some(isInputStep) : false;
+    const skip = (step) => step.needsInput && !hasInput;
+
+    const items = workflow.steps
+      .filter((step) => !skip(step))
+      .map((step) => ({
+        id: step.id,
+        path: step.path,
+        source: loadSnippet(step.path),
+      }));
+    const measured = await evaluateAroundInteractions(page, items, steps);
+    const initialResults = workflow.steps.map(
+      (step) =>
+        measured.find((r) => r.id === step.id) ?? {
+          id: step.id,
+          status: "skipped",
+          reason: "The interactions have no click or type step; add one with --interact-script",
+        }
+    );
 
     const followUps = [];
     for (const result of initialResults) {

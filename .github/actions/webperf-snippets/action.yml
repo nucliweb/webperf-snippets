@@ -9,7 +9,7 @@ inputs:
     description: URL to measure
     required: true
   workflow:
-    description: Workflow to run (core-web-vitals, loading, audit)
+    description: Workflow to run (core-web-vitals, loading, audit, interaction)
     default: core-web-vitals
   budget-lcp:
     description: LCP budget in ms. The run fails if it is exceeded. Empty disables the check.

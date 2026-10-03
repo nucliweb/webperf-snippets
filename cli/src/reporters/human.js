@@ -100,11 +100,11 @@ function renderAuditResult(r, verbose) {
     lines.push("");
     const shown = items.slice(0, MAX_ITEMS);
     for (const item of shown) {
-      const name = item.shortName ?? item.resource ?? item.url ?? item.src ?? item.selector ?? item.filename ?? "";
-      const tag = item.type ?? item.tag ?? item.strategy ?? item.media ?? "";
+      const name = item.shortName ?? item.resource ?? item.url ?? item.src ?? item.selector ?? item.filename ?? item.target ?? "";
+      const tag = item.type ?? item.tag ?? item.strategy ?? item.media ?? item.kind ?? "";
       const timing = item.responseEndMs != null ? `${item.responseEndMs}ms` : item.durationMs != null ? `${item.durationMs}ms` : "";
-      const cols = [tag, name, timing].filter(Boolean).join("  ");
-      lines.push(`     ${styleText("dim", `· ${cols}`)}`);
+      const cols = [tag, name, item.detail, timing].filter(Boolean).join("  ");
+      if (cols) lines.push(`     ${styleText("dim", `· ${cols}`)}`);
     }
     if (items.length > MAX_ITEMS) {
       lines.push(`     ${styleText("dim", `… and ${items.length - MAX_ITEMS} more`)}`);
@@ -118,7 +118,22 @@ function renderAuditResult(r, verbose) {
   return lines.join("\n");
 }
 
+// A result with a count and details but no value and no issues, such as the long tasks: the count,
+// then the first numbers of its details.
+function renderSummaryResult(r) {
+  const numbers = Object.entries(r.details ?? {})
+    .filter(([, value]) => typeof value === "number")
+    .slice(0, 3)
+    .map(([key, value]) => `${key} ${value}`);
+  const summary = [r.count !== undefined ? String(r.count) : null, ...numbers].filter(Boolean).join("  ·  ");
+  return `  ${RATING_ICON[r.rating] ?? "·"} ${pad(r.id, 16)} ${styleText("dim", summary)}`;
+}
+
 function renderResult(r, verbose) {
+  if (r.status === "skipped") {
+    return `  ${styleText("dim", "-")} ${pad(r.id, 16)} ${styleText("dim", `skipped: ${r.reason}`)}`;
+  }
+
   if (r.status === "error") {
     return `  ${styleText("red", "✗")} ${pad(r.id, 16)} ${styleText("dim", r.error)}`;
   }
@@ -129,6 +144,10 @@ function renderResult(r, verbose) {
 
   if (Array.isArray(r.issues)) {
     return renderAuditResult(r, verbose);
+  }
+
+  if (r.value === undefined && (r.count !== undefined || r.details)) {
+    return renderSummaryResult(r);
   }
 
   const icon = RATING_ICON[r.rating] ?? "·";
