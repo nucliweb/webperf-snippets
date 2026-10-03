@@ -14,7 +14,8 @@
     );
   }
 
-  function findLcpCandidate(imgs) {
+  // Fallback when the browser cannot report the LCP element: the largest image in the viewport
+  function estimateLcpCandidate(imgs) {
     let candidate = null;
     let maxArea = 0;
     imgs.filter(isInViewport).forEach((img) => {
@@ -26,6 +27,40 @@
       }
     });
     return candidate;
+  }
+
+  // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver
+  function getLastLcpEntry() {
+    return new Promise((resolve) => {
+      const entries = [];
+      const observer = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+      observer.observe({ type: "largest-contentful-paint", buffered: true });
+      setTimeout(() => {
+        observer.disconnect();
+        resolve(entries.at(-1) ?? null);
+      }, 100);
+    });
+  }
+
+  // The <img> the browser reports as the Largest Contentful Paint, or null when the LCP element is
+  // not one of the page's images (text, a CSS background, a video). Estimates by area when the
+  // browser reports no LCP.
+  async function findLcpCandidate(imgs) {
+    if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
+      return { candidate: estimateLcpCandidate(imgs), nonImageTag: null };
+    }
+    const entry = await getLastLcpEntry();
+    if (!entry) return { candidate: estimateLcpCandidate(imgs), nonImageTag: null };
+    const el = entry.element;
+    if (el?.tagName === "IMG") {
+      return imgs.includes(el) ? { candidate: el, nonImageTag: null } : { candidate: null, nonImageTag: "IMG" };
+    }
+    // The element left the DOM after painting: find its image by URL
+    if (!el && entry.url) {
+      const byUrl = imgs.find((img) => (img.currentSrc || img.src) === entry.url) ?? null;
+      return { candidate: byUrl, nonImageTag: byUrl ? null : "unknown" };
+    }
+    return { candidate: null, nonImageTag: el ? el.tagName : "unknown" };
   }
 
   function detectFormat(url) {
@@ -120,7 +155,7 @@
     return { script: "Image-Element-Audit", status: "ok", count: 0, corsLimitedAnalysis: false, items: [], issues: [] };
   }
 
-  const lcpCandidate = findLcpCandidate(images);
+  const { candidate: lcpCandidate, nonImageTag } = await findLcpCandidate(images);
   const imagePreloads = Array.from(document.querySelectorAll('link[rel="preload"][as="image"]'));
 
   // Fetch actual formats from Content-Type headers in parallel.
@@ -213,6 +248,10 @@
   );
 
   // LCP candidate
+  if (nonImageTag) {
+    console.log("");
+    console.log(`%cℹ️ The LCP element is not an <img> (${nonImageTag === "unknown" ? "not in the page's images" : nonImageTag}), so no image is audited as the LCP.`, "color: #3b82f6;");
+  }
   if (lcpCandidate) {
     const lcp = audited.find((r) => r.isLcp);
     const fpOk = lcp.fetchpriority === "high";
@@ -359,11 +398,16 @@
       inPicture: r.inPicture,
       issues: r.issues.map((i) => ({ severity: i.s, message: i.msg })),
     })),
-    issues: audited.flatMap((r) =>
-      r.issues.map((i) => ({
-        severity: i.s,
-        message: `${shortSrc(r.src) || "(no src)"}: ${i.msg}`,
-      }))
-    ),
+    issues: [
+      ...(nonImageTag
+        ? [{ severity: "info", message: `The LCP element is not an <img> (${nonImageTag === "unknown" ? "not in the page's images" : nonImageTag}), so no image is audited as the LCP` }]
+        : []),
+      ...audited.flatMap((r) =>
+        r.issues.map((i) => ({
+          severity: i.s,
+          message: `${shortSrc(r.src) || "(no src)"}: ${i.msg}`,
+        }))
+      ),
+    ],
   };
 })();
