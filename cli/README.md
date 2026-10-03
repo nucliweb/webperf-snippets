@@ -5,7 +5,7 @@ Run curated [WebPerf Snippets](https://webperf-snippets.nucliweb.net) headlessly
 <img width="1820" height="1442" alt="webperf-snippets-CLI" src="https://github.com/user-attachments/assets/af7e6b02-8877-407e-87a4-db063468b5fb" />
 
 
-> **Status:** v0.2. Core Web Vitals, loading audit, and structural checks. See [Roadmap](#roadmap) for what's next.
+> **Status:** v0.4. Core Web Vitals, loading, interaction and structural audit workflows, and every snippet of the collection by name. See the [Roadmap](#roadmap).
 
 ## Why
 
@@ -132,7 +132,7 @@ Without `--report-to` the CLI makes no external calls. With it, the results are 
   "timestamp": "2026-05-06T10:00:00.000Z",
   "navMs": 1240,
   "results": [],
-  "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "0.3.0" }
+  "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "0.4.0" }
 }
 ```
 
@@ -300,8 +300,8 @@ The `NPM_TOKEN` secret must be set in the repository settings with publish acces
 ## Roadmap
 
 - ~~v0.2: Loading workflow (TTFB, FCP, render-blocking, scripts, fonts), shared page session, synthetic interactions for INP, markdown reporter for PR comments.~~ ✓ Released
-- v0.3: GitHub Action wrapper.
-- v0.4: Auth flows (login + measure logged-in pages), CrUX field-data enrichment.
+- ~~v0.3: GitHub Action wrapper, auth flows (login + measure logged-in pages), CrUX field-data enrichment, `--report-to`.~~ ✓ Released
+- ~~v0.4: Every snippet by name, a 22-step audit, an 11-step loading workflow, the interaction workflow and decision-tree follow-ups for Core Web Vitals.~~ ✓ Released
 
 ## How it works
 

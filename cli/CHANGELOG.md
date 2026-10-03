@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [0.4.0] — 2026-10-04
+
 ### Added
 - Decision-tree follow-ups for Core Web Vitals: an image LCP adds `LCP-Image-Entropy` and `Image-Element-Audit`, a video poster LCP adds `LCP-Video-Candidate` and `Video-Element-Audit`, LCP over 4 s adds `LCP-Trail`, CLS over 0.1 adds `Layout-Shift-Loading-and-Interaction`, and CLS over 0.25 adds the lazy images, fonts, critical CSS and image checks. A follow-up that is a tracking snippet is read through its data function.
 - `interaction` workflow (`--workflow interaction`): `long-tasks`, `long-frames`, `scroll`, `layout-shifts`, `forced-layout`, `interactions` and `input-latency`. It runs the steps of `--interact-script`, or a scroll of its own when there is none. `interactions` and `input-latency` are `skipped`, with the reason and without failing the run, when the interactions have no click or type step.
@@ -19,6 +23,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 - `--snippet` accepts the name of any snippet (`--snippet Compression-Audit`), in any case, besides the short aliases and `Category/Name` paths. An unknown name exits with code `2` and lists the closest snippets.
 
 ### Changed
+- The snippets the CLI runs include changes since 0.3.0 that alter their results:
+  - `First-And-Third-Party-Script-Timings` returns `null` for the DNS, connection, request and response phases of a cross-origin script without `Timing-Allow-Origin`, instead of numbers computed against zero (a response time larger than the total).
+  - `First-And-Third-Party-Script-Info`, `First-And-Third-Party-Script-Timings`, `Script-Loading`, `TTFB-Resources`, `Cache-Strategy-Analysis` and `Fonts-Preloaded-Loaded-and-used-above-the-fold` count the domains listed in `OWN_DOMAINS`, declared at the top of the snippet, as first party. Without it, a site's own CDN on another root domain is third party.
+  - `Resource-Hints-Validation` lists each unused hint in `items`, and a preload for a viewport that does not match is no longer counted as unused.
+  - `Image-Element-Audit` audits the image the browser reports as the LCP element, and none when the LCP is text, a CSS background or a video, instead of the largest image in the viewport.
+  - `Cache-Strategy-Analysis` reports uncompressed text and duplicates that need no headers, and how much of the page it could analyze; `Third-Party-Impact-by-Domain` notes the long animation frames that no third-party script accounts for.
 - A follow-up runs once: a snippet two rules ask for, or that the workflow already ran, is not repeated. Before, the render-blocking check ran twice in the `loading` workflow when FCP was over 1.8 s.
 - The `error` issues of a follow-up show in the report and no longer change the exit code, so the default `core-web-vitals` workflow keeps failing only on budgets. A follow-up that itself fails (`status: "error"`) still counts.
 
