@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { loadSnippet } from "./load-snippet.js";
+import { resolveSnippetName } from "./snippet-names.js";
 import { runSnippets, runMeasurement, VIEWPORT_PRESETS } from "./runner.js";
 import { cwvWorkflow } from "./workflows/cwv.js";
 import { auditWorkflow } from "./workflows/audit.js";
@@ -19,40 +20,6 @@ const WORKFLOWS = {
   loading: loadingWorkflow,
 };
 
-const SNIPPET_ALIASES = {
-  LCP: "CoreWebVitals/LCP",
-  CLS: "CoreWebVitals/CLS",
-  INP: "CoreWebVitals/INP",
-  "LCP-Subparts": "CoreWebVitals/LCP-Subparts",
-  fonts: "Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold",
-  "Fonts-Preloaded-Loaded-and-used-above-the-fold":
-    "Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold",
-  // Tier 1 — Loading
-  "render-blocking": "Loading/Find-render-blocking-resources",
-  "Find-render-blocking-resources": "Loading/Find-render-blocking-resources",
-  "resource-hints": "Loading/Resource-Hints-Validation",
-  "Resource-Hints-Validation": "Loading/Resource-Hints-Validation",
-  "preload-scripts": "Loading/Validate-Preload-Async-Defer-Scripts",
-  "Validate-Preload-Async-Defer-Scripts": "Loading/Validate-Preload-Async-Defer-Scripts",
-  "priority-hints": "Loading/Priority-Hints-Audit",
-  "Priority-Hints-Audit": "Loading/Priority-Hints-Audit",
-  "critical-css": "Loading/Critical-CSS-Detection",
-  "Critical-CSS-Detection": "Loading/Critical-CSS-Detection",
-  ttfb: "Loading/TTFB-Sub-Parts",
-  "TTFB-Sub-Parts": "Loading/TTFB-Sub-Parts",
-  "script-parties": "Loading/First-And-Third-Party-Script-Info",
-  "First-And-Third-Party-Script-Info": "Loading/First-And-Third-Party-Script-Info",
-  "script-loading": "Loading/Script-Loading",
-  "Script-Loading": "Loading/Script-Loading",
-  // Tier 2 — Media
-  "lazy-atf": "Loading/Find-Above-The-Fold-Lazy-Loaded-Images",
-  "Find-Above-The-Fold-Lazy-Loaded-Images": "Loading/Find-Above-The-Fold-Lazy-Loaded-Images",
-  "lazy-conflict": "Loading/Find-Images-With-Lazy-and-Fetchpriority",
-  "Find-Images-With-Lazy-and-Fetchpriority": "Loading/Find-Images-With-Lazy-and-Fetchpriority",
-  "eager-below-fold": "Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport",
-  "Find-non-Lazy-Loaded-Images-outside-of-the-viewport":
-    "Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport",
-};
 
 const USAGE = `webperf-snippets <url> [options]
 
@@ -61,7 +28,8 @@ Run curated WebPerf Snippets headlessly via Playwright.
 Options:
   --workflow <name>     Workflow to run (default: core-web-vitals)
                         Workflows: core-web-vitals, audit, loading
-  --snippet <name>      Run a single snippet by alias or Category/Name path
+  --snippet <name>      Run a single snippet by name, alias or Category/Name path
+                        Any of the 56 snippets, such as Compression-Audit
                         Aliases: LCP, CLS, INP, LCP-Subparts, fonts,
                                  render-blocking, resource-hints, preload-scripts,
                                  priority-hints, critical-css, ttfb,
@@ -94,6 +62,7 @@ Examples:
   npx webperf-snippets https://web.dev --snippet LCP-Subparts
   npx webperf-snippets https://web.dev --snippet render-blocking
   npx webperf-snippets https://web.dev --snippet fonts
+  npx webperf-snippets https://web.dev --snippet Compression-Audit
   npx webperf-snippets https://web.dev --budget-lcp 2500
   npx webperf-snippets https://web.dev --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
@@ -104,12 +73,13 @@ function fail(message, code = 2) {
   process.exit(code);
 }
 
-function resolveSnippetPath(name) {
-  return SNIPPET_ALIASES[name] ?? name;
-}
-
 function buildSnippetItem(values) {
-  const path = resolveSnippetPath(values.snippet);
+  let path;
+  try {
+    path = resolveSnippetName(values.snippet);
+  } catch (err) {
+    fail(err.message);
+  }
   return [{ id: values.snippet, path, source: loadSnippet(path) }];
 }
 

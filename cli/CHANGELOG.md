@@ -10,6 +10,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ### Added
 - `audit` workflow runs 11 more snippets, 22 in total: `compression`, `inline-scripts`, `inline-css`, `webfonts`, `content-visibility`, `prefetch`, `video`, `dom-size`, `oversized-images`, `image-audit` and `svg-bitmaps`. Their `error` issues now count toward the exit code (an inline script that blocks the parser in the head, a prefetch of a file the page already uses, a font that fails to load, an excessive DOM). The steps that make their own requests run last.
+- `--snippet` accepts the name of any snippet (`--snippet Compression-Audit`), in any case, besides the short aliases and `Category/Name` paths. An unknown name exits with code `2` and lists the closest snippets.
+
+### Fixed
+- `--snippet` only resolves a listed snippet. Before, any `.js` file reachable from the snippets directory by a relative path could be loaded and run in the page.
 
 ---
 

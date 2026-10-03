@@ -144,7 +144,7 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 | Option                       | Description                                                            |
 | ---------------------------- | ---------------------------------------------------------------------- |
 | `--workflow <name>`          | Workflow to run. Default: `core-web-vitals`. Options: `core-web-vitals`, `loading`, `audit`. |
-| `--snippet <name>`           | Run a single snippet by alias or `Category/Name` path.                 |
+| `--snippet <name>`           | Run a single snippet by name, alias or `Category/Name` path.           |
 | `--json`                     | Output JSON instead of formatted text.                                 |
 | `--markdown`                 | Output GitHub-renderable markdown (for PR comments).                   |
 | `--viewport <preset>`        | Viewport preset: `mobile` (default), `tablet`, `desktop`.             |

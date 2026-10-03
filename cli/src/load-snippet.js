@@ -6,7 +6,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = resolve(HERE, "..");
 
 // Resolution order: bundled (published package) → workspace root (dev).
-const SNIPPET_DIRS = [
+export const SNIPPET_DIRS = [
   join(PKG_ROOT, "snippets"),
   resolve(PKG_ROOT, "..", "snippets"),
 ];
