@@ -82,6 +82,27 @@ npx webperf-snippets https://example.com/dashboard --storage-state auth.json
 
 The file holds live session cookies. Keep it out of version control (add it to `.gitignore`) and use a throwaway account when you run it in CI. The CLI exits with code `2` if the path does not exist.
 
+Script the interactions of a page and measure them with `--interact-script`. The file lists the steps to run after the page loads:
+
+```json copy
+{
+  "interactions": [
+    { "action": "scroll", "y": 600 },
+    { "action": "wait", "ms": 300 },
+    { "action": "click", "selector": "#menu" },
+    { "action": "type", "selector": "input[name=q]", "text": "shoes" },
+    { "action": "hover", "selector": ".product" }
+  ]
+}
+```
+
+```bash copy
+npx webperf-snippets https://web.dev --snippet INP --interact-script interactions.json
+npx webperf-snippets https://web.dev --snippet Interaction/Interactions --interact-script interactions.json
+```
+
+The snippets of the Interaction category, such as `Interactions`, `Input-Latency-Breakdown`, `LongTask` or `Forced-Synchronous-Layout`, record what happens while the page is used. With a script, the CLI installs them before the first step, runs the steps, and then reads their data, so the result holds what the steps caused. The other snippets run after the steps.
+
 Compare the measured values with CrUX field data (what real users experience at the 75th percentile):
 
 ```bash copy
@@ -237,6 +258,7 @@ npx webperf-snippets https://web.dev --verbose
 | `--json`               | Output JSON instead of formatted text.                                            |
 | `--viewport <preset>`  | Viewport preset. Default: `mobile`. Options: `mobile`, `tablet`, `desktop`.       |
 | `--wait <ms>`          | Post-load wait before evaluating snippets. Default: `3000`.                       |
+| `--interact-script <path>` | JSON file with the interactions to run after the page loads: `scroll`, `click`, `hover`, `type` and `wait`. |
 | `--storage-state <path>` | Playwright storage state (cookies and localStorage) for pages that require authentication. |
 | `--crux-key <key>`     | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`.      |
 | `--report-to <url>`    | POST the results to this `https` URL after the run. No external calls without it. |
@@ -328,7 +350,7 @@ LCP, CLS and INP vary by 15 to 30% on shared runners; prefer the deterministic `
 
 ## Known limitations
 
-- **No INP**: INP requires real user interactions. Synthetic interaction support is planned.
+- **Synthetic INP ≠ field INP**: `--interact-script` measures the latency of the steps it scripts. Real INP reflects the worst interaction across real sessions; use RUM for field data.
 - **CLS in headless is conservative**: layout shifts that only happen on scroll are missed unless you script the scroll.
 - **First navigation only**: each invocation runs one URL. SPAs need the post-route URL passed directly.
 - **Decision-tree follow-ups re-navigate**: when a follow-up snippet fires (e.g. LCP-Subparts), the page reloads. A shared page session is planned.

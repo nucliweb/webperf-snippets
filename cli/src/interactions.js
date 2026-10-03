@@ -22,9 +22,10 @@ export async function executeStep(page, step) {
   }
 }
 
-export async function runInteractions(page, scriptPath) {
-  const { interactions } = JSON.parse(readFileSync(scriptPath, "utf8"));
-  for (const step of interactions) {
+// `source` is the path of a JSON file ({ "interactions": [...] }) or the list of steps itself.
+export async function runInteractions(page, source) {
+  const steps = Array.isArray(source) ? source : JSON.parse(readFileSync(source, "utf8")).interactions;
+  for (const step of steps) {
     await executeStep(page, step);
   }
 }

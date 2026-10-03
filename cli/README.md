@@ -72,7 +72,10 @@ Synthetic INP measurement with an interaction script:
 
 ```bash
 npx webperf-snippets https://web.dev --snippet INP --interact-script interactions.json
+npx webperf-snippets https://web.dev --snippet Interaction/Interactions --interact-script interactions.json
 ```
+
+The Interaction snippets (`Interactions`, `Input-Latency-Breakdown`, `LongTask`, `Forced-Synchronous-Layout`...) are installed before the first step and read after the last one, so their result holds what the steps caused.
 
 Pages behind a login, with a Playwright storage state (cookies and localStorage):
 
@@ -149,7 +152,7 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 | `--markdown`                 | Output GitHub-renderable markdown (for PR comments).                   |
 | `--viewport <preset>`        | Viewport preset: `mobile` (default), `tablet`, `desktop`.             |
 | `--wait <ms>`                | Post-load wait before evaluating snippets. Default: `3000`.            |
-| `--interact-script <path>`   | JSON file with interactions to run before evaluation (for INP).        |
+| `--interact-script <path>`   | JSON file with interactions to run after the page loads (`scroll`, `click`, `hover`, `type`, `wait`). The Interaction snippets are installed first and read afterwards. |
 | `--storage-state <path>`     | Playwright storage state (cookies and localStorage) for pages that require authentication. |
 | `--crux-key <key>`           | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`. |
 | `--report-to <url>`          | POST the results to this `https` URL after the run. No external calls without it. |
