@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ## [Unreleased]
 
 ### Added
+- Decision-tree follow-ups for Core Web Vitals: an image LCP adds `LCP-Image-Entropy` and `Image-Element-Audit`, a video poster LCP adds `LCP-Video-Candidate` and `Video-Element-Audit`, LCP over 4 s adds `LCP-Trail`, CLS over 0.1 adds `Layout-Shift-Loading-and-Interaction`, and CLS over 0.25 adds the lazy images, fonts, critical CSS and image checks. A follow-up that is a tracking snippet is read through its data function.
 - `interaction` workflow (`--workflow interaction`): `long-tasks`, `long-frames`, `scroll`, `layout-shifts`, `forced-layout`, `interactions` and `input-latency`. It runs the steps of `--interact-script`, or a scroll of its own when there is none. `interactions` and `input-latency` are `skipped`, with the reason and without failing the run, when the interactions have no click or type step.
 - `skipped` result status, shown in the human, markdown and JSON reports. It does not count toward the exit code.
 - The human report summarizes a result with a count and details but no issues (long tasks, long animation frames) and names the items that use `kind`, `target` and `detail`, which printed `undefined` and empty lines.
@@ -16,6 +17,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 - `loading` workflow runs 5 more snippets, 11 in total: `script-timings`, `ttfb-resources`, `js-execution`, `third-party-impact` and `cache-strategy`. `cache-strategy` makes HEAD requests of its own, so it runs last.
 - `audit` workflow runs 11 more snippets, 22 in total: `compression`, `inline-scripts`, `inline-css`, `webfonts`, `content-visibility`, `prefetch`, `video`, `dom-size`, `oversized-images`, `image-audit` and `svg-bitmaps`. Their `error` issues now count toward the exit code (an inline script that blocks the parser in the head, a prefetch of a file the page already uses, a font that fails to load, an excessive DOM). The steps that make their own requests run last.
 - `--snippet` accepts the name of any snippet (`--snippet Compression-Audit`), in any case, besides the short aliases and `Category/Name` paths. An unknown name exits with code `2` and lists the closest snippets.
+
+### Changed
+- A follow-up runs once: a snippet two rules ask for, or that the workflow already ran, is not repeated. Before, the render-blocking check ran twice in the `loading` workflow when FCP was over 1.8 s.
+- The `error` issues of a follow-up show in the report and no longer change the exit code, so the default `core-web-vitals` workflow keeps failing only on budgets. A follow-up that itself fails (`status: "error"`) still counts.
 
 ### Fixed
 - `TTFB-Resources` returns an empty result (`status: "ok"`, `count: 0`, an info issue) on a page with no resource it can measure, instead of an error that made a workflow exit with code `1`.

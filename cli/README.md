@@ -190,12 +190,16 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 | `lazy-conflict`    | Loading/Find-Images-With-Lazy-and-Fetchpriority |
 | `eager-below-fold` | Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport |
 
+### Follow-up steps
+
+The results of a run can add steps on the same page load: LCP over 2.5 s adds `LCP-Subparts`, over 4 s `LCP-Trail`; an image or video LCP adds its entropy, image or video audit; CLS over 0.1 adds `Layout-Shift-Loading-and-Interaction`, over 0.25 also the lazy images, fonts, critical CSS and images without dimensions; TTFB over 600 ms adds `TTFB-Sub-Parts`; FCP over 1.8 s adds the render-blocking check. The full table is in the [CLI page](https://webperf-snippets.nucliweb.net/CLI). Each snippet runs once, and a follow-up informs: its `error` issues do not change the exit code.
+
 ### Exit codes
 
 | Code | Meaning                                       |
 | ---- | --------------------------------------------- |
 | `0`  | All checks passed.                            |
-| `1`  | Budget violation, or a snippet errored.       |
+| `1`  | Budget violation, a snippet errored, or a step of the workflow reported an `error` issue. |
 | `2`  | Usage error (missing URL, unknown workflow).  |
 
 ## CI example

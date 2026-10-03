@@ -2,6 +2,7 @@ import { chromium } from "playwright";
 import { loadSnippet } from "./load-snippet.js";
 import { runInteractions, loadInteractionSteps, isInputStep } from "./interactions.js";
 import { isTrackingSnippet } from "./tracking.js";
+import { nextSteps } from "./decision-tree.js";
 
 export const VIEWPORT_PRESETS = {
   mobile: { width: 375, height: 812 },
@@ -146,12 +147,11 @@ export async function runMeasurement({
         }
     );
 
-    const followUps = [];
-    for (const result of initialResults) {
-      for (const rule of rules) {
-        if (rule.when(result)) followUps.push({ ...rule.append, reason: rule.reason });
-      }
-    }
+    const followUps = nextSteps(
+      initialResults,
+      rules,
+      workflow.steps.map((step) => step.path)
+    );
 
     let followUpResults = [];
     if (followUps.length > 0) {
@@ -161,7 +161,10 @@ export async function runMeasurement({
         source: loadSnippet(f.path),
       }));
       const raw = await evaluateItems(page, followItems);
-      followUpResults = raw.map((r) => {
+      // A tracking snippet answers through its data function, which is read right away here
+      const collected = [];
+      for (const r of raw) collected.push(await collectTrackingData(page, r));
+      followUpResults = collected.map((r) => {
         const f = followUps.find((x) => x.id === r.id);
         return f ? { ...r, reason: f.reason } : r;
       });

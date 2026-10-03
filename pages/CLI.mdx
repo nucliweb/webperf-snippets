@@ -290,12 +290,29 @@ npx webperf-snippets https://web.dev --verbose
 | `--headed`             | Show the browser window (debug).                                                  |
 | `-h, --help`           | Show help.                                                                        |
 
+### Follow-up steps
+
+The results of a run can add steps. They run on the same page load, appear after the steps of the workflow, and show the reason that added them. Each snippet runs once, and a snippet the workflow already ran is not repeated. The results of a follow-up do not add steps of their own.
+
+| When                                  | Adds                                                                      |
+| ------------------------------------- | ------------------------------------------------------------------------- |
+| LCP over 2.5 s                        | `LCP-Subparts`                                                            |
+| LCP over 4 s                          | `LCP-Trail`                                                               |
+| The LCP element is an image           | `LCP-Image-Entropy` and `Image-Element-Audit`                             |
+| The LCP element is a video poster     | `LCP-Video-Candidate` and `Video-Element-Audit`                           |
+| CLS over 0.1                          | `Layout-Shift-Loading-and-Interaction`                                    |
+| CLS over 0.25                         | The lazy images above the fold, the fonts, the critical CSS and the images without dimensions |
+| TTFB over 600 ms                      | `TTFB-Sub-Parts`                                                          |
+| FCP over 1.8 s                        | `Find-render-blocking-resources`                                          |
+
+A follow-up informs: the `error` issues it reports appear in the report and do not change the exit code. Use the `audit` workflow, or `--snippet` with the snippet itself, to gate on them.
+
 ### Exit codes
 
 | Code | Meaning                                      |
 | ---- | -------------------------------------------- |
 | `0`  | All checks passed.                           |
-| `1`  | Budget violation, or a snippet errored.      |
+| `1`  | Budget violation, a snippet errored, or a step of the workflow reported an `error` issue. |
 | `2`  | Usage error (missing URL, unknown workflow). |
 
 ## CI integration
@@ -374,7 +391,7 @@ LCP, CLS and INP vary by 15 to 30% on shared runners; prefer the deterministic `
 - **Synthetic INP ≠ field INP**: `--interact-script` measures the latency of the steps it scripts. Real INP reflects the worst interaction across real sessions; use RUM for field data.
 - **CLS in headless is conservative**: layout shifts that only happen on scroll are missed unless you script the scroll.
 - **First navigation only**: each invocation runs one URL. SPAs need the post-route URL passed directly.
-- **Decision-tree follow-ups re-navigate**: when a follow-up snippet fires (e.g. LCP-Subparts), the page reloads. A shared page session is planned.
+- **Follow-ups see the page as it is**: they run after the steps of the workflow on the same page load, so they read what is there when they run, not a fresh load.
 
 ## Further reading
 

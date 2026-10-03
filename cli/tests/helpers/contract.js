@@ -135,6 +135,11 @@ const SMALL_PAGES = (other) => ({
   ),
   // A preload for a viewport this page does not have is conditional, not unused
   "/hints-conditional": page('<link rel="preload" href="/wide.css" as="style" media="(min-width: 5000px)">', "<h1>conditional</h1>"),
+  // A large block of content that moves down by 500 px 300 ms after the load: a layout shift above 0.25
+  "/cls-big": page(
+    "",
+    '<div id="push" style="height:10px"></div><div style="height:600px;background:#ccc">content</div><script>setTimeout(() => { document.getElementById("push").style.height = "500px"; }, 300);</script>'
+  ),
   "/hints-redundant": page(
     `<link rel="preconnect" href="${other}"><link rel="dns-prefetch" href="${other}">`,
     `<script src="${other}/h0.js"></script><script src="${other}/h1.js"></script>`
