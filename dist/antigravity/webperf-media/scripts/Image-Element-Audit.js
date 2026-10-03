@@ -3,7 +3,7 @@
     const rect = el.getBoundingClientRect();
     return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
   }
-  function findLcpCandidate(imgs) {
+  function estimateLcpCandidate(imgs) {
     let candidate = null;
     let maxArea = 0;
     imgs.filter(isInViewport).forEach(img => {
@@ -15,6 +15,50 @@
       }
     });
     return candidate;
+  }
+  function getLastLcpEntry() {
+    return new Promise(resolve => {
+      const entries = [];
+      const observer = new PerformanceObserver(list => entries.push(...list.getEntries()));
+      observer.observe({
+        type: "largest-contentful-paint",
+        buffered: true
+      });
+      setTimeout(() => {
+        observer.disconnect();
+        resolve(entries.at(-1) ?? null);
+      }, 100);
+    });
+  }
+  async function findLcpCandidate(imgs) {
+    if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) return {
+      candidate: estimateLcpCandidate(imgs),
+      nonImageTag: null
+    };
+    const entry = await getLastLcpEntry();
+    if (!entry) return {
+      candidate: estimateLcpCandidate(imgs),
+      nonImageTag: null
+    };
+    const el = entry.element;
+    if (el?.tagName === "IMG") return imgs.includes(el) ? {
+      candidate: el,
+      nonImageTag: null
+    } : {
+      candidate: null,
+      nonImageTag: "IMG"
+    };
+    if (!el && entry.url) {
+      const byUrl = imgs.find(img => (img.currentSrc || img.src) === entry.url) ?? null;
+      return {
+        candidate: byUrl,
+        nonImageTag: byUrl ? null : "unknown"
+      };
+    }
+    return {
+      candidate: null,
+      nonImageTag: el ? el.tagName : "unknown"
+    };
   }
   function detectFormat(url) {
     if (!url) return "unknown";
@@ -89,7 +133,7 @@
       issues: []
     };
   }
-  const lcpCandidate = findLcpCandidate(images);
+  const {candidate: lcpCandidate, nonImageTag: nonImageTag} = await findLcpCandidate(images);
   const imagePreloads = Array.from(document.querySelectorAll('link[rel="preload"][as="image"]'));
   const formats = await Promise.all(images.map(img => fetchFormat(img.currentSrc || img.src)));
   const audited = images.map((img, i) => {
@@ -175,6 +219,8 @@
   const totalErrors = audited.flatMap(r => r.issues.filter(i => i.s === "error")).length;
   const totalWarnings = audited.flatMap(r => r.issues.filter(i => i.s === "warning")).length;
   const totalInfos = audited.flatMap(r => r.issues.filter(i => i.s === "info")).length;
+  if (nonImageTag) {
+  }
   if (lcpCandidate) {
     const lcp = audited.find(r => r.isLcp);
     lcp.fetchpriority;
@@ -232,9 +278,12 @@
         message: i.msg
       }))
     })),
-    issues: audited.flatMap(r => r.issues.map(i => ({
+    issues: [ ...nonImageTag ? [ {
+      severity: "info",
+      message: `The LCP element is not an <img> (${nonImageTag === "unknown" ? "not in the page's images" : nonImageTag}), so no image is audited as the LCP`
+    } ] : [], ...audited.flatMap(r => r.issues.map(i => ({
       severity: i.s,
       message: `${shortSrc(r.src) || "(no src)"}: ${i.msg}`
-    })))
+    }))) ]
   };
 })();

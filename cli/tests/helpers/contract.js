@@ -122,6 +122,12 @@ const SMALL_PAGES = (other) => ({
     "",
     Array.from({ length: 3 }, (_, i) => `<script src="${other.replace("127.0.0.1", "localhost")}/h${i}.js"></script>`).join("")
   ),
+  // The LCP element is a heading (text) while a small image is also in the viewport
+  "/lcp-text": page("", '<h1 style="font-size:90px;margin:0">A large heading is the largest paint</h1><img src="/hero.png" width="40" height="30" alt="small">'),
+  // The LCP element is the image
+  "/lcp-image": page("", '<h1 style="margin:0">Title</h1><img src="/hero.png" width="600" height="400" alt="hero">'),
+  // The LCP element is a CSS background, while a smaller <img> is in the viewport
+  "/lcp-background": page("", '<div style="width:900px;height:500px;background:url(/hero.png) center/cover"></div><img src="/hero.png?small" width="40" height="30" alt="small">'),
   "/hints-redundant": page(
     `<link rel="preconnect" href="${other}"><link rel="dns-prefetch" href="${other}">`,
     `<script src="${other}/h0.js"></script><script src="${other}/h1.js"></script>`

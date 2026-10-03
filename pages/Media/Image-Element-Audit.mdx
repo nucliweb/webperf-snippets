@@ -18,20 +18,20 @@ Audits all `<img>` elements on the page against image performance best practices
 
 | Check                                                   | Scope                             |
 | ------------------------------------------------------- | --------------------------------- |
-| LCP candidate missing `fetchpriority="high"`            | Largest in-viewport image         |
-| LCP candidate with `loading="lazy"`                     | Largest in-viewport image         |
-| LCP candidate without `decoding="sync"`                 | Largest in-viewport image         |
+| LCP image missing `fetchpriority="high"`                | The LCP `<img>`                   |
+| LCP image with `loading="lazy"`                         | The LCP `<img>`                   |
+| LCP image without `decoding="sync"`                     | The LCP `<img>`                   |
 | In-viewport image with `loading="lazy"`                 | Above-the-fold images             |
 | Off-viewport image missing `loading="lazy"`             | Below-the-fold images             |
 | Off-viewport image with `fetchpriority="high"`          | Below-the-fold images             |
 | Conflicting `loading="lazy"` + `fetchpriority="high"`   | All images                        |
 | Missing `width` / `height` attributes                   | All images (CLS risk)             |
 | No modern format detected (WebP / AVIF / JXL)           | All images not inside `<picture>` |
-| LCP candidate without `<link rel="preload" as="image">` | Largest in-viewport image         |
+| LCP image without `<link rel="preload" as="image">`     | The LCP `<img>`                   |
 
 Every image on a page falls into one of three roles, each with its own optimal configuration:
 
-**LCP image**, the largest image visible on load, most likely the element measured by Largest Contentful Paint:
+**LCP image**, the `<img>` the browser reports as the Largest Contentful Paint element:
 
 ```html
 <link rel="preload" as="image" href="hero.avif" fetchpriority="high" />
@@ -92,7 +92,7 @@ For maximum format coverage, wrap images in a `<picture>` element:
 
 #### LCP candidate
 
-The snippet estimates the LCP candidate as the largest `<img>` by rendered area currently in the viewport. This is an approximation, the browser's actual LCP element may differ if non-image elements are larger, or if the page has scrolled before running the snippet.
+The snippet takes the LCP candidate from the Largest Contentful Paint entry the browser reports, so it is an `<img>` only when the LCP element is one. When the LCP element is text, a CSS background or a video, no image is audited as the LCP and `issues` carries an info note saying so. Only when the browser reports no LCP entry does the snippet estimate the candidate as the largest `<img>` by rendered area in the viewport.
 
 | Field           | Description                                                                           |
 | --------------- | ------------------------------------------------------------------------------------- |
