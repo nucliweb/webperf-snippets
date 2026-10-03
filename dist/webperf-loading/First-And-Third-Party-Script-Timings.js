@@ -26,6 +26,7 @@
       total: r.responseEnd - r.startTime
     };
     if (r.secureConnectionStart > 0) timings.tcp = r.secureConnectionStart - r.connectStart;
+    if (!hasTiming) for (const phase of [ "dns", "tcp", "tls", "request", "response" ]) timings[phase] = null;
     return {
       name: r.name,
       shortName: url.pathname.split("/").pop() || url.hostname,
@@ -63,6 +64,7 @@
   }
   const firstStats = calcStats(firstParty);
   const thirdStats = calcStats(thirdParty);
+  const roundOrNull = ms => ms === null ? null : Math.round(ms);
   const formatMs = ms => ms > 0 ? ms.toFixed(1) + "ms" : "-";
   const formatBar = (value, max) => {
     if (value <= 0 || max <= 0) return "";
@@ -179,10 +181,10 @@
       host: s.host,
       firstParty: s.firstParty,
       totalMs: Math.round(s.total),
-      dnsMs: Math.round(s.dns),
-      tcpMs: Math.round(s.tcp),
-      requestMs: Math.round(s.request),
-      responseMs: Math.round(s.response),
+      dnsMs: roundOrNull(s.dns),
+      tcpMs: roundOrNull(s.tcp),
+      requestMs: roundOrNull(s.request),
+      responseMs: roundOrNull(s.response),
       hasTiming: s.hasTiming
     })),
     issues: [ ...slowScripts.length > 0 ? [ {
