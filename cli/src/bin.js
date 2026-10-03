@@ -219,8 +219,10 @@ async function main() {
   }
 
   const anyError = payload.results.some((r) => r.status === "error");
+  // A follow-up (a result with a reason) only informs: its error issues show in the report and
+  // leave the exit code to the budgets and to the steps the workflow runs itself.
   const anyAuditViolation = payload.results.some(
-    (r) => Array.isArray(r.issues) && r.issues.some((i) => i.severity === "error"),
+    (r) => !r.reason && Array.isArray(r.issues) && r.issues.some((i) => i.severity === "error"),
   );
   process.exit(anyError || anyAuditViolation ? 1 : 0);
 }
