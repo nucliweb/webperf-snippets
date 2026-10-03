@@ -2,6 +2,10 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // Auto-detect first-party by root domain
   // @shared getRootDomain
   function getRootDomain(hostname) {
@@ -21,9 +25,22 @@
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // Gather script timing data
   const scripts = performance
@@ -274,6 +291,7 @@
     console.groupEnd();
   }
 
+  logOwnDomainsHint(thirdParty.length);
   console.groupEnd();
 
   // The list keeps the 50 slowest scripts; count and details cover all of them

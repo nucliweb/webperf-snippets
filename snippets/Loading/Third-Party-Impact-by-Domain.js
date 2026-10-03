@@ -45,19 +45,28 @@
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
 
-  const ownRoots = new Set(
-    OWN_DOMAINS.map((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]))
-  );
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // Root domain of an http(s) URL, or null for anything else (data:, blob:, empty)
   const rootDomainOf = (url) => {
     try {
       const u = new URL(url);
-      return /^https?:$/.test(u.protocol) ? { root: getRootDomain(u.hostname), first: isFirstParty(u.hostname) || ownRoots.has(getRootDomain(u.hostname)) } : null;
+      return /^https?:$/.test(u.protocol) ? { root: getRootDomain(u.hostname), first: isFirstParty(u.hostname) } : null;
     } catch {
       return null;
     }
@@ -210,12 +219,7 @@
   if (corsLimitedAnalysis) {
     console.log("%cℹ️ Some third-party sizes are hidden (no Timing-Allow-Origin); sizes are a lower bound", "color: #3b82f6;");
   }
-  if (OWN_DOMAINS.length === 0 && all.length > 0) {
-    console.log(
-      '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
-      "color: #3b82f6;"
-    );
-  }
+  logOwnDomainsHint(all.length);
   console.groupEnd();
 
   return {

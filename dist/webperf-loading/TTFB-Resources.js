@@ -1,4 +1,5 @@
 (() => {
+  const OWN_DOMAINS = [];
   const waitTime = entry => entry.responseStart - entry.requestStart;
   const hasTiming = entry => entry.responseStart > 0;
   function getRootDomain(hostname) {
@@ -13,7 +14,12 @@
     return parts.slice(-2).join(".");
   }
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
+  }
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) void 0;
   }
   const isThirdPartyUrl = name => {
     try {
@@ -43,7 +49,7 @@
     ttfbValues.reduce((a, b) => a + b, 0), ttfbValues.length;
     Math.max(...ttfbValues);
     Math.min(...ttfbValues);
-    resourcesData.filter(r => r.thirdParty).length;
+    const thirdPartyCount = resourcesData.filter(r => r.thirdParty).length;
     const slowResources = resourcesData.filter(r => r.ttfb > 500).length;
     if (restrictedCount > 0) void 0;
     if (slowResources > 0) void 0;
@@ -61,6 +67,7 @@
         r.thirdParty;
       });
     }
+    logOwnDomainsHint(thirdPartyCount);
   }).observe({
     type: "resource",
     buffered: true

@@ -2546,6 +2546,10 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // --- Helpers ---
 
   // @shared getRootDomain
@@ -2566,9 +2570,22 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // @shared formatBytes
   function formatBytes(bytes) {
@@ -3356,6 +3373,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     console.groupEnd();
   }
 
+  logOwnDomainsHint(entries.filter((e) => !e.firstParty).length);
   console.groupEnd(); // Cache Strategy Analysis
 
   // --- Return structured object ---
@@ -5947,6 +5965,10 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // Auto-detect first-party: same root domain (handles subdomains)
   // @shared getRootDomain
   function getRootDomain(hostname) {
@@ -5966,9 +5988,22 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // @shared formatBytes
   function formatBytes(bytes) {
@@ -6167,6 +6202,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
     console.groupEnd();
   }
 
+  logOwnDomainsHint(thirdParty.length);
   console.groupEnd();
 
   // The list keeps the 50 scripts to look at first (render-blocking, then third-party, then the largest); count and details cover all of them
@@ -6246,6 +6282,10 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // Auto-detect first-party by root domain
   // @shared getRootDomain
   function getRootDomain(hostname) {
@@ -6265,9 +6305,22 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // Gather script timing data
   const scripts = performance
@@ -6518,6 +6571,7 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
     console.groupEnd();
   }
 
+  logOwnDomainsHint(thirdParty.length);
   console.groupEnd();
 
   // The list keeps the 50 slowest scripts; count and details cover all of them
@@ -6559,6 +6613,10 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // Helper to extract font filename from URL
   function getFontName(url) {
     try {
@@ -6587,9 +6645,22 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // Check if URL is third-party (a different root domain)
   function isThirdParty(url) {
@@ -6870,6 +6941,7 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
   console.log("4. Self-host fonts when possible for better control");
   console.log("5. Subset fonts to include only needed characters");
   console.log("6. Use WOFF2 format for best compression");
+  logOwnDomainsHint(preloadedFonts.filter((f) => f.thirdParty).length);
   console.groupEnd();
 
   console.groupEnd();
@@ -10086,6 +10158,10 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // @shared formatBytes
   function formatBytes(bytes) {
     if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
@@ -10116,9 +10192,22 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // A script whose URL cannot be parsed counts as first party
   const isFirstPartyUrl = (url) => {
@@ -10391,6 +10480,7 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
   console.log("");
   console.log("%cFor critical inline scripts:", "font-weight: bold;");
   console.log('%c<script>/* Only essential initialization */</script>', "font-family: monospace; color: #22c55e;");
+  logOwnDomainsHint(thirdPartyScripts.length);
   console.groupEnd();
 
   console.groupEnd();
@@ -11284,6 +11374,10 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
+  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  const OWN_DOMAINS = [];
+
   // Waiting time for the first byte of a resource: responseStart is measured from the
   // start of the page, so subtract requestStart. Cross-origin resources without a
   // Timing-Allow-Origin header report 0 for both and cannot be measured.
@@ -11307,9 +11401,22 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
+
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   const isThirdPartyUrl = (name) => {
     try {
@@ -11395,6 +11502,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
     });
   }
 
+  logOwnDomainsHint(thirdPartyCount);
   console.groupEnd();
   }).observe({
     type: "resource",
@@ -11493,19 +11601,28 @@ Groups every third-party request by root domain and reports, per domain, the req
 
   // @shared isFirstParty
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
   }
   // @end-shared isFirstParty
 
-  const ownRoots = new Set(
-    OWN_DOMAINS.map((d) => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]))
-  );
+  // @shared logOwnDomainsHint
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) {
+      console.log(
+        '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
+        "color: #3b82f6;"
+      );
+    }
+  }
+  // @end-shared logOwnDomainsHint
 
   // Root domain of an http(s) URL, or null for anything else (data:, blob:, empty)
   const rootDomainOf = (url) => {
     try {
       const u = new URL(url);
-      return /^https?:$/.test(u.protocol) ? { root: getRootDomain(u.hostname), first: isFirstParty(u.hostname) || ownRoots.has(getRootDomain(u.hostname)) } : null;
+      return /^https?:$/.test(u.protocol) ? { root: getRootDomain(u.hostname), first: isFirstParty(u.hostname) } : null;
     } catch {
       return null;
     }
@@ -11658,12 +11775,7 @@ Groups every third-party request by root domain and reports, per domain, the req
   if (corsLimitedAnalysis) {
     console.log("%cℹ️ Some third-party sizes are hidden (no Timing-Allow-Origin); sizes are a lower bound", "color: #3b82f6;");
   }
-  if (OWN_DOMAINS.length === 0 && all.length > 0) {
-    console.log(
-      '%cℹ️ OWN_DOMAINS is empty. If this site serves its own assets from other domains (for example a CDN), add them at the top of the snippet, such as const OWN_DOMAINS = ["cdn.example.net"];, and run it again so they count as first party.',
-      "color: #3b82f6;"
-    );
-  }
+  logOwnDomainsHint(all.length);
   console.groupEnd();
 
   return {

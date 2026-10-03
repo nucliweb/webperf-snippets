@@ -1,4 +1,5 @@
 (() => {
+  const OWN_DOMAINS = [];
   function getRootDomain(hostname) {
     const host = hostname.replace(/\.$/, "");
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
@@ -11,7 +12,12 @@
     return parts.slice(-2).join(".");
   }
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
+  }
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) void 0;
   }
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
@@ -90,6 +96,7 @@
     if (thirdMetrics.totalSize > 100 * 1024) {
     }
   }
+  logOwnDomainsHint(thirdParty.length);
   const MAX_ITEMS = 50;
   const rankedScripts = [ ...scripts ].sort((a, b) => Number(b.renderBlocking) - Number(a.renderBlocking) || Number(a.firstParty) - Number(b.firstParty) || b.transferSize - a.transferSize);
   return {

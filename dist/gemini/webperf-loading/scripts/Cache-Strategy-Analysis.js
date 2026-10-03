@@ -1,4 +1,5 @@
 (async () => {
+  const OWN_DOMAINS = [];
   function getRootDomain(hostname) {
     const host = hostname.replace(/\.$/, "");
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return host;
@@ -11,7 +12,12 @@
     return parts.slice(-2).join(".");
   }
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
+  }
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) void 0;
   }
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
@@ -362,6 +368,7 @@
   if (recommendations.length > 0) {
     for (const rec of recommendations) void 0;
   }
+  logOwnDomainsHint(entries.filter(e => !e.firstParty).length);
   const cacheEfficiencyRating = cacheEfficiencyPercent === null ? null : cacheEfficiencyPercent >= 80 ? "good" : cacheEfficiencyPercent >= 50 ? "needs-improvement" : "poor";
   const MAX_ITEMS = 50;
   const actionableEntries = entries.filter(e => e.antiPatterns.length > 0 || [ "none", "no-store", "no-cache", "short" ].includes(e.cacheStrategy));

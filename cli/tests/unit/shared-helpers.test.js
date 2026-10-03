@@ -11,10 +11,10 @@ const ROOT = resolve(HERE, "../../..");
 const { extractBlocks, verifySharedHelpers, CANONICAL_PATH } = require(join(ROOT, "scripts/shared-helpers.js"));
 
 // Builds the canonical helpers as real functions, the way a snippet sees them.
-function load(names, hostname = "www.example.com") {
+function load(names, hostname = "www.example.com", ownDomains = []) {
   const { blocks } = extractBlocks(readFileSync(CANONICAL_PATH, "utf8"));
   const body = names.map((n) => blocks[n]).join("\n");
-  return new Function("location", `${body}\nreturn { ${names.join(", ")} };`)({ hostname });
+  return new Function("location", "OWN_DOMAINS", `${body}\nreturn { ${names.join(", ")} };`)({ hostname }, ownDomains);
 }
 
 describe("getRootDomain", () => {
@@ -53,6 +53,16 @@ describe("isFirstParty", () => {
     const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "www.example.co.uk");
     expect(isFirstParty("cdn.example.co.uk")).toBe(true);
     expect(isFirstParty("other.co.uk")).toBe(false);
+  });
+  it("counts the domains listed in OWN_DOMAINS as first party, as domains or URLs in any case", () => {
+    const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "www.bbc.co.uk", ["bbci.co.uk", "https://Static.Example.com/assets/"]);
+    expect(isFirstParty("ichef.bbci.co.uk")).toBe(true);
+    expect(isFirstParty("cdn.example.com")).toBe(true);
+    expect(isFirstParty("ads.other.co.uk")).toBe(false);
+  });
+  it("keeps the root domain of the page first party when OWN_DOMAINS lists other domains", () => {
+    const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "www.bbc.co.uk", ["bbci.co.uk"]);
+    expect(isFirstParty("static.bbc.co.uk")).toBe(true);
   });
   it("does not treat two different IPs as the same party", () => {
     const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "10.0.0.1");
