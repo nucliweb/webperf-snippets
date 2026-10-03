@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ## [Unreleased]
 
 ### Added
+- With `--interact-script`, the snippets of the Interaction category are installed before the interactions and read through their data function afterwards. A run such as `--snippet Interaction/Interactions --interact-script interactions.json` returns `ok` with the interactions it caused, where it used to stop at `tracking`.
 - `loading` workflow runs 5 more snippets, 11 in total: `script-timings`, `ttfb-resources`, `js-execution`, `third-party-impact` and `cache-strategy`. `cache-strategy` makes HEAD requests of its own, so it runs last.
 - `audit` workflow runs 11 more snippets, 22 in total: `compression`, `inline-scripts`, `inline-css`, `webfonts`, `content-visibility`, `prefetch`, `video`, `dom-size`, `oversized-images`, `image-audit` and `svg-bitmaps`. Their `error` issues now count toward the exit code (an inline script that blocks the parser in the head, a prefetch of a file the page already uses, a font that fails to load, an excessive DOM). The steps that make their own requests run last.
 - `--snippet` accepts the name of any snippet (`--snippet Compression-Audit`), in any case, besides the short aliases and `Category/Name` paths. An unknown name exits with code `2` and lists the closest snippets.

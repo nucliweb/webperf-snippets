@@ -1,6 +1,7 @@
 import { chromium } from "playwright";
 import { loadSnippet } from "./load-snippet.js";
 import { runInteractions } from "./interactions.js";
+import { isTrackingSnippet } from "./tracking.js";
 
 export const VIEWPORT_PRESETS = {
   mobile: { width: 375, height: 812 },
@@ -38,6 +39,38 @@ async function evaluateItems(page, items) {
   return results;
 }
 
+// Runs the items around a set of interactions. A tracking snippet is installed first, so it sees
+// the interactions, and answers through its getDataFn afterwards. The other items run after the
+// interactions, as before. Results keep the order of the items. Without interactions every item
+// runs once, as it always did.
+async function evaluateAroundInteractions(page, items, interactions) {
+  if (!interactions) return evaluateItems(page, items);
+
+  const tracking = items.filter((item) => isTrackingSnippet(item.path ?? "", item.source));
+  const installed = await evaluateItems(page, tracking);
+  await runInteractions(page, interactions);
+  const others = await evaluateItems(
+    page,
+    items.filter((item) => !tracking.includes(item))
+  );
+  const collected = [];
+  for (const result of installed) collected.push(await collectTrackingData(page, result));
+
+  const byId = new Map([...collected, ...others].map((r) => [r.id, r]));
+  return items.map((item) => byId.get(item.id));
+}
+
+async function collectTrackingData(page, result) {
+  if (result.status !== "tracking" || !result.getDataFn) return result;
+  try {
+    const data = await page.evaluate(`(async () => await ${result.getDataFn}())()`);
+    if (data && typeof data === "object") return { id: result.id, ...data };
+    return { id: result.id, status: "error", error: `${result.getDataFn}() did not return an object` };
+  } catch (err) {
+    return { id: result.id, status: "error", error: `${result.getDataFn}() failed: ${err.message}` };
+  }
+}
+
 export async function runSnippets({
   url,
   items,
@@ -46,6 +79,7 @@ export async function runSnippets({
   viewport = VIEWPORT_PRESETS.mobile,
   navTimeout = DEFAULT_NAV_TIMEOUT,
   interactScript,
+  interactions = interactScript,
   storageState,
 }) {
   const browser = await chromium.launch({ headless });
@@ -58,8 +92,7 @@ export async function runSnippets({
     await page.goto(url, { waitUntil: "load", timeout: navTimeout });
     if (waitMs > 0) await page.waitForTimeout(waitMs);
     const navMs = Date.now() - navStart;
-    if (interactScript) await runInteractions(page, interactScript);
-    const results = await evaluateItems(page, items);
+    const results = await evaluateAroundInteractions(page, items, interactions);
     return { url, navMs, results, pageErrors };
   } finally {
     await browser.close();
@@ -75,6 +108,7 @@ export async function runMeasurement({
   viewport = VIEWPORT_PRESETS.mobile,
   navTimeout = DEFAULT_NAV_TIMEOUT,
   interactScript,
+  interactions = interactScript,
   storageState,
 }) {
   const browser = await chromium.launch({ headless });
@@ -88,14 +122,13 @@ export async function runMeasurement({
     await page.goto(url, { waitUntil: "load", timeout: navTimeout });
     if (waitMs > 0) await page.waitForTimeout(waitMs);
     const navMs = Date.now() - navStart;
-    if (interactScript) await runInteractions(page, interactScript);
 
     const items = workflow.steps.map((step) => ({
       id: step.id,
       path: step.path,
       source: loadSnippet(step.path),
     }));
-    const initialResults = await evaluateItems(page, items);
+    const initialResults = await evaluateAroundInteractions(page, items, interactions);
 
     const followUps = [];
     for (const result of initialResults) {
