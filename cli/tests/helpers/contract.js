@@ -122,6 +122,13 @@ const SMALL_PAGES = (other) => ({
     "",
     Array.from({ length: 3 }, (_, i) => `<script src="${other.replace("127.0.0.1", "localhost")}/h${i}.js"></script>`).join("")
   ),
+  // An unused preload (its entry is hidden by the test), an unused preconnect and an unused dns-prefetch
+  "/hints-unused": page(
+    `<link rel="preload" href="/hidden.css" as="style"><link rel="preconnect" href="${other}"><link rel="dns-prefetch" href="${other.replace("127.0.0.1", "localhost")}">`,
+    "<h1>unused</h1>"
+  ),
+  // A preload for a viewport this page does not have is conditional, not unused
+  "/hints-conditional": page('<link rel="preload" href="/wide.css" as="style" media="(min-width: 5000px)">', "<h1>conditional</h1>"),
   "/hints-redundant": page(
     `<link rel="preconnect" href="${other}"><link rel="dns-prefetch" href="${other}">`,
     `<script src="${other}/h0.js"></script><script src="${other}/h1.js"></script>`

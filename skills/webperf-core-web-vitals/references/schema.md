@@ -669,15 +669,16 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 #### Resource-Hints-Validation
 
-`items` lists the origins that need a hint and the origins that have both `preconnect` and `dns-prefetch` (at most 50).
+`items` lists the hints to remove because nothing uses them (`remove-unused-preload`, `remove-unused-preconnect`, `remove-unused-dns-prefetch`, with the `href` of the hint), the origins that need a hint and the origins that have both `preconnect` and `dns-prefetch` (at most 50). `href` is `null` for the last two kinds.
 
 ```json
 {
   "script": "Resource-Hints-Validation",
   "status": "ok",
   "items": [
-    { "domain": "https://cdn.example", "requestCount": 6, "action": "add-preconnect", "recommendedHint": "preconnect" },
-    { "domain": "https://fonts.example", "requestCount": 2, "action": "remove-dns-prefetch", "recommendedHint": "preconnect" }
+    { "domain": "https://old.example", "href": "https://old.example/", "requestCount": 0, "action": "remove-unused-preconnect", "recommendedHint": null },
+    { "domain": "https://cdn.example", "href": null, "requestCount": 6, "action": "add-preconnect", "recommendedHint": "preconnect" },
+    { "domain": "https://fonts.example", "href": null, "requestCount": 2, "action": "remove-dns-prefetch", "recommendedHint": "preconnect" }
   ]
 }
 ```
