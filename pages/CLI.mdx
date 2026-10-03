@@ -158,6 +158,35 @@ Run the structural audit workflow:
 npx webperf-snippets https://web.dev --workflow audit
 ```
 
+The audit runs these checks on one page load. Only an issue of severity `error` makes the command exit with code `1`; warnings and notes appear in the report without changing the exit code.
+
+| Step                 | Checks                                                                 |
+| -------------------- | ---------------------------------------------------------------------- |
+| `render-blocking`    | Render-blocking CSS and scripts                                        |
+| `resource-hints`     | Preload, preconnect and dns-prefetch hints that nothing uses, and origins that need one |
+| `preload-scripts`    | Scripts that combine preload with `async` or `defer`                   |
+| `priority-hints`     | `fetchpriority` on the images that matter                              |
+| `critical-css`       | Critical CSS inlined in the head                                       |
+| `ttfb`               | Time to first byte split into its sub-parts                            |
+| `script-parties`     | First-party and third-party scripts                                    |
+| `script-loading`     | Loading strategy of every script                                       |
+| `compression`        | Text resources sent without compression                                |
+| `inline-scripts`     | Size and parser blocking of inline scripts                             |
+| `inline-css`         | Size and weight of inline CSS                                          |
+| `webfonts`           | Web fonts that fail, never load or weigh too much                      |
+| `content-visibility` | Offscreen sections that could use `content-visibility`                 |
+| `prefetch`           | Prefetch hints for files the page already uses, and their total size   |
+| `lazy-atf`           | Lazy-loaded images above the fold                                      |
+| `lazy-conflict`      | Images with both `loading="lazy"` and `fetchpriority="high"`           |
+| `eager-below-fold`   | Images below the fold that load eagerly                                |
+| `video`              | Poster, preload, autoplay and dimensions of `<video>` elements         |
+| `dom-size`           | DOM node count and depth                                               |
+| `oversized-images`   | Images whose file has many more pixels than the page shows             |
+| `image-audit`        | The LCP image, dimensions, loading and format of every `<img>`         |
+| `svg-bitmaps`        | SVG files that embed bitmaps                                           |
+
+The steps that make requests of their own run last, so those requests do not change what the earlier steps read.
+
 Simulate a mobile viewport (default) or switch to desktop:
 
 ```bash copy
