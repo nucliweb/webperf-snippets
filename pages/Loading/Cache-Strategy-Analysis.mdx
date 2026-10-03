@@ -8,6 +8,7 @@ browserSupportReported:
 
 import snippet from "../../snippets/Loading/Cache-Strategy-Analysis.js?raw";
 import { Snippet } from "../../components/Snippet";
+import { Callout } from "../../components/Callout";
 import { Flow } from '../../components/diagrams'
 
 # Cache strategy analysis
@@ -165,6 +166,10 @@ To get header visibility on your own cross-origin or CDN resources, configure th
 Access-Control-Allow-Origin: *
 Timing-Allow-Origin: *
 ```
+
+<Callout type="info">
+  Resources are first party when they share the page's root domain. A site's own CDN on a different root domain, such as `bbci.co.uk` for `bbc.co.uk`, is reported as a third party, because the comparison uses root domains only. To count those domains as first party, list them in the `OWN_DOMAINS` constant at the top of the snippet, for example `const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];`. Entries can be domains or URLs. While the list is empty and the page has third-party resources, the snippet prints a reminder in the console.
+</Callout>
 
 ## Browser support
 

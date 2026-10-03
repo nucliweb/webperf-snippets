@@ -1,4 +1,5 @@
 (() => {
+  const OWN_DOMAINS = [];
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
@@ -19,7 +20,12 @@
     return parts.slice(-2).join(".");
   }
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
+  }
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) void 0;
   }
   const isFirstPartyUrl = url => {
     try {
@@ -165,6 +171,7 @@
       Blocking: data.blocking > 0 ? `⚠️ ${data.blocking}` : "0"
     }));
   }
+  logOwnDomainsHint(thirdPartyScripts.length);
   const agentRating = blockingInHead.length === 0 ? "good" : blockingInHead.length <= 2 && thirdPartyBlocking.length === 0 ? "needs-improvement" : "poor";
   const MAX_ITEMS = 50;
   const rankedScripts = [ ...scripts ].sort((a, b) => Number(b.isBlocking) - Number(a.isBlocking) || Number(a.firstParty) - Number(b.firstParty) || b.size - a.size);

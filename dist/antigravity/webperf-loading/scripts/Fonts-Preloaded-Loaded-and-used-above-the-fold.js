@@ -1,4 +1,5 @@
 (() => {
+  const OWN_DOMAINS = [];
   function getFontName(url) {
     try {
       const path = new URL(url).pathname;
@@ -19,7 +20,12 @@
     return parts.slice(-2).join(".");
   }
   function isFirstParty(hostname) {
-    return getRootDomain(hostname) === getRootDomain(location.hostname);
+    const root = getRootDomain(hostname);
+    if (root === getRootDomain(location.hostname)) return true;
+    return OWN_DOMAINS.some(d => getRootDomain(String(d).trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split("/")[0]) === root);
+  }
+  function logOwnDomainsHint(thirdPartyCount) {
+    if (OWN_DOMAINS.length === 0 && thirdPartyCount > 0) void 0;
   }
   function isThirdParty(url) {
     try {
@@ -120,6 +126,7 @@
     }
   } else if (preloadedFonts.length > 0 && usedFonts.length > 0) {
   }
+  logOwnDomainsHint(preloadedFonts.filter(f => f.thirdParty).length);
   return {
     script: "Fonts-Preloaded-Loaded-and-used-above-the-fold",
     status: "ok",

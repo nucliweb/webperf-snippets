@@ -93,6 +93,10 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 }
 ```
 
+<Callout type="info">
+  Fonts are first party when they share the page's root domain. A site's own CDN on a different root domain, such as `bbci.co.uk` for `bbc.co.uk`, is reported as a third party, because the comparison uses root domains only. To count those domains as first party, list them in the `OWN_DOMAINS` constant at the top of the snippet, for example `const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];`. Entries can be domains or URLs. While the list is empty and the page has third-party resources, the snippet prints a reminder in the console.
+</Callout>
+
 ### Browser support
 
 ### Further reading
