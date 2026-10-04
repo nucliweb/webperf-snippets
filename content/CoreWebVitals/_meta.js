@@ -1,4 +1,4 @@
-{
+export default {
   "CLS": {
     "title": "CLS"
   },

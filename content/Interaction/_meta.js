@@ -1,4 +1,4 @@
-{
+export default {
   "Interactions": "Interactions",
   "Input-Latency-Breakdown": "Input Latency Breakdown",
   "Layout-Shift-Loading-and-Interaction": "Layout Shift Loading and Interaction",

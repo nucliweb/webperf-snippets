@@ -55,7 +55,7 @@ describe("a message from the last participant to itself", () => {
   });
 });
 
-// The sequence of pages/Interaction/Forced-Synchronous-Layout.mdx
+// The sequence of content/Interaction/Forced-Synchronous-Layout.mdx
 describe("the Forced-Synchronous-Layout sequence", () => {
   const spec = {
     participants: [

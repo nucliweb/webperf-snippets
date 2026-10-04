@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
 
 // Extra pixels added to the height the demo reports, so the iframe has a little

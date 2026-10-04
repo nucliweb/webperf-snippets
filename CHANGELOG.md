@@ -8,11 +8,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- The site runs on Nextra 4 and the Next.js App Router with React 19. The pages live in `content/`, the navigation of each directory in `_meta.js`, and the layout in `app/layout.jsx`.
+- Search uses Pagefind, indexed at build time over the 61 pages, code included.
+- The sitemap and `robots.txt` come from `app/sitemap.js` and `app/robots.js` instead of `next-sitemap`, with the same 61 URLs.
+- Links to other sites carry the hidden label "(opens in a new tab)" for screen readers. The "Copy page" button and the previous and next links at the foot of a page do not exist; the sidebar and the search cover the navigation.
+- The text of the pages and the headings use typographic quotes, a convention of Nextra 4.
+
+### Added
+- `npm run check:built-snippets` fails after a build when a page shows a snippet different from its source file. CI runs it.
+
 ### Fixed
 - The `BreadcrumbList` and `Article` JSON-LD schemas appear in the HTML of the snippet and category pages. They were mounted inside `next/head`, which does not render components, so no page carried them. Error pages carry none.
 
 ### Security
 - The site runs on Next.js 16, which resolves the `next` and `postcss` advisories reported by `npm audit`. `dev` and `build` use webpack (`--webpack`) for the `?raw` snippet imports, and React stays on 18.
+- Nextra 4 and the removal of `next-sitemap` clear the critical advisory and most of the high ones. `npm audit --omit=dev` still reports 7 (6 high, 1 moderate) in the dependencies of Nextra itself (`fast-glob`, `micromatch`, `braces`, `@xmldom/xmldom`), none critical.
 
 ---
 

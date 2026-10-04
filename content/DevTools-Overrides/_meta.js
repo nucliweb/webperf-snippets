@@ -1,4 +1,4 @@
-{
+export default {
   "index": {
     "title": "What are DevTools Overrides?"
   },

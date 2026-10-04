@@ -18,9 +18,8 @@ const metas = (html) =>
 describe("SiteHead", () => {
   const html = renderToStaticMarkup(<SiteHead />);
 
-  it("emits the description, author, Open Graph and Twitter tags in order", () => {
+  it("emits the description, author, Open Graph and Twitter tags in order, and leaves the viewport to the framework", () => {
     expect(metas(html)).toEqual([
-      { name: "viewport", content: "width=device-width, initial-scale=1.0" },
       { name: "description", content: DESCRIPTION },
       { name: "author", content: "Joan Leon" },
       { property: "og:url", content: "https://webperf-snippets.nucliweb.net/" },

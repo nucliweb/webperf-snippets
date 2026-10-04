@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useCallback } from "react";
 import { CWVRenderer } from "./CWVRenderer";
 import { FontsRenderer } from "./FontsRenderer";

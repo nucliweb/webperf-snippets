@@ -95,7 +95,7 @@ export default [
     },
   },
   {
-    files: ["components/**/*.js", "pages/**/*.js"],
+    files: ["components/**/*.js", "content/**/*.js"],
     rules: {
       "no-unused-vars": "warn",
       "no-undef": "error",

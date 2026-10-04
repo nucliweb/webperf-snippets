@@ -6,7 +6,7 @@ const fs = require('fs')
 const path = require('path')
 
 const ROOT = path.join(__dirname, '..')
-const PAGES_DIR = path.join(ROOT, 'pages')
+const PAGES_DIR = path.join(ROOT, 'content')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
 
 const SNIPPET_HEADING_RE = /^### Snippet$/m
@@ -156,7 +156,7 @@ function processFile(mdxFilePath) {
   updated = imports + '\n' + updated
 
   fs.writeFileSync(mdxFilePath, updated)
-  console.log(`  updated: pages/${relativePath}`)
+  console.log(`  updated: content/${relativePath}`)
 }
 
 const mdxFiles = getMdxFiles(PAGES_DIR)

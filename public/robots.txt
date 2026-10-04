@@ -1,9 +1,0 @@
-# *
-User-agent: *
-Allow: /
-
-# Host
-Host: https://webperf-snippets.nucliweb.net
-
-# Sitemaps
-Sitemap: https://webperf-snippets.nucliweb.net/sitemap.xml
