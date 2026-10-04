@@ -77,6 +77,8 @@ npx webperf-snippets https://web.dev --snippet Interaction/Interactions --intera
 
 The Interaction snippets (`Interactions`, `Input-Latency-Breakdown`, `LongTask`, `Forced-Synchronous-Layout`...) are installed before the first step and read after the last one, so their result holds what the steps caused.
 
+End the script with a `wait` step of a few hundred milliseconds: the browser reports the timing of an interaction after the next frame, and the snippets are read right after the last step, so a script that ends on a click can miss that click.
+
 Interaction audit (long tasks, long animation frames, scroll, layout shifts, forced layouts, interaction latency). It scrolls the page, or runs your `--interact-script`; the steps that need a click are skipped when the script has none:
 
 ```bash
