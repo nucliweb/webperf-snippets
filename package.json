@@ -7,8 +7,8 @@
     "cli"
   ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "postbuild": "next-sitemap",
     "prebuild": "rm -rf .next && node scripts/generate-llms.js",
     "check:consistency": "node scripts/check-consistency.js",
@@ -42,12 +42,12 @@
     "@mdn/browser-compat-data": "^8.1.4",
     "gray-matter": "^4.0.3",
     "highlight.js": "^10.7.3",
-    "next": "^13.4.19",
+    "next": "^16.3.8",
     "next-sitemap": "^4.2.3",
-    "nextra": "^2.11.0",
-    "nextra-theme-docs": "^2.11.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "nextra": "^2.13.4",
+    "nextra-theme-docs": "^2.13.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "eslint": "^10.0.2",

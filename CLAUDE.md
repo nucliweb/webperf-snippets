@@ -10,7 +10,7 @@ The snippet source files in `snippets/` are the single source of truth. Document
 
 ## Technology stack
 
-- **Site**: Next.js 13 with Nextra 2 (`nextra-theme-docs`), deployed on Vercel
+- **Site**: Next.js 16 with Nextra 2 (`nextra-theme-docs`) on the pages router and React 18, deployed on Vercel
 - **Media**: Cloudinary through `next-cloudinary`
 - **Analytics**: Google Analytics and DebugBear
 - **CLI** (`cli/`, npm workspace `webperf-snippets`): Playwright runner for the snippets, tested with Vitest
@@ -87,5 +87,6 @@ Writing rules for pages are in the `webperf-docs-reviewer` skill: sentence-case 
 
 ## Notes
 
+- `dev` and `build` run with `--webpack`: the `?raw` import of the snippets is a webpack rule in `next.config.js`, which Turbopack (the default in Next 16) does not read. React stays on 18 because `nextra-theme-docs` 2 depends on `@headlessui/react` 1, which breaks on React 19.
 - The dev server does not pick up changes in `lib/`; restart it after editing a plugin.
 - Cloudinary URLs and `CldVideoPlayer` are available in MDX for media.
