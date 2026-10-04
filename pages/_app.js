@@ -1,36 +1,18 @@
-import Script from "next/script";
-import Head from "next/head";
-import dynamic from "next/dynamic";
 import "../styles/globals.css";
+import { Analytics } from "../components/Analytics";
+import { PageSchema } from "../components/PageSchema";
 import { WebMCP } from "../components/WebMCP";
 
-const PageSchema = dynamic(
-  () => import("../components/PageSchema").then((m) => m.PageSchema),
-  { ssr: false }
-);
+const ERROR_ROUTES = new Set(["/404", "/_error"]);
 
-function WebPerfSnippets({ Component, pageProps }) {
+function WebPerfSnippets({ Component, pageProps, router }) {
   return (
     <>
-      <Head>
-        <PageSchema />
-      </Head>
+      {/* The error pages are prerendered for the route, not for the URL that was not found */}
+      {!ERROR_ROUTES.has(router.pathname) && <PageSchema />}
       <WebMCP />
       <Component {...pageProps} />
-      <Script
-        src="https://cdn.debugbear.com/BK73p0yToVVP.js"
-        strategy="afterInteractive"
-      />
-      <Script src="https://www.googletagmanager.com/gtag/js?id=G-NNX9SYKEV2"></Script>
-      <Script id="google-analytics">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments)}
-          gtag('js', new Date());
-
-          gtag('config', 'G-NNX9SYKEV2');
-        `}
-      </Script>
+      <Analytics />
     </>
   );
 }
