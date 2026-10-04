@@ -91,7 +91,8 @@ Script the interactions of a page and measure them with `--interact-script`. The
     { "action": "wait", "ms": 300 },
     { "action": "click", "selector": "#menu" },
     { "action": "type", "selector": "input[name=q]", "text": "shoes" },
-    { "action": "hover", "selector": ".product" }
+    { "action": "hover", "selector": ".product" },
+    { "action": "wait", "ms": 500 }
   ]
 }
 ```
@@ -102,6 +103,8 @@ npx webperf-snippets https://web.dev --snippet Interaction/Interactions --intera
 ```
 
 The snippets of the Interaction category, such as `Interactions`, `Input-Latency-Breakdown`, `LongTask` or `Forced-Synchronous-Layout`, record what happens while the page is used. With a script, the CLI installs them before the first step, runs the steps, and then reads their data, so the result holds what the steps caused. The other snippets run after the steps.
+
+End the script with a `wait` step of a few hundred milliseconds. The browser reports the timing of an interaction after the next frame, and the snippets are read right after the last step, so a script that ends on a click can miss that click.
 
 Compare the measured values with CrUX field data (what real users experience at the 75th percentile):
 
