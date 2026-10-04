@@ -38,3 +38,30 @@ export async function runInteractions(page, source) {
     await executeStep(page, step);
   }
 }
+
+// The browser reports the timing of an event after the frame that follows it, and an observer gets it
+// in a task after that frame. Reading a snippet right after the last step can miss that step, so this
+// waits for two frames and a task, which takes a few milliseconds on a page that renders. A page that
+// never renders a frame stops the wait at `limitMs`, and a page that is gone is not an error here: the
+// evaluation that follows reports it.
+export async function settle(page, limitMs = 1000) {
+  try {
+    await page.evaluate(
+      (limit) =>
+        new Promise((resolve) => {
+          const timer = setTimeout(resolve, limit);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+              setTimeout(() => {
+                clearTimeout(timer);
+                resolve();
+              }, 0)
+            )
+          );
+        }),
+      limitMs
+    );
+  } catch {
+    // the page navigated or closed
+  }
+}
