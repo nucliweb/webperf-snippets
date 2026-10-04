@@ -36,6 +36,15 @@ async function session(name, { query = "", wait = 900, act, getter } = {}) {
   }
 }
 
+// Event Timing entries reach the observer after the frame that follows the event, so they arrive
+// a few milliseconds after a click on a quiet machine and much later on a loaded runner. A fixed
+// sleep is a bet on that delay; this waits until the getter reports what the test needs.
+const recorded = (page, getter, ready) =>
+  page.waitForFunction(([name, check]) => new Function("r", `return (${check})(r)`)(window[name]()), [getter, ready.toString()], {
+    timeout: 15000,
+    polling: 100,
+  });
+
 describe("Input-Latency-Breakdown", () => {
   it("returns one item per event type and an issue for each slow one", async () => {
     const { second } = await session("Interaction/Input-Latency-Breakdown", {
@@ -43,7 +52,7 @@ describe("Input-Latency-Breakdown", () => {
       act: async (page) => {
         await page.click("#slow");
         await page.click("#slow");
-        await page.waitForTimeout(400);
+        await recorded(page, "getInputLatencyBreakdown", (r) => r.items?.some((i) => i.count >= 2));
       },
     });
     // Chrome may attribute the delay to pointerdown or click; check the shape, not the type
@@ -64,7 +73,7 @@ describe("Interactions", () => {
       getter: "getInteractionSummary",
       act: async (page) => {
         for (let i = 0; i < 3; i++) await page.click("#slow");
-        await page.waitForTimeout(400);
+        await recorded(page, "getInteractionSummary", (r) => r.status === "ok" && r.count >= 3);
       },
     });
     expect(second.details.byRating).toEqual(
@@ -80,7 +89,7 @@ describe("Interactions", () => {
       getter: "getInteractionSummary",
       act: async (page) => {
         for (let i = 0; i < 58; i++) await page.click("#mid");
-        await page.waitForTimeout(600);
+        await recorded(page, "getInteractionSummary", (r) => r.status === "ok" && r.count > 50);
       },
     });
     expect(second.count).toBeGreaterThan(50);
