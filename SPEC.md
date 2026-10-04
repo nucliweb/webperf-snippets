@@ -93,7 +93,7 @@ otherwise                                                            → RawRend
 ## Project Structure
 
 ```
-pages/
+content/
   visualizer.mdx           ← Nextra page (imports SnippetVisualizer)
 components/
   SnippetVisualizer.jsx    ← Main component (textarea + renderer dispatch)
@@ -104,8 +104,8 @@ components/
     exportMarkdown.js      ← Pure function: result → markdown string
 ```
 
-`pages/_meta.json` gets a new entry:
-```json
+`content/_meta.js` gets a new entry:
+```js
 "visualizer": { "title": "Visualizer" }
 ```
 
@@ -153,6 +153,6 @@ For CWV metrics:
 | Always | Ask First | Never |
 |--------|-----------|-------|
 | Handle invalid input gracefully | Adding a new npm dependency | Server-side code / API routes |
-| Keep all logic client-side | Changing next.config.js | TypeScript migration |
+| Keep all logic client-side | Changing next.config.mjs | TypeScript migration |
 | Use own `wp-*` classes for styling | Adding a new page category | Storing paste data anywhere |
 | Clear error feedback | | Sending data to any external service |

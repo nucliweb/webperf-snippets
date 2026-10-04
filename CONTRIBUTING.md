@@ -57,7 +57,7 @@ A snippet runs pasted into the console, so it cannot import a helper. The helper
 
 ### 2. Create the MDX documentation page
 
-Add a corresponding `.mdx` file in `pages/<Category>/My-New-Snippet.mdx`:
+Add a corresponding `.mdx` file in `content/<Category>/My-New-Snippet.mdx`:
 
 ```mdx
 import snippet from '../../snippets/<Category>/My-New-Snippet.js?raw'
@@ -97,10 +97,10 @@ Use the `copy` prop in code blocks to enable easy copying to DevTools:
 
 ### 3. Register the page in navigation
 
-Add an entry to `pages/<Category>/_meta.json`:
+Add an entry to `content/<Category>/_meta.js`, which exports a literal object:
 
-```json
-{
+```js
+export default {
   "My-New-Snippet": {
     "title": "My New Snippet"
   }
@@ -221,8 +221,8 @@ See `snippets/Loading/WORKFLOWS.md` for a complete reference.
 ## PR checklist
 
 - [ ] Snippet file added under `snippets/<Category>/`
-- [ ] MDX documentation page created under `pages/<Category>/`
-- [ ] Entry added to `pages/<Category>/_meta.json`
+- [ ] MDX documentation page created under `content/<Category>/`
+- [ ] Entry added to `content/<Category>/_meta.js`
 - [ ] `npm run generate-skills` run and output committed
 - [ ] `npm run lint` passes with no errors
 - [ ] `npm run build` succeeds

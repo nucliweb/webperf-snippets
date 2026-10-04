@@ -47,6 +47,6 @@ The release workflow:
 ## Failure Modes To Watch
 
 - `skills/webperf/SKILL.md` version does not match `package.json`
-- `skills/` or `dist/` are stale relative to `snippets/` or `pages/`
-- `_meta.json` entries drift from the actual MDX files
+- `skills/` or `dist/` are stale relative to `snippets/` or `content/`
+- `_meta.js` entries drift from the actual MDX files
 - Published snippet counts in `README.md`, `SKILLS.md`, or `skills/webperf/SKILL.md` are outdated
