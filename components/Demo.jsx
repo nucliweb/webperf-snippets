@@ -38,7 +38,7 @@ export function Demo({
   }, [heightKey]);
 
   return (
-    <figure className="nx-mt-6 first:nx-mt-0">
+    <figure className="wp-demo">
       <iframe
         ref={iframeRef}
         src={src}
@@ -52,13 +52,12 @@ export function Demo({
           display: "block",
         }}
       />
-      <figcaption className="nx-mt-2 nx-text-sm nx-text-gray-500 dark:nx-text-gray-400">
+      <figcaption>
         {caption ? <span>{caption} </span> : null}
         <a
           href={src}
           target="_blank"
           rel="noopener noreferrer"
-          className="nx-text-primary-600 nx-underline decoration-from-font"
         >
           Open demo in a new tab ↗
         </a>
