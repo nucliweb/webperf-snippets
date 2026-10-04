@@ -95,7 +95,10 @@ describe("Back-Forward-Cache detection", () => {
   it("returns the notRestoredReasons of the page and of its frames after a back navigation", async () => {
     const r = await withPage(async (page) => {
       await page.goto(`${base}/blocked`);
-      await page.goto(`${base}/other`);
+      // Chromium keeps a navigation to the same site in the same browsing instance, so the page is
+      // never a bfcache candidate and the API reports only `masked`. Leaving for another site
+      // (`localhost` instead of `127.0.0.1`) swaps the instance and exposes the real reasons.
+      await page.goto(`${base.replace("127.0.0.1", "localhost")}/other`);
       await page.goBack();
       await page.waitForTimeout(500);
       return page.evaluate(expression);
