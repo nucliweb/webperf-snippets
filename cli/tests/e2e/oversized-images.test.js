@@ -57,6 +57,8 @@ const page = (body, head = "") =>
   `<!DOCTYPE html><html><head><meta charset="utf-8"><title>t</title><style>body{margin:0}${head}</style></head><body>${body}</body></html>`;
 
 const PAGES = {
+  // The only candidate is the 1600 px file, so the browser has to pick it
+  "/srcset-large-only": page(`<img id="srcset-ok" srcset="/img/1600.png 1600w" sizes="200px" style="width:200px;height:150px">`),
   "/mixed": page(`
     <img id="big" src="/img/1600.png" style="width:200px;height:150px">
     <img id="ok" src="/img/200.png" style="width:200px;height:150px">
@@ -117,7 +119,10 @@ async function run(path, { dpr = 1 } = {}) {
   try {
     await p.goto(`${base}${path}`, { waitUntil: "load" });
     await p.waitForTimeout(200);
-    return await p.evaluate(source);
+    // The file each image picked, read before the snippet runs
+    const picked = await p.evaluate(() => Object.fromEntries([...document.images].filter((i) => i.id).map((i) => [i.id, i.currentSrc])));
+    const result = await p.evaluate(source);
+    return Object.defineProperty(result, "picked", { value: picked });
   } finally {
     await context.close();
   }
@@ -161,13 +166,37 @@ describe("Oversized-Images", () => {
     expect(r.details.undersized).toBe(1);
   }, 60000);
 
+  // Which candidate srcset and sizes select is the browser's call: Chrome picks 1600.png for #srcset-ok
+  // in about 1 run in 100, where 200.png is the one that fits. The snippet has to judge the file the
+  // browser picked, so the expectations follow currentSrc instead of assuming the pick.
   it("uses the file that srcset and sizes picked", async () => {
     const r = await run("/mixed");
-    expect(byId(r, "#srcset-ok")).toBeUndefined();
-    const bad = byId(r, "#srcset-bad");
-    expect(bad.url).toContain("/img/1600.png");
-    expect(bad.hasSrcset).toBe(true);
-    expect(bad.hasSizes).toBe(true);
+    const PIXELS = { "100.png": 100, "200.png": 200, "400.png": 400, "800.png": 800, "1600.png": 1600 };
+    const NEEDED = 200; // the box is 200 px wide at a device pixel ratio of 1
+    const OVERSIZED_AT = 1.5 * NEEDED;
+    for (const id of ["srcset-ok", "srcset-bad"]) {
+      const file = r.picked[id].split("/").pop();
+      const item = byId(r, `#${id}`);
+      if (PIXELS[file] >= OVERSIZED_AT) {
+        expect(item, `#${id} picked ${file}`).toBeDefined();
+        expect(item.url).toContain(`/img/${file}`);
+        expect(item.hasSrcset).toBe(true);
+        expect(item.hasSizes).toBe(true);
+      } else {
+        expect(item, `#${id} picked ${file}`).toBeUndefined();
+      }
+    }
+    // sizes="100vw" in a 1000 px viewport never selects a file that fits a 200 px box
+    expect(byId(r, "#srcset-bad")).toBeDefined();
+  }, 60000);
+
+  it("reports the large file when it is the only candidate srcset can pick", async () => {
+    const r = await run("/srcset-large-only");
+    expect(r.picked["srcset-ok"]).toContain("/img/1600.png");
+    const item = byId(r, "#srcset-ok");
+    expect(item.url).toContain("/img/1600.png");
+    expect(item.verdict).toBe("oversized");
+    expect(item.hasSrcset).toBe(true);
   }, 60000);
 
   it("counts the pixels of the file, not the density-corrected natural size", async () => {
