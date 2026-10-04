@@ -114,8 +114,8 @@ components/
 ## Code Style
 
 - **No new dependencies** — React hooks only (`useState`, `useMemo`, `useCallback`)
-- **CSS classes** — Nextra `nx-` utility classes for visual consistency; inline styles only for
-  dynamic values (rating colors)
+- **CSS classes** — own `wp-*` classes and `--wp-*` tokens in `styles/globals.css`, never the utility
+  classes of the docs theme; inline styles only for dynamic values (rating colors)
 - **No TypeScript** — plain `.jsx` / `.js`, matching the rest of the project
 - **No comments** unless the why is non-obvious
 
@@ -154,5 +154,5 @@ For CWV metrics:
 |--------|-----------|-------|
 | Handle invalid input gracefully | Adding a new npm dependency | Server-side code / API routes |
 | Keep all logic client-side | Changing next.config.js | TypeScript migration |
-| Use `nx-` classes for styling | Adding a new page category | Storing paste data anywhere |
+| Use own `wp-*` classes for styling | Adding a new page category | Storing paste data anywhere |
 | Clear error feedback | | Sending data to any external service |

@@ -28,30 +28,29 @@ export function Snippet({ code }) {
 
   return (
     <div
-      className="nextra-code-block nx-relative nx-mt-6 first:nx-mt-0"
+      className="wp-snippet"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <pre
         data-language="js"
         data-theme="default"
-        className="nx-bg-primary-700/5 nx-mb-4 nx-overflow-x-auto nx-rounded-xl nx-subpixel-antialiased dark:nx-bg-primary-300/10 nx-text-[13px] contrast-more:nx-border contrast-more:nx-border-primary-900/20 contrast-more:nx-contrast-150 contrast-more:dark:nx-border-primary-100/40"
       >
         <code
           data-language="js"
           data-theme="default"
-          className="hljs nx-border-black nx-border-opacity-[0.04] nx-bg-opacity-[0.03] nx-bg-black nx-break-words nx-rounded-md nx-border dark:nx-border-white/10 dark:nx-bg-white/10 nx-py-4 nx-px-4"
+          className="hljs"
           dangerouslySetInnerHTML={{ __html: highlighted }}
         />
       </pre>
       <div
-        className="nx-transition nx-flex nx-gap-1 nx-absolute nx-m-[11px] nx-right-0 nx-top-0"
+        className="wp-snippet-actions"
         style={{ opacity: hovered || copied ? 1 : 0 }}
       >
         <button
           onClick={handleCopy}
           aria-label="Copy code"
-          className="nextra-button nx-transition-all active:nx-opacity-50 nx-bg-primary-700/5 nx-border nx-border-black/5 nx-text-gray-600 hover:nx-text-gray-900 nx-rounded-md nx-p-1.5 dark:nx-bg-gray-100/5 dark:nx-border-white/10 dark:nx-text-gray-400 dark:hover:nx-text-gray-50"
+          className="wp-snippet-copy"
         >
           {copied ? (
             <svg
