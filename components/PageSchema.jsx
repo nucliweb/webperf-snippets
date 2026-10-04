@@ -1,4 +1,6 @@
-import { useRouter } from "next/router";
+"use client";
+
+import { usePathname } from "next/navigation";
 
 const BASE_URL = "https://webperf-snippets.nucliweb.net";
 
@@ -42,12 +44,11 @@ function buildBreadcrumbs(segments) {
   return items;
 }
 
-export function PageSchema() {
-  const router = useRouter();
-  const path = router.asPath.split("?")[0];
+export function buildPageSchemas(pathname) {
+  const path = pathname.replace(/\/+$/, "");
   const segments = path.replace(/^\//, "").split("/").filter(Boolean);
 
-  if (segments.length === 0) return null;
+  if (segments.length === 0) return [];
 
   const schemas = [];
   const pageUrl = `${BASE_URL}${path}`;
@@ -87,9 +88,15 @@ export function PageSchema() {
     });
   }
 
+  return schemas;
+}
+
+export function PageSchemaScripts({ pathname }) {
+  if (!pathname) return null;
+
   return (
     <>
-      {schemas.map((schema, i) => (
+      {buildPageSchemas(pathname).map((schema, i) => (
         <script
           key={i}
           type="application/ld+json"
@@ -98,4 +105,8 @@ export function PageSchema() {
       ))}
     </>
   );
+}
+
+export function PageSchema() {
+  return <PageSchemaScripts pathname={usePathname()} />;
 }

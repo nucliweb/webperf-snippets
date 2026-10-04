@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- The `BreadcrumbList` and `Article` JSON-LD schemas appear in the HTML of the snippet and category pages. They were mounted inside `next/head`, which does not render components, so no page carried them. Error pages carry none.
+
 ### Security
 - The site runs on Next.js 16, which resolves the `next` and `postcss` advisories reported by `npm audit`. `dev` and `build` use webpack (`--webpack`) for the `?raw` snippet imports, and React stays on 18.
 
