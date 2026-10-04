@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Fixed
+- `INP` returns its value with `--interact-script`. It used to stop at `tracking`, because its value only comes out of `getINP()`, which the CLI did not call; it is now read after the interactions like the Interaction snippets, and the CrUX comparison shows the synthetic INP next to the field value.
+- A script that ends on a click no longer loses that click. The CLI waits for the browser to report the timing of the last interaction (two frames and a task, a few milliseconds, with a limit of one second) before it reads the snippets. Before, `Interactions` and `Input-Latency-Breakdown` recorded nothing and reported an error, and `INP` and the other snippets read the page too early.
+
 ---
 
 ## [0.4.0] — 2026-10-04

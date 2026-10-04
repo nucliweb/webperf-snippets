@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 import { loadSnippet } from "./load-snippet.js";
-import { runInteractions, loadInteractionSteps, isInputStep } from "./interactions.js";
+import { runInteractions, loadInteractionSteps, isInputStep, settle } from "./interactions.js";
 import { isTrackingSnippet } from "./tracking.js";
 import { nextSteps } from "./decision-tree.js";
 
@@ -42,14 +42,16 @@ async function evaluateItems(page, items) {
 
 // Runs the items around a set of interactions. A tracking snippet is installed first, so it sees
 // the interactions, and answers through its getDataFn afterwards. The other items run after the
-// interactions, as before. Results keep the order of the items. Without interactions every item
-// runs once, as it always did.
+// interactions, as before. The browser reports the timing of an interaction after the frame that
+// follows it, so the runner lets it settle before it reads anything. Results keep the order of the
+// items. Without interactions every item runs once, as it always did.
 async function evaluateAroundInteractions(page, items, interactions) {
   if (!interactions) return evaluateItems(page, items);
 
   const tracking = items.filter((item) => isTrackingSnippet(item.path ?? "", item.source));
   const installed = await evaluateItems(page, tracking);
   await runInteractions(page, interactions);
+  await settle(page);
   const others = await evaluateItems(
     page,
     items.filter((item) => !tracking.includes(item))

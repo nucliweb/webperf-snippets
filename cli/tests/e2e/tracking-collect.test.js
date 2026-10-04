@@ -55,8 +55,12 @@ describe("isTrackingSnippet", () => {
     }
   });
 
-  it("is false for a snippet that answers in one go, and for the metrics that also name a getDataFn", () => {
-    for (const path of ["Interaction/DOM-Size-and-Depth", "CoreWebVitals/INP", "CoreWebVitals/CLS", "Loading/Speculation-Rules-Inspector"]) {
+  it("is true for INP, whose value only comes out of getINP()", () => {
+    expect(isTrackingSnippet("CoreWebVitals/INP", loadSnippet("CoreWebVitals/INP"))).toBe(true);
+  });
+
+  it("is false for a snippet that answers in one go, and for CLS, which also names a getDataFn", () => {
+    for (const path of ["Interaction/DOM-Size-and-Depth", "CoreWebVitals/CLS", "Loading/Speculation-Rules-Inspector"]) {
       expect(isTrackingSnippet(path, loadSnippet(path)), path).toBe(false);
     }
   });
