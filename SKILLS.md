@@ -246,14 +246,14 @@ This creates:
 
 The generator:
 1. Reads all `.js` files from `snippets/{Category}/`
-2. Extracts metadata from `pages/{Category}/*.mdx` documentation
+2. Extracts metadata from `content/{Category}/*.mdx` documentation
 3. Injects workflows from `snippets/{Category}/WORKFLOWS.md` (if exists)
 4. Generates complete `SKILL.md` with thresholds and execution instructions
 
 ### Adding New Snippets
 
 1. Add JavaScript snippet to `snippets/{Category}/`
-2. Document in `pages/{Category}/*.mdx`
+2. Document in `content/{Category}/*.mdx`
 3. Run `npm run generate-skills`
 4. Run `npm run install-skills` to update local installation
 

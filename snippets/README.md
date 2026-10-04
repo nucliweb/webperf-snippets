@@ -87,7 +87,7 @@ See `snippets/Loading/WORKFLOWS.md` for a complete example with:
 The `generate-skills.js` script:
 
 1. Reads all `.js` files from each category
-2. Extracts metadata from corresponding MDX documentation in `/pages/`
+2. Extracts metadata from corresponding MDX documentation in `/content/`
 3. Injects `WORKFLOWS.md` content (if exists)
 4. Generates complete `SKILL.md` files with:
    - Snippet table

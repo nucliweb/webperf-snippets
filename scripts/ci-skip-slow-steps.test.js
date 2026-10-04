@@ -44,14 +44,14 @@ test('the label is ignored for code, tests, scripts, workflows and manifests', (
     '.github/workflows/ci.yml',
     'package.json',
     'package-lock.json',
-    'next.config.js',
+    'next.config.mjs',
   ]) {
     assert.equal(pr([LABEL], [file]).skip, false, file)
   }
 })
 
 test('a page is content, so the label is ignored for .mdx files', () => {
-  assert.equal(pr([LABEL], ['pages/CLI.mdx']).skip, false)
+  assert.equal(pr([LABEL], ['content/CLI.mdx']).skip, false)
 })
 
 test('a file the rules do not know is treated as code', () => {
