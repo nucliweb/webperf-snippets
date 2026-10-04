@@ -28,8 +28,8 @@
     "validate": "npm run lint && npm run build",
     "prepare": "git config core.hooksPath .githooks",
     "test": "echo \"No tests configured\"",
-    "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
-    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js",
+    "postbuild": "node scripts/build-search-index.js",
+    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js",
     "check:built-snippets": "node scripts/check-built-snippets.js"
   },
   "keywords": [

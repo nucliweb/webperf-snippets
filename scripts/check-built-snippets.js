@@ -5,10 +5,10 @@
 
 const fs = require('fs')
 const path = require('path')
+const { findPrerenderedDir } = require('./prerendered-dir')
 
 const ROOT = path.join(__dirname, '..')
 const CONTENT_DIR = path.join(ROOT, 'content')
-const BUILT_DIR = path.join(ROOT, '.next', 'server', 'app')
 
 const ENTITIES = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#x27;': "'", '&#39;': "'", '&#x2F;': '/' }
 
@@ -37,15 +37,18 @@ function mdxFiles(dir) {
   })
 }
 
-function builtPagePath(mdxPath) {
+function builtPagePath(builtDir, mdxPath) {
   const route = path.relative(CONTENT_DIR, mdxPath).replace(/\.mdx$/, '')
   const page = route === 'index' ? 'index' : route.replace(/\/index$/, '')
-  return path.join(BUILT_DIR, `${page}.html`)
+  return path.join(builtDir, `${page}.html`)
 }
 
 function main() {
-  if (!fs.existsSync(BUILT_DIR)) {
-    console.error('No build found in .next/server/app. Run `npm run build` first.')
+  let builtDir
+  try {
+    builtDir = findPrerenderedDir(path.join(ROOT, '.next'))
+  } catch (error) {
+    console.error(error.message)
     process.exit(2)
   }
   const errors = []
@@ -53,7 +56,7 @@ function main() {
   for (const file of mdxFiles(CONTENT_DIR)) {
     const imports = snippetImports(fs.readFileSync(file, 'utf8'))
     if (imports.length === 0) continue
-    const built = builtPagePath(file)
+    const built = builtPagePath(builtDir, file)
     if (!fs.existsSync(built)) {
       errors.push(`${path.relative(ROOT, file)} has no built page at ${path.relative(ROOT, built)}`)
       continue
