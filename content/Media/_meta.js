@@ -1,4 +1,4 @@
-{
+export default {
   "Image-Element-Audit": {
     "title": "Image Element Audit"
   },

@@ -52,6 +52,10 @@ jobs:
         if: steps.slow.outputs.skip != 'true'
         run: npm run build
 
+      - name: Check the built snippets
+        if: steps.slow.outputs.skip != 'true'
+        run: npm run check:built-snippets
+
       - name: Check consistency
         run: npm run check:consistency
 
@@ -75,6 +79,9 @@ jobs:
 
       - name: Run component tests
         run: npm run test:components
+
+      - name: Run site tests
+        run: npm run test:site
 
       - name: Run unit tests
         run: npm run test:unit --prefix cli

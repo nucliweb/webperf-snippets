@@ -23,7 +23,7 @@ const path = require('path')
 const { ICONS } = require('../lib/icons')
 
 const ROOT = path.join(__dirname, '..')
-const PAGES_DIR = path.join(ROOT, 'pages')
+const PAGES_DIR = path.join(ROOT, 'content')
 
 const KNOWN_UNMAPPED = new Set()
 const NOT_EMOJI = new Set(['©', '®', '™', '↗', '↩'])

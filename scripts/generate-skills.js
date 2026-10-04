@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates skill files from /snippets/ JS files + /pages/ MDX documentation.
+ * Generates skill files from /snippets/ JS files + /content/ MDX documentation.
  * Output: /skills/webperf-{category}/SKILL.md + scripts/*.js   (Claude Code)
  *         /dist/webperf-{category}/*.js                         (readable scripts)
  *         /dist/gemini/webperf-{category}/webperf-{category}.toml + scripts/  (Gemini CLI)
@@ -18,7 +18,7 @@ const GITHUB_BASE = 'https://github.com/nucliweb/webperf-snippets/blob/main'
 
 const ROOT = path.join(__dirname, '..')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
-const PAGES_DIR = path.join(ROOT, 'pages')
+const PAGES_DIR = path.join(ROOT, 'content')
 const SKILLS_DIR = path.join(ROOT, 'skills')
 const CLAUDE_SKILLS_DIR = path.join(ROOT, '.claude', 'skills')
 const DIST_DIR = path.join(ROOT, 'dist')

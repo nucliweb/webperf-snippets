@@ -3,7 +3,6 @@ import { site } from "../lib/site";
 export function SiteHead() {
   return (
     <>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <meta name="description" content={site.description} />
       <meta name="author" content={site.metaAuthor} />
       <meta property="og:url" content={site.url} />

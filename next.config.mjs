@@ -1,16 +1,20 @@
-const path = require('path')
+import path from 'node:path'
+import { createRequire } from 'node:module'
+import nextra from 'nextra'
+
+const require = createRequire(import.meta.url)
 const rehypeIcons = require('./lib/rehype-icons')
 const remarkBrowserSupport = require('./lib/remark-browser-support')
-const withNextra = require('nextra')({
-  theme: 'nextra-theme-docs',
-  themeConfig: './theme.config.jsx',
+
+const withNextra = nextra({
   mdxOptions: {
     remarkPlugins: [remarkBrowserSupport],
     rehypePlugins: [rehypeIcons],
   },
 })
 
-module.exports = withNextra({
+export default withNextra({
+  agentRules: false,
   async headers() {
     return [
       {
@@ -24,7 +28,7 @@ module.exports = withNextra({
     ];
   },
   webpack(config) {
-    const snippetsDir = path.join(__dirname, 'snippets')
+    const snippetsDir = path.join(import.meta.dirname, 'snippets')
 
     // Exclude snippets from pre-loaders (React Fast Refresh, etc.)
     for (const rule of config.module.rules) {
@@ -33,19 +37,24 @@ module.exports = withNextra({
       }
     }
 
-    // Inject into oneOf so our rule takes precedence over the SWC loader
+    // Next 16 keeps its SWC rule outside `oneOf`, so every other rule that handles `.js` must skip
+    // the snippets, or the loaders rewrite the code before it becomes a string
     const rawRule = {
       test: /\.js$/,
       include: snippetsDir,
       resourceQuery: /raw/,
       type: 'asset/source',
     }
-    const oneOfRule = config.module.rules.find(r => Array.isArray(r.oneOf))
-    if (oneOfRule) {
-      oneOfRule.oneOf.unshift(rawRule)
-    } else {
-      config.module.rules.unshift(rawRule)
+    const usesSwc = (rule) =>
+      [].concat(rule.use || rule.loader || []).some((use) => String(typeof use === 'string' ? use : use?.loader).includes('next-swc-loader'))
+    const skipSnippets = (rules) => {
+      for (const rule of rules) {
+        if (rule.oneOf) skipSnippets(rule.oneOf)
+        if (usesSwc(rule)) rule.exclude = [].concat(rule.exclude || [], snippetsDir)
+      }
     }
+    skipSnippets(config.module.rules)
+    config.module.rules.unshift(rawRule)
 
     return config
   },

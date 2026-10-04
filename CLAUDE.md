@@ -10,7 +10,7 @@ The snippet source files in `snippets/` are the single source of truth. Document
 
 ## Technology stack
 
-- **Site**: Next.js 16 with Nextra 2 (`nextra-theme-docs`) on the pages router and React 18, deployed on Vercel
+- **Site**: Next.js 16 App Router with Nextra 4 (`nextra-theme-docs`) and React 19, deployed on Vercel. Search is Pagefind, built after `next build`
 - **Media**: Cloudinary through `next-cloudinary`
 - **Analytics**: Google Analytics and DebugBear
 - **CLI** (`cli/`, npm workspace `webperf-snippets`): Playwright runner for the snippets, tested with Vitest
@@ -18,10 +18,12 @@ The snippet source files in `snippets/` are the single source of truth. Document
 ## Repository layout
 
 ```
-pages/                  MDX pages, file-system routing, one _meta.json per directory
+content/                MDX pages, file-system routing, one _meta.js per directory
+app/                    Root layout, the [[...mdxPath]] page that renders the MDX, sitemap and robots
+mdx-components.js       MDX components of the theme, with the external link label
   CoreWebVitals/ Loading/ Interaction/ Media/ Resources/ DevTools-Overrides/
   index.mdx, which-snippet.mdx, CLI.mdx, visualizer.mdx, case-studies/
-snippets/               The snippet sources (*.js), same categories as pages/
+snippets/               The snippet sources (*.js), same categories as content/
   SCHEMA.md             Return-value contract every snippet must follow
   _shared/              Helpers marked with `// @shared`
 components/             Snippet (code block), Callout, Icon, Demo, SnippetVisualizer, diagrams/
@@ -49,6 +51,8 @@ node scripts/generate-llms.js  # regenerate public/llms*.txt
 npm run check:consistency    # shared helpers must carry the `// @shared` marker
 npm run check:emoji          # no emoji left in rendered text where an icon exists
 npm run test:demos           # demo contract
+npm run test:site            # sitemap routes, _meta reader, built snippets check
+npm run check:built-snippets # after `npm run build`: every page shows its snippets as in the source
 npm run test:icons           # emoji to icon plugins
 npm run test:support         # browser support plugin
 
@@ -71,10 +75,10 @@ CI (`.github/workflows/ci.yml`) runs lint, build, all the checks above, `generat
 
 `CONTRIBUTING.md` describes the page template step by step. In short:
 
-1. Create `pages/<Category>/<Name>.mdx` (kebab-case or the existing naming of the category) and import the snippet with `import snippet from '../../snippets/<Category>/<Name>.js?raw'`, rendered with `<Snippet code={snippet} />`.
-2. Register it in the `_meta.json` of the category.
+1. Create `content/<Category>/<Name>.mdx` (kebab-case or the existing naming of the category) and import the snippet with `import snippet from '../../snippets/<Category>/<Name>.js?raw'`, rendered with `<Snippet code={snippet} />`.
+2. Register it in the `_meta.js` of the category (`export default { ... }` with a literal object, which `scripts/read-meta.js` reads).
 3. Add the `browserSupport` frontmatter and a `### Browser support` section before "Further reading". The badge and tables are generated from MDN browser-compat-data by `lib/remark-browser-support.js`, and the build fails if a key does not exist or the title is missing. `browserSupport` lists what the snippet needs to run; the optional `browserSupportReported` lists what it only audits.
-4. If a page is renamed, add a redirect in `next.config.js`.
+4. If a page is renamed, add a redirect in `next.config.mjs`.
 
 Emojis in MDX are replaced by icons at render time (rehype plugin); the MDX source keeps the emoji.
 
@@ -87,6 +91,9 @@ Writing rules for pages are in the `webperf-docs-reviewer` skill: sentence-case 
 
 ## Notes
 
-- `dev` and `build` run with `--webpack`: the `?raw` import of the snippets is a webpack rule in `next.config.js`, which Turbopack (the default in Next 16) does not read. React stays on 18 because `nextra-theme-docs` 2 depends on `@headlessui/react` 1, which breaks on React 19.
+- `dev` and `build` run with `--webpack`: the plugins of `lib/` are functions, and Nextra 4 does not load them under Turbopack (its loader cannot resolve plugins given as strings). The `?raw` import of the snippets is a webpack rule in `next.config.mjs`; Next 16 keeps its SWC rule outside `oneOf`, so the rule excludes `snippets/` from every SWC rule, or the code reaches the page rewritten. `npm run check:built-snippets` fails after a build when a page shows different code from the source.
+- `package.json` pins `zod` to 4.3.6 with `overrides`: Nextra 4.6.1 fails in `<Layout>` with 4.4.3 or later. Review it when Nextra is upgraded.
+- `agentRules: false` in `next.config.mjs` stops `next dev` from writing a Next.js block into `CLAUDE.md` and `AGENTS.md`.
+- The code block and the demo are components of this repository, and `Callout` wraps the one of the theme (`components/`); their styles use `wp-*` classes and `--wp-*` tokens in `styles/globals.css`, never the utility classes of the theme.
 - The dev server does not pick up changes in `lib/`; restart it after editing a plugin.
 - Cloudinary URLs and `CldVideoPlayer` are available in MDX for media.

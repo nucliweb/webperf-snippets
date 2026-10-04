@@ -6,4 +6,4 @@ node_modules
 .vercel
 reports
 workspace
-public/sitemap-*.xml
+public/_pagefind

@@ -252,9 +252,9 @@ function flowsOf(source) {
 }
 
 describe("every Flow diagram in the pages", () => {
-  const diagrams = walk("pages")
+  const diagrams = walk("content")
     .filter((f) => f.endsWith(".mdx"))
-    .flatMap((f) => flowsOf(readFileSync(f, "utf8")).map((spec, n) => ({ id: `${f.replace(/^pages\//, "")} #${n}`, spec: cleanSpec(spec) })));
+    .flatMap((f) => flowsOf(readFileSync(f, "utf8")).map((spec, n) => ({ id: `${f.replace(/^content\//, "")} #${n}`, spec: cleanSpec(spec) })));
 
   it("finds the diagrams", () => {
     expect(diagrams.length).toBeGreaterThanOrEqual(20);

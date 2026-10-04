@@ -2,9 +2,10 @@
 
 const fs = require('fs')
 const path = require('path')
+const { readMeta } = require('./read-meta')
 
 const ROOT = path.join(__dirname, '..')
-const PAGES_DIR = path.join(ROOT, 'pages')
+const PAGES_DIR = path.join(ROOT, 'content')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
 const PUBLIC_DIR = path.join(ROOT, 'public')
 const BASE_URL = 'https://webperf-snippets.nucliweb.net'
@@ -67,9 +68,8 @@ function getMdxFiles(dir) {
 }
 
 function getCategoryTitle(category) {
-  const metaPath = path.join(PAGES_DIR, '_meta.json')
   try {
-    const meta = JSON.parse(readFile(metaPath))
+    const meta = readMeta(PAGES_DIR)
     return meta[category]?.title || category
   } catch {
     return category

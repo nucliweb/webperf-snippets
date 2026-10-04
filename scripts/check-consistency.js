@@ -3,10 +3,11 @@
 const fs = require('fs')
 const path = require('path')
 const { verifySharedHelpers } = require('./shared-helpers')
+const { readMeta } = require('./read-meta')
 
 const ROOT = path.join(__dirname, '..')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
-const PAGES_DIR = path.join(ROOT, 'pages')
+const PAGES_DIR = path.join(ROOT, 'content')
 const README_PATH = path.join(ROOT, 'README.md')
 const SKILLS_DOC_PATH = path.join(ROOT, 'SKILLS.md')
 const META_SKILL_PATH = path.join(ROOT, 'skills', 'webperf', 'SKILL.md')
@@ -28,10 +29,6 @@ function readFile(filePath) {
 
 function exists(filePath) {
   return fs.existsSync(filePath)
-}
-
-function getJson(filePath) {
-  return JSON.parse(readFile(filePath))
 }
 
 function getSnippetFiles(category) {
@@ -135,13 +132,13 @@ function verifyPageToSourceMapping(errors) {
 }
 
 function verifyMetaAlignment(errors) {
-  const rootMeta = getJson(path.join(PAGES_DIR, '_meta.json'))
+  const rootMeta = readMeta(PAGES_DIR)
   const rootPageKeys = new Set(getRootPages().map((file) => path.basename(file, '.mdx')))
   const rootMetaKeys = new Set(Object.keys(rootMeta))
 
   for (const key of rootPageKeys) {
     if (!rootMetaKeys.has(key)) {
-      errors.push(`pages/_meta.json is missing entry for ${key}.mdx`)
+      errors.push(`content/_meta.js is missing entry for ${key}.mdx`)
     }
   }
 
@@ -149,13 +146,13 @@ function verifyMetaAlignment(errors) {
     if (ROOT_EDITORIAL_PAGES.has(key)) continue
     const categoryDir = path.join(PAGES_DIR, key)
     if (!rootPageKeys.has(key) && !exists(categoryDir)) {
-      errors.push(`pages/_meta.json contains stale entry "${key}"`)
+      errors.push(`content/_meta.js contains stale entry "${key}"`)
     }
   }
 
   for (const category of Object.keys(CATEGORY_SKILLS)) {
-    const metaPath = path.join(PAGES_DIR, category, '_meta.json')
-    const meta = getJson(metaPath)
+    const metaPath = path.join(PAGES_DIR, category, '_meta.js')
+    const meta = readMeta(path.join(PAGES_DIR, category))
     const pageKeys = new Set(getCategoryPages(category).map((file) => path.basename(file, '.mdx')))
     const metaKeys = new Set(Object.keys(meta))
 
