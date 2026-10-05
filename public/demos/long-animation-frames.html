@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy of a long animation frame</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --tab-active-bg: #1c2a3f;
+  --accent: #58a6ff;
+  --zone-good: rgba(63,185,80,.13);
+  --zone-poor: rgba(248,81,73,.13);
+  --c-good: #3fb950;
+  --c-poor: #f85149;
+  --p-script: #58a6ff;
+  --p-third: #d2a8ff;
+  --p-forced: #f0883e;
+  --p-style: #39c5cf;
+  --p-paint: #f778ba;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --tab-active-bg: #dbeafe;
+  --accent: #0969da;
+  --zone-good: rgba(26,127,55,.10);
+  --zone-poor: rgba(207,34,46,.10);
+  --c-good: #1a7f37;
+  --c-poor: #cf222e;
+  --p-script: #0969da;
+  --p-third: #8250df;
+  --p-forced: #bc4c00;
+  --p-style: #1b7c83;
+  --p-paint: #bf3989;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+button { font: inherit; color: inherit; }
+
+/* Scenario tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tab:hover { color: var(--text); border-color: var(--accent); }
+.tab[aria-pressed="true"] { color: var(--text); background: var(--tab-active-bg); border-color: var(--accent); }
+
+/* Legend strip (same component as the step demos) */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid var(--lg);
+  color: var(--lg);
+  background: color-mix(in srgb, var(--lg) 12%, transparent);
+}
+
+/* Frame with a title bar (same component as the step demos) */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Result line inside the frame */
+.result { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dur { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 96px; line-height: 1.1; }
+.dur small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+.blocking { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.blocking strong { color: var(--text); }
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.badge.good { color: var(--c-good); }
+.badge.poor { color: var(--c-poor); }
+
+/* Controls (same buttons as the step demos) */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-next { background: #1f6feb; color: #fff; }
+.btn-next:hover { background: #388bfd; }
+.tab:focus-visible, .btn:focus-visible, .phase:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explanation box (same component as the step demos), accent follows the result */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl.t-ok { border-left-color: var(--c-good); }
+.expl.t-block { border-left-color: var(--c-poor); }
+.expl strong { color: var(--text); }
+.expl code, .entry code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* Timeline */
+.timeline {
+  position: relative;
+  height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--zone-poor);
+}
+.zone-good { position: absolute; top: 0; bottom: 0; left: 0; background: var(--zone-good); }
+.limit { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--muted); }
+.seg {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  min-width: 0;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity .2s ease;
+  cursor: pointer;
+  border: 0;
+}
+.seg.shown { opacity: 1; }
+.seg.dim { opacity: .28; }
+.cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--text);
+  left: 0;
+  pointer-events: none;
+}
+.axis { position: relative; height: 26px; margin-top: 4px; font-size: 10px; color: var(--muted); }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.axis span:first-child { transform: none; }
+.axis .lbl { top: 12px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Segment table */
+.phases { display: flex; flex-direction: column; gap: 6px; }
+.phase {
+  display: grid;
+  grid-template-columns: 12px 168px 64px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color .15s, background .15s;
+}
+.phase:hover { border-color: var(--accent); }
+.phase[aria-pressed="true"] { border-color: var(--accent); background: var(--tab-active-bg); }
+.dot { width: 12px; height: 12px; border-radius: 3px; }
+.p-name { font-weight: 600; }
+.p-ms { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+.p-field { color: var(--muted); font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.phase[aria-pressed="true"] .p-field { color: var(--text); }
+
+/* The entry the browser reports */
+.entry {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.entry b { color: var(--text); font-weight: 600; }
+
+.note { color: var(--muted); font-size: 12px; padding: 0 2px; }
+
+@media (max-width: 560px) {
+  .phase { grid-template-columns: 12px 130px 56px; }
+  .p-field { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="legend" id="legend"><span class="legend-label">Frame work</span></div>
+
+<div class="tabs" id="tabs" role="group" aria-label="Scenario"></div>
+
+<div class="frame">
+  <div class="frame-label">One animation frame, 0 to 240 ms</div>
+  <div class="frame-body">
+    <div class="result">
+      <div class="dur" id="dur" aria-hidden="true">0<small>ms</small></div>
+      <span class="badge good" id="badge">Under 50 ms</span>
+      <span class="blocking" id="blocking" aria-hidden="true"></span>
+    </div>
+    <div class="timeline-wrap">
+      <div class="timeline" id="timeline" aria-hidden="true">
+        <div class="zone-good" id="zone"></div>
+        <div class="limit" id="limit"></div>
+        <div class="cursor" id="cursor"></div>
+      </div>
+      <div class="axis" id="axis" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-next" id="play" type="button">Replay</button>
+</div>
+
+<div class="expl t-ok" id="story" aria-live="polite"></div>
+
+<div class="phases" id="phases" role="group" aria-label="Frame segments"></div>
+<p class="note">Select a segment to highlight it on the timeline. The scale is the same in every scenario (0 to 240 ms), so the frames are comparable.</p>
+
+<div class="frame">
+  <div class="frame-label">What the PerformanceLongAnimationFrameTiming entry reports</div>
+  <div class="frame-body"><div class="entry" id="entry"></div></div>
+</div>
+
+<script>
+const MAX_MS = 240;
+const LIMIT_MS = 50;
+
+const KINDS = {
+  script: { color: "--p-script", name: "Script", field: "scripts[].duration" },
+  third:  { color: "--p-third",  name: "Third-party script", field: "scripts[].duration" },
+  forced: { color: "--p-forced", name: "Forced style and layout", field: "scripts[].forcedStyleAndLayoutDuration" },
+  style:  { color: "--p-style",  name: "Style and layout", field: "duration - renderStart" },
+  paint:  { color: "--p-paint",  name: "Paint and commit", field: "duration - renderStart" },
+};
+
+const SCENARIOS = [
+  {
+    id: "healthy", label: "Healthy frame",
+    scripts: [{ invoker: "BUTTON#buy.onclick", type: "event-listener", source: "app.js", ms: 12, forced: 0 }],
+    style: 10, paint: 8,
+    story: "A short handler and a quick render. The frame stays under 50 ms, so the browser does not report an entry at all.",
+  },
+  {
+    id: "handler", label: "Slow handler",
+    scripts: [{ invoker: "BUTTON#buy.onclick", type: "event-listener", source: "app.js", ms: 140, forced: 0 }],
+    style: 14, paint: 8,
+    story: "One event listener runs for 140 ms. The 90 ms past the 50 ms limit blocks the main thread, and the render phase waits behind it. This is the pattern behind most slow INP values.",
+  },
+  {
+    id: "forced", label: "Forced layout",
+    scripts: [{ invoker: "BUTTON#buy.onclick", type: "event-listener", source: "app.js", ms: 95, forced: 60 }],
+    style: 16, paint: 8,
+    story: "The handler writes to the DOM and then reads a layout property such as <code>offsetHeight</code>. The browser has to compute style and layout in the middle of the script. <code>forcedStyleAndLayoutDuration</code> reports it: 60 of the 95 ms.",
+  },
+  {
+    id: "render", label: "Heavy render",
+    scripts: [{ invoker: "BUTTON#filter.onclick", type: "event-listener", source: "app.js", ms: 20, forced: 0 }],
+    style: 150, paint: 20,
+    story: "The script is quick, but it changed something that invalidates a large part of the page. The cost shows up after the script, in the render phase, where a long task would not see it.",
+  },
+  {
+    id: "third", label: "Third-party callback",
+    scripts: [
+      { invoker: "BUTTON#buy.onclick", type: "event-listener", source: "app.js", ms: 30, forced: 0 },
+      { invoker: "TimerHandler:setTimeout", type: "user-callback", source: "tag-manager.example/gtm.js", ms: 85, forced: 0, party: "third" },
+    ],
+    style: 12, paint: 8,
+    story: "A timer from a tag manager lands in the same frame as the click handler. Each script gets its own entry with its source URL, so you can tell the 30 ms of your code from the 85 ms of someone else's.",
+  },
+];
+
+const $ = (id) => document.getElementById(id);
+const tabsEl = $("tabs"), phasesEl = $("phases"), timelineEl = $("timeline"), legendEl = $("legend");
+const cursorEl = $("cursor"), durEl = $("dur"), badgeEl = $("badge"), blockingEl = $("blocking");
+const storyEl = $("story"), entryEl = $("entry"), axisEl = $("axis");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+let current = SCENARIOS[0];
+let selected = null;
+let raf = 0;
+
+const pct = (ms) => (ms / MAX_MS) * 100;
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+/* Derived values for a scenario */
+function derive(s) {
+  const segments = [];
+  let t = 0;
+  s.scripts.forEach((sc) => {
+    const kind = sc.party === "third" ? "third" : "script";
+    const js = sc.ms - sc.forced;
+    if (js > 0) { segments.push({ kind, ms: js, start: t, label: kind === "third" ? "Third-party script" : "Script", detail: sc.invoker }); t += js; }
+    if (sc.forced > 0) { segments.push({ kind: "forced", ms: sc.forced, start: t, label: KINDS.forced.name, detail: sc.invoker }); t += sc.forced; }
+  });
+  const renderStart = t;
+  segments.push({ kind: "style", ms: s.style, start: t, label: KINDS.style.name, detail: "" }); t += s.style;
+  segments.push({ kind: "paint", ms: s.paint, start: t, label: KINDS.paint.name, detail: "" }); t += s.paint;
+  // Chrome: time past 50 ms in each task, plus the whole render phase
+  const scriptMs = s.scripts.reduce((n, sc) => n + sc.ms, 0);
+  const blocking = Math.max(0, scriptMs - LIMIT_MS) + s.style + s.paint;
+  return { segments, renderStart, duration: t, blocking: t > LIMIT_MS ? blocking : 0 };
+}
+
+/* One-time DOM */
+Object.values(KINDS).forEach((k) => {
+  const pill = document.createElement("span");
+  pill.className = "lg";
+  pill.style.setProperty("--lg", `var(${k.color})`);
+  pill.textContent = k.name;
+  legendEl.appendChild(pill);
+});
+
+SCENARIOS.forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.textContent = s.label;
+  b.dataset.id = s.id;
+  b.addEventListener("click", () => selectScenario(s));
+  tabsEl.appendChild(b);
+});
+
+$("zone").style.width = pct(LIMIT_MS) + "%";
+$("limit").style.left = pct(LIMIT_MS) + "%";
+axisEl.innerHTML =
+  [0, 50, 100, 150, 200].map((v) => `<span style="left:${pct(v)}%">${v}${v === 0 ? " ms" : ""}</span>`).join("") +
+  `<span class="lbl" style="left:${pct(LIMIT_MS) / 2}%;color:var(--c-good)">under limit</span>` +
+  `<span class="lbl" style="left:${(pct(LIMIT_MS) + 100) / 2}%;color:var(--c-poor)">blocking</span>`;
+
+/* Rendering */
+function layout(d) {
+  timelineEl.querySelectorAll(".seg").forEach((n) => n.remove());
+  phasesEl.textContent = "";
+  d.segments.forEach((seg, i) => {
+    const k = KINDS[seg.kind];
+    const el = document.createElement("div");
+    el.className = "seg";
+    el.dataset.i = i;
+    el.dataset.start = seg.start;
+    el.dataset.end = seg.start + seg.ms;
+    el.style.left = pct(seg.start) + "%";
+    el.style.width = pct(seg.ms) + "%";
+    el.style.background = `var(${k.color})`;
+    el.title = `${seg.label}: ${seg.ms} ms`;
+    timelineEl.insertBefore(el, cursorEl);
+
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "phase";
+    row.dataset.i = i;
+    row.innerHTML =
+      `<span class="dot" style="background:var(${k.color})"></span>` +
+      `<span class="p-name">${seg.label}</span>` +
+      `<span class="p-ms">${seg.ms} ms</span>` +
+      `<span class="p-field">${seg.detail ? esc(seg.detail) + ", " : ""}${k.field}</span>`;
+    row.addEventListener("click", () => {
+      selected = selected === i ? null : i;
+      paintSelection();
+    });
+    phasesEl.appendChild(row);
+  });
+}
+
+function paintSelection() {
+  phasesEl.querySelectorAll(".phase").forEach((row) =>
+    row.setAttribute("aria-pressed", String(Number(row.dataset.i) === selected)));
+  timelineEl.querySelectorAll(".seg").forEach((seg) =>
+    seg.classList.toggle("dim", selected !== null && Number(seg.dataset.i) !== selected));
+}
+
+function setProgress(ms, d) {
+  cursorEl.style.left = pct(ms) + "%";
+  timelineEl.querySelectorAll(".seg").forEach((seg) => {
+    const s = Number(seg.dataset.start), e = Number(seg.dataset.end);
+    const visible = ms >= e ? 1 : ms > s ? (ms - s) / (e - s) : 0;
+    seg.classList.toggle("shown", visible > 0);
+    seg.style.clipPath = `inset(0 ${(1 - visible) * 100}% 0 0)`;
+  });
+  durEl.firstChild.nodeValue = Math.round(ms);
+  const over = ms > LIMIT_MS;
+  badgeEl.className = "badge " + (over ? "poor" : "good");
+  badgeEl.textContent = over ? "Long frame" : "Under 50 ms";
+  blockingEl.innerHTML = ms >= d.duration && over ? `blockingDuration <strong>${d.blocking} ms</strong>` : "";
+}
+
+function renderEntry(s, d) {
+  const lines = [];
+  if (d.duration <= LIMIT_MS) {
+    entryEl.innerHTML = `<b>No entry.</b> The frame took ${d.duration} ms, under the 50 ms threshold, so the observer is not called.`;
+    return;
+  }
+  lines.push(`<b>duration</b>: ${d.duration}`);
+  lines.push(`<b>blockingDuration</b>: ${d.blocking}`);
+  lines.push(`<b>renderStart</b>: ${d.renderStart}`);
+  lines.push(`<b>scripts</b>: [`);
+  s.scripts.forEach((sc) => {
+    lines.push(`  { invoker: "${esc(sc.invoker)}", invokerType: "${sc.type}",`);
+    lines.push(`    sourceURL: "${esc(sc.source)}",`);
+    lines.push(`    duration: ${sc.ms}, forcedStyleAndLayoutDuration: ${sc.forced} },`);
+  });
+  lines.push(`]`);
+  entryEl.innerHTML = lines.join("\n");
+}
+
+function play(d) {
+  cancelAnimationFrame(raf);
+  if (reduceMotion.matches) return setProgress(d.duration, d);
+  const duration = 900 + (d.duration / MAX_MS) * 1500;
+  // Start the clock on the first frame: the frame timestamp can lag performance.now()
+  let t0 = null;
+  setProgress(0, d);
+  raf = requestAnimationFrame(function tick(now) {
+    if (t0 === null) t0 = now;
+    const k = Math.min(1, (now - t0) / duration);
+    setProgress(d.duration * k, d);
+    if (k < 1) raf = requestAnimationFrame(tick);
+  });
+}
+
+let currentDerived = derive(current);
+
+function selectScenario(s) {
+  current = s;
+  currentDerived = derive(s);
+  selected = null;
+  tabsEl.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === s.id)));
+  const d = currentDerived;
+  const long = d.duration > LIMIT_MS;
+  storyEl.className = "expl " + (long ? "t-block" : "t-ok");
+  storyEl.innerHTML = long
+    ? `<strong>${d.duration} ms, blockingDuration ${d.blocking} ms.</strong> ${s.story}`
+    : `<strong>${d.duration} ms, no entry.</strong> ${s.story}`;
+  layout(d);
+  renderEntry(s, d);
+  paintSelection();
+  play(d);
+}
+
+$("play").addEventListener("click", () => play(currentDerived));
+selectScenario(SCENARIOS[0]);
+
+/* Theme */
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
+(function initTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) return applyTheme(stored);
+  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+})();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
+});
+
+/* Height */
+function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>
