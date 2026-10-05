@@ -7,8 +7,15 @@
 <body>
   <h1>Long task fixture</h1>
   <script>
-    const start = performance.now();
-    while (performance.now() - start < 200) {}
+    // Chromium does not always buffer a long task that runs while the page is parsed (about one load in
+    // twenty on Linux), so two more follow it before the runner reads at 1.5 s
+    const busy = (ms) => {
+      const start = performance.now();
+      while (performance.now() - start < ms) {}
+    };
+    busy(200);
+    setTimeout(() => busy(120), 400);
+    setTimeout(() => busy(120), 800);
   </script>
 </body>
 </html>

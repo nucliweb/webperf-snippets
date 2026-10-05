@@ -58,6 +58,7 @@
   },
   "overrides": {
     "next-mdx-remote": "^6.0.0",
-    "zod": "4.3.6"
+    "zod": "4.3.6",
+    "@xmldom/xmldom": "0.9.12"
   }
 }
