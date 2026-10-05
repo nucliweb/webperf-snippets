@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How fetchpriority reorders a load</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --tab-active-bg: #1c2a3f;
+  --accent: #58a6ff;
+  --c-good: #3fb950;
+  --c-mid: #e3b341;
+  --c-poor: #f85149;
+  --h-high: #3fb950;
+  --h-auto: #58a6ff;
+  --h-low: #e3b341;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --tab-active-bg: #dbeafe;
+  --accent: #0969da;
+  --c-good: #1a7f37;
+  --c-mid: #9a6700;
+  --c-poor: #cf222e;
+  --h-high: #1a7f37;
+  --h-auto: #0969da;
+  --h-low: #9a6700;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+button { font: inherit; color: inherit; }
+
+/* Legend strip (same component as the step demos) */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid var(--lg);
+  color: var(--lg);
+  background: color-mix(in srgb, var(--lg) 12%, transparent);
+}
+
+/* Scenario tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tab:hover { color: var(--text); border-color: var(--accent); }
+.tab[aria-pressed="true"] { color: var(--text); background: var(--tab-active-bg); border-color: var(--accent); }
+
+/* Frame with a title bar (same component as the step demos) */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.result { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dur { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 96px; line-height: 1.1; }
+.dur small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.badge.good { color: var(--c-good); }
+.badge.mid { color: var(--c-mid); }
+.badge.poor { color: var(--c-poor); }
+.delta { color: var(--muted); font-size: 12px; }
+
+/* Controls (same buttons as the step demos) */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-next { background: #1f6feb; color: #fff; }
+.btn-next:hover { background: #388bfd; }
+.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explanation box (same component as the step demos) */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl.t-ok { border-left-color: var(--c-good); }
+.expl.t-warn { border-left-color: var(--c-mid); }
+.expl.t-block { border-left-color: var(--c-poor); }
+.expl strong { color: var(--text); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* Waterfall */
+.wf { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.row { display: grid; grid-template-columns: 190px 1fr; align-items: center; gap: 10px; }
+.name { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.name .file { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.name .chip { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.chip.high { color: var(--h-high); }
+.chip.auto { color: var(--h-auto); }
+.chip.low { color: var(--h-low); }
+.track { position: relative; height: 18px; border-radius: 3px; background: var(--surface2); }
+.bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; opacity: 0; transition: opacity .2s ease; }
+.bar.shown { opacity: 1; }
+.bar.high { background: var(--h-high); }
+.bar.auto { background: var(--h-auto); }
+.bar.low { background: var(--h-low); }
+.bar .t { position: absolute; left: 100%; top: 0; margin-left: 5px; font-size: 10px; color: var(--muted); white-space: nowrap; line-height: 14px; }
+.cursor { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text); left: 0; pointer-events: none; }
+.wf-tracks { position: relative; }
+.axis { position: relative; height: 14px; margin-top: 4px; margin-left: 200px; font-size: 10px; color: var(--muted); }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.axis span:first-child { transform: none; }
+
+/* Findings of the snippet */
+.finding { display: flex; gap: 8px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); font-size: 12px; color: var(--muted); }
+.finding .sev { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; min-width: 62px; }
+.finding .sev.error { color: var(--c-poor); }
+.finding .sev.warning { color: var(--c-mid); }
+.finding .sev.ok { color: var(--c-good); }
+.finding strong { color: var(--text); }
+.note { color: var(--muted); font-size: 12px; padding: 0 2px; }
+
+@media (max-width: 560px) {
+  .row { grid-template-columns: 1fr; gap: 2px; }
+  .axis { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="legend" id="legend"><span class="legend-label">fetchpriority</span></div>
+
+<div class="tabs" id="tabs" role="group" aria-label="Scenario"></div>
+
+<div class="frame">
+  <div class="frame-label">Load on a 4 Mbps connection, 0 to 2400 ms</div>
+  <div class="frame-body">
+    <div class="result">
+      <div class="dur" id="dur" aria-hidden="true">0<small>ms</small></div>
+      <span class="badge good" id="badge"></span>
+      <span class="delta" id="delta"></span>
+    </div>
+    <div>
+      <div class="wf" id="wf">
+        <div class="wf-tracks" id="tracks" aria-hidden="true"></div>
+      </div>
+      <div class="axis" id="axis" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-next" id="play" type="button">Replay</button>
+</div>
+
+<div class="expl t-ok" id="story" aria-live="polite"></div>
+
+<div class="frame">
+  <div class="frame-label">What the snippet reports</div>
+  <div class="frame-body" id="findings"></div>
+</div>
+<p class="note">The load is simulated: the connection shares its bandwidth between the active requests in proportion to a weight (high 8, auto 2, low 1), a simplified model of how the browser and the server prioritize. The times show the direction of the effect, not the numbers of a real page.</p>
+
+<script>
+const MAX_MS = 2400;
+const BANDWIDTH = 0.5; // KB per ms, 4 Mbps
+const WEIGHT = { high: 8, auto: 2, low: 1 };
+
+// Resources: discovery time, size and the weight the browser gives them without a hint
+const RESOURCES = [
+  { id: "css",  file: "app.css",       start: 0,   kb: 40,  fixed: 6 },
+  { id: "js",   file: "app.js",        start: 0,   kb: 120, fixed: 6 },
+  { id: "hero", file: "hero.webp",     start: 200, kb: 260, lcp: true },
+  { id: "g1",   file: "gallery-1.jpg", start: 200, kb: 220 },
+  { id: "g2",   file: "gallery-2.jpg", start: 200, kb: 220 },
+  { id: "ga",   file: "analytics.js",  start: 200, kb: 90 },
+];
+
+const SCENARIOS = [
+  {
+    id: "none", label: "No hints",
+    hints: {},
+    story: "Every image starts at the same default weight, so the hero image and the two gallery images split the bandwidth three ways. The image the page is waiting for finishes last, after the ones nobody sees.",
+    findings: [{ sev: "warning", text: "<strong>LCP candidate without fetchpriority=\"high\".</strong> hero.webp is the LCP element. Missed opportunity to improve LCP." }],
+  },
+  {
+    id: "hero", label: "LCP image: high",
+    hints: { hero: "high" },
+    story: "<code>fetchpriority=\"high\"</code> on the hero image gives it most of the bandwidth. It finishes first, and the other requests wait their turn instead of slowing it down.",
+    findings: [{ sev: "ok", text: "<strong>No issues.</strong> The LCP candidate has fetchpriority=\"high\"." }],
+  },
+  {
+    id: "low", label: "Others: low",
+    hints: { g1: "low", g2: "low", ga: "low" },
+    story: "The gallery images and the analytics script are marked low. They give way to the hero image, so the hero image gets a larger share without a hint of its own. The LCP candidate is still unmarked, though.",
+    findings: [{ sev: "warning", text: "<strong>LCP candidate without fetchpriority=\"high\".</strong> hero.webp is the LCP element, even if everything else is low." }],
+  },
+  {
+    id: "both", label: "High and low together",
+    hints: { hero: "high", g1: "low", g2: "low", ga: "low" },
+    story: "The combination: the page says what matters and what can wait. The hero image finishes fastest, and the low requests use whatever bandwidth is left over.",
+    findings: [{ sev: "ok", text: "<strong>No issues.</strong> The LCP candidate is high and the non-critical resources are low." }],
+  },
+  {
+    id: "conflict", label: "Preload and low",
+    preload: true,
+    hints: { hero: "low" },
+    story: "The hero image is preloaded, so it is discovered at the start, but <code>fetchpriority=\"low\"</code> contradicts the preload. It begins early and still gets the smallest share, so the early start gains nothing: it finishes at the same time as with no hints.",
+    findings: [
+      { sev: "error", text: "<strong>preload + fetchpriority=\"low\".</strong> Contradictory signals: remove it or change it to high." },
+      { sev: "warning", text: "<strong>LCP candidate without fetchpriority=\"high\".</strong> hero.webp is the LCP element." },
+    ],
+  },
+];
+
+const $ = (id) => document.getElementById(id);
+const tabsEl = $("tabs"), tracksEl = $("tracks"), durEl = $("dur"), badgeEl = $("badge"), deltaEl = $("delta");
+const storyEl = $("story"), findingsEl = $("findings"), axisEl = $("axis"), legendEl = $("legend");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+let current = SCENARIOS[0];
+let result = null;
+let raf = 0;
+
+const pct = (ms) => (ms / MAX_MS) * 100;
+
+/* Bandwidth sharing in proportion to the weights */
+function simulate(scenario) {
+  const list = RESOURCES.map((r) => {
+    const hint = scenario.hints[r.id] || "auto";
+    const weight = r.fixed ?? WEIGHT[hint];
+    const start = r.lcp && scenario.preload ? 0 : r.start;
+    return { ...r, hint: r.fixed ? "auto" : hint, weight, start, remaining: r.kb, finish: null };
+  });
+  const dt = 2;
+  for (let t = 0; t < MAX_MS * 2 && list.some((r) => r.finish === null); t += dt) {
+    const active = list.filter((r) => r.finish === null && r.start <= t);
+    const total = active.reduce((n, r) => n + r.weight, 0);
+    active.forEach((r) => {
+      r.remaining -= (BANDWIDTH * dt * r.weight) / total;
+      if (r.remaining <= 0) r.finish = t + dt;
+    });
+  }
+  return list;
+}
+
+/* One-time DOM */
+[["high", "high"], ["auto", "auto, no attribute"], ["low", "low"]].forEach(([k, name]) => {
+  const pill = document.createElement("span");
+  pill.className = "lg";
+  pill.style.setProperty("--lg", `var(--h-${k})`);
+  pill.textContent = name;
+  legendEl.appendChild(pill);
+});
+
+SCENARIOS.forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.textContent = s.label;
+  b.dataset.id = s.id;
+  b.addEventListener("click", () => selectScenario(s));
+  tabsEl.appendChild(b);
+});
+
+axisEl.innerHTML = [0, 500, 1000, 1500, 2000].map((v) => `<span style="left:${pct(v)}%">${v}${v === 0 ? " ms" : ""}</span>`).join("");
+
+RESOURCES.forEach((r) => {
+  const row = document.createElement("div");
+  row.className = "row";
+  row.dataset.id = r.id;
+  row.innerHTML = `<div class="name"><span class="file">${r.file}</span><span class="chip"></span></div><div class="track"><div class="bar"><span class="t"></span></div></div>`;
+  tracksEl.appendChild(row);
+});
+
+/* Rendering */
+function layout() {
+  result.forEach((r) => {
+    const row = tracksEl.querySelector(`.row[data-id="${r.id}"]`);
+    const chip = row.querySelector(".chip");
+    chip.className = "chip " + r.hint;
+    chip.textContent = r.fixed ? "default" : r.hint;
+    chip.style.display = r.fixed ? "none" : "";
+    const bar = row.querySelector(".bar");
+    bar.className = "bar " + (r.fixed ? "auto" : r.hint);
+    bar.style.left = pct(r.start) + "%";
+    bar.style.width = pct(r.finish - r.start) + "%";
+    bar.dataset.start = r.start;
+    bar.dataset.end = r.finish;
+    bar.querySelector(".t").textContent = r.finish + " ms";
+    bar.title = `${r.file}: ${r.start} to ${r.finish} ms`;
+  });
+}
+
+function setProgress(ms, cursor) {
+  tracksEl.querySelectorAll(".bar").forEach((bar) => {
+    const s = Number(bar.dataset.start), e = Number(bar.dataset.end);
+    const visible = ms >= e ? 1 : ms > s ? (ms - s) / (e - s) : 0;
+    bar.classList.toggle("shown", visible > 0);
+    bar.style.clipPath = visible >= 1 ? "none" : `inset(0 ${(1 - visible) * 100}% 0 0)`;
+    bar.querySelector(".t").style.visibility = ms >= e ? "visible" : "hidden";
+  });
+  const hero = result.find((r) => r.lcp);
+  const done = ms >= hero.finish;
+  durEl.firstChild.nodeValue = done ? hero.finish : Math.round(ms);
+}
+
+function play() {
+  cancelAnimationFrame(raf);
+  const hero = result.find((r) => r.lcp);
+  const end = Math.max(...result.map((r) => r.finish));
+  if (reduceMotion.matches) return setProgress(end);
+  const duration = 900 + (end / MAX_MS) * 1500;
+  // Start the clock on the first frame: the frame timestamp can lag performance.now()
+  let t0 = null;
+  setProgress(0);
+  raf = requestAnimationFrame(function tick(now) {
+    if (t0 === null) t0 = now;
+    const k = Math.min(1, (now - t0) / duration);
+    setProgress(end * k);
+    if (k < 1) raf = requestAnimationFrame(tick);
+  });
+}
+
+function selectScenario(s) {
+  current = s;
+  result = simulate(s);
+  tabsEl.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === s.id)));
+  layout();
+
+  const hero = result.find((r) => r.lcp);
+  const base = simulate(SCENARIOS[0]).find((r) => r.lcp).finish;
+  const diff = hero.finish - base;
+  const better = diff < 0;
+  const isBase = s === SCENARIOS[0];
+  badgeEl.className = "badge " + (diff === 0 ? "mid" : better ? "good" : "poor");
+  badgeEl.textContent = isBase ? "Baseline" : diff === 0 ? "No change" : better ? "Faster" : "Slower";
+  deltaEl.textContent = isBase ? "The reference for the other scenarios" : diff === 0 ? "Same as with no hints" : `${Math.abs(diff)} ms ${better ? "earlier" : "later"} than with no hints`;
+  storyEl.className = "expl " + (diff === 0 ? "t-warn" : better ? "t-ok" : "t-block");
+  storyEl.innerHTML = `<strong>hero.webp, the LCP image, finishes at ${hero.finish} ms${diff === 0 ? "" : `, ${Math.abs(diff)} ms ${better ? "earlier" : "later"} than with no hints`}.</strong> ${s.story}`;
+
+  findingsEl.innerHTML = s.findings.map((f) => `<div class="finding"><span class="sev ${f.sev}">${f.sev === "ok" ? "Clean" : f.sev}</span><span>${f.text}</span></div>`).join("");
+  play();
+}
+
+$("play").addEventListener("click", play);
+selectScenario(SCENARIOS[0]);
+
+/* Theme */
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
+(function initTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) return applyTheme(stored);
+  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+})();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
+});
+
+/* Height */
+function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>
