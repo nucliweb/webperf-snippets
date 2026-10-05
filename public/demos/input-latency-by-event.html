@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Input latency grouped by event type</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --tab-active-bg: #1c2a3f;
+  --accent: #58a6ff;
+  --c-good: #3fb950;
+  --c-mid: #e3b341;
+  --c-poor: #f85149;
+  --p-input: #58a6ff;
+  --p-proc: #f0883e;
+  --p-pres: #d2a8ff;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --tab-active-bg: #dbeafe;
+  --accent: #0969da;
+  --c-good: #1a7f37;
+  --c-mid: #9a6700;
+  --c-poor: #cf222e;
+  --p-input: #0969da;
+  --p-proc: #bc4c00;
+  --p-pres: #8250df;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+button { font: inherit; color: inherit; }
+
+/* Legend strip (same component as the step demos) */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid var(--lg);
+  color: var(--lg);
+  background: color-mix(in srgb, var(--lg) 12%, transparent);
+}
+
+/* Action buttons: same look as the scenario tabs */
+.group-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color .15s, background .15s;
+}
+.tab:hover { border-color: var(--accent); background: var(--tab-active-bg); }
+
+/* Frame with a title bar (same component as the step demos) */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Controls (same buttons as the step demos) */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-next { background: #1f6feb; color: #fff; }
+.btn-next:hover { background: #388bfd; }
+.btn-reset { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-reset:hover { border-color: var(--accent); }
+.counter { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explanation box (same component as the step demos), accent follows the worst rating */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl.t-ok { border-left-color: var(--c-good); }
+.expl.t-warn { border-left-color: var(--c-mid); }
+.expl.t-block { border-left-color: var(--c-poor); }
+.expl.t-neutral { border-left-color: var(--accent); }
+.expl strong { color: var(--text); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* One block per event type */
+.type { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.type + .type { margin-top: 0; }
+.type-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.type-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; font-size: 13px; }
+.type-meta { color: var(--muted); font-size: 12px; }
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.badge.good { color: var(--c-good); }
+.badge.mid { color: var(--c-mid); }
+.badge.poor { color: var(--c-poor); }
+.p75 { margin-left: auto; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.p75 small { font-size: 11px; font-weight: 500; color: var(--muted); }
+
+.stack { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: var(--surface2); }
+.stack i { display: block; height: 100%; transition: width .3s ease; }
+.i-input { background: var(--p-input); }
+.i-proc { background: var(--p-proc); }
+.i-pres { background: var(--p-pres); }
+.phase-line { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.phase-line b { color: var(--text); font-weight: 600; }
+.bottleneck { font-size: 12px; color: var(--muted); }
+.bottleneck strong { color: var(--text); }
+
+/* Log of the individual interactions */
+.log { display: flex; flex-direction: column; gap: 4px; }
+.entry { display: grid; grid-template-columns: 24px 82px 1fr 60px; align-items: center; gap: 8px; font-size: 12px; }
+.entry .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+.entry .t { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.entry .ms { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.entry.outlier .ms { color: var(--c-poor); font-weight: 600; }
+.entry .stack { height: 10px; }
+.empty { color: var(--muted); font-size: 12px; }
+.note { color: var(--muted); font-size: 12px; padding: 0 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="legend" id="legend"><span class="legend-label">Phases</span></div>
+
+<div>
+  <div class="group-label" id="sim-label">Interact with the page</div>
+  <div class="tabs" id="sim" role="group" aria-labelledby="sim-label"></div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-next" id="burst" type="button">Add 8 of each</button>
+  <button class="btn btn-reset" id="reset" type="button">Reset</button>
+  <span class="counter" id="counter" aria-hidden="true"></span>
+</div>
+
+<div class="expl t-neutral" id="story" aria-live="polite"></div>
+
+<div class="frame">
+  <div class="frame-label">Grouped by event type, P75 of each phase</div>
+  <div class="frame-body" id="types"></div>
+</div>
+
+<div class="frame">
+  <div class="frame-label">The interactions behind it, latest first</div>
+  <div class="frame-body"><div class="log" id="log"></div></div>
+</div>
+<p class="note">The interactions are simulated with a fixed set of values per event type, so each run gives the same numbers. A phase is rounded as in the snippet, with at least 4 ms of presentation delay. The scale of the bars is 0 to 600 ms.</p>
+
+<script>
+const SCALE_MS = 600;
+const PHASES = [
+  { key: "input", name: "Input delay",        cls: "i-input", color: "--p-input", fix: "Break up the long tasks that run before the event with scheduler.yield()." },
+  { key: "proc",  name: "Processing time",    cls: "i-proc",  color: "--p-proc",  fix: "Make the handler cheaper, or debounce rapid events." },
+  { key: "pres",  name: "Presentation delay", cls: "i-pres",  color: "--p-pres",  fix: "Reduce the DOM changes the handler causes and avoid layout thrashing." },
+];
+
+// Mean of each phase, in ms, and what the interaction is like
+const EVENTS = {
+  click:       { label: "Click",       base: { input: 40, proc: 30,  pres: 190 }, outlier: false },
+  keydown:     { label: "Key press",   base: { input: 25, proc: 230, pres: 45  }, outlier: false },
+  pointerdown: { label: "Pointer down", base: { input: 20, proc: 12,  pres: 32  }, outlier: true },
+};
+
+const $ = (id) => document.getElementById(id);
+const typesEl = $("types"), logEl = $("log"), storyEl = $("story"), counterEl = $("counter");
+
+let samples = [];
+const counts = { click: 0, keydown: 0, pointerdown: 0 };
+
+/* Deterministic pseudo-random values, so every run gives the same numbers */
+function rand(seed) {
+  let t = (seed + 0x6d2b79f5) | 0;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const typeSeed = { click: 11, keydown: 23, pointerdown: 37 };
+
+function simulate(type) {
+  const n = ++counts[type];
+  const e = EVENTS[type];
+  const v = (key, i) => e.base[key] * (0.75 + rand(typeSeed[type] * 1000 + n * 7 + i) * 0.5);
+  const outlier = e.outlier && n % 5 === 0;
+  const input = v("input", 1) + (outlier ? 260 : 0);
+  const proc = v("proc", 2);
+  const pres = Math.max(4, v("pres", 3));
+  samples.push({ type, n, input, proc, pres, total: input + proc + pres, outlier });
+}
+
+// One of each type per round, so the log reads like a session
+function addRound(times) {
+  for (let i = 0; i < times; i++) Object.keys(EVENTS).forEach(simulate);
+}
+
+/* Same percentile as the snippet */
+const p75 = (arr) => {
+  const sorted = [...arr].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length * 0.75)] ?? sorted[sorted.length - 1];
+};
+const rating = (ms) => (ms <= 200 ? { cls: "good", text: "Good", tone: "t-ok" } : ms <= 500 ? { cls: "mid", text: "Needs improvement", tone: "t-warn" } : { cls: "poor", text: "Poor", tone: "t-block" });
+const ms = (v) => Math.round(v);
+const w = (v) => Math.min(100, (v / SCALE_MS) * 100);
+
+/* One-time DOM */
+const legendEl = $("legend");
+PHASES.forEach((p) => {
+  const pill = document.createElement("span");
+  pill.className = "lg";
+  pill.style.setProperty("--lg", `var(${p.color})`);
+  pill.textContent = p.name;
+  legendEl.appendChild(pill);
+});
+
+Object.entries(EVENTS).forEach(([type, e]) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.textContent = e.label;
+  b.addEventListener("click", () => { simulate(type); render(); });
+  $("sim").appendChild(b);
+});
+
+function stack(values) {
+  return `<div class="stack">${PHASES.map((p) => `<i class="${p.cls}" style="width:${w(values[p.key])}%"></i>`).join("")}</div>`;
+}
+
+function render() {
+  counterEl.textContent = `${samples.length} interaction${samples.length === 1 ? "" : "s"}`;
+
+  const groups = Object.keys(EVENTS).map((type) => {
+    const list = samples.filter((s) => s.type === type);
+    if (list.length === 0) return null;
+    const agg = {
+      type, count: list.length,
+      total: p75(list.map((s) => s.total)),
+      input: p75(list.map((s) => s.input)),
+      proc: p75(list.map((s) => s.proc)),
+      pres: p75(list.map((s) => s.pres)),
+      worst: Math.max(...list.map((s) => s.total)),
+    };
+    agg.bottleneck = PHASES.reduce((a, p) => (agg[p.key] > agg[a.key] ? p : a), PHASES[0]);
+    return agg;
+  }).filter(Boolean);
+
+  typesEl.innerHTML = groups.length === 0
+    ? `<p class="empty">No interactions recorded yet. Use the buttons above.</p>`
+    : groups.map((g) => {
+        const r = rating(g.total);
+        return `<div class="type">
+          <div class="type-head">
+            <span class="type-name">${g.type}</span>
+            <span class="badge ${r.cls}">${r.text}</span>
+            <span class="type-meta">${g.count} interaction${g.count === 1 ? "" : "s"}, worst ${ms(g.worst)} ms</span>
+            <span class="p75">${ms(g.total)}<small> ms P75</small></span>
+          </div>
+          ${stack(g)}
+          <div class="phase-line">Input delay <b>${ms(g.input)} ms</b>, processing <b>${ms(g.proc)} ms</b>, presentation <b>${ms(g.pres)} ms</b></div>
+          <div class="bottleneck">Bottleneck: <strong>${g.bottleneck.name}</strong>. ${g.bottleneck.fix}</div>
+        </div>`;
+      }).join("");
+
+  const recent = samples.slice(-12).reverse();
+  logEl.innerHTML = recent.length === 0
+    ? `<p class="empty">Nothing yet.</p>`
+    : recent.map((s) => `<div class="entry${s.outlier ? " outlier" : ""}">
+        <span class="n">#${s.n}</span><span class="t">${s.type}</span>${stack(s)}<span class="ms">${ms(s.total)} ms</span>
+      </div>`).join("");
+
+  /* Explanation */
+  if (groups.length === 0) {
+    storyEl.className = "expl t-neutral";
+    storyEl.innerHTML = "Every interaction is one entry. The snippet groups them by event type and keeps the <strong>P75</strong> of each phase, so one slow outlier does not hide the typical behavior and does not look like a pattern either. Add some interactions to see it.";
+    return;
+  }
+  const worst = groups.reduce((a, g) => (g.total > a.total ? g : a));
+  const r = rating(worst.total);
+  const outliers = samples.filter((s) => s.outlier);
+  const outlierText = outliers.length
+    ? ` The ${outliers.length} slow <code>pointerdown</code> ${outliers.length === 1 ? "interaction" : "interactions"} in the log, up to ${ms(Math.max(...outliers.map((s) => s.total)))} ms, ${outliers.length === 1 ? "is an outlier" : "are outliers"}: the P75 of that event type stays low, because a systematic problem would show in most of them.`
+    : "";
+  storyEl.className = "expl " + r.tone;
+  storyEl.innerHTML = `<strong>${worst.type} is the slowest type: ${ms(worst.total)} ms P75, ${r.text.toLowerCase()}.</strong> The phase that dominates is ${worst.bottleneck.name.toLowerCase()} (${ms(worst[worst.bottleneck.key])} ms), so that is where the fix goes.${outlierText}`;
+}
+
+$("burst").addEventListener("click", () => {
+  addRound(8);
+  render();
+});
+$("reset").addEventListener("click", () => {
+  samples = [];
+  Object.keys(counts).forEach((k) => (counts[k] = 0));
+  render();
+});
+
+addRound(8);
+render();
+
+/* Theme */
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
+(function initTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) return applyTheme(stored);
+  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+})();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
+});
+
+/* Height */
+function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ browserSupport:
 import snippet from '../../snippets/Interaction/Input-Latency-Breakdown.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
+import { Demo } from '../../components/Demo'
 
 # Input latency breakdown
 
@@ -45,6 +46,16 @@ Each event type prints a single line with its P75 values across all three phases
 ```
 
 All values are **P75**, the same percentile INP uses, so they reflect typical behavior rather than outliers.
+
+### See the grouping
+
+Add interactions of three event types and watch how the P75 of each phase builds up per type, and why a single slow outlier does not change the picture:
+
+<Demo
+  src="/demos/input-latency-by-event.html"
+  title="Interactive simulation that groups click, key press and pointer down interactions by event type, with the P75 of input delay, processing time and presentation delay, the bottleneck of each type and the list of individual interactions behind it"
+  caption="Add interactions one at a time or in a batch, and compare which phase dominates in each event type."
+/>
 
 ### Bottleneck identification
 
