@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How LCP candidates are promoted</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --tab-active-bg: #1c2a3f;
+  --accent: #58a6ff;
+  --zone-good: rgba(63,185,80,.13);
+  --zone-mid: rgba(227,179,65,.13);
+  --zone-poor: rgba(248,81,73,.13);
+  --c-good: #3fb950;
+  --c-mid: #e3b341;
+  --c-poor: #f85149;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --tab-active-bg: #dbeafe;
+  --accent: #0969da;
+  --zone-good: rgba(26,127,55,.10);
+  --zone-mid: rgba(154,103,0,.10);
+  --zone-poor: rgba(207,34,46,.10);
+  --c-good: #1a7f37;
+  --c-mid: #9a6700;
+  --c-poor: #cf222e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+button { font: inherit; color: inherit; }
+
+/* Scenario tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tab:hover { color: var(--text); border-color: var(--accent); }
+.tab[aria-pressed="true"] { color: var(--text); background: var(--tab-active-bg); border-color: var(--accent); }
+
+/* Frame with a title bar (same component as the step demos) */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.result { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dur { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 96px; line-height: 1.1; }
+.dur small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.badge.good { color: var(--c-good); }
+.badge.mid { color: var(--c-mid); }
+.badge.poor { color: var(--c-poor); }
+.status { color: var(--muted); font-size: 12px; }
+
+/* The mock page */
+.page {
+  position: relative;
+  width: 100%;
+  height: 230px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.el {
+  position: absolute;
+  border-radius: 3px;
+  border: 1px dotted var(--border);
+  opacity: .5;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--muted);
+  padding: 3px 5px;
+  overflow: hidden;
+  transition: opacity .2s ease, border-color .2s ease;
+}
+.el.painted { opacity: 1; border-style: solid; border-color: var(--border); }
+.el.text.painted { background: repeating-linear-gradient(to bottom, var(--surface2) 0 7px, transparent 7px 13px); }
+.el.image.painted { background: linear-gradient(135deg, var(--surface2), var(--surface)); }
+.el.cand { border: 3px dashed var(--cc); border-radius: 4px; }
+.el .tag { position: absolute; top: 2px; left: 2px; padding: 1px 6px; border-radius: 3px; background: var(--bg); border: 1px solid currentColor; font-weight: 600; white-space: nowrap; }
+.el.cand .tag { color: var(--cc); }
+
+/* Time axis */
+.track {
+  position: relative;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(to right,
+    var(--zone-good) 0, var(--zone-good) var(--z1),
+    var(--zone-mid) var(--z1), var(--zone-mid) var(--z2),
+    var(--zone-poor) var(--z2), var(--zone-poor) 100%);
+}
+.mark { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--cc); }
+.mark.input { background: none; border-left: 2px dashed var(--text); width: 0; }
+.cursor { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--text); left: 0; pointer-events: none; }
+.axis { position: relative; height: 26px; margin-top: 4px; font-size: 10px; color: var(--muted); }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.axis span:first-child { transform: none; }
+.axis .lbl { top: 12px; text-transform: uppercase; letter-spacing: .04em; }
+
+.scrub { display: flex; align-items: center; gap: 10px; }
+.scrub label { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.scrub input[type="range"] { flex: 1; accent-color: var(--accent); }
+.scrub input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Controls (same buttons as the step demos) */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-next { background: #1f6feb; color: #fff; }
+.btn-next:hover { background: #388bfd; }
+.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explanation box (same component as the step demos), accent follows the final rating */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl.t-ok { border-left-color: var(--c-good); }
+.expl.t-warn { border-left-color: var(--c-mid); }
+.expl.t-block { border-left-color: var(--c-poor); }
+.expl strong { color: var(--text); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* Candidates trail, as the snippet's legend */
+.trail { display: flex; flex-direction: column; gap: 6px; }
+.cand-row {
+  display: grid;
+  grid-template-columns: 14px 24px 1fr 118px 64px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.cand-row .sw { width: 14px; height: 14px; border-radius: 3px; border: 2px dashed var(--cc); }
+.cand-row .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+.cand-row .what { min-width: 0; }
+.cand-row .what b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+.cand-row .what span { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.cand-row .area, .cand-row .time { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--muted); }
+.cand-row.final { border-color: var(--cc); }
+.cand-row.final .time { color: var(--text); font-weight: 700; }
+.empty { color: var(--muted); font-size: 12px; }
+.note { color: var(--muted); font-size: 12px; padding: 0 2px; }
+
+@media (max-width: 560px) {
+  .cand-row { grid-template-columns: 14px 24px 1fr 60px; }
+  .cand-row .area { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="tabs" id="tabs" role="group" aria-label="Scenario"></div>
+
+<div class="frame">
+  <div class="frame-label">Page load, 0 to 4500 ms</div>
+  <div class="frame-body">
+    <div class="result">
+      <div class="dur" id="dur" aria-hidden="true">0<small>ms</small></div>
+      <span class="badge good" id="badge">No candidate yet</span>
+      <span class="status" id="status" aria-hidden="true"></span>
+    </div>
+    <div class="page" id="page" aria-hidden="true"></div>
+    <div>
+      <div class="track" id="track" aria-hidden="true"><div class="cursor" id="cursor"></div></div>
+      <div class="axis" id="axis" aria-hidden="true"></div>
+    </div>
+    <div class="scrub">
+      <label for="time">Time</label>
+      <input type="range" id="time" min="0" max="4500" step="10" value="0" aria-valuetext="0 milliseconds">
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-next" id="play" type="button">Replay</button>
+</div>
+
+<div class="expl t-ok" id="story" aria-live="polite"></div>
+
+<div class="frame">
+  <div class="frame-label">Candidates trail</div>
+  <div class="frame-body"><div class="trail" id="trail"></div></div>
+</div>
+<p class="note">The page is a simplified model: each element has a size and a paint time, and the size is its share of the viewport. A painted element becomes a candidate when it is larger than the current one, and the browser stops reporting candidates after the first user input. Move the slider to look at any moment of the load.</p>
+
+<script>
+const MAX_MS = 4500;
+const GOOD_MS = 2500;
+const POOR_MS = 4000;
+
+// Same palette as the snippet
+const PALETTE = ["#EF4444", "#F97316", "#22C55E", "#3B82F6", "#A855F7", "#EC4899"];
+
+const SCENARIOS = [
+  {
+    id: "image", label: "Text, then hero image",
+    elements: [
+      { id: "h1", name: "h1.title", kind: "text", type: "Text block", x: 6, y: 10, w: 50, h: 14, at: 600 },
+      { id: "hero", name: "img.hero", kind: "image", type: "Image", x: 0, y: 32, w: 100, h: 60, at: 3300 },
+    ],
+    story: "The heading paints first and becomes the LCP. When the hero image finally arrives it is larger, so it takes over. The page looked ready at 600 ms, but the metric waits for the image.",
+  },
+  {
+    id: "cascade", label: "Several candidates",
+    elements: [
+      { id: "h1", name: "h1.title", kind: "text", type: "Text block", x: 6, y: 8, w: 60, h: 10, at: 500 },
+      { id: "p", name: "p.intro", kind: "text", type: "Text block", x: 6, y: 22, w: 70, h: 22, at: 900 },
+      { id: "img", name: "img.product", kind: "image", type: "Image", x: 6, y: 50, w: 50, h: 42, at: 1700 },
+    ],
+    story: "Each larger element replaces the previous one: the heading, then the intro paragraph, then the product image. The snippet outlines all three and keeps the trail, the last one is the LCP.",
+  },
+  {
+    id: "smaller", label: "A late, smaller image",
+    elements: [
+      { id: "text", name: "div.article", kind: "text", type: "Text block", x: 6, y: 10, w: 88, h: 40, at: 700 },
+      { id: "img", name: "img.thumb", kind: "image", type: "Image", x: 6, y: 58, w: 40, h: 30, at: 2400 },
+    ],
+    story: "The text block is large and paints early. The image that arrives later is smaller, so it never becomes a candidate: a late element is the LCP only if it is also the largest.",
+  },
+  {
+    id: "input", label: "User input stops the trail",
+    input: 1500,
+    elements: [
+      { id: "h1", name: "h1.title", kind: "text", type: "Text block", x: 6, y: 10, w: 50, h: 14, at: 600 },
+      { id: "hero", name: "img.hero", kind: "image", type: "Image", x: 0, y: 32, w: 100, h: 60, at: 3200 },
+    ],
+    story: "The user taps at 1500 ms. After the first input the browser stops reporting new candidates, so the hero image that paints at 3200 ms never counts, even though it is the largest. The LCP stays at the heading.",
+  },
+];
+
+const $ = (id) => document.getElementById(id);
+const tabsEl = $("tabs"), pageEl = $("page"), trackEl = $("track"), cursorEl = $("cursor"), axisEl = $("axis");
+const durEl = $("dur"), badgeEl = $("badge"), statusEl = $("status"), storyEl = $("story"), trailEl = $("trail");
+const slider = $("time");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+let current = SCENARIOS[0];
+let model = null;
+let raf = 0;
+
+const pct = (ms) => (ms / MAX_MS) * 100;
+const area = (e) => (e.w * e.h) / 100; // share of the viewport, in percent
+const rate = (ms) => (ms <= GOOD_MS ? { cls: "good", text: "Good", tone: "t-ok" } : ms <= POOR_MS ? { cls: "mid", text: "Needs improvement", tone: "t-warn" } : { cls: "poor", text: "Poor", tone: "t-block" });
+
+/* Which elements become candidates, in paint order */
+function build(s) {
+  const els = [...s.elements].sort((a, b) => a.at - b.at);
+  let best = 0, n = 0;
+  els.forEach((e) => {
+    const a = area(e);
+    if (s.input !== undefined && e.at > s.input) { e.cand = false; e.reason = "after the first input"; }
+    else if (a > best) { e.cand = true; e.n = ++n; e.color = PALETTE[(n - 1) % PALETTE.length]; best = a; }
+    else { e.cand = false; e.reason = "smaller than the current candidate"; }
+  });
+  return els;
+}
+
+/* One-time DOM */
+SCENARIOS.forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.textContent = s.label;
+  b.dataset.id = s.id;
+  b.addEventListener("click", () => selectScenario(s));
+  tabsEl.appendChild(b);
+});
+
+trackEl.style.setProperty("--z1", pct(GOOD_MS) + "%");
+trackEl.style.setProperty("--z2", pct(POOR_MS) + "%");
+axisEl.innerHTML =
+  [0, 1000, 2000, 3000, 4000].map((v) => `<span style="left:${pct(v)}%">${v}${v === 0 ? " ms" : ""}</span>`).join("") +
+  `<span class="lbl" style="left:${pct(GOOD_MS) / 2}%;color:var(--c-good)">good</span>` +
+  `<span class="lbl" style="left:${(pct(GOOD_MS) + pct(POOR_MS)) / 2}%;color:var(--c-mid)">needs improvement</span>` +
+  `<span class="lbl" style="left:${(pct(POOR_MS) + 100) / 2}%;color:var(--c-poor)">poor</span>`;
+
+/* Pure render of a moment of the load */
+function renderAt(t) {
+  const painted = model.filter((e) => e.at <= t);
+  const cands = painted.filter((e) => e.cand);
+  const lcp = cands[cands.length - 1];
+
+  model.forEach((e) => {
+    const el = pageEl.querySelector(`[data-id="${e.id}"]`);
+    const isPainted = e.at <= t;
+    el.classList.toggle("painted", isPainted);
+    el.classList.toggle("cand", isPainted && e.cand);
+    el.style.setProperty("--cc", e.color || "transparent");
+    const tag = el.querySelector(".tag");
+    tag.textContent = !isPainted ? "" : e.cand ? `#${e.n} ${e.name}, ${area(e).toFixed(0)}%` : `${e.name}, not a candidate`;
+    tag.style.display = isPainted ? "" : "none";
+  });
+
+  trackEl.querySelectorAll(".mark.cand").forEach((m) => { m.style.display = Number(m.dataset.at) <= t ? "" : "none"; });
+  cursorEl.style.left = pct(t) + "%";
+
+  const r = lcp ? rate(lcp.at) : null;
+  durEl.firstChild.nodeValue = lcp ? lcp.at : Math.round(t);
+  badgeEl.className = "badge " + (r ? r.cls : "mid");
+  badgeEl.textContent = r ? `LCP ${r.text.toLowerCase()}` : "No candidate yet";
+  statusEl.textContent = lcp ? `At ${Math.round(t)} ms: ${cands.length} candidate${cands.length === 1 ? "" : "s"}, current LCP ${lcp.name}` : `At ${Math.round(t)} ms: nothing painted yet`;
+
+  slider.value = t;
+  slider.setAttribute("aria-valuetext", `${Math.round(t)} milliseconds`);
+
+  trailEl.innerHTML = cands.length === 0
+    ? `<p class="empty">No candidates yet. Move the slider or replay the load.</p>`
+    : cands.map((e, i) => {
+        const final = e === lcp;
+        return `<div class="cand-row${final ? " final" : ""}" style="--cc:${e.color}">
+          <span class="sw"></span><span class="n">#${e.n}</span>
+          <span class="what"><b>${e.name}</b><span>${e.type}${final ? ", current LCP" : ""}</span></span>
+          <span class="area">${area(e).toFixed(0)}% of viewport</span>
+          <span class="time">${e.at} ms</span>
+        </div>`;
+      }).join("");
+}
+
+function layout() {
+  pageEl.textContent = "";
+  trackEl.querySelectorAll(".mark").forEach((m) => m.remove());
+  model.forEach((e) => {
+    const el = document.createElement("div");
+    el.className = "el " + e.kind;
+    el.dataset.id = e.id;
+    el.style.left = e.x + "%";
+    el.style.top = e.y + "%";
+    el.style.width = e.w + "%";
+    el.style.height = e.h + "%";
+    el.innerHTML = `<span class="tag"></span>`;
+    pageEl.appendChild(el);
+    if (e.cand) {
+      const m = document.createElement("div");
+      m.className = "mark cand";
+      m.dataset.at = e.at;
+      m.style.left = pct(e.at) + "%";
+      m.style.setProperty("--cc", e.color);
+      trackEl.insertBefore(m, cursorEl);
+    }
+  });
+  if (current.input !== undefined) {
+    const m = document.createElement("div");
+    m.className = "mark input";
+    m.style.left = pct(current.input) + "%";
+    m.title = "First user input";
+    trackEl.insertBefore(m, cursorEl);
+  }
+}
+
+function play() {
+  cancelAnimationFrame(raf);
+  if (reduceMotion.matches) return renderAt(MAX_MS);
+  const duration = 3800;
+  // Start the clock on the first frame: the frame timestamp can lag performance.now()
+  let t0 = null;
+  renderAt(0);
+  raf = requestAnimationFrame(function tick(now) {
+    if (t0 === null) t0 = now;
+    const k = Math.min(1, (now - t0) / duration);
+    renderAt(MAX_MS * k);
+    if (k < 1) raf = requestAnimationFrame(tick);
+  });
+}
+
+function selectScenario(s) {
+  current = s;
+  model = build({ ...s, elements: s.elements.map((e) => ({ ...e })) });
+  tabsEl.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === s.id)));
+  const final = model.filter((e) => e.cand).pop();
+  const r = rate(final.at);
+  storyEl.className = "expl " + r.tone;
+  storyEl.innerHTML = `<strong>The LCP is ${final.name} at ${final.at} ms, ${r.text.toLowerCase()}, after ${model.filter((e) => e.cand).length} candidate${model.filter((e) => e.cand).length === 1 ? "" : "s"}.</strong> ${s.story}`;
+  layout();
+  play();
+}
+
+$("play").addEventListener("click", play);
+slider.addEventListener("input", () => { cancelAnimationFrame(raf); renderAt(Number(slider.value)); });
+selectScenario(SCENARIOS[0]);
+
+/* Theme */
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
+(function initTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) return applyTheme(stored);
+  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+})();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
+});
+
+/* Height */
+function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>

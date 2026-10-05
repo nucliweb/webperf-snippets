@@ -8,6 +8,7 @@ browserSupport:
 import snippet from '../../snippets/CoreWebVitals/LCP-Trail.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
+import { Demo } from '../../components/Demo'
 
 # LCP trail
 
@@ -18,6 +19,16 @@ Each time the browser promotes a larger element as the new LCP, the snippet assi
 <Callout type="info">
 **Need timing breakdowns?** Use [LCP Subparts](/CoreWebVitals/LCP-Subparts) to identify which phase (TTFB, load delay, load time, render delay) is causing the bottleneck.
 </Callout>
+
+### See how candidates are promoted
+
+Replay four loads, or move the slider through one, to see when each element becomes a candidate, which ones never do, and how a user input ends the trail:
+
+<Demo
+  src="/demos/lcp-candidates.html"
+  title="Interactive model of a page load in four scenarios, showing when each element is promoted as an LCP candidate with its own colored outline, why a later or smaller element is not, and how the first user input stops new candidates, with the candidates trail and a time slider"
+  caption="Pick a scenario, replay the load and drag the slider to inspect any moment."
+/>
 
 ### Snippet
 
