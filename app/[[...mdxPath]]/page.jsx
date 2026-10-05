@@ -4,6 +4,11 @@ import { useMDXComponents as getMDXComponents } from "../../mdx-components";
 
 export const generateStaticParams = generateStaticParamsFor("mdxPath");
 
+// Every page comes from generateStaticParams. A path outside them (a probe such as
+// /.well-known/webmcp.json) is a 404 straight away, instead of reaching importPage, which throws
+// and logs an error for a page that does not exist.
+export const dynamicParams = false;
+
 export async function generateMetadata(props) {
   const params = await props.params;
   const { metadata } = await importPage(params.mdxPath);
