@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frame times during a scroll</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --tab-active-bg: #1c2a3f;
+  --accent: #58a6ff;
+  --c-good: #3fb950;
+  --c-mid: #e3b341;
+  --c-poor: #f85149;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --tab-active-bg: #dbeafe;
+  --accent: #0969da;
+  --c-good: #1a7f37;
+  --c-mid: #9a6700;
+  --c-poor: #cf222e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+button { font: inherit; color: inherit; }
+
+/* Legend strip (same component as the step demos) */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid var(--lg);
+  color: var(--lg);
+  background: color-mix(in srgb, var(--lg) 12%, transparent);
+}
+
+/* Scenario tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tab:hover { color: var(--text); border-color: var(--accent); }
+.tab[aria-pressed="true"] { color: var(--text); background: var(--tab-active-bg); border-color: var(--accent); }
+
+/* Frame with a title bar (same component as the step demos) */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.result { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dur { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 96px; line-height: 1.1; }
+.dur small { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 3px; }
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.badge.good { color: var(--c-good); }
+.badge.mid { color: var(--c-mid); }
+.badge.poor { color: var(--c-poor); }
+
+/* Controls (same buttons as the step demos) */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-next { background: #1f6feb; color: #fff; }
+.btn-next:hover { background: #388bfd; }
+.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explanation box (same component as the step demos), accent follows the rating */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl.t-ok { border-left-color: var(--c-good); }
+.expl.t-warn { border-left-color: var(--c-mid); }
+.expl.t-block { border-left-color: var(--c-poor); }
+.expl strong { color: var(--text); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* Bar chart of frame times */
+.chart {
+  position: relative;
+  height: 130px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 4px;
+  overflow: hidden;
+}
+.bar { flex: 1; min-width: 0; border-radius: 2px 2px 0 0; visibility: hidden; }
+.bar.shown { visibility: visible; }
+.bar.good { background: var(--c-good); }
+.bar.mid { background: var(--c-mid); }
+.bar.poor { background: var(--c-poor); }
+.line { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--muted); pointer-events: none; }
+.line span { position: absolute; right: 4px; top: -15px; font-size: 10px; color: var(--muted); background: var(--bg); padding: 0 3px; }
+.xaxis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.stat { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.stat .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.stat .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+/* Code and console output */
+.code {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.code b { color: var(--text); font-weight: 600; }
+.code .warn { color: var(--c-mid); }
+
+.note { color: var(--muted); font-size: 12px; padding: 0 2px; }
+
+@media (max-width: 560px) {
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="legend" id="legend"><span class="legend-label">Frame time</span></div>
+
+<div class="tabs" id="tabs" role="group" aria-label="Scenario"></div>
+
+<div class="frame">
+  <div class="frame-label">One second of scrolling, 60 frames</div>
+  <div class="frame-body">
+    <div class="result">
+      <div class="dur" id="fps" aria-hidden="true">0<small>fps</small></div>
+      <span class="badge good" id="badge">Good</span>
+    </div>
+    <div>
+      <div class="chart" id="chart" aria-hidden="true"></div>
+      <div class="xaxis" aria-hidden="true"><span>Start of scroll</span><span>1 s</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-next" id="play" type="button">Scroll again</button>
+</div>
+
+<div class="expl t-ok" id="story" aria-live="polite"></div>
+
+<div class="stats" id="stats"></div>
+
+<div class="frame">
+  <div class="frame-label">The page code</div>
+  <div class="frame-body"><div class="code" id="code"></div></div>
+</div>
+<div class="frame">
+  <div class="frame-label">What the snippet logs</div>
+  <div class="frame-body"><div class="code" id="log"></div></div>
+</div>
+<p class="note">The frame times are modeled to show each cause, not recorded from a real page. The snippet measures the gap between <code>requestAnimationFrame</code> callbacks, rates the session with 55 and 40 fps as thresholds and counts a drop when a frame takes more than 25 ms.</p>
+
+<script>
+const TARGET_MS = 1000 / 60;
+const DROP_MS = TARGET_MS * 1.5;
+const FRAMES = 60;
+const MAX_MS = 80;
+
+const j = (i) => (((i * 37) % 11) - 5) / 10; // deterministic jitter, +-0.5 ms
+
+const SCENARIOS = [
+  {
+    id: "passive", label: "Passive listener",
+    frame: (i) => TARGET_MS + j(i),
+    code: `window.addEventListener("scroll", updateProgress, <b>{ passive: true }</b>);\n\nfunction updateProgress() {\n  // cheap work: write one CSS variable\n}`,
+    warn: false,
+    story: "The listener promises not to call <code>preventDefault()</code>, so the compositor moves the page right away and the handler runs in parallel on the main thread. Every frame lands on the 16.7 ms budget.",
+  },
+  {
+    id: "nonpassive", label: "Non-passive listener",
+    frame: (i) => TARGET_MS + (i % 5 === 0 ? 22 : 11) + j(i),
+    code: `window.addEventListener("scroll", updateProgress);\n\nfunction updateProgress() {\n  // 10 to 20 ms of work on the main thread\n}`,
+    warn: true,
+    story: "Without <code>{ passive: true }</code> the browser cannot know whether the handler cancels the scroll, so the compositor waits for the main thread on each frame. The cost of the handler is added to every frame instead of running beside it.",
+  },
+  {
+    id: "layout", label: "Layout reads in the handler",
+    frame: (i) => TARGET_MS + (i % 4 === 0 ? (i % 8 === 0 ? 28 : 14) : 0) + j(i),
+    code: `window.addEventListener("scroll", () => {\n  items.forEach((el) => {\n    el.style.opacity = 1;          // write\n    const y = <b>el.getBoundingClientRect().top</b>; // read: forces layout\n    ...\n  });\n}, { passive: true });`,
+    warn: false,
+    story: "Writing to the DOM and reading a layout property in the same handler forces the browser to recalculate layout in the middle of the script. The frames with the interleaved reads spike, and the scroll feels like it catches every few frames.",
+  },
+  {
+    id: "heavy", label: "Heavy handler",
+    frame: (i) => TARGET_MS + (i % 6 === 5 ? 45 : 0) + j(i),
+    code: `window.addEventListener("scroll", () => {\n  <b>recomputeEverything();</b> // 45 ms of JavaScript\n}, { passive: true });`,
+    warn: false,
+    story: "Passive keeps the page moving, but a long handler still occupies the main thread, so the <code>requestAnimationFrame</code> callbacks that the snippet measures arrive late. Anything driven by JavaScript during the scroll, like a sticky header or a scroll-linked animation, stutters even if the page itself moves.",
+  },
+];
+
+const RATINGS = {
+  good: { cls: "good", text: "Good", tone: "t-ok", color: "#0CCE6A" },
+  mid: { cls: "mid", text: "Needs improvement", tone: "t-warn", color: "#FFA400" },
+  poor: { cls: "poor", text: "Poor", tone: "t-block", color: "#FF4E42" },
+};
+const fpsRating = (fps) => (fps >= 55 ? RATINGS.good : fps >= 40 ? RATINGS.mid : RATINGS.poor);
+const barClass = (ms) => (ms <= 18 ? "good" : ms <= DROP_MS ? "mid" : "poor");
+
+const $ = (id) => document.getElementById(id);
+const tabsEl = $("tabs"), chartEl = $("chart"), fpsEl = $("fps"), badgeEl = $("badge");
+const storyEl = $("story"), statsEl = $("stats"), codeEl = $("code"), logEl = $("log"), legendEl = $("legend");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+let current = SCENARIOS[0];
+let times = [];
+let raf = 0;
+
+/* One-time DOM */
+[["good", "18 ms or less", "--c-good"], ["mid", "18 to 25 ms", "--c-mid"], ["poor", "Over 25 ms, a drop", "--c-poor"]].forEach(([, name, color]) => {
+  const pill = document.createElement("span");
+  pill.className = "lg";
+  pill.style.setProperty("--lg", `var(${color})`);
+  pill.textContent = name;
+  legendEl.appendChild(pill);
+});
+
+SCENARIOS.forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.textContent = s.label;
+  b.dataset.id = s.id;
+  b.addEventListener("click", () => selectScenario(s));
+  tabsEl.appendChild(b);
+});
+
+const yPct = (ms) => (ms / MAX_MS) * 100;
+[[TARGET_MS, "16.7 ms"], [DROP_MS, "25 ms"]].forEach(([ms, label]) => {
+  const l = document.createElement("div");
+  l.className = "line";
+  l.style.bottom = yPct(ms) + "%";
+  l.innerHTML = `<span>${label}</span>`;
+  chartEl.appendChild(l);
+});
+for (let i = 0; i < FRAMES; i++) {
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  chartEl.appendChild(bar);
+}
+const bars = [...chartEl.querySelectorAll(".bar")];
+
+/* Stats as the snippet computes them */
+function compute(ts) {
+  const avg = ts.reduce((a, b) => a + b, 0) / ts.length;
+  return {
+    avgFps: 1000 / avg,
+    minFps: 1000 / Math.max(...ts),
+    drops: ts.filter((t) => t > DROP_MS).length,
+    worst: Math.max(...ts),
+  };
+}
+
+function showFrames(n) {
+  bars.forEach((bar, i) => bar.classList.toggle("shown", i < n));
+}
+
+function render(s) {
+  times = Array.from({ length: FRAMES }, (_, i) => s.frame(i));
+  bars.forEach((bar, i) => {
+    bar.style.height = Math.min(100, yPct(times[i])) + "%";
+    bar.className = "bar " + barClass(times[i]);
+    bar.title = `Frame ${i + 1}: ${times[i].toFixed(1)} ms`;
+  });
+  const st = compute(times), r = fpsRating(st.avgFps);
+
+  fpsEl.firstChild.nodeValue = Math.round(st.avgFps);
+  badgeEl.className = "badge " + r.cls;
+  badgeEl.textContent = r.text;
+  storyEl.className = "expl " + r.tone;
+  storyEl.innerHTML = `<strong>${Math.round(st.avgFps)} fps average, ${st.drops} dropped frame${st.drops === 1 ? "" : "s"}, ${r.text.toLowerCase()}.</strong> ${s.story}`;
+
+  statsEl.innerHTML = [
+    ["Average", Math.round(st.avgFps) + " fps"],
+    ["Minimum", Math.round(st.minFps) + " fps"],
+    ["Drops", `${st.drops} of ${FRAMES}`],
+    ["Worst frame", st.worst.toFixed(1) + " ms"],
+  ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+
+  codeEl.innerHTML = s.code;
+  const lines = [];
+  if (s.warn) {
+    lines.push(`<span class="warn">Non-passive "scroll" listener on &lt;WINDOW&gt;</span>`);
+    lines.push(`<span class="warn">   Fix: add { passive: true } to improve scroll performance.</span>`);
+  }
+  lines.push(`Scroll: avg ${Math.round(st.avgFps)} fps, ${FRAMES} frames, ${st.drops} drop(s)`);
+  if (st.drops > 0) lines.push(`   Worst frame: ${st.worst.toFixed(1)}ms (target: ${TARGET_MS.toFixed(1)}ms)`);
+  logEl.innerHTML = lines.join("\n");
+}
+
+function play() {
+  cancelAnimationFrame(raf);
+  if (reduceMotion.matches) return showFrames(FRAMES);
+  const duration = 1400;
+  // Start the clock on the first frame: the frame timestamp can lag performance.now()
+  let t0 = null;
+  showFrames(0);
+  raf = requestAnimationFrame(function tick(now) {
+    if (t0 === null) t0 = now;
+    const k = Math.min(1, (now - t0) / duration);
+    showFrames(Math.ceil(FRAMES * k));
+    if (k < 1) raf = requestAnimationFrame(tick);
+  });
+}
+
+function selectScenario(s) {
+  current = s;
+  tabsEl.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === s.id)));
+  render(s);
+  play();
+}
+
+$("play").addEventListener("click", play);
+selectScenario(SCENARIOS[0]);
+
+/* Theme */
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
+(function initTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) return applyTheme(stored);
+  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+})();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
+});
+
+/* Height */
+function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>
