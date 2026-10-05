@@ -14,12 +14,33 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The sitemap and `robots.txt` come from `app/sitemap.js` and `app/robots.js` instead of `next-sitemap`, with the same 61 URLs.
 - Links to other sites carry the hidden label "(opens in a new tab)" for screen readers. The "Copy page" button and the previous and next links at the foot of a page do not exist; the sidebar and the search cover the navigation.
 - The text of the pages and the headings use typographic quotes, a convention of Nextra 4.
+- The snippet pages follow the docs template of `CONTRIBUTING.md`.
+- The helpers several snippets share (`formatBytes`, `getRootDomain`, first-party detection) are one block marked with `// @shared`, and `check:consistency` fails when a copy differs. First-party detection compares root domains in every snippet, `getRootDomain` treats an IP address as its own root, and `formatBytes` prints `-` for an unknown size.
+- The nine snippets that returned every item they found cap `items` at 50, most relevant first.
+- `Cache-Strategy-Analysis` reports uncompressed text and duplicate requests, which need no headers, as anti-patterns on any origin, says how much of the page it could analyze (`details.headerCoveragePercent`), and leaves the cache efficiency score `null` when no header was readable.
+- `Resource-Hints-Validation` lists each unused hint in `items`, and a preload for a viewport that does not match is no longer counted as unused.
+- `Image-Element-Audit` audits the image the browser reports as the LCP element, and none when the LCP is text, a CSS background or a video.
 
 ### Added
+- Seven snippets: `Compression-Audit`, `Server-Timing-Early-Hints`, `Speculation-Rules-Inspector`, `Webfont-Usage-Analyzer`, `Oversized-Images`, `DOM-Size-and-Depth` and `Third-Party-Impact-by-Domain`, which ranks third parties by render-blocking, main-thread time in long animation frames and transfer size. The collection now has 56 snippets.
+- Twelve interactive demos, 17 in total: TTFB sub-parts, LCP sub-parts, layout shifts and CLS, the INP phases, long animation frames, back/forward cache blockers, scroll frame times, input latency by event type, `fetchpriority` and the order of a load, LCP candidates, what `content-visibility: auto` skips, and the ranking of third parties. They share a look, keyboard and screen reader support, and reduced motion handling, documented in `public/demos/README.md`.
+- A "Which snippet should I use?" guide, linked from the home page and from the TTFB sections.
+- Browser support as a badge and a table on the snippet pages, generated from MDN browser-compat-data with the `browserSupport` and `browserSupportReported` frontmatter. The build fails when a key does not exist.
+- Own SVG diagrams, `Flow` and `Sequence`, drawn with the theme colors in `components/diagrams`. They replace the Mermaid diagrams of the pages.
+- Icons drawn at render time instead of emojis in pages, callouts, diagrams, demos and the visualizer. The MDX source keeps the emoji, and `check:emoji` runs in CI and in the pre-commit hook.
+- `snippets/SCHEMA.md`, the return-value contract of every snippet, enforced by an end-to-end test.
+- `corsLimitedAnalysis` in the result of the snippets whose analysis is partial because cross-origin data is hidden.
+- `OWN_DOMAINS` at the top of the first-party snippets (`First-And-Third-Party-Script-Info`, `First-And-Third-Party-Script-Timings`, `Script-Loading`, `TTFB-Resources`, `Cache-Strategy-Analysis` and `Fonts-Preloaded-Loaded-and-used-above-the-fold`) to count a site's own CDN on another root domain as first party.
+- The CLI reaches version 0.4.1 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `audit`, `loading` and `interaction` workflows, CrUX field data, `--storage-state` for pages behind a login, `--report-to` and decision-tree follow-ups for LCP and CLS.
+- GitHub Action at `.github/actions/webperf-snippets` that runs the CLI with LCP and CLS budgets and writes the report to the job summary.
+- A `skip-e2e` label that skips the build and the end-to-end tests on documentation-only pull requests.
 - `npm run check:built-snippets` fails after a build when a page shows a snippet different from its source file. CI runs it.
 
 ### Fixed
 - The `BreadcrumbList` and `Article` JSON-LD schemas appear in the HTML of the snippet and category pages. They were mounted inside `next/head`, which does not render components, so no page carried them. Error pages carry none.
+- `LCP-Image-Entropy`, `LCP-Subparts`, `LCP-Trail` and `LCP-Video-Candidate` return `status: "unsupported"` in a browser without LCP entries, instead of an empty result.
+- `First-And-Third-Party-Script-Timings` reports the DNS, connection, request and response phases of a cross-origin script without `Timing-Allow-Origin` as `null`, instead of numbers computed against zero.
+- The demo animations start their clock on the first frame, so the progress does not stay at zero inside an iframe.
 
 ### Security
 - The site runs on Next.js 16, which resolves the `next` and `postcss` advisories reported by `npm audit`. `dev` and `build` use webpack (`--webpack`) for the `?raw` snippet imports, and React stays on 18.
