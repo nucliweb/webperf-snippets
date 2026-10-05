@@ -9,6 +9,7 @@ browserSupportReported:
 import snippet from "../../snippets/Loading/Back-Forward-Cache.js?raw";
 import { Snippet } from "../../components/Snippet";
 import { Flow, Sequence } from '../../components/diagrams'
+import { Demo } from '../../components/Demo'
 
 # Back/forward cache (bfcache)
 
@@ -96,6 +97,16 @@ bfcache is one of the most impactful performance optimizations available - it ca
     { from: "Block", to: "Navigate2" },
     { from: "Navigate2", to: "Reload" },
   ]}
+/>
+
+### See what a blocker costs
+
+Turn features of Page A on and off, then press the back button to compare an instant restore with a full reload. The table lists the reason the browser reports and whether the snippet can see it beforehand:
+
+<Demo
+  src="/demos/bfcache-blockers.html"
+  title="Interactive back navigation that compares an instant bfcache restore with a full reload, with toggles for an unload listener, Cache-Control no-store, an open WebSocket, an open IndexedDB connection and a cross-origin iframe, and the NotRestoredReasons each one produces"
+  caption="Toggle the features of Page A and press the back button to see the restore or the reload."
 />
 
 ### Snippet
