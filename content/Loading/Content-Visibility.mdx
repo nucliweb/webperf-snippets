@@ -5,6 +5,7 @@ browserSupport:
 
 import snippet from '../../snippets/Loading/Content-Visibility.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Demo } from '../../components/Demo'
 
 # Content visibility
 
@@ -85,6 +86,16 @@ analyzeContentVisibilityOpportunities({ threshold: -100, minHeight: 80, minChild
 - **estimatedSavings**: Rough estimate of render time saved (Low/Medium/High)
 
 **Note:** The function automatically filters out nested elements - if a parent container is selected, its children won't appear separately in the results.
+
+### See what it skips
+
+Scroll down a long page one section at a time with three CSS setups, and compare the render work up front, the sections rendered along the way and what happens to the page height:
+
+<Demo
+  src="/demos/content-visibility-render.html"
+  title="Interactive model of a long page scrolled section by section, comparing the default rendering, content-visibility auto with contain-intrinsic-size, and content-visibility auto without a size, showing the render work, the sections rendered and the page height and scrollbar in each case"
+  caption="Switch the CSS setup and press the scroll button to see which sections render and when."
+/>
 
 ### How content-visibility works
 

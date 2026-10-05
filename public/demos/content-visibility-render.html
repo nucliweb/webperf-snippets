@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What content-visibility auto skips</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --tab-active-bg: #1c2a3f;
+  --accent: #58a6ff;
+  --c-good: #3fb950;
+  --c-mid: #e3b341;
+  --c-poor: #f85149;
+  --p-render: #58a6ff;
+  --p-skip: #8b949e;
+  --p-view: #e3b341;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --tab-active-bg: #dbeafe;
+  --accent: #0969da;
+  --c-good: #1a7f37;
+  --c-mid: #9a6700;
+  --c-poor: #cf222e;
+  --p-render: #0969da;
+  --p-skip: #656d76;
+  --p-view: #9a6700;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+button { font: inherit; color: inherit; }
+
+/* Legend strip (same component as the step demos) */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid var(--lg);
+  color: var(--lg);
+  background: color-mix(in srgb, var(--lg) 12%, transparent);
+}
+
+/* Scenario tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tab:hover { color: var(--text); border-color: var(--accent); }
+.tab[aria-pressed="true"] { color: var(--text); background: var(--tab-active-bg); border-color: var(--accent); }
+
+/* Frame with a title bar (same component as the step demos) */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Controls (same buttons as the step demos) */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-next { background: #1f6feb; color: #fff; }
+.btn-next:hover { background: #388bfd; }
+.btn-next:disabled { opacity: .45; cursor: default; }
+.btn-reset { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-reset:hover { border-color: var(--accent); }
+.counter { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explanation box (same component as the step demos) */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl.t-ok { border-left-color: var(--c-good); }
+.expl.t-warn { border-left-color: var(--c-mid); }
+.expl.t-block { border-left-color: var(--c-poor); }
+.expl strong { color: var(--text); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* Page map and metrics */
+.layout { display: grid; grid-template-columns: 240px 1fr; gap: 14px; }
+.map-col { display: flex; flex-direction: column; gap: 4px; }
+.map-title { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.map {
+  position: relative;
+  width: 100%;
+  height: 340px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.sect {
+  position: absolute;
+  left: 8px;
+  right: 18px;
+  border-radius: 3px;
+  font-size: 10px;
+  padding: 2px 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: top .3s ease, height .3s ease, background .2s ease;
+}
+.sect.rendered { background: color-mix(in srgb, var(--p-render) 25%, transparent); border: 1px solid var(--p-render); color: var(--text); }
+.sect.skipped { border: 1px dashed var(--p-skip); color: var(--muted); background: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--p-skip) 14%, transparent) 5px 10px); }
+.sect.collapsed { border: 0; border-top: 1px dashed var(--c-poor); background: none; color: var(--c-poor); height: 0 !important; padding: 0; overflow: visible; }
+.viewport {
+  position: absolute;
+  left: 3px;
+  right: 13px;
+  border: 2px solid var(--p-view);
+  border-radius: 4px;
+  pointer-events: none;
+  transition: top .3s ease;
+}
+.thumb-track { position: absolute; top: 4px; bottom: 4px; right: 4px; width: 6px; border-radius: 3px; background: var(--surface2); }
+.thumb { position: absolute; left: 0; right: 0; border-radius: 3px; background: var(--muted); transition: top .3s ease, height .3s ease; }
+
+.side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.metric { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.metric .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+.metric .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.metric .v small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.work { display: flex; flex-direction: column; gap: 4px; }
+.work-bar { position: relative; height: 14px; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.work-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--p-render); transition: width .3s ease; }
+.work-cap { font-size: 11px; color: var(--muted); }
+.code {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.code b { color: var(--text); font-weight: 600; }
+.note { color: var(--muted); font-size: 12px; padding: 0 2px; }
+
+@media (max-width: 560px) {
+  .layout { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="legend" id="legend"><span class="legend-label">Sections</span></div>
+
+<div class="tabs" id="tabs" role="group" aria-label="Scenario"></div>
+
+<div class="frame">
+  <div class="frame-label">A long page, scrolled one section at a time</div>
+  <div class="frame-body">
+    <div class="layout">
+      <div class="map-col">
+        <div class="map-title">Layout of the page</div>
+        <div class="map" id="map" aria-hidden="true">
+          <div class="thumb-track"><div class="thumb" id="thumb"></div></div>
+          <div class="viewport" id="viewport"></div>
+        </div>
+      </div>
+      <div class="side">
+        <div class="metrics" id="metrics"></div>
+        <div class="work">
+          <div class="work-bar" aria-hidden="true"><div class="work-fill" id="fill"></div></div>
+          <div class="work-cap" id="cap"></div>
+        </div>
+        <div class="code" id="code"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-next" id="next" type="button">Scroll down</button>
+  <button class="btn btn-reset" id="reset" type="button">Reset</button>
+  <span class="counter" id="counter" aria-hidden="true"></span>
+</div>
+
+<div class="expl t-ok" id="story" aria-live="polite"></div>
+<p class="note">The page is a model: 8 sections of 140 px, each costing 78 ms to lay out and paint, and a 280 px viewport. With <code>auto</code> a section is rendered while it is within half a viewport of the visible area. Rendered sections are not discarded again in this model.</p>
+
+<script>
+const N = 8;
+const SECTION_H = 140;
+const VIEW_H = 280;
+const COST_MS = 78;
+const MARGIN = VIEW_H * 0.5;
+const STEPS = 7;
+const SCALE = 0.3;
+
+const SCENARIOS = [
+  {
+    id: "visible", label: "Default (visible)", auto: false, placeholder: SECTION_H,
+    css: `.section {\n  /* content-visibility: visible (default) */\n}`,
+    story: "Every section is laid out and painted before the first frame, wherever it is on the page. The 624 ms of work happens up front, and most of it is for content nobody can see yet.",
+  },
+  {
+    id: "auto", label: "auto + contain-intrinsic-size", auto: true, placeholder: SECTION_H,
+    css: `.section {\n  <b>content-visibility: auto;\n  contain-intrinsic-size: auto 140px;</b>\n}`,
+    story: "Only the sections near the viewport are rendered. The others are skipped but keep a 140 px placeholder, so the document height and the scrollbar stay the same while the work is spread over the scroll.",
+  },
+  {
+    id: "nosize", label: "auto without a size", auto: true, placeholder: 0,
+    css: `.section {\n  <b>content-visibility: auto;</b>\n  /* no contain-intrinsic-size */\n}`,
+    story: "The initial work is the same as before, but a skipped section has no size, so it collapses to zero height. The document is only 420 px tall instead of 1120 px, the scrollbar is wrong, and every section that renders makes the page grow under the reader.",
+  },
+];
+
+const $ = (id) => document.getElementById(id);
+const tabsEl = $("tabs"), mapEl = $("map"), viewportEl = $("viewport"), thumbEl = $("thumb");
+const metricsEl = $("metrics"), fillEl = $("fill"), capEl = $("cap"), codeEl = $("code"), storyEl = $("story");
+const counterEl = $("counter"), nextBtn = $("next"), legendEl = $("legend");
+
+let current = SCENARIOS[0];
+let step = 0;
+let rendered = [];
+let work = 0;
+let startHeight = 0;
+
+/* One-time DOM */
+[["Rendered", "--p-render"], ["Skipped", "--p-skip"], ["Viewport", "--p-view"]].forEach(([name, color]) => {
+  const pill = document.createElement("span");
+  pill.className = "lg";
+  pill.style.setProperty("--lg", `var(${color})`);
+  pill.textContent = name;
+  legendEl.appendChild(pill);
+});
+
+SCENARIOS.forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.textContent = s.label;
+  b.dataset.id = s.id;
+  b.addEventListener("click", () => selectScenario(s));
+  tabsEl.appendChild(b);
+});
+
+const sectEls = Array.from({ length: N }, (_, i) => {
+  const el = document.createElement("div");
+  el.className = "sect";
+  el.textContent = `Section ${i + 1}`;
+  mapEl.insertBefore(el, viewportEl);
+  return el;
+});
+
+/* Model */
+const heights = () => rendered.map((r) => (r || !current.auto ? SECTION_H : current.placeholder));
+function layout(target) {
+  // Rendering a section changes its height and moves the ones below it, so render one at a
+  // time, in page order, and lay the page out again after each one
+  for (let guard = 0; guard <= N; guard++) {
+    const h = heights();
+    const tops = h.reduce((acc, _, i) => (acc.push(i === 0 ? 0 : acc[i - 1] + h[i - 1]), acc), []);
+    const docH = h.reduce((a, b) => a + b, 0);
+    const scrollTop = Math.max(0, Math.min(target, docH - VIEW_H));
+    const next = rendered.findIndex((r, i) => !r && (!current.auto || (tops[i] < scrollTop + VIEW_H + MARGIN && tops[i] + Math.max(h[i], 1) > scrollTop - MARGIN)));
+    if (next === -1) return { h, tops, docH, scrollTop };
+    rendered[next] = true;
+    work += COST_MS;
+  }
+}
+
+function render() {
+  const { h, tops, docH, scrollTop } = layout(step * SECTION_H);
+  const cnt = rendered.filter(Boolean).length;
+    const total = N * COST_MS;
+
+  sectEls.forEach((el, i) => {
+    const collapsed = !rendered[i] && current.placeholder === 0;
+    el.className = "sect " + (rendered[i] ? "rendered" : collapsed ? "collapsed" : "skipped");
+    el.style.top = tops[i] * SCALE + "px";
+    el.style.height = h[i] * SCALE + "px";
+    // The collapsed sections all sit at the same line, so only the first one carries the label
+    el.textContent = rendered[i] ? `Section ${i + 1}` : collapsed ? (rendered[i - 1] ? `Sections ${i + 1} to ${N}: 0 px each` : "") : `Section ${i + 1}: skipped`;
+  });
+  viewportEl.style.top = scrollTop * SCALE + "px";
+  viewportEl.style.height = VIEW_H * SCALE + "px";
+
+  const trackH = 340 - 8;
+  thumbEl.style.height = Math.min(1, VIEW_H / docH) * trackH + "px";
+  thumbEl.style.top = (docH > VIEW_H ? (scrollTop / (docH - VIEW_H)) * (1 - Math.min(1, VIEW_H / docH)) * trackH : 0) + "px";
+
+  metricsEl.innerHTML = [
+    ["Render work", `${work}<small> ms</small>`],
+    ["Rendered", `${cnt}<small> of ${N}</small>`],
+    ["Page height", `${docH}<small> px</small>`],
+  ].map(([k, v]) => `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  fillEl.style.width = (work / total) * 100 + "%";
+  capEl.textContent = `${work} ms of the ${total} ms that rendering the whole page costs`;
+  codeEl.innerHTML = current.css;
+  counterEl.textContent = `Step ${step} / ${STEPS}`;
+  nextBtn.disabled = step >= STEPS;
+
+  /* Explanation */
+  const grewFrom = current.placeholder === 0 && current.auto;
+  if (step === 0) startHeight = docH;
+  if (step === 0) {
+    storyEl.className = "expl " + (current.auto ? (grewFrom ? "t-warn" : "t-ok") : "t-block");
+    storyEl.innerHTML = `<strong>${work} ms of render work before the first frame, ${cnt} of ${N} sections rendered.</strong> ${current.story}`;
+  } else {
+    const bad = grewFrom;
+    storyEl.className = "expl " + (!current.auto ? "t-block" : bad ? "t-warn" : "t-ok");
+    storyEl.innerHTML = !current.auto
+      ? `<strong>Step ${step}: nothing left to render, ${work} ms were spent before the first frame.</strong> Scrolling costs no rendering, but the page paid for every section up front.`
+      : bad
+        ? `<strong>Step ${step}: ${cnt} of ${N} sections rendered, page height ${docH} px.</strong> The page was only ${startHeight} px tall at the start and keeps growing as the sections render, so the scrollbar thumb keeps shrinking and the reader loses their place.`
+        : `<strong>Step ${step}: ${cnt} of ${N} sections rendered, ${work} ms of work so far.</strong> The sections that scrolled into range were rendered just in time, and the page height stayed at ${docH} px the whole time.`;
+  }
+}
+
+function reset() {
+  step = 0;
+  rendered = new Array(N).fill(false);
+  work = 0;
+  render();
+}
+
+function selectScenario(s) {
+  current = s;
+  tabsEl.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === s.id)));
+  reset();
+}
+
+nextBtn.addEventListener("click", () => { if (step < STEPS) { step++; render(); } });
+$("reset").addEventListener("click", reset);
+selectScenario(SCENARIOS[0]);
+
+/* Theme */
+function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
+(function initTheme() {
+  const stored = localStorage.getItem("theme");
+  if (stored) return applyTheme(stored);
+  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+})();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
+});
+
+/* Height */
+function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>
