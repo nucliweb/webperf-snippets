@@ -55,6 +55,7 @@ npm run test:site            # sitemap routes, _meta reader, built snippets chec
 npm run check:built-snippets # after `npm run build`: every page shows its snippets as in the source
 npm run test:icons           # emoji to icon plugins
 npm run test:support         # browser support plugin
+npm run test:prompt          # agent prompt of each snippet (lib/snippet-prompt.mjs)
 
 npm run test:unit --prefix cli
 npm run test:e2e --prefix cli   # Playwright against local fixtures (cli/tests/fixtures)

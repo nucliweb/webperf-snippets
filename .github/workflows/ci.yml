@@ -71,6 +71,9 @@ jobs:
       - name: Run browser support tests
         run: npm run test:support
 
+      - name: Run snippet prompt tests
+        run: npm run test:prompt
+
       - name: Check generated skills are up to date
         run: npm run generate-skills:check
 
