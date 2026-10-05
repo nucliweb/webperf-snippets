@@ -9,6 +9,7 @@ import snippet from '../../snippets/Interaction/Scroll-Performance.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
 import { Flow } from '../../components/diagrams'
+import { Demo } from '../../components/Demo'
 
 # Scroll performance analysis
 
@@ -106,6 +107,16 @@ element.addEventListener('scroll', handler)
 // Fast: browser scrolls immediately, JS runs independently
 element.addEventListener('scroll', handler, { passive: true })
 ```
+
+### See the frame times
+
+Switch between four ways of handling a scroll and compare the frame times the snippet would record in each one:
+
+<Demo
+  src="/demos/scroll-frames.html"
+  title="Interactive bar chart of 60 frame times during one second of scrolling, comparing a passive listener, a non-passive listener, layout reads in the handler and a heavy handler, with the average fps, drops and the snippet log for each"
+  caption="Pick a scenario and press the scroll button to replay the frames."
+/>
 
 ### Frame drops
 
