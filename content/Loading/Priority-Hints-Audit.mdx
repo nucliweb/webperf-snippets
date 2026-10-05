@@ -11,6 +11,7 @@ browserSupportReported:
 import snippet from '../../snippets/Loading/Priority-Hints-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
+import { Demo } from '../../components/Demo'
 
 # Priority hints audit
 
@@ -40,6 +41,16 @@ Audits all `fetchpriority` attribute usage across the page, covering non-image r
 | `fetchpriority="low"` on a resource loaded in the first 500ms | If it loads that early, the browser may already consider it critical |
 | `fetchpriority="high"` on a resource loaded after 3s | High priority did not help, investigate render-blocking dependencies |
 | LCP image without `fetchpriority="high"` | Missed opportunity to improve Largest Contentful Paint |
+
+### See how priority reorders a load
+
+Compare the same page with different `fetchpriority` values and watch when the LCP image finishes, and which of these combinations the snippet flags:
+
+<Demo
+  src="/demos/fetchpriority-waterfall.html"
+  title="Interactive simulated waterfall of six requests sharing a 4 Mbps connection, comparing no fetchpriority hints, high on the LCP image, low on the other resources, both together, and a preload combined with low, with the time at which the LCP image finishes and the issues the snippet reports"
+  caption="Switch scenarios and replay the load to see how the bandwidth is shared."
+/>
 
 ### Snippet
 
