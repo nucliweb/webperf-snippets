@@ -15,7 +15,7 @@
     "check:emoji": "node scripts/check-emoji.js",
     "test:icons": "node --test lib/rehype-icons.test.js lib/strip-emoji.test.js scripts/check-emoji.test.js",
     "test:support": "node --test lib/browser-support.test.js lib/remark-browser-support.test.js",
-    "test:prompt": "node --test lib/snippet-prompt.test.mjs",
+    "test:prompt": "node --test lib/snippet-prompt.test.mjs lib/remark-snippet-prompt.test.mjs",
     "test:ci": "node --test scripts/ci-skip-slow-steps.test.js",
     "test:diagrams": "vitest run components/diagrams",
     "test:components": "vitest run components",

@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { createRequire } from 'node:module'
 import nextra from 'nextra'
+import remarkSnippetPrompt from './lib/remark-snippet-prompt.mjs'
 
 const require = createRequire(import.meta.url)
 const rehypeIcons = require('./lib/rehype-icons')
@@ -8,7 +9,7 @@ const remarkBrowserSupport = require('./lib/remark-browser-support')
 
 const withNextra = nextra({
   mdxOptions: {
-    remarkPlugins: [remarkBrowserSupport],
+    remarkPlugins: [remarkBrowserSupport, remarkSnippetPrompt],
     rehypePlugins: [rehypeIcons],
   },
 })

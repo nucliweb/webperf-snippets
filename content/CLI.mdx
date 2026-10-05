@@ -318,6 +318,12 @@ A follow-up informs: the `error` issues it reports appear in the report and do n
 | `1`  | Budget violation, a snippet errored, or a step of the workflow reported an `error` issue. |
 | `2`  | Usage error (missing URL, unknown workflow). |
 
+## Run it from an AI agent
+
+Each snippet page has a **Copy prompt** button above the code. The prompt asks an AI agent with a terminal to run that snippet with this CLI, pinned to the published version, and to report the result. It includes the install command, the `--snippet` name, an `--interact-script` when the snippet needs interactions, and how to read the `status`, `issues` and `corsLimitedAnalysis` fields. The agent asks for the URL if you do not give it one.
+
+The snippets an agent cannot run in a meaningful way have no button: the [Fetch & XHR Timeline](/DevTools-Overrides/Fetch-XHR-Timeline) overrides, which need DevTools Local Overrides, the [Long Animation Frames helpers](/Interaction/Long-Animation-Frames-Helpers), and [Network Bandwidth & Connection Quality](/Resources/Network-Bandwidth-Connection-Quality), because headless Chromium reports the connection of the machine it runs on. The [Back/forward cache](/Loading/Back-Forward-Cache) prompt says that the result is partial, since the CLI does not navigate back.
+
 ## CI integration
 
 GitHub Actions example, fail the PR if LCP exceeds 2.5s:
