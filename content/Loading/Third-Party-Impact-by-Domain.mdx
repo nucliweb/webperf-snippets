@@ -10,6 +10,7 @@ browserSupportReported:
 import snippet from '../../snippets/Loading/Third-Party-Impact-by-Domain.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
+import { Demo } from '../../components/Demo'
 
 # Third-party impact by domain
 
@@ -86,6 +87,16 @@ Browsers report every size as zero for a cross-origin resource unless its server
 <Callout type="warning">
   When `corsLimitedAnalysis` is `true`, treat `transferBytes` and `details.thirdPartyBytes` as lower bounds. Request counts, render-blocking flags and main-thread time are not affected.
 </Callout>
+
+### Fix the top domain first
+
+Apply a fix to a domain, or let the demo apply the suggested one to the top of the ranking, and watch how the order, the totals and the findings of the snippet change:
+
+<Demo
+  src="/demos/third-party-ranking.html"
+  title="Interactive ranking of six invented third-party domains ordered as the snippet does, with render-blocking first, then main-thread time, then transfer size, where deferring, delaying until interaction or removing a domain changes the order, the totals and the issues reported"
+  caption="Choose an action for each domain, or press the button to fix the top one, and see the ranking update."
+/>
 
 ### Acting on the results
 
