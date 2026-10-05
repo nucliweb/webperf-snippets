@@ -101,11 +101,25 @@ pre code {
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* "Copy prompt" sits above the code and stays visible, unlike the copy button, which only shows on hover */
-.wp-snippet-toolbar {
+/* The bar above the code that offers the agent prompt; it stays visible, unlike the copy button,
+   which only shows on hover */
+.wp-snippet-agent {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
   margin-bottom: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--wp-button-border);
+  border-radius: 0.75rem;
+}
+
+.wp-snippet-agent p {
+  margin: 0;
+  flex: 1 1 18rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .wp-snippet-prompt {

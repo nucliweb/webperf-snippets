@@ -47,12 +47,14 @@ export function Snippet({ code, prompt }) {
       onMouseLeave={() => setHovered(false)}
     >
       {prompt ? (
-        <div className="wp-snippet-toolbar">
+        <div className="wp-snippet-agent">
+          <p>
+            <strong>Run it from an AI agent:</strong> the prompt uses the CLI to measure any URL and report the result.
+          </p>
           <button
             type="button"
             onClick={handleCopyPrompt}
             className="wp-snippet-prompt"
-            title="Copy a prompt that asks an AI agent to run this snippet with the webperf-snippets CLI"
           >
             <svg
               width="14"

@@ -11,9 +11,11 @@ describe("Snippet", () => {
     expect(html).toMatch(/<button[^>]*class="wp-snippet-prompt"[^>]*>.*?Copy prompt<\/button>/);
   });
 
-  it("explains what the prompt is for to screen readers and on hover", () => {
+  it("explains in a visible sentence what the prompt is for", () => {
     const html = renderToStaticMarkup(<Snippet code={CODE} prompt={PROMPT} />);
-    expect(html).toMatch(/title="Copy a prompt that asks an AI agent to run this snippet with the webperf-snippets CLI"/);
+    expect(html).toMatch(
+      /<div class="wp-snippet-agent">.*Run it from an AI agent:.*the prompt uses the CLI to measure any URL and report the result\..*<button/
+    );
   });
 
   it("has a live region that announces the copy", () => {
