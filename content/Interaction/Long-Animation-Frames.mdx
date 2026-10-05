@@ -9,6 +9,7 @@ import snippet from '../../snippets/Interaction/Long-Animation-Frames.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
 import { Flow } from '../../components/diagrams'
+import { Demo } from '../../components/Demo'
 
 # Long animation frames (LoAF)
 
@@ -69,6 +70,16 @@ A frame is considered "long" when it takes more than 50ms. The API provides deta
     { from: "Paint", to: "End" },
     { from: "Threshold", to: "Render", dashed: true },
   ]}
+/>
+
+### Anatomy of a long frame
+
+Pick a scenario to see where the time of a frame goes, which part counts as blocking, and what the entry reports for each one:
+
+<Demo
+  src="/demos/long-animation-frames.html"
+  title="Interactive timeline of an animation frame in five scenarios, showing script, forced layout, third-party script and render time against the 50 ms limit, with the matching PerformanceLongAnimationFrameTiming fields"
+  caption="Switch scenarios, replay the frame and select a segment to see which entry field reports it."
 />
 
 ### Comparison: Long tasks vs LoAF
