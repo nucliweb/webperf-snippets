@@ -90,9 +90,11 @@ function writtenCode(call) {
   return ''
 }
 
-// ctx: { pkg }, the package the prompt names: the version on npm, or a local tarball
+// ctx: { pkg, interactions, missingSelectors }. `pkg` is the package the prompt names (the version
+// on npm, or a local tarball); `interactions` is the file the agent left and `missingSelectors` the
+// selectors of it that the fixture does not have.
 export function gradeRun(evalCase, transcript, ctx) {
-  const { snippet, expect } = evalCase
+  const { snippet, interactive, expect } = evalCase
   const runs = cliRuns(transcript, snippet)
   const last = runs.at(-1)?.result
   const checks = []
@@ -102,7 +104,8 @@ export function gradeRun(evalCase, transcript, ctx) {
     (r) =>
       r.command.includes(ctx.pkg) &&
       r.command.includes(`playwright@${PLAYWRIGHT}`) &&
-      r.command.includes('--json')
+      r.command.includes('--json') &&
+      (!interactive || r.command.includes('--interact-script'))
   )
   check('runs-cli', pinned.length > 0, runs.at(-1)?.command ?? 'no CLI run')
 
@@ -114,6 +117,17 @@ export function gradeRun(evalCase, transcript, ctx) {
   if (expect.reference) {
     const { value, tolerance } = expect.reference
     check('matches-reference', last && Math.abs(last.value - value) <= tolerance, `${last?.value} vs ${value} ±${tolerance}`)
+  }
+
+  if (interactive) {
+    const steps = ctx.interactions?.interactions ?? []
+    const missing = ctx.missingSelectors ?? []
+    check('selectors-exist', steps.length > 0 && missing.length === 0, ctx.interactions ? missing.join(', ') : 'no interactions.json')
+    if (expect.noTyping) check('no-typing', !steps.some((s) => s.action === 'type'))
+    if (expect.minInteractions) {
+      const count = last?.details?.totalInteractions ?? 0
+      check('records-interactions', count >= expect.minInteractions, `${count} interactions`)
+    }
   }
 
   if (last && typeof last.value === 'number') check('reports-value', mentionsValue(transcript.report, last.value), `${last.value} ms`)
