@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product list</title>
+  <style>body{font-family:sans-serif;margin:16px}nav button{margin-right:8px}li{padding:4px 0}</style>
+</head>
+<body>
+  <h1>Product list</h1>
+  <!-- Buttons only, no text field: the prompt asks for selectors that exist and for no typing -->
+  <nav aria-label="Filters">
+    <button class="filter" data-filter="all">All</button>
+    <button class="filter" data-filter="shoes">Shoes</button>
+    <button class="filter" data-filter="bags">Bags</button>
+  </nav>
+  <ul id="products"></ul>
+  <button id="load-more">Load more</button>
+  <script>
+    const items = Array.from({ length: 40 }, (_, i) => ({ name: `Product ${i + 1}`, type: i % 2 ? 'shoes' : 'bags' }))
+    const list = document.getElementById('products')
+    let shown = 10
+    let filter = 'all'
+    // Each handler blocks the main thread, so every interaction has a measurable INP
+    function block(ms) { const t = performance.now(); while (performance.now() - t < ms) {} }
+    function render() {
+      block(180)
+      list.innerHTML = items.filter((p) => filter === 'all' || p.type === filter).slice(0, shown).map((p) => `<li>${p.name}</li>`).join('')
+    }
+    document.querySelectorAll('.filter').forEach((b) => b.addEventListener('click', () => { filter = b.dataset.filter; render() }))
+    document.getElementById('load-more').addEventListener('click', () => { shown += 10; render() })
+    render()
+  </script>
+</body>
+</html>

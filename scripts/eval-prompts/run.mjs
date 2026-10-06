@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { chromium } from 'playwright'
 import { buildPrompt, cliVersion, PLAYWRIGHT } from '../../lib/snippet-prompt.mjs'
 import { CASES } from './cases.mjs'
 import { parseTranscript, cliRuns, gradeRun } from './grade.mjs'
@@ -16,14 +17,14 @@ import { parseTranscript, cliRuns, gradeRun } from './grade.mjs'
 //
 //   npm run eval:prompts                       the CLI published on npm, 3 runs per case
 //   npm run eval:prompts -- --local            the CLI of this workspace, packed as on publish
-//   npm run eval:prompts -- --case lcp-one-shot --repeat 1 --model opus
+//   npm run eval:prompts -- --case inp-buttons-only --repeat 1 --model opus
 //
 // The summary measures each run in tokens. A subscription does not bill them, but they count toward
 // its usage limits. `--max-cost` stops a run when the cost `claude -p` estimates at API prices goes
 // over that amount in dollars, which works as a cap with a subscription too.
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const FIXTURES = join(ROOT, 'cli/tests/fixtures')
+const FIXTURE_DIRS = [join(ROOT, 'scripts/eval-prompts/fixtures'), join(ROOT, 'cli/tests/fixtures')]
 const TOOLS = 'Bash,Read,Write,Edit,WebFetch'
 const TYPES = { '.html': 'text/html', '.png': 'image/png', '.woff2': 'font/woff2', '.json': 'application/json' }
 
@@ -64,8 +65,8 @@ async function packLocalCli(work) {
 function startServer() {
   const server = createServer((req, res) => {
     const name = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '')
-    const file = join(FIXTURES, name)
-    if (!name || name.includes('..') || !existsSync(file)) return res.writeHead(404).end()
+    const file = FIXTURE_DIRS.map((dir) => join(dir, name)).find((f) => !name.includes('..') && existsSync(f))
+    if (!file || !name) return res.writeHead(404).end()
     res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }).end(readFileSync(file))
   })
   return new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)))
@@ -77,6 +78,21 @@ async function reference(evalCase, url, pkg) {
   const result = JSON.parse(stdout.slice(stdout.indexOf('{'))).results.find((r) => r.id === evalCase.snippet)
   if (result?.status !== 'ok') throw new Error(`Reference run of ${evalCase.id} failed: ${stdout}`)
   return result.value
+}
+
+// Selectors of the interactions file that match nothing on the page
+async function missingSelectors(browser, url, interactions) {
+  const page = await browser.newPage()
+  try {
+    await page.goto(url)
+    const missing = []
+    for (const step of interactions?.interactions ?? []) {
+      if (step.selector && (await page.locator(step.selector).count().catch(() => 0)) === 0) missing.push(step.selector)
+    }
+    return missing
+  } finally {
+    await page.close()
+  }
 }
 
 async function runAgent(prompt, workdir) {
@@ -122,6 +138,7 @@ async function main() {
 
   const server = await startServer()
   const base = `http://127.0.0.1:${server.address().port}`
+  const browser = await chromium.launch()
 
   try {
     const tasks = []
@@ -142,7 +159,15 @@ async function main() {
           const raw = await runAgent(prompt, workdir)
           writeFileSync(join(out, `${evalCase.id}.${i}.jsonl`), raw)
           const transcript = parseTranscript(raw)
-          const checks = gradeRun(graded, transcript, { pkg })
+          const file = join(workdir, 'interactions.json')
+          let interactions = null
+          try {
+            interactions = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null
+          } catch {
+            interactions = { interactions: [] }
+          }
+          const missing = evalCase.interactive ? await missingSelectors(browser, url, interactions) : []
+          const checks = gradeRun(graded, transcript, { pkg, interactions, missingSelectors: missing })
           const failed = checks.filter((c) => !c.pass).map((c) => c.id)
           const { input, output } = transcript.tokens
           console.log(`${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, ${Math.round(transcript.durationMs / 1000)} s)`)
@@ -170,6 +195,7 @@ async function main() {
       }
     }
   } finally {
+    await browser.close()
     server.close()
     rmSync(work, { recursive: true, force: true })
   }

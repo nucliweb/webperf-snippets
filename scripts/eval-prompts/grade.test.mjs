@@ -93,3 +93,21 @@ test('a value far from the reference fails, which points to another page or snip
   const checks = run([toolUse('a', 'Bash', { command: lcpCommand }), toolResult('a', lcpJson(3000, 'needs-improvement')), result('3000 ms needs improvement')])
   assert.equal(byId(checks)['matches-reference'], false)
 })
+
+test('the checks of the interactions file look at the file the agent left', () => {
+  const inpCase = {
+    snippet: 'INP',
+    interactive: true,
+    expect: { status: ['ok', 'tracking'], noTyping: true, minInteractions: 1 },
+  }
+  const inpJson = JSON.stringify({ results: [{ id: 'INP', status: 'ok', value: 224, rating: 'needs-improvement', details: { totalInteractions: 2 } }] })
+  const command = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets http://localhost/x --snippet INP --interact-script interactions.json --json`
+  const t = parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', inpJson), result('INP 224 ms, needs improvement')].join('\n'))
+  const interactions = { interactions: [{ action: 'click', selector: '#load-more' }, { action: 'type', selector: 'input', text: 'x' }] }
+  const checks = gradeRun(inpCase, t, { pkg: PKG, interactions, missingSelectors: ['input'] })
+  const ids = byId(checks)
+  assert.equal(ids['runs-cli'], true)
+  assert.equal(ids['selectors-exist'], false)
+  assert.equal(ids['no-typing'], false)
+  assert.equal(ids['records-interactions'], true)
+})
