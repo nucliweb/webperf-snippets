@@ -72,6 +72,17 @@ function startServer() {
   return new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)))
 }
 
+// A URL on a port that was free a moment ago, so the browser gets ERR_CONNECTION_REFUSED. A port the
+// browser blocks, such as 9, gives ERR_UNSAFE_PORT instead, which is not what a user meets.
+function closedPortUrl() {
+  return new Promise((done) => {
+    const server = createServer().listen(0, '127.0.0.1', () => {
+      const { port } = server.address()
+      server.close(() => done(`http://127.0.0.1:${port}/`))
+    })
+  })
+}
+
 // The value of the CLI on the fixture, with the interactions of the prompt for a tracking snippet
 async function reference(evalCase, url, pkg, work) {
   const args = ['-y', '-p', pkg, '-p', `playwright@${PLAYWRIGHT}`, 'webperf-snippets', url, '--snippet', evalCase.snippet, '--json']
@@ -167,7 +178,7 @@ async function main() {
     const tasks = []
     for (const evalCase of cases) {
       // A case without a fixture gives the prompt as it is copied, with no URL
-      const url = evalCase.fixture ? `${base}/${evalCase.fixture}` : null
+      const url = evalCase.unreachable ? await closedPortUrl() : evalCase.fixture ? `${base}/${evalCase.fixture}` : null
       const source = readFileSync(join(ROOT, 'snippets', `${evalCase.path}.js`), 'utf8')
       const prompt =
         buildPrompt({ path: evalCase.path, source, docsPath: evalCase.docsPath, cliVersion: version }).replaceAll(`webperf-snippets@${version}`, pkg) +
@@ -192,7 +203,7 @@ async function main() {
           }
           const missing = evalCase.interactive ? await missingSelectors(browser, url, interactions) : []
           const verdicts = await judge(evalCase, transcript, workdir)
-          const checks = gradeRun(graded, transcript, { pkg, interactions, missingSelectors: missing, verdicts })
+          const checks = gradeRun(graded, transcript, { pkg, url, interactions, missingSelectors: missing, verdicts })
           const failed = checks.filter((c) => !c.pass).map((c) => c.id)
           const { input, output } = transcript.tokens
           console.log(`${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, ${Math.round(transcript.durationMs / 1000)} s)`)
