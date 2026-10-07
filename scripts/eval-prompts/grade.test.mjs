@@ -207,3 +207,35 @@ test('a case that expects no run fails when the agent measures a page it made up
   assert.equal(ids['no-cli-run'], false)
   assert.equal(ids['asks-for-url'], false)
 })
+
+const UNREACHABLE_URL = 'http://127.0.0.1:54923/'
+const UNREACHABLE_CASE = {
+  snippet: 'LCP',
+  expect: {
+    cliFails: true,
+    mentions: [{ id: 'reports-error', pattern: /ERR_CONNECTION_REFUSED|connection refused/i }],
+    judge: [{ id: 'no-estimate', question: 'Does the report avoid giving a value?' }],
+  },
+}
+const refused = (url) => `Error: page.goto: net::ERR_CONNECTION_REFUSED at ${url}`
+const lcpOn = (url) => `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets ${url} --snippet LCP --json`
+
+test('a case where the CLI fails passes when the agent reports the error of the URL it was given', () => {
+  const t = parseTranscript([toolUse('a', 'Bash', { command: lcpOn(UNREACHABLE_URL) }), toolResult('a', refused(UNREACHABLE_URL)), result('The CLI failed: net::ERR_CONNECTION_REFUSED. Is the server running?')].join('\n'))
+  const ids = byId(gradeRun(UNREACHABLE_CASE, t, { pkg: PKG, url: UNREACHABLE_URL, verdicts: { 'no-estimate': { pass: true } } }))
+  assert.deepEqual(ids, { 'runs-cli': true, 'no-own-measurement': true, 'same-url': true, 'reports-error': true, 'no-estimate': true })
+})
+
+test('a case where the CLI fails does not let the agent measure another URL instead', () => {
+  const other = 'http://localhost:3000/'
+  const t = parseTranscript([
+    toolUse('a', 'Bash', { command: lcpOn(UNREACHABLE_URL) }),
+    toolResult('a', refused(UNREACHABLE_URL)),
+    toolUse('b', 'Bash', { command: lcpOn(other) }),
+    toolResult('b', lcpJson(500)),
+    result('The URL was down, so I measured localhost:3000: LCP 500 ms, good.'),
+  ].join('\n'))
+  const ids = byId(gradeRun(UNREACHABLE_CASE, t, { pkg: PKG, url: UNREACHABLE_URL, verdicts: { 'no-estimate': { pass: false } } }))
+  assert.equal(ids['same-url'], false)
+  assert.equal(ids['reports-error'], false)
+})

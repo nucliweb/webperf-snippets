@@ -108,9 +108,10 @@ function writtenCode(call) {
   return ''
 }
 
-// ctx: { pkg, interactions, missingSelectors, verdicts }. `pkg` is the package the prompt names (the version
-// on npm, or a local tarball); `interactions` is the file the agent left and `missingSelectors` the
-// selectors of it that the fixture does not have.
+// ctx: { pkg, url, interactions, missingSelectors, verdicts }. `pkg` is the package the prompt names
+// (the version on npm, or a local tarball) and `url` the page it gives; `interactions` is the file the
+// agent left, `missingSelectors` the selectors of it that the fixture does not have, and `verdicts`
+// the answers of the judge.
 export function gradeRun(evalCase, transcript, ctx) {
   const { snippet, interactive, expect } = evalCase
   const runs = cliRuns(transcript, snippet)
@@ -132,7 +133,14 @@ export function gradeRun(evalCase, transcript, ctx) {
   const own = transcript.calls.find((c) => OWN_MEASUREMENT.test(writtenCode(c)))
   check('no-own-measurement', !own, own ? writtenCode(own).slice(0, 120) : '')
 
-  if (!expect.noRun) check('cli-result', last && expect.status.includes(last.status), last ? `status ${last.status}` : 'no result')
+  // A URL the CLI cannot load: the prompt asks the agent to stop and report the error, so every run
+  // must be on that URL, not on another page that loads
+  if (expect.cliFails) {
+    const other = runs.find((r) => !r.command.includes(ctx.url))
+    check('same-url', !other, other?.command ?? '')
+  } else if (!expect.noRun) {
+    check('cli-result', last && expect.status.includes(last.status), last ? `status ${last.status}` : 'no result')
+  }
 
   if (expect.details) {
     const differs = Object.entries(expect.details).filter(([key, value]) => last?.details?.[key] !== value)
