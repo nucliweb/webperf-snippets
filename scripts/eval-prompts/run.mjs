@@ -9,7 +9,7 @@ import { parseArgs } from 'node:util'
 import { chromium } from 'playwright'
 import { buildPrompt, cliVersion, PLAYWRIGHT } from '../../lib/snippet-prompt.mjs'
 import { CASES } from './cases.mjs'
-import { parseTranscript, cliRuns, gradeRun } from './grade.mjs'
+import { parseTranscript, cliRuns, gradeRun, interactScript } from './grade.mjs'
 
 // Evals of the Copy prompt: an agent in an empty directory, with no skills, MCP servers or settings,
 // receives only the prompt of a snippet and the URL of a local page with a known result. The runner
@@ -72,8 +72,15 @@ function startServer() {
   return new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)))
 }
 
-async function reference(evalCase, url, pkg) {
+// The value of the CLI on the fixture, with the interactions of the prompt for a tracking snippet
+async function reference(evalCase, url, pkg, work) {
   const args = ['-y', '-p', pkg, '-p', `playwright@${PLAYWRIGHT}`, 'webperf-snippets', url, '--snippet', evalCase.snippet, '--json']
+  const { interactions } = evalCase.expect.reference
+  if (interactions) {
+    const file = join(work, `${evalCase.id}.interactions.json`)
+    writeFileSync(file, JSON.stringify(interactions))
+    args.push('--interact-script', file)
+  }
   const { stdout } = await run('npx', args)
   const result = JSON.parse(stdout.slice(stdout.indexOf('{'))).results.find((r) => r.id === evalCase.snippet)
   if (result?.status !== 'ok') throw new Error(`Reference run of ${evalCase.id} failed: ${stdout}`)
@@ -150,7 +157,7 @@ async function main() {
         `\nPage to measure: ${url}\n`
       writeFileSync(join(out, `${evalCase.id}.prompt.md`), prompt)
       const expect = { ...evalCase.expect }
-      if (expect.reference) expect.reference = { ...expect.reference, value: await reference(evalCase, url, pkg) }
+      if (expect.reference) expect.reference = { ...expect.reference, value: await reference(evalCase, url, pkg, work) }
       const graded = { ...evalCase, expect }
 
       for (let i = 1; i <= repeat; i++) {
@@ -159,10 +166,10 @@ async function main() {
           const raw = await runAgent(prompt, workdir)
           writeFileSync(join(out, `${evalCase.id}.${i}.jsonl`), raw)
           const transcript = parseTranscript(raw)
-          const file = join(workdir, 'interactions.json')
+          const file = interactScript(transcript, evalCase.snippet, workdir)
           let interactions = null
           try {
-            interactions = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null
+            interactions = file && existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null
           } catch {
             interactions = { interactions: [] }
           }

@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { PLAYWRIGHT } from '../../lib/snippet-prompt.mjs'
 
 // Grades what an agent did with a Copy prompt, from the transcript of `claude -p --output-format
@@ -65,8 +66,24 @@ export function cliRuns(transcript, snippet) {
     .map((c) => ({ command: c.input.command, result: parseCliOutput(c.output)?.results?.find((r) => r.id === snippet) ?? null }))
 }
 
-// "36 ms", "2,448 ms" or "2.45 s", allowing for the rounding of the unit the report uses
-export function mentionsValue(text, value) {
+const argument = (match) => match && (match[1] ?? match[2] ?? match[3])
+
+// The interactions file of the last run of the snippet, wherever the agent saved it. A relative path
+// is taken from a `cd` earlier in the same command, or else from the directory the agent started in.
+export function interactScript(transcript, snippet, workdir) {
+  const command = cliRuns(transcript, snippet).at(-1)?.command ?? ''
+  const file = argument(command.match(/--interact-script\s+(?:"([^"]+)"|'([^']+)'|(\S+))/))
+  if (!file) return null
+  const cd = argument([...command.matchAll(/(?:^|&&|;)\s*cd\s+(?:"([^"]+)"|'([^']+)'|([^\s;&]+))/g)].at(-1))
+  return resolve(workdir, cd ?? '.', file)
+}
+
+// "36 ms", "2,448 ms" or "2.45 s", allowing for the rounding of the unit the report uses. A score
+// (CLS) has no unit and needs two decimals at least, so "0.8" does not stand for 0.7606.
+export function mentionsValue(text, value, unit = 'ms') {
+  if (unit === 'score') {
+    return [...text.matchAll(/\b\d+\.(\d{2,})\b/g)].some(([raw, decimals]) => Math.abs(Number(raw) - value) <= 0.5 / 10 ** decimals.length)
+  }
   for (const [, raw, unit] of text.matchAll(/(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(ms|s)\b/gi)) {
     const n = Number(raw.replaceAll(',', ''))
     if (unit.toLowerCase() === 'ms' && Math.abs(n - value) <= 1) return true
@@ -130,7 +147,10 @@ export function gradeRun(evalCase, transcript, ctx) {
     }
   }
 
-  if (last && typeof last.value === 'number') check('reports-value', mentionsValue(transcript.report, last.value), `${last.value} ms`)
+  if (last && typeof last.value === 'number') {
+    const unit = last.unit ?? 'ms'
+    check('reports-value', mentionsValue(transcript.report, last.value, unit), `${last.value} ${unit}`)
+  }
   if (last?.rating) check('reports-rating', mentionsRating(transcript.report, last.rating), last.rating)
 
   return checks

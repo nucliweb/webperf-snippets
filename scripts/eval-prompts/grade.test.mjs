@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseTranscript, cliRuns, mentionsValue, gradeRun } from './grade.mjs'
+import { parseTranscript, cliRuns, mentionsValue, gradeRun, interactScript } from './grade.mjs'
 
 // stream-json lines as `claude -p --output-format stream-json` prints them
 const toolUse = (id, name, input) =>
@@ -45,12 +45,30 @@ test('cliRuns ignores the install of Chromium and other commands', () => {
   assert.deepEqual(cliRuns(t, 'LCP'), [])
 })
 
+test('interactScript finds the file the agent passed to the CLI, wherever it saved it', () => {
+  const run = (command) => parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', '{}')].join('\n'))
+  const cli = 'npx -y -p p webperf-snippets http://x --snippet INP'
+  assert.equal(interactScript(run(`${cli} --interact-script /tmp/wps/interactions.json --json`), 'INP', '/work'), '/tmp/wps/interactions.json')
+  assert.equal(interactScript(run(`${cli} --interact-script interactions.json --json`), 'INP', '/work'), '/work/interactions.json')
+  assert.equal(interactScript(run(`${cli} --interact-script "my steps.json" --json`), 'INP', '/work'), '/work/my steps.json')
+  assert.equal(interactScript(run(`cd /tmp/wps && ${cli} --interact-script interactions.json --json`), 'INP', '/work'), '/tmp/wps/interactions.json')
+  assert.equal(interactScript(run(`cd steps; ${cli} --interact-script interactions.json --json`), 'INP', '/work'), '/work/steps/interactions.json')
+  assert.equal(interactScript(run(`${cli} --json`), 'INP', '/work'), null)
+})
+
 test('mentionsValue accepts milliseconds and seconds', () => {
   assert.ok(mentionsValue('LCP is 36 ms, good', 36))
   assert.ok(mentionsValue('LCP: 36ms', 36))
   assert.ok(mentionsValue('LCP is 2.45 s', 2448))
   assert.ok(mentionsValue('LCP is 2,448 ms', 2448))
   assert.ok(!mentionsValue('LCP is 360 ms', 36))
+})
+
+test('mentionsValue reads a score with the decimals the report uses, from two on', () => {
+  assert.ok(mentionsValue('CLS is 0.7606 (poor)', 0.7606, 'score'))
+  assert.ok(mentionsValue('CLS is 0.76, poor', 0.7606, 'score'))
+  assert.ok(!mentionsValue('CLS is 0.8, poor', 0.7606, 'score'))
+  assert.ok(!mentionsValue('CLS is 0.25', 0.7606, 'score'))
 })
 
 const run = (lines) => gradeRun(LCP_CASE, parseTranscript(lines.join('\n')), { pkg: PKG })
@@ -110,4 +128,16 @@ test('the checks of the interactions file look at the file the agent left', () =
   assert.equal(ids['selectors-exist'], false)
   assert.equal(ids['no-typing'], false)
   assert.equal(ids['records-interactions'], true)
+})
+
+test('a score result is checked against its reference and in the report without a time unit', () => {
+  const clsCase = { snippet: 'Layout-Shift-Loading-and-Interaction', interactive: true, expect: { status: ['ok'], reference: { value: 0.7606, tolerance: 0.05 } } }
+  const clsJson = JSON.stringify({ results: [{ id: 'Layout-Shift-Loading-and-Interaction', status: 'ok', value: 0.7606, unit: 'score', rating: 'poor', details: { countedShifts: 3 } }] })
+  const command = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets http://localhost/x --snippet Layout-Shift-Loading-and-Interaction --interact-script interactions.json --json`
+  const t = parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', clsJson), result('CLS is 0.76, poor: three promo blocks push the text down.')].join('\n'))
+  const interactions = { interactions: [{ action: 'scroll', y: 600 }, { action: 'wait', ms: 1000 }] }
+  const ids = byId(gradeRun(clsCase, t, { pkg: PKG, interactions, missingSelectors: [] }))
+  assert.equal(ids['matches-reference'], true)
+  assert.equal(ids['reports-value'], true)
+  assert.equal(ids['reports-rating'], true)
 })
