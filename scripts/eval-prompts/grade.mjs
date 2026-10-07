@@ -2,8 +2,9 @@ import { resolve } from 'node:path'
 import { PLAYWRIGHT } from '../../lib/snippet-prompt.mjs'
 
 // Grades what an agent did with a Copy prompt, from the transcript of `claude -p --output-format
-// stream-json`. Every check is deterministic: it reads the commands the agent ran, the JSON the CLI
-// returned and the report, never asks a model for an opinion.
+// stream-json`. The checks read the commands the agent ran, the JSON the CLI returned and the report.
+// They are deterministic, except the `judge` checks of a case: a model answers a yes or no question
+// about the report that no pattern can answer, and the runner passes its verdicts in.
 
 export function parseTranscript(text) {
   const calls = []
@@ -107,7 +108,7 @@ function writtenCode(call) {
   return ''
 }
 
-// ctx: { pkg, interactions, missingSelectors }. `pkg` is the package the prompt names (the version
+// ctx: { pkg, interactions, missingSelectors, verdicts }. `pkg` is the package the prompt names (the version
 // on npm, or a local tarball); `interactions` is the file the agent left and `missingSelectors` the
 // selectors of it that the fixture does not have.
 export function gradeRun(evalCase, transcript, ctx) {
@@ -131,6 +132,11 @@ export function gradeRun(evalCase, transcript, ctx) {
 
   check('cli-result', last && expect.status.includes(last.status), last ? `status ${last.status}` : 'no result')
 
+  if (expect.details) {
+    const differs = Object.entries(expect.details).filter(([key, value]) => last?.details?.[key] !== value)
+    check('matches-details', last && differs.length === 0, differs.map(([key]) => `${key}: ${last?.details?.[key]}`).join(', '))
+  }
+
   if (expect.reference) {
     const { value, tolerance } = expect.reference
     check('matches-reference', last && Math.abs(last.value - value) <= tolerance, `${last?.value} vs ${value} ±${tolerance}`)
@@ -153,5 +159,35 @@ export function gradeRun(evalCase, transcript, ctx) {
   }
   if (last?.rating) check('reports-rating', mentionsRating(transcript.report, last.rating), last.rating)
 
+  for (const { id, pattern } of expect.mentions ?? []) check(id, pattern.test(transcript.report))
+  for (const { id } of expect.judge ?? []) {
+    const verdict = ctx.verdicts?.[id]
+    check(id, verdict?.pass, verdict?.reason ?? 'no verdict')
+  }
+
   return checks
+}
+
+// The question a judge answers about a report, with the CLI result the report should follow
+export function judgePrompt(question, result, report) {
+  return `You check a report that an agent wrote after running a web performance snippet. Judge only what the report says, against the CLI result below.
+
+Question: ${question}
+
+CLI result:
+\`\`\`json
+${JSON.stringify(result, null, 2)}
+\`\`\`
+
+Report:
+<report>
+${report}
+</report>
+
+Answer PASS or FAIL on the first line, then the reason in one sentence.`
+}
+
+export function parseVerdict(text) {
+  const [, verdict, reason = ''] = text.trim().match(/^(PASS|FAIL)\b[:.\s-]*([\s\S]*)/i) ?? []
+  return { pass: verdict?.toUpperCase() === 'PASS', reason: reason.trim() || text.trim() }
 }

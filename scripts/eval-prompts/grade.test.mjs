@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseTranscript, cliRuns, mentionsValue, gradeRun, interactScript } from './grade.mjs'
+import { parseTranscript, cliRuns, mentionsValue, gradeRun, interactScript, judgePrompt, parseVerdict } from './grade.mjs'
 
 // stream-json lines as `claude -p --output-format stream-json` prints them
 const toolUse = (id, name, input) =>
@@ -140,4 +140,52 @@ test('a score result is checked against its reference and in the report without 
   assert.equal(ids['matches-reference'], true)
   assert.equal(ids['reports-value'], true)
   assert.equal(ids['reports-rating'], true)
+})
+
+const BFCACHE_CASE = {
+  snippet: 'Back-Forward-Cache',
+  expect: {
+    status: ['ok'],
+    details: { eligibility: 'no-blockers-detected' },
+    mentions: [{ id: 'points-to-devtools', pattern: /DevTools[\s\S]*back[\s/-]*forward cache|back[\s/-]*forward cache[\s\S]*DevTools/i }],
+    judge: [{ id: 'no-eligibility-claim', question: 'Does the report avoid saying that the page is eligible?' }],
+  },
+}
+const bfcacheRun = (details, report) => {
+  const command = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets http://localhost/x --snippet Back-Forward-Cache --json`
+  const json = JSON.stringify({ results: [{ id: 'Back-Forward-Cache', status: 'ok', details, issues: [] }] })
+  return parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', json), result(report)].join('\n'))
+}
+
+test('the details of the result and the mentions of the report are checked as the case expects', () => {
+  const good = bfcacheRun({ eligibility: 'no-blockers-detected' }, 'No blockers on load. For the full test, use Chrome DevTools, Application, Back/forward cache.')
+  const ids = byId(gradeRun(BFCACHE_CASE, good, { pkg: PKG, verdicts: { 'no-eligibility-claim': { pass: true } } }))
+  assert.equal(ids['matches-details'], true)
+  assert.equal(ids['points-to-devtools'], true)
+  assert.equal(ids['no-eligibility-claim'], true)
+
+  const bad = bfcacheRun({ eligibility: 'blocked' }, 'The page is eligible for the bfcache.')
+  const badIds = byId(gradeRun(BFCACHE_CASE, bad, { pkg: PKG, verdicts: { 'no-eligibility-claim': { pass: false } } }))
+  assert.equal(badIds['matches-details'], false)
+  assert.equal(badIds['points-to-devtools'], false)
+  assert.equal(badIds['no-eligibility-claim'], false)
+})
+
+test('a judged check without a verdict fails', () => {
+  const t = bfcacheRun({ eligibility: 'no-blockers-detected' }, 'Use DevTools, Back/forward cache.')
+  assert.equal(byId(gradeRun(BFCACHE_CASE, t, { pkg: PKG }))['no-eligibility-claim'], false)
+})
+
+test('judgePrompt gives the judge the question, the CLI result and the report', () => {
+  const prompt = judgePrompt('Does it hedge?', { status: 'ok', details: { eligibility: 'no-blockers-detected' } }, 'The report')
+  assert.match(prompt, /Does it hedge\?/)
+  assert.match(prompt, /no-blockers-detected/)
+  assert.match(prompt, /The report/)
+  assert.match(prompt, /PASS or FAIL/)
+})
+
+test('parseVerdict reads the first line and keeps the reason', () => {
+  assert.deepEqual(parseVerdict('PASS\nIt says the result is partial.'), { pass: true, reason: 'It says the result is partial.' })
+  assert.deepEqual(parseVerdict('FAIL: it calls the page eligible'), { pass: false, reason: 'it calls the page eligible' })
+  assert.equal(parseVerdict('I think so').pass, false)
 })

@@ -9,7 +9,7 @@ import { parseArgs } from 'node:util'
 import { chromium } from 'playwright'
 import { buildPrompt, cliVersion, PLAYWRIGHT } from '../../lib/snippet-prompt.mjs'
 import { CASES } from './cases.mjs'
-import { parseTranscript, cliRuns, gradeRun, interactScript } from './grade.mjs'
+import { parseTranscript, cliRuns, gradeRun, interactScript, judgePrompt, parseVerdict } from './grade.mjs'
 
 // Evals of the Copy prompt: an agent in an empty directory, with no skills, MCP servers or settings,
 // receives only the prompt of a snippet and the URL of a local page with a known result. The runner
@@ -102,16 +102,32 @@ async function missingSelectors(browser, url, interactions) {
   }
 }
 
+// No settings, skills or MCP servers of the machine, so the prompt is all the agent knows
+const ISOLATED = ['--setting-sources', '', '--disable-slash-commands', '--strict-mcp-config', '--no-session-persistence']
+
 async function runAgent(prompt, workdir) {
   const args = [
     '-p', '--output-format', 'stream-json', '--verbose',
     '--model', opts.model,
     '--tools', TOOLS, '--allowedTools', TOOLS,
-    '--setting-sources', '', '--disable-slash-commands', '--strict-mcp-config', '--no-session-persistence',
+    ...ISOLATED,
     '--max-budget-usd', opts['max-cost'],
   ]
   const { stdout } = await run('claude', args, { cwd: workdir, input: prompt })
   return stdout
+}
+
+// The verdict of each `judge` check of a case, from a model with no tools that sees only the question,
+// the CLI result and the report
+async function judge(evalCase, transcript, workdir) {
+  const result = cliRuns(transcript, evalCase.snippet).at(-1)?.result ?? null
+  const verdicts = {}
+  for (const { id, question } of evalCase.expect.judge ?? []) {
+    const args = ['-p', '--model', opts.model, '--tools', '', ...ISOLATED, '--max-budget-usd', opts['max-cost']]
+    const { stdout } = await run('claude', args, { cwd: workdir, input: judgePrompt(question, result, transcript.report) })
+    verdicts[id] = parseVerdict(stdout)
+  }
+  return verdicts
 }
 
 async function pool(tasks, size) {
@@ -174,7 +190,8 @@ async function main() {
             interactions = { interactions: [] }
           }
           const missing = evalCase.interactive ? await missingSelectors(browser, url, interactions) : []
-          const checks = gradeRun(graded, transcript, { pkg, interactions, missingSelectors: missing })
+          const verdicts = await judge(evalCase, transcript, workdir)
+          const checks = gradeRun(graded, transcript, { pkg, interactions, missingSelectors: missing, verdicts })
           const failed = checks.filter((c) => !c.pass).map((c) => c.id)
           const { input, output } = transcript.tokens
           console.log(`${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, ${Math.round(transcript.durationMs / 1000)} s)`)
