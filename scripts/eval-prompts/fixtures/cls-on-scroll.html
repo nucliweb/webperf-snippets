@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Article</title>
+  <style>body{font-family:sans-serif;margin:0 16px}p{line-height:1.6}.promo{background:#fde68a;margin:0}</style>
+</head>
+<body>
+  <h1>Article</h1>
+  <div id="article"></div>
+  <script>
+    const article = document.getElementById('article')
+    for (let i = 1; i <= 60; i++) article.insertAdjacentHTML('beforeend', `<p>Paragraph ${i} of the article, with enough text to fill the line and make the page long.</p>`)
+    // Nothing moves on load: each time the reader scrolls past another 500 px, a promo block without a
+    // reserved height is inserted above the paragraphs in view and pushes them down. A run without
+    // scrolling gets a CLS of 0.
+    let inserted = 0
+    addEventListener('scroll', () => {
+      const due = Math.floor(scrollY / 500)
+      while (inserted < due && inserted < 3) {
+        inserted++
+        const anchor = [...article.children].find((p) => p.getBoundingClientRect().top > 0)
+        anchor.insertAdjacentHTML('beforebegin', `<p class="promo" style="height:${150 + inserted * 50}px">Promo ${inserted}</p>`)
+      }
+    })
+  </script>
+</body>
+</html>
