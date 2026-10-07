@@ -4,6 +4,7 @@ import { SCROLL_SCRIPT } from '../../lib/snippet-prompt.mjs'
 // `fixture` is looked up in scripts/eval-prompts/fixtures first and then in cli/tests/fixtures.
 //
 // expect.status            statuses the CLI result can have
+// expect.noRun             the agent must not run the CLI (a case without a fixture gives no URL)
 // expect.reference         compare the agent's value with a run of the CLI by the runner (± tolerance in
 //                          the unit of the result), with `interactions` for a tracking snippet
 // expect.details           values the `details` of the CLI result must have
@@ -63,5 +64,14 @@ export const CASES = [
         },
       ],
     },
+  },
+  {
+    // The prompt as it is copied, with no URL: it says "Ask for the URL if you do not have it", so the
+    // agent must end asking for one instead of measuring a page it chooses, such as example.com
+    id: 'no-url',
+    path: 'CoreWebVitals/LCP',
+    docsPath: '/CoreWebVitals/LCP',
+    snippet: 'LCP',
+    expect: { noRun: true, mentions: [{ id: 'asks-for-url', pattern: /\b(URL|page)\b[^\n]*\?/i }] },
   },
 ]

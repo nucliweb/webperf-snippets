@@ -189,3 +189,21 @@ test('parseVerdict reads the first line and keeps the reason', () => {
   assert.deepEqual(parseVerdict('FAIL: it calls the page eligible'), { pass: false, reason: 'it calls the page eligible' })
   assert.equal(parseVerdict('I think so').pass, false)
 })
+
+const NO_URL_CASE = {
+  snippet: 'LCP',
+  expect: { noRun: true, mentions: [{ id: 'asks-for-url', pattern: /\b(URL|page)\b[^\n]*\?/i }] },
+}
+
+test('a case that expects no run passes when the agent asks for the URL and runs nothing', () => {
+  const t = parseTranscript([toolUse('a', 'Bash', { command: 'npx -y playwright@1.63 install chromium' }), toolResult('a', 'ok'), result('Which URL do you want me to measure?')].join('\n'))
+  assert.deepEqual(byId(gradeRun(NO_URL_CASE, t, { pkg: PKG })), { 'no-cli-run': true, 'no-own-measurement': true, 'asks-for-url': true })
+})
+
+test('a case that expects no run fails when the agent measures a page it made up', () => {
+  const command = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets https://example.com --snippet LCP --json`
+  const t = parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', lcpJson(800)), result('LCP of example.com is 800 ms, good.')].join('\n'))
+  const ids = byId(gradeRun(NO_URL_CASE, t, { pkg: PKG }))
+  assert.equal(ids['no-cli-run'], false)
+  assert.equal(ids['asks-for-url'], false)
+})

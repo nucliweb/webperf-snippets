@@ -125,12 +125,14 @@ export function gradeRun(evalCase, transcript, ctx) {
       r.command.includes('--json') &&
       (!interactive || r.command.includes('--interact-script'))
   )
-  check('runs-cli', pinned.length > 0, runs.at(-1)?.command ?? 'no CLI run')
+  // Without a URL the prompt asks the agent to ask for one, so any run measured a page it chose
+  if (expect.noRun) check('no-cli-run', runs.length === 0, runs.at(-1)?.command ?? '')
+  else check('runs-cli', pinned.length > 0, runs.at(-1)?.command ?? 'no CLI run')
 
   const own = transcript.calls.find((c) => OWN_MEASUREMENT.test(writtenCode(c)))
   check('no-own-measurement', !own, own ? writtenCode(own).slice(0, 120) : '')
 
-  check('cli-result', last && expect.status.includes(last.status), last ? `status ${last.status}` : 'no result')
+  if (!expect.noRun) check('cli-result', last && expect.status.includes(last.status), last ? `status ${last.status}` : 'no result')
 
   if (expect.details) {
     const differs = Object.entries(expect.details).filter(([key, value]) => last?.details?.[key] !== value)

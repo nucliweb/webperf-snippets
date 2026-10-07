@@ -166,11 +166,12 @@ async function main() {
   try {
     const tasks = []
     for (const evalCase of cases) {
-      const url = `${base}/${evalCase.fixture}`
+      // A case without a fixture gives the prompt as it is copied, with no URL
+      const url = evalCase.fixture ? `${base}/${evalCase.fixture}` : null
       const source = readFileSync(join(ROOT, 'snippets', `${evalCase.path}.js`), 'utf8')
       const prompt =
         buildPrompt({ path: evalCase.path, source, docsPath: evalCase.docsPath, cliVersion: version }).replaceAll(`webperf-snippets@${version}`, pkg) +
-        `\nPage to measure: ${url}\n`
+        (url ? `\nPage to measure: ${url}\n` : '')
       writeFileSync(join(out, `${evalCase.id}.prompt.md`), prompt)
       const expect = { ...evalCase.expect }
       if (expect.reference) expect.reference = { ...expect.reference, value: await reference(evalCase, url, pkg, work) }
