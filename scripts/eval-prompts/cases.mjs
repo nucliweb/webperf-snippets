@@ -12,6 +12,8 @@ import { SCROLL_SCRIPT } from '../../lib/snippet-prompt.mjs'
 // expect.details           values the `details` of the CLI result must have
 // expect.mentions          { id, pattern } the report must match, for what the prompt asks it to say
 // expect.judge             { id, question } a model answers about the report, for what no pattern can check
+// expect.nextSnippet       the report names, as the next one to run, a snippet the documentation page
+//                          links, and no snippet that it does not link
 // expect.noTyping          the page has no text field, so the interactions must not type
 // expect.minInteractions   interactions the snippet must have recorded
 
@@ -96,5 +98,16 @@ export const CASES = [
         },
       ],
     },
+  },
+  {
+    // The prompt says "If the documentation links a snippet that looks into that cause, name it as the
+    // next one to run". The hero image arrives after 4.5 s, so LCP is poor and the page of LCP links
+    // LCP Subparts to find the slow phase; it also links LCP Trail and FCP.
+    id: 'next-snippet',
+    path: 'CoreWebVitals/LCP',
+    docsPath: '/CoreWebVitals/LCP',
+    snippet: 'LCP',
+    fixture: 'lcp-slow-image.html',
+    expect: { status: ['ok'], reference: { tolerance: 500 }, nextSnippet: true },
   },
 ]
