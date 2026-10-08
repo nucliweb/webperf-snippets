@@ -169,6 +169,14 @@ export function gradeRun(evalCase, transcript, ctx) {
   }
   if (last?.rating) check('reports-rating', mentionsRating(transcript.report, last.rating), last.rating)
 
+  // The prompt asks the agent to name, as the next one to run, a snippet the documentation links
+  if (expect.nextSnippet) {
+    const named = namedSnippets(transcript.report, ctx.catalog).filter((path) => path !== evalCase.path)
+    const unlinked = named.filter((path) => !ctx.linked.includes(path))
+    check('names-next-snippet', named.some((path) => ctx.linked.includes(path)), named.join(', ') || 'none named')
+    check('next-snippet-linked', unlinked.length === 0, unlinked.join(', '))
+  }
+
   for (const { id, pattern } of expect.mentions ?? []) check(id, pattern.test(transcript.report))
   for (const { id } of expect.judge ?? []) {
     const verdict = ctx.verdicts?.[id]
@@ -201,3 +209,25 @@ export function parseVerdict(text) {
   const [, verdict, reason = ''] = text.trim().match(/^(PASS|FAIL)\b[:.\s-]*([\s\S]*)/i) ?? []
   return { pass: verdict?.toUpperCase() === 'PASS', reason: reason.trim() || text.trim() }
 }
+
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const NOT_NAME = '[A-Za-z0-9-]'
+
+// The snippets ("Category/Name") a documentation page links to, in the order of the page
+export function linkedSnippets(mdx, catalog) {
+  const paths = [...mdx.matchAll(/\]\(\/([A-Za-z]+\/[A-Za-z0-9-]+)\)/g)].map(([, path]) => path)
+  return [...new Set(paths)].filter((path) => catalog.includes(path))
+}
+
+// The snippets a report names: by path ("/Loading/TTFB"), or by a compound name with hyphens or spaces
+// ("LCP-Subparts", "LCP Subparts"). A one-word name counts only as a path, since "TTFB" or "FCP" in a
+// report is most often the metric.
+export function namedSnippets(text, catalog) {
+  return catalog.filter((path) => {
+    const name = path.split('/')[1]
+    const forms = [escape(path)]
+    if (name.includes('-')) forms.push(name.split('-').map(escape).join('[-\\s]'))
+    return new RegExp(`(?<!${NOT_NAME})(?:${forms.join('|')})(?!${NOT_NAME})`, 'i').test(text)
+  })
+}
+
