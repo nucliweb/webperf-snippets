@@ -68,6 +68,17 @@ async function run(name, own) {
     await page.goto(pageUrl, { waitUntil: "load" });
     await page.waitForTimeout(400);
     const result = await page.evaluate(source.replace("const OWN_DOMAINS = [];", `const OWN_DOMAINS = ${JSON.stringify(own)};`));
+    // TTFB-Resources logs from a buffered PerformanceObserver, in a task after it returns. Observers
+    // run in the order they were registered, so once this one runs the lines of the snippet are out.
+    await page.evaluate(
+      () =>
+        new Promise((done) =>
+          new PerformanceObserver((_, observer) => {
+            observer.disconnect();
+            done();
+          }).observe({ type: "resource", buffered: true })
+        )
+    );
     return { result, lines };
   } finally {
     await page.close();
