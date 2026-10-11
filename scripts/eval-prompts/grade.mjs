@@ -108,9 +108,10 @@ function writtenCode(call) {
   return ''
 }
 
-// ctx: { pkg, interactions, missingSelectors, verdicts }. `pkg` is the package the prompt names (the version
-// on npm, or a local tarball); `interactions` is the file the agent left and `missingSelectors` the
-// selectors of it that the fixture does not have.
+// ctx: { pkg, url, interactions, missingSelectors, verdicts }. `pkg` is the package the prompt names
+// (the version on npm, or a local tarball) and `url` the page it gives; `interactions` is the file the
+// agent left, `missingSelectors` the selectors of it that the fixture does not have, and `verdicts`
+// the answers of the judge.
 export function gradeRun(evalCase, transcript, ctx) {
   const { snippet, interactive, expect } = evalCase
   const runs = cliRuns(transcript, snippet)
@@ -132,7 +133,14 @@ export function gradeRun(evalCase, transcript, ctx) {
   const own = transcript.calls.find((c) => OWN_MEASUREMENT.test(writtenCode(c)))
   check('no-own-measurement', !own, own ? writtenCode(own).slice(0, 120) : '')
 
-  if (!expect.noRun) check('cli-result', last && expect.status.includes(last.status), last ? `status ${last.status}` : 'no result')
+  // A URL the CLI cannot load: the prompt asks the agent to stop and report the error, so every run
+  // must be on that URL, not on another page that loads
+  if (expect.cliFails) {
+    const other = runs.find((r) => !r.command.includes(ctx.url))
+    check('same-url', !other, other?.command ?? '')
+  } else if (!expect.noRun) {
+    check('cli-result', last && expect.status.includes(last.status), last ? `status ${last.status}` : 'no result')
+  }
 
   if (expect.details) {
     const differs = Object.entries(expect.details).filter(([key, value]) => last?.details?.[key] !== value)
@@ -160,6 +168,14 @@ export function gradeRun(evalCase, transcript, ctx) {
     check('reports-value', mentionsValue(transcript.report, last.value, unit), `${last.value} ${unit}`)
   }
   if (last?.rating) check('reports-rating', mentionsRating(transcript.report, last.rating), last.rating)
+
+  // The prompt asks the agent to name, as the next one to run, a snippet the documentation links
+  if (expect.nextSnippet) {
+    const named = namedSnippets(transcript.report, ctx.catalog).filter((path) => path !== evalCase.path)
+    const unlinked = named.filter((path) => !ctx.linked.includes(path))
+    check('names-next-snippet', named.some((path) => ctx.linked.includes(path)), named.join(', ') || 'none named')
+    check('next-snippet-linked', unlinked.length === 0, unlinked.join(', '))
+  }
 
   for (const { id, pattern } of expect.mentions ?? []) check(id, pattern.test(transcript.report))
   for (const { id } of expect.judge ?? []) {
@@ -193,3 +209,25 @@ export function parseVerdict(text) {
   const [, verdict, reason = ''] = text.trim().match(/^(PASS|FAIL)\b[:.\s-]*([\s\S]*)/i) ?? []
   return { pass: verdict?.toUpperCase() === 'PASS', reason: reason.trim() || text.trim() }
 }
+
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const NOT_NAME = '[A-Za-z0-9-]'
+
+// The snippets ("Category/Name") a documentation page links to, in the order of the page
+export function linkedSnippets(mdx, catalog) {
+  const paths = [...mdx.matchAll(/\]\(\/([A-Za-z]+\/[A-Za-z0-9-]+)\)/g)].map(([, path]) => path)
+  return [...new Set(paths)].filter((path) => catalog.includes(path))
+}
+
+// The snippets a report names: by path ("/Loading/TTFB"), or by a compound name with hyphens or spaces
+// ("LCP-Subparts", "LCP Subparts"). A one-word name counts only as a path, since "TTFB" or "FCP" in a
+// report is most often the metric.
+export function namedSnippets(text, catalog) {
+  return catalog.filter((path) => {
+    const name = path.split('/')[1]
+    const forms = [escape(path)]
+    if (name.includes('-')) forms.push(name.split('-').map(escape).join('[-\\s]'))
+    return new RegExp(`(?<!${NOT_NAME})(?:${forms.join('|')})(?!${NOT_NAME})`, 'i').test(text)
+  })
+}
+

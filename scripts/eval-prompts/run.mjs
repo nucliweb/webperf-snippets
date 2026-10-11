@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chromium } from 'playwright'
-import { buildPrompt, cliVersion, PLAYWRIGHT } from '../../lib/snippet-prompt.mjs'
+import { buildPrompt, cliVersion, PLAYWRIGHT, relatedSnippets } from '../../lib/snippet-prompt.mjs'
 import { CASES } from './cases.mjs'
-import { parseTranscript, cliRuns, gradeRun, interactScript, judgePrompt, parseVerdict } from './grade.mjs'
+import { parseTranscript, cliRuns, gradeRun, interactScript, judgePrompt, parseVerdict, linkedSnippets } from './grade.mjs'
 
 // Evals of the Copy prompt: an agent in an empty directory, with no skills, MCP servers or settings,
 // receives only the prompt of a snippet and the URL of a local page with a known result. The runner
@@ -26,6 +26,11 @@ import { parseTranscript, cliRuns, gradeRun, interactScript, judgePrompt, parseV
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const FIXTURE_DIRS = [join(ROOT, 'scripts/eval-prompts/fixtures'), join(ROOT, 'cli/tests/fixtures')]
 const TOOLS = 'Bash,Read,Write,Edit,WebFetch'
+
+// Every snippet as "Category/Name", to find the ones a report names
+const CATALOG = readdirSync(join(ROOT, 'snippets'), { withFileTypes: true })
+  .filter((d) => d.isDirectory() && !d.name.startsWith('_'))
+  .flatMap((d) => readdirSync(join(ROOT, 'snippets', d.name)).filter((f) => f.endsWith('.js')).map((f) => `${d.name}/${f.slice(0, -3)}`))
 const TYPES = { '.html': 'text/html', '.png': 'image/png', '.woff2': 'font/woff2', '.json': 'application/json' }
 
 const { values: opts } = parseArgs({
@@ -62,14 +67,27 @@ async function packLocalCli(work) {
   return join(work, stdout.trim().split('\n').at(-1))
 }
 
+// Serves the fixtures; `/slow/<ms>/<file>` serves a file after a delay, for a slow resource
 function startServer() {
   const server = createServer((req, res) => {
-    const name = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '')
+    const path = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '')
+    const [, delay = 0, name = path] = path.match(/^slow\/(\d+)\/(.+)$/) ?? []
     const file = FIXTURE_DIRS.map((dir) => join(dir, name)).find((f) => !name.includes('..') && existsSync(f))
     if (!file || !name) return res.writeHead(404).end()
-    res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }).end(readFileSync(file))
+    setTimeout(() => res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }).end(readFileSync(file)), Number(delay))
   })
   return new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)))
+}
+
+// A URL on a port that was free a moment ago, so the browser gets ERR_CONNECTION_REFUSED. A port the
+// browser blocks, such as 9, gives ERR_UNSAFE_PORT instead, which is not what a user meets.
+function closedPortUrl() {
+  return new Promise((done) => {
+    const server = createServer().listen(0, '127.0.0.1', () => {
+      const { port } = server.address()
+      server.close(() => done(`http://127.0.0.1:${port}/`))
+    })
+  })
 }
 
 // The value of the CLI on the fixture, with the interactions of the prompt for a tracking snippet
@@ -167,15 +185,19 @@ async function main() {
     const tasks = []
     for (const evalCase of cases) {
       // A case without a fixture gives the prompt as it is copied, with no URL
-      const url = evalCase.fixture ? `${base}/${evalCase.fixture}` : null
+      const url = evalCase.unreachable ? await closedPortUrl() : evalCase.fixture ? `${base}/${evalCase.fixture}` : null
       const source = readFileSync(join(ROOT, 'snippets', `${evalCase.path}.js`), 'utf8')
+      // The page the prompt comes from, as the remark plugin reads it on the site
+      const mdx = readFileSync(join(ROOT, 'content', `${evalCase.docsPath}.mdx`), 'utf8')
+      const related = relatedSnippets(mdx, evalCase.docsPath)
       const prompt =
-        buildPrompt({ path: evalCase.path, source, docsPath: evalCase.docsPath, cliVersion: version }).replaceAll(`webperf-snippets@${version}`, pkg) +
+        buildPrompt({ path: evalCase.path, source, docsPath: evalCase.docsPath, cliVersion: version, related }).replaceAll(`webperf-snippets@${version}`, pkg) +
         (url ? `\nPage to measure: ${url}\n` : '')
       writeFileSync(join(out, `${evalCase.id}.prompt.md`), prompt)
       const expect = { ...evalCase.expect }
       if (expect.reference) expect.reference = { ...expect.reference, value: await reference(evalCase, url, pkg, work) }
       const graded = { ...evalCase, expect }
+      const linked = linkedSnippets(mdx, CATALOG)
 
       for (let i = 1; i <= repeat; i++) {
         tasks.push(async () => {
@@ -192,7 +214,7 @@ async function main() {
           }
           const missing = evalCase.interactive ? await missingSelectors(browser, url, interactions) : []
           const verdicts = await judge(evalCase, transcript, workdir)
-          const checks = gradeRun(graded, transcript, { pkg, interactions, missingSelectors: missing, verdicts })
+          const checks = gradeRun(graded, transcript, { pkg, url, interactions, missingSelectors: missing, verdicts, catalog: CATALOG, linked })
           const failed = checks.filter((c) => !c.pass).map((c) => c.id)
           const { input, output } = transcript.tokens
           console.log(`${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, ${Math.round(transcript.durationMs / 1000)} s)`)
