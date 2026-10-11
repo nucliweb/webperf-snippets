@@ -1,0 +1,104 @@
+name: Copy prompt evals
+
+# An agent runs the Copy prompt of several snippets on local pages, and the run fails when a check
+# of a case passes in fewer than 2 of 3 runs (scripts/eval-prompts). It costs tokens and agents are
+# not deterministic, so it runs on demand and on the pull requests that change the prompt or the evals,
+# not in CI.
+#
+# Needs the CLAUDE_CODE_OAUTH_TOKEN secret, from `claude setup-token` (a Claude subscription: the runs
+# count toward its usage limits). Pull requests from forks get no secrets, so the job is skipped there.
+
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        description: 'Case id to run (empty: all of them)'
+        required: false
+        default: ''
+      repeat:
+        description: 'Runs per case'
+        required: false
+        default: '3'
+      model:
+        description: 'Model of the agent and the judge'
+        required: false
+        default: 'sonnet'
+      local:
+        description: 'Use the CLI of this branch instead of the one published on npm'
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - 'lib/snippet-prompt.mjs'
+      - 'lib/remark-snippet-prompt.mjs'
+      - 'scripts/eval-prompts/**'
+      - '.github/workflows/eval-prompts.yml'
+
+concurrency:
+  group: eval-prompts-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check the token
+        id: token
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::notice::No CLAUDE_CODE_OAUTH_TOKEN secret (or a pull request from a fork): the evals are skipped."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repository
+        if: steps.token.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.token.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.token.outputs.skip != 'true'
+        run: npm ci
+
+      # The runner checks the selectors of the agent with this Playwright; the CLI the agent runs uses
+      # the same version (PLAYWRIGHT in lib/snippet-prompt.mjs) and finds this browser already installed
+      - name: Install Playwright Chromium
+        if: steps.token.outputs.skip != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Claude Code
+        if: steps.token.outputs.skip != 'true'
+        run: npm install -g @anthropic-ai/claude-code && claude --version
+
+      - name: Run the evals
+        if: steps.token.outputs.skip != 'true'
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CASE: ${{ inputs.case }}
+          REPEAT: ${{ inputs.repeat || '3' }}
+          MODEL: ${{ inputs.model || 'sonnet' }}
+          LOCAL: ${{ inputs.local }}
+        run: |
+          args=(--repeat "$REPEAT" --model "$MODEL" --summary "$GITHUB_STEP_SUMMARY")
+          if [ -n "$CASE" ]; then args+=(--case "$CASE"); fi
+          if [ "$LOCAL" = "true" ]; then args+=(--local); fi
+          npm run eval:prompts -- "${args[@]}"
+
+      - name: Upload the transcripts
+        if: always() && steps.token.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-prompts
+          path: workspace/evals/
+          retention-days: 14

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,6 +9,7 @@ import { parseArgs } from 'node:util'
 import { chromium } from 'playwright'
 import { buildPrompt, cliVersion, PLAYWRIGHT, relatedSnippets } from '../../lib/snippet-prompt.mjs'
 import { CASES } from './cases.mjs'
+import { summarize, belowRate, textSummary, markdownSummary } from './summary.mjs'
 import { parseTranscript, cliRuns, gradeRun, interactScript, judgePrompt, parseVerdict, linkedSnippets } from './grade.mjs'
 
 // Evals of the Copy prompt: an agent in an empty directory, with no skills, MCP servers or settings,
@@ -18,6 +19,10 @@ import { parseTranscript, cliRuns, gradeRun, interactScript, judgePrompt, parseV
 //   npm run eval:prompts                       the CLI published on npm, 3 runs per case
 //   npm run eval:prompts -- --local            the CLI of this workspace, packed as on publish
 //   npm run eval:prompts -- --case inp-buttons-only --repeat 1 --model opus
+//
+// The run fails (exit code 1) when a check of a case passes in fewer runs than `--min-rate` (2 of 3 by
+// default), and `--summary <file>` appends a Markdown summary to that file, such as the summary of a
+// GitHub Actions job.
 //
 // The summary measures each run in tokens. A subscription does not bill them, but they count toward
 // its usage limits. `--max-cost` stops a run when the cost `claude -p` estimates at API prices goes
@@ -41,6 +46,8 @@ const { values: opts } = parseArgs({
     model: { type: 'string', default: 'sonnet' },
     concurrency: { type: 'string', default: '2' },
     'max-cost': { type: 'string', default: '1' },
+    'min-rate': { type: 'string', default: '0.66' },
+    summary: { type: 'string' },
   },
 })
 
@@ -161,13 +168,13 @@ async function pool(tasks, size) {
   return results
 }
 
-const percent = (n, total) => `${Math.round((100 * n) / total)}%`
 const thousands = (n) => `${(n / 1000).toFixed(1)}k`
 
 async function main() {
   const cases = opts.case ? CASES.filter((c) => opts.case.includes(c.id)) : CASES
   if (cases.length === 0) throw new Error(`No case named ${opts.case.join(', ')}. Cases: ${CASES.map((c) => c.id).join(', ')}`)
   const repeat = Number(opts.repeat)
+  const minRate = Number(opts['min-rate'])
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')
   const out = join(ROOT, 'workspace/evals', stamp)
   mkdirSync(out, { recursive: true })
@@ -226,20 +233,13 @@ async function main() {
     const runs = await pool(tasks, Number(opts.concurrency))
     writeFileSync(join(out, 'summary.json'), JSON.stringify({ pkg, model: opts.model, repeat, runs }, null, 2))
 
-    console.log('')
-    for (const evalCase of cases) {
-      const own = runs.filter((r) => r.case === evalCase.id)
-      const average = (value) => own.reduce((s, r) => s + value(r), 0) / own.length
-      const input = average((r) => r.tokens.input)
-      const output = average((r) => r.tokens.output)
-      const seconds = average((r) => r.durationMs) / 1000
-      console.log(`${evalCase.id}  (average ${thousands(input)} tokens in, ${thousands(output)} out, ${Math.round(seconds)} s)`)
-      for (const id of own[0].checks.map((c) => c.id)) {
-        const results = own.map((r) => r.checks.find((c) => c.id === id))
-        const passed = results.filter((c) => c?.pass).length
-        const details = results.filter((c) => c && !c.pass && c.detail).map((c) => c.detail)
-        console.log(`  ${id.padEnd(22)} ${String(passed).padStart(2)}/${own.length} ${percent(passed, own.length).padStart(4)}${details.length ? `  ${details.join(' | ')}` : ''}`)
-      }
+    const summary = summarize(runs)
+    console.log(`\n${textSummary(summary)}`)
+    if (opts.summary) appendFileSync(opts.summary, markdownSummary(summary, minRate, { pkg, model: opts.model }))
+    const below = belowRate(summary, minRate)
+    if (below.length) {
+      console.error(`\nBelow ${Math.round(minRate * 100)}%: ${below.map((b) => `${b.case} ${b.id} (${b.passed}/${b.total})`).join(', ')}`)
+      process.exitCode = 1
     }
   } finally {
     await browser.close()

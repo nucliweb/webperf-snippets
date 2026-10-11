@@ -56,13 +56,13 @@ npm run check:built-snippets # after `npm run build`: every page shows its snipp
 npm run test:icons           # emoji to icon plugins
 npm run test:support         # browser support plugin
 npm run test:prompt          # agent prompt of each snippet (lib/snippet-prompt.mjs)
-npm run eval:prompts         # an agent runs the prompts on local pages, graded from its transcript (not in CI)
+npm run eval:prompts         # an agent runs the prompts on local pages, graded from its transcript (eval-prompts.yml: on demand and on PRs that change the prompt)
 
 npm run test:unit --prefix cli
 npm run test:e2e --prefix cli   # Playwright against local fixtures (cli/tests/fixtures)
 ```
 
-CI (`.github/workflows/ci.yml`) runs lint, build, all the checks above, `generate-skills:check` and the CLI unit and e2e tests. The pre-commit hook (`.githooks/pre-commit`) runs `check:consistency`, `check:emoji` and `lint`.
+CI (`.github/workflows/ci.yml`) runs lint, build, all the checks above except `eval:prompts`, `generate-skills:check` and the CLI unit and e2e tests. The pre-commit hook (`.githooks/pre-commit`) runs `check:consistency`, `check:emoji` and `lint`.
 
 ## Snippets
 
