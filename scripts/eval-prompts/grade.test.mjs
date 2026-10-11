@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseTranscript, cliRuns, mentionsValue, gradeRun, interactScript, judgePrompt, parseVerdict } from './grade.mjs'
+import { parseTranscript, cliRuns, mentionsValue, gradeRun, interactScript, judgePrompt, parseVerdict, linkedSnippets, namedSnippets } from './grade.mjs'
 
 // stream-json lines as `claude -p --output-format stream-json` prints them
 const toolUse = (id, name, input) =>
@@ -239,3 +239,40 @@ test('a case where the CLI fails does not let the agent measure another URL inst
   assert.equal(ids['same-url'], false)
   assert.equal(ids['reports-error'], false)
 })
+
+const CATALOG = ['CoreWebVitals/LCP', 'CoreWebVitals/LCP-Subparts', 'CoreWebVitals/LCP-Trail', 'CoreWebVitals/LCP-Image-Entropy', 'Loading/FCP', 'Loading/TTFB']
+const LCP_MDX = `Use [LCP Subparts](/CoreWebVitals/LCP-Subparts) to find the phase.
+- [LCP Trail](/CoreWebVitals/LCP-Trail) | candidates
+- [FCP](/Loading/FCP) | first paint
+- [Optimize LCP](https://web.dev/articles/optimize-lcp) | web.dev`
+
+test('linkedSnippets reads the snippet pages a documentation page links to', () => {
+  assert.deepEqual(linkedSnippets(LCP_MDX, CATALOG), ['CoreWebVitals/LCP-Subparts', 'CoreWebVitals/LCP-Trail', 'Loading/FCP'])
+})
+
+test('namedSnippets finds a compound name with hyphens or spaces, and a one-word name only as a path', () => {
+  assert.deepEqual(namedSnippets('Next, run LCP Subparts.', CATALOG), ['CoreWebVitals/LCP-Subparts'])
+  assert.deepEqual(namedSnippets('Run `LCP-Image-Entropy` next.', CATALOG), ['CoreWebVitals/LCP-Image-Entropy'])
+  assert.deepEqual(namedSnippets('TTFB was 50 ms and FCP came early.', CATALOG), [])
+  assert.deepEqual(namedSnippets('See /Loading/TTFB for the server time.', CATALOG), ['Loading/TTFB'])
+  assert.deepEqual(namedSnippets('LCP is 4.6 s.', CATALOG), [])
+})
+
+const NEXT_CASE = { snippet: 'LCP', path: 'CoreWebVitals/LCP', expect: { status: ['ok'], nextSnippet: true } }
+const nextRun = (report) => parseTranscript([toolUse('a', 'Bash', { command: lcpCommand }), toolResult('a', lcpJson(4600, 'poor')), result(report)].join('\n'))
+const nextCtx = { pkg: PKG, catalog: CATALOG, linked: linkedSnippets(LCP_MDX, CATALOG) }
+
+test('a report that names a snippet the documentation links passes the next snippet checks', () => {
+  const ids = byId(gradeRun(NEXT_CASE, nextRun('LCP is 4.6 s, poor. Next, run LCP Subparts to find the slow phase.'), nextCtx))
+  assert.equal(ids['names-next-snippet'], true)
+  assert.equal(ids['next-snippet-linked'], true)
+})
+
+test('a report that names no snippet, or one the page does not link, fails', () => {
+  const none = byId(gradeRun(NEXT_CASE, nextRun('LCP is 4.6 s, poor. Optimize the hero image.'), nextCtx))
+  assert.equal(none['names-next-snippet'], false)
+  const unlinked = byId(gradeRun(NEXT_CASE, nextRun('LCP is 4.6 s, poor. Run LCP Subparts and LCP-Image-Entropy next.'), nextCtx))
+  assert.equal(unlinked['names-next-snippet'], true)
+  assert.equal(unlinked['next-snippet-linked'], false)
+})
+
