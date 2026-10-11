@@ -68,6 +68,18 @@ async function run(name, own) {
     await page.goto(pageUrl, { waitUntil: "load" });
     await page.waitForTimeout(400);
     const result = await page.evaluate(source.replace("const OWN_DOMAINS = [];", `const OWN_DOMAINS = ${JSON.stringify(own)};`));
+    // Some snippets log from a buffered PerformanceObserver callback, which runs after the evaluate
+    // returns. Observer callbacks run in the order the observers were registered, so once this one
+    // runs, the snippet's has logged.
+    await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          new PerformanceObserver((_, observer) => {
+            observer.disconnect();
+            resolve();
+          }).observe({ type: "resource", buffered: true });
+        })
+    );
     return { result, lines };
   } finally {
     await page.close();
