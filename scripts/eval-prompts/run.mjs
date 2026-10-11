@@ -7,7 +7,7 @@ import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chromium } from 'playwright'
-import { buildPrompt, cliVersion, PLAYWRIGHT } from '../../lib/snippet-prompt.mjs'
+import { buildPrompt, cliVersion, PLAYWRIGHT, relatedSnippets } from '../../lib/snippet-prompt.mjs'
 import { CASES } from './cases.mjs'
 import { parseTranscript, cliRuns, gradeRun, interactScript, judgePrompt, parseVerdict, linkedSnippets } from './grade.mjs'
 
@@ -187,14 +187,17 @@ async function main() {
       // A case without a fixture gives the prompt as it is copied, with no URL
       const url = evalCase.unreachable ? await closedPortUrl() : evalCase.fixture ? `${base}/${evalCase.fixture}` : null
       const source = readFileSync(join(ROOT, 'snippets', `${evalCase.path}.js`), 'utf8')
+      // The page the prompt comes from, as the remark plugin reads it on the site
+      const mdx = readFileSync(join(ROOT, 'content', `${evalCase.docsPath}.mdx`), 'utf8')
+      const related = relatedSnippets(mdx, evalCase.docsPath)
       const prompt =
-        buildPrompt({ path: evalCase.path, source, docsPath: evalCase.docsPath, cliVersion: version }).replaceAll(`webperf-snippets@${version}`, pkg) +
+        buildPrompt({ path: evalCase.path, source, docsPath: evalCase.docsPath, cliVersion: version, related }).replaceAll(`webperf-snippets@${version}`, pkg) +
         (url ? `\nPage to measure: ${url}\n` : '')
       writeFileSync(join(out, `${evalCase.id}.prompt.md`), prompt)
       const expect = { ...evalCase.expect }
       if (expect.reference) expect.reference = { ...expect.reference, value: await reference(evalCase, url, pkg, work) }
       const graded = { ...evalCase, expect }
-      const linked = linkedSnippets(readFileSync(join(ROOT, 'content', `${evalCase.docsPath}.mdx`), 'utf8'), CATALOG)
+      const linked = linkedSnippets(mdx, CATALOG)
 
       for (let i = 1; i <= repeat; i++) {
         tasks.push(async () => {
