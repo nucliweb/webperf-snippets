@@ -1,8 +1,10 @@
-"use client";
+import { site } from "../lib/site";
 
-import { usePathname } from "next/navigation";
+// JSON-LD of a page, built on the server from what the page says about itself (lib/page-info.js): the
+// breadcrumb, and on a snippet page the article and the source code of each snippet.
 
 const BASE_URL = "https://webperf-snippets.nucliweb.net";
+const AUTHOR = { "@type": "Person", name: site.author.name, url: site.author.url };
 
 const CATEGORY_LABELS = {
   CoreWebVitals: "Core Web Vitals",
@@ -12,7 +14,7 @@ const CATEGORY_LABELS = {
   Resources: "Resources",
 };
 
-function buildBreadcrumbs(segments) {
+function buildBreadcrumbs(segments, title) {
   const items = [
     {
       "@type": "ListItem",
@@ -32,11 +34,10 @@ function buildBreadcrumbs(segments) {
   }
 
   if (segments[1]) {
-    const pageName = segments[1].replace(/-/g, " ");
     items.push({
       "@type": "ListItem",
       position: items.length + 1,
-      name: pageName,
+      name: title,
       item: `${BASE_URL}/${segments[0]}/${segments[1]}`,
     });
   }
@@ -44,7 +45,25 @@ function buildBreadcrumbs(segments) {
   return items;
 }
 
-export function buildPageSchemas(pathname) {
+// The source of a snippet, for the agents and search engines that cite code
+function sourceCode(path, { description, pageUrl }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    name: path.split("/")[1].replace(/-/g, " "),
+    description,
+    programmingLanguage: "JavaScript",
+    runtimePlatform: "Web browser",
+    codeRepository: site.repository,
+    url: `${site.repository}/blob/main/snippets/${path}.js`,
+    license: "https://opensource.org/licenses/MIT",
+    author: AUTHOR,
+    subjectOf: { "@type": "WebPage", url: pageUrl },
+  };
+}
+
+// page: { title, description, snippets } of lib/page-info.js
+export function buildPageSchemas(pathname, page) {
   const path = pathname.replace(/\/+$/, "");
   const segments = path.replace(/^\//, "").split("/").filter(Boolean);
 
@@ -53,7 +72,7 @@ export function buildPageSchemas(pathname) {
   const schemas = [];
   const pageUrl = `${BASE_URL}${path}`;
 
-  const breadcrumbItems = buildBreadcrumbs(segments);
+  const breadcrumbItems = buildBreadcrumbs(segments, page.title);
   if (breadcrumbItems.length > 1) {
     schemas.push({
       "@context": "https://schema.org",
@@ -64,39 +83,30 @@ export function buildPageSchemas(pathname) {
 
   const isSnippetPage = segments.length === 2 && CATEGORY_LABELS[segments[0]];
   if (isSnippetPage) {
-    const pageName = segments[1].replace(/-/g, " ");
     schemas.push({
       "@context": "https://schema.org",
       "@type": "Article",
-      headline: pageName,
+      headline: page.title,
+      description: page.description,
       url: pageUrl,
-      author: {
-        "@type": "Person",
-        name: "Joan León",
-        url: "https://twitter.com/nucliweb",
-      },
-      publisher: {
-        "@type": "Person",
-        name: "Joan León",
-        url: "https://twitter.com/nucliweb",
-      },
+      author: AUTHOR,
+      publisher: AUTHOR,
       isPartOf: {
         "@type": "WebSite",
         name: "WebPerf Snippets",
         url: BASE_URL,
       },
     });
+    for (const path of page.snippets) schemas.push(sourceCode(path, { description: page.description, pageUrl }));
   }
 
   return schemas;
 }
 
-export function PageSchemaScripts({ pathname }) {
-  if (!pathname) return null;
-
+export function PageSchema({ pathname, page }) {
   return (
     <>
-      {buildPageSchemas(pathname).map((schema, i) => (
+      {buildPageSchemas(pathname, page).map((schema, i) => (
         <script
           key={i}
           type="application/ld+json"
@@ -105,8 +115,4 @@ export function PageSchemaScripts({ pathname }) {
       ))}
     </>
   );
-}
-
-export function PageSchema() {
-  return <PageSchemaScripts pathname={usePathname()} />;
 }

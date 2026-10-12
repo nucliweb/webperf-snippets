@@ -3,6 +3,7 @@
 const fs = require('fs')
 const path = require('path')
 const { readMeta } = require('./read-meta')
+const { extractTitle, extractDescription } = require('../lib/page-info')
 
 const ROOT = path.join(__dirname, '..')
 const PAGES_DIR = path.join(ROOT, 'content')
@@ -14,39 +15,6 @@ const CATEGORIES = ['CoreWebVitals', 'Loading', 'Interaction', 'Media', 'Resourc
 
 function readFile(filePath) {
   return fs.readFileSync(filePath, 'utf8')
-}
-
-function extractTitle(content) {
-  const match = content.match(/^#\s+(.+)$/m)
-  return match ? match[1].trim() : null
-}
-
-function extractDescription(content) {
-  const lines = content.split('\n')
-  let pastImports = false
-  let pastTitle = false
-  const descLines = []
-
-  for (const line of lines) {
-    if (line.startsWith('import ')) { pastImports = true; continue }
-    if (!pastImports) continue
-    if (line.trim() === '') continue
-    if (line.startsWith('#')) { pastTitle = true; continue }
-    if (!pastTitle) continue
-
-    // Stop at next heading, table, blockquote, or JSX
-    if (line.startsWith('#') || line.startsWith('|') || line.startsWith('>') || line.startsWith('<')) break
-
-    descLines.push(line)
-    // One paragraph is enough
-    if (descLines.length > 0 && line.trim() === '') break
-  }
-
-  return descLines
-    .join(' ')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // strip markdown links
-    .replace(/\*\*([^*]+)\*\*/g, '$1')        // strip bold
-    .trim()
 }
 
 function extractSnippetImports(content) {

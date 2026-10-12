@@ -7,8 +7,6 @@ import { site } from "../lib/site";
 
 const DESCRIPTION =
   "A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on Chrome DevTools";
-const OG_IMAGE =
-  "https://res.cloudinary.com/nucliweb/image/upload/c_scale,dpr_auto,f_auto,q_auto,w_1200/v1685886151/webperf-snippets/webperf-snippets-og-image.png";
 
 const metas = (html) =>
   [...html.matchAll(/<meta ([^>]*?)\/?>/g)].map(([, attrs]) =>
@@ -18,26 +16,8 @@ const metas = (html) =>
 describe("SiteHead", () => {
   const html = renderToStaticMarkup(<SiteHead />);
 
-  it("emits the description, author, Open Graph and Twitter tags in order, and leaves the viewport to the framework", () => {
-    expect(metas(html)).toEqual([
-      { name: "description", content: DESCRIPTION },
-      { name: "author", content: "Joan Leon" },
-      { property: "og:url", content: "https://webperf-snippets.nucliweb.net/" },
-      { property: "og:type", content: "website" },
-      { property: "og:locale", content: "en_US" },
-      { property: "og:site_name", content: "WebPerf Snippets" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "675" },
-      { property: "og:title", content: "WebPerf Snippets" },
-      { property: "og:description", content: `${DESCRIPTION} by Joan León` },
-      { property: "og:image", content: OG_IMAGE },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@nucliweb" },
-      { name: "twitter:creator", content: "@nucliweb" },
-      { name: "twitter:title", content: "WebPerf Snippets" },
-      { name: "twitter:description", content: DESCRIPTION },
-      { name: "twitter:image", content: OG_IMAGE },
-    ]);
+  it("emits no meta tag: the metadata of the layout and of each page gives them", () => {
+    expect(metas(html)).toEqual([]);
   });
 
   it("emits the WebSite JSON-LD", () => {

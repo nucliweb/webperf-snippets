@@ -1,22 +1,28 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { buildPageSchemas, PageSchemaScripts } from "./PageSchema";
+import { buildPageSchemas, PageSchema } from "./PageSchema";
 
 const BASE = "https://webperf-snippets.nucliweb.net";
 const types = (schemas) => schemas.map((s) => s["@type"]);
 
+const TTFB = {
+  title: "Time to first byte (TTFB)",
+  description: "Measures the time until the first byte of the document arrives.",
+  snippets: ["Loading/TTFB", "Loading/TTFB-Sub-Parts"],
+};
+
 describe("buildPageSchemas", () => {
   it("adds nothing to the home page", () => {
-    expect(buildPageSchemas("/")).toEqual([]);
+    expect(buildPageSchemas("/", TTFB)).toEqual([]);
   });
 
   it("adds nothing to a page outside the snippet categories", () => {
-    expect(buildPageSchemas("/which-snippet")).toEqual([]);
-    expect(buildPageSchemas("/CLI")).toEqual([]);
+    expect(buildPageSchemas("/which-snippet", TTFB)).toEqual([]);
+    expect(buildPageSchemas("/CLI", TTFB)).toEqual([]);
   });
 
   it("describes a category page with a breadcrumb and no article", () => {
-    const schemas = buildPageSchemas("/Loading");
+    const schemas = buildPageSchemas("/Loading", { title: "Loading", description: "", snippets: [] });
     expect(types(schemas)).toEqual(["BreadcrumbList"]);
     expect(schemas[0].itemListElement.map((i) => [i.position, i.name, i.item])).toEqual([
       [1, "Home", BASE],
@@ -24,41 +30,63 @@ describe("buildPageSchemas", () => {
     ]);
   });
 
-  it("describes a snippet page with a breadcrumb and an article", () => {
-    const schemas = buildPageSchemas("/Loading/TTFB");
-    expect(types(schemas)).toEqual(["BreadcrumbList", "Article"]);
+  it("describes a snippet page with a breadcrumb, an article and the source code of each snippet", () => {
+    const schemas = buildPageSchemas("/Loading/TTFB", TTFB);
+    expect(types(schemas)).toEqual(["BreadcrumbList", "Article", "SoftwareSourceCode", "SoftwareSourceCode"]);
     expect(schemas[0].itemListElement.map((i) => [i.position, i.name, i.item])).toEqual([
       [1, "Home", BASE],
       [2, "Loading", `${BASE}/Loading`],
-      [3, "TTFB", `${BASE}/Loading/TTFB`],
+      [3, "Time to first byte (TTFB)", `${BASE}/Loading/TTFB`],
     ]);
-    expect(schemas[1]).toMatchObject({
-      headline: "TTFB",
+  });
+
+  it("gives the article the title and description of the page", () => {
+    const [, article] = buildPageSchemas("/Loading/TTFB", TTFB);
+    expect(article).toMatchObject({
+      headline: "Time to first byte (TTFB)",
+      description: "Measures the time until the first byte of the document arrives.",
       url: `${BASE}/Loading/TTFB`,
       isPartOf: { "@type": "WebSite", url: BASE },
     });
   });
 
-  it("uses the human label of the category and spaces for the hyphens of the page name", () => {
-    const schemas = buildPageSchemas("/CoreWebVitals/LCP-Subparts");
+  it("describes each snippet as JavaScript for the browser, with its source file, license and page", () => {
+    const [, , ttfb, subParts] = buildPageSchemas("/Loading/TTFB", TTFB);
+    expect(ttfb).toEqual({
+      "@context": "https://schema.org",
+      "@type": "SoftwareSourceCode",
+      name: "TTFB",
+      description: "Measures the time until the first byte of the document arrives.",
+      programmingLanguage: "JavaScript",
+      runtimePlatform: "Web browser",
+      codeRepository: "https://github.com/nucliweb/webperf-snippets",
+      url: "https://github.com/nucliweb/webperf-snippets/blob/main/snippets/Loading/TTFB.js",
+      license: "https://opensource.org/licenses/MIT",
+      author: { "@type": "Person", name: "Joan León", url: "https://twitter.com/nucliweb" },
+      subjectOf: { "@type": "WebPage", url: `${BASE}/Loading/TTFB` },
+    });
+    expect(subParts.name).toBe("TTFB Sub Parts");
+    expect(subParts.url).toMatch(/snippets\/Loading\/TTFB-Sub-Parts\.js$/);
+  });
+
+  it("uses the human label of the category", () => {
+    const schemas = buildPageSchemas("/CoreWebVitals/LCP-Subparts", { title: "LCP subparts", description: "d", snippets: [] });
     expect(schemas[0].itemListElement[1].name).toBe("Core Web Vitals");
-    expect(schemas[1].headline).toBe("LCP Subparts");
   });
 
   it("ignores a trailing slash", () => {
-    expect(buildPageSchemas("/Loading/TTFB/")).toEqual(buildPageSchemas("/Loading/TTFB"));
+    expect(buildPageSchemas("/Loading/TTFB/", TTFB)).toEqual(buildPageSchemas("/Loading/TTFB", TTFB));
   });
 });
 
-describe("PageSchemaScripts", () => {
+describe("PageSchema", () => {
   it("renders one JSON-LD script per schema in the HTML of the page", () => {
-    const html = renderToStaticMarkup(<PageSchemaScripts pathname="/Loading/TTFB" />);
+    const html = renderToStaticMarkup(<PageSchema pathname="/Loading/TTFB" page={TTFB} />);
     const blocks = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
-    expect(blocks.map((b) => b["@type"])).toEqual(["BreadcrumbList", "Article"]);
+    expect(blocks.map((b) => b["@type"])).toEqual(["BreadcrumbList", "Article", "SoftwareSourceCode", "SoftwareSourceCode"]);
   });
 
-  it("renders nothing when there is no pathname yet or no schema applies", () => {
-    expect(renderToStaticMarkup(<PageSchemaScripts pathname={null} />)).toBe("");
-    expect(renderToStaticMarkup(<PageSchemaScripts pathname="/" />)).toBe("");
+  it("renders nothing when no schema applies", () => {
+    expect(renderToStaticMarkup(<PageSchema pathname="/" page={TTFB} />)).toBe("");
   });
 });

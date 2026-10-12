@@ -9,10 +9,9 @@ import { Logo } from "../components/Logo";
 import { SiteHead } from "../components/SiteHead";
 import { WebMCP } from "../components/WebMCP";
 import { site } from "../lib/site";
+import { siteMetadata } from "../lib/page-metadata";
 
-export const metadata = {
-  title: { default: site.name, template: site.titleTemplate },
-};
+export const metadata = siteMetadata;
 
 export default async function RootLayout({ children }) {
   return (
