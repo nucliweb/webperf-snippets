@@ -110,16 +110,34 @@ function buildSnippetEntries() {
   return entries
 }
 
-function generateLlmsTxt(entries) {
+// The pages at the root of content/ marked `type: guide`, such as the CLI and Which snippet
+function buildGuideEntries() {
+  return fs.readdirSync(PAGES_DIR)
+    .filter((f) => f.endsWith('.mdx'))
+    .sort()
+    .map((f) => ({ slug: path.basename(f, '.mdx'), content: readFile(path.join(PAGES_DIR, f)) }))
+    .filter(({ content }) => /^---\n[\s\S]*?^type:\s*guide\s*$[\s\S]*?^---/m.test(content))
+    .map(({ slug, content }) => ({ title: extractTitle(content) || slug, url: `${BASE_URL}/${slug}` }))
+}
+
+// Each link points to the Markdown version of the page (scripts/generate-page-markdown.mjs)
+function generateLlmsTxt(entries, guides = []) {
   const lines = [
     '# WebPerf Snippets',
     '',
     `> A curated collection of JavaScript snippets for web performance measurement in browser consoles and Chrome DevTools.`,
     `> Source: ${BASE_URL}`,
+    `> Each link points to the Markdown version of a page; the HTML page is at the same URL without .md.`,
     '',
     '---',
     '',
   ]
+
+  if (guides.length > 0) {
+    lines.push('## Guides', '')
+    for (const guide of guides) lines.push(`- [${guide.title}](${guide.url}.md)`)
+    lines.push('')
+  }
 
   let currentCategory = null
 
@@ -129,7 +147,7 @@ function generateLlmsTxt(entries) {
       lines.push(`## ${currentCategory}`, '')
     }
 
-    lines.push(`- [${entry.title}](${entry.url})`)
+    lines.push(`- [${entry.title}](${entry.url}.md)`)
     if (entry.description) {
       lines.push(`  ${entry.description}`)
     }
@@ -177,7 +195,7 @@ function generateLlmsFullTxt(entries) {
 
 function main() {
   const entries = buildSnippetEntries()
-  const llmsTxt = generateLlmsTxt(entries)
+  const llmsTxt = generateLlmsTxt(entries, buildGuideEntries())
   const llmsFullTxt = generateLlmsFullTxt(entries)
 
   fs.writeFileSync(path.join(PUBLIC_DIR, 'llms.txt'), llmsTxt, 'utf8')
@@ -186,4 +204,6 @@ function main() {
   console.log(`Generated llms.txt and llms-full.txt (${entries.length} snippets)`)
 }
 
-main()
+if (require.main === module) main()
+
+module.exports = { buildSnippetEntries, buildGuideEntries, generateLlmsTxt, generateLlmsFullTxt }

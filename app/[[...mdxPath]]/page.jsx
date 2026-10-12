@@ -1,5 +1,6 @@
 import { generateStaticParamsFor, importPage } from "nextra/pages";
 import { PageSchema } from "../../components/PageSchema";
+import { markdownUrlOfRoute } from "../../lib/markdown-path.mjs";
 import { useMDXComponents as getMDXComponents } from "../../mdx-components";
 
 export const generateStaticParams = generateStaticParamsFor("mdxPath");
@@ -12,7 +13,10 @@ export const dynamicParams = false;
 export async function generateMetadata(props) {
   const params = await props.params;
   const { metadata } = await importPage(params.mdxPath);
-  return metadata;
+  // <link rel="alternate" type="text/markdown"> to the Markdown version of the page, for agents
+  const markdown = markdownUrlOfRoute(params.mdxPath);
+  if (!markdown) return metadata;
+  return { ...metadata, alternates: { ...metadata.alternates, types: { ...metadata.alternates?.types, "text/markdown": markdown } } };
 }
 
 const Wrapper = getMDXComponents().wrapper;

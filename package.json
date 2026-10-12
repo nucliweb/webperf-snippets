@@ -31,7 +31,7 @@
     "prepare": "git config core.hooksPath .githooks",
     "test": "echo \"No tests configured\"",
     "postbuild": "node scripts/build-search-index.js",
-    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs",
+    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs lib/markdown-path.test.mjs scripts/generate-llms.test.js",
     "check:built-snippets": "node scripts/check-built-snippets.js"
   },
   "keywords": [
