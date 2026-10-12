@@ -19,7 +19,7 @@
     "eval:prompts": "node scripts/eval-prompts/run.mjs",
     "test:ci": "node --test scripts/ci-skip-slow-steps.test.js",
     "test:diagrams": "vitest run components/diagrams",
-    "test:components": "vitest run components lib/page-metadata.test.js lib/analytics.test.js",
+    "test:components": "vitest run components lib/page-metadata.test.js lib/analytics.test.js lib/webmcp.test.js",
     "generate-skills": "node scripts/generate-skills.js",
     "generate-skills:check": "node scripts/generate-skills.js && git diff --exit-code -- skills dist .claude/skills",
     "install-skills": "node scripts/install-skills.js",

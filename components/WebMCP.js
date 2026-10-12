@@ -1,96 +1,29 @@
 "use client";
 
 import { useEffect } from 'react'
+import { modelContextOf, registerTools, snippetTools, unregisterTools } from '../lib/webmcp'
 
+// Registers the snippet tools for the AI agent of the browser (lib/webmcp.js). The registry, with the
+// code of every snippet, loads only in a browser that has WebMCP.
 export function WebMCP() {
   useEffect(() => {
-    if (!navigator.modelContext) return
+    const modelContext = modelContextOf(window)
+    if (!modelContext) return
 
-    import(/* webpackChunkName: "snippets-registry" */ '../lib/snippets-registry').then(({ snippets }) => {
-    navigator.modelContext.registerTool({
-      name: 'list_snippets',
-      description:
-        'List all web performance measurement snippets available on this site. Returns metadata without code.',
-      inputSchema: { type: 'object', properties: {} },
-      execute: () =>
-        snippets.map(({ id, category, title, description, url }) => ({
-          id,
-          category,
-          title,
-          description,
-          url,
-        })),
+    const controller = new AbortController()
+    let tools = []
+
+    import(/* webpackChunkName: "snippets-registry" */ '../lib/snippets-registry').then(async ({ snippets }) => {
+      if (controller.signal.aborted) return
+      tools = snippetTools(snippets)
+      const errors = await registerTools(modelContext, tools, controller.signal)
+      for (const error of errors) console.warn('WebMCP: a tool was not registered.', error)
     })
 
-    navigator.modelContext.registerTool({
-      name: 'get_snippet',
-      description:
-        'Get the full JavaScript code for a specific web performance snippet by its ID.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          id: {
-            type: 'string',
-            description:
-              'Snippet ID (e.g. "LCP", "CLS", "TTFB", "INP"). Use list_snippets to discover available IDs.',
-          },
-        },
-        required: ['id'],
-      },
-      execute: ({ id }) => {
-        const snippet = snippets.find((s) => s.id === id)
-        if (!snippet) {
-          return { error: `Snippet "${id}" not found. Use list_snippets to see available IDs.` }
-        }
-        return snippet
-      },
-    })
-
-    navigator.modelContext.registerTool({
-      name: 'search_snippets',
-      description:
-        'Search web performance snippets by category and/or keyword. Returns metadata without code.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          category: {
-            type: 'string',
-            description:
-              'Filter by category. One of: CoreWebVitals, Loading, Interaction, Media, Resources.',
-          },
-          query: {
-            type: 'string',
-            description: 'Keyword to filter by title or description.',
-          },
-        },
-      },
-      execute: ({ category, query } = {}) => {
-        let results = snippets
-
-        if (category) {
-          results = results.filter((s) => s.category === category)
-        }
-
-        if (query) {
-          const q = query.toLowerCase()
-          results = results.filter(
-            (s) =>
-              s.title.toLowerCase().includes(q) ||
-              s.description.toLowerCase().includes(q) ||
-              s.id.toLowerCase().includes(q)
-          )
-        }
-
-        return results.map(({ id, category, title, description, url }) => ({
-          id,
-          category,
-          title,
-          description,
-          url,
-        }))
-      },
-    })
-    })
+    return () => {
+      controller.abort()
+      unregisterTools(modelContext, tools)
+    }
   }, [])
 
   return null
