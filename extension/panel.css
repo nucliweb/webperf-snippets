@@ -31,14 +31,24 @@
   --poor-bg: color-mix(in srgb, var(--poor) 14%, transparent);
 }
 * { box-sizing: border-box; }
+/* Until the panel reads its settings (panel.js) */
+.loading body { visibility: hidden; }
 body { margin: 0; display: flex; height: 100vh; font: 12px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
 .sidebar { width: 260px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
 .sidebar-top { display: flex; gap: 4px; align-items: center; padding: 8px; }
 #search { flex: 1; min-width: 0; padding: 4px 8px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
 #toggle-sidebar { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; color: var(--muted); background: none; border: 1px solid transparent; border-radius: 4px; cursor: pointer; }
 #toggle-sidebar:hover, #toggle-sidebar:focus-visible { color: var(--fg); background: var(--hover); border-color: var(--border); }
+.tool { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; color: var(--muted); background: none; border: 1px solid transparent; border-radius: 4px; cursor: pointer; }
+.tool:hover, .tool:focus-visible { color: var(--fg); background: var(--hover); border-color: var(--border); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .sidebar-collapsed .sidebar { width: 40px; }
+.sidebar-collapsed .sidebar-top { flex-direction: column; padding: 8px 0; }
 .sidebar-collapsed #search, .sidebar-collapsed #list { display: none; }
+.sidebar-right { flex-direction: row-reverse; }
+.sidebar-right .sidebar { border-right: 0; border-left: 1px solid var(--border); }
+.sidebar-right #toggle-sidebar svg { transform: rotate(180deg); }
+.sidebar-right.sidebar-collapsed #toggle-sidebar svg { transform: none; }
 .sidebar-collapsed #toggle-sidebar svg { transform: rotate(180deg); }
 #list button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 #list { overflow-y: auto; padding-bottom: 8px; }
@@ -108,3 +118,15 @@ th { position: sticky; top: 0; font-weight: 600; color: var(--muted); background
 .inspect { padding: 0; font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); text-align: left; background: none; border: 0; cursor: pointer; }
 .inspect:hover, .inspect:focus-visible { text-decoration: underline; }
 .inspect.not-found { color: var(--muted); text-decoration: line-through; }
+
+/* Dialogs */
+dialog { width: min(420px, calc(100vw - 32px)); padding: 16px 20px; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.2); }
+dialog::backdrop { background: rgb(0 0 0 / 0.3); }
+dialog h2 { margin: 0 0 12px; font-size: 14px; }
+dialog .close { margin-top: 16px; padding: 4px 12px; font: inherit; color: var(--accent); background: none; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.keys { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; align-items: center; margin: 0; }
+.keys dd { margin: 0; }
+kbd { display: inline-block; min-width: 20px; padding: 1px 6px; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; background: var(--surface); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; }
+fieldset { margin: 0 0 12px; padding: 0; border: 0; }
+legend { margin-bottom: 4px; font-weight: 600; }
+fieldset label { display: flex; gap: 6px; align-items: center; padding: 2px 0; cursor: pointer; }

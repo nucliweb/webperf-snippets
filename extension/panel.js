@@ -2,10 +2,10 @@ import { filterSnippets, groupByCategory } from './lib/catalog.js'
 import { renderResult } from './lib/render.js'
 import { readTrackingData, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
+import { createSettings } from './lib/settings.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
-if (chrome.devtools?.panels?.themeName === 'dark') document.documentElement.classList.add('dark')
 
 // Runs an expression in the inspected page and resolves with its value
 const evaluate = (expression) =>
@@ -24,22 +24,39 @@ let snippets = []
 let current = null
 let lastResult
 
-// What the panel remembers between openings of DevTools. Storage can be unavailable, and the panel
-// works the same without it
-const remember = (key, value) => {
-  try {
-    localStorage.setItem(`webperf-snippets:${key}`, value)
-  } catch {
-    // Nothing to remember then
-  }
+// What the panel remembers between openings of DevTools (lib/settings.js). The panel stays hidden
+// until they are read, so it does not show the default theme or side first
+const store = createSettings(chrome.storage)
+const saved = await store.load()
+const remember = (key, value) => store.save(key, value)
+document.documentElement.classList.remove('loading')
+
+// Settings: the theme, which follows DevTools unless the user picks one, and the side of the list
+const settings = document.getElementById('settings')
+function applyTheme(theme) {
+  const dark = theme === 'dark' || (theme === 'devtools' && chrome.devtools?.panels?.themeName === 'dark')
+  document.documentElement.classList.toggle('dark', dark)
 }
-const recall = (key) => {
-  try {
-    return localStorage.getItem(`webperf-snippets:${key}`)
-  } catch {
-    return null
-  }
+function applySide(side) {
+  document.body.classList.toggle('sidebar-right', side === 'right')
 }
+const chosen = { theme: saved.theme, side: saved.side }
+applyTheme(chosen.theme)
+applySide(chosen.side)
+for (const [name, value] of Object.entries(chosen)) settings.querySelector(`input[name="${name}"][value="${value}"]`).checked = true
+settings.addEventListener('change', (event) => {
+  const { name, value } = event.target
+  remember(name, value)
+  if (name === 'theme') applyTheme(value)
+  if (name === 'side') applySide(value)
+})
+
+// The shortcuts name the modifier key of the platform
+const shortcuts = document.getElementById('shortcuts')
+if (/Mac|iPhone|iPad/.test(navigator.platform)) shortcuts.querySelector('.mod').textContent = '⌘'
+document.getElementById('open-shortcuts').addEventListener('click', () => shortcuts.showModal())
+document.getElementById('open-settings').addEventListener('click', () => settings.showModal())
+for (const dialog of [shortcuts, settings]) dialog.querySelector('.close').addEventListener('click', () => dialog.close())
 
 const toggle = document.getElementById('toggle-sidebar')
 function setSidebar(expanded) {
@@ -49,7 +66,7 @@ function setSidebar(expanded) {
   remember('sidebar', expanded ? 'expanded' : 'collapsed')
 }
 toggle.addEventListener('click', () => setSidebar(document.body.classList.contains('sidebar-collapsed')))
-if (recall('sidebar') === 'collapsed') setSidebar(false)
+if (saved.sidebar === 'collapsed') setSidebar(false)
 
 // Copies text and says so on the button for a moment
 async function copyFrom(button, text) {
@@ -84,11 +101,18 @@ function showSnippet(snippet) {
     <p>${escape(snippet.description)}</p>${tracking}
     <div class="actions">
       <button type="button" id="run">Run</button>
-      <button type="button" id="read" hidden>Read result</button>${snippet.prompt ? '<button type="button" id="copy-prompt" class="secondary" title="Copy a prompt that runs this snippet on the inspected page with the CLI, for an AI agent">Copy prompt</button>' : ''}
+      <button type="button" id="read" hidden>Read result</button>
+      <button type="button" id="clear" class="secondary" hidden>Clear</button>${snippet.prompt ? '<button type="button" id="copy-prompt" class="secondary" title="Copy a prompt that runs this snippet on the inspected page with the CLI, for an AI agent">Copy prompt</button>' : ''}
       <a href="${escape(snippet.url)}" target="_blank" rel="noopener">Documentation</a>
     </div>
     <div id="result" aria-live="polite"></div>`
   document.getElementById('run').addEventListener('click', () => run(snippet))
+  document.getElementById('clear').addEventListener('click', () => {
+    document.getElementById('result').innerHTML = ''
+    document.getElementById('read').hidden = true
+    document.getElementById('clear').hidden = true
+    lastResult = undefined
+  })
   document.getElementById('copy-prompt')?.addEventListener('click', async (event) => {
     // event.currentTarget is null once the handler awaits
     const button = event.currentTarget
@@ -127,6 +151,7 @@ async function show(snippet, work, button) {
   button.disabled = false
   lastResult = value
   result.innerHTML = renderResult(value)
+  document.getElementById('clear').hidden = false
   return value
 }
 
@@ -166,6 +191,8 @@ search.addEventListener('input', showList)
 const typing = (el) => el?.matches?.('input, textarea, select, [contenteditable="true"]')
 const listButtons = () => [...list.querySelectorAll('button[data-id]')]
 document.addEventListener('keydown', (event) => {
+  // A dialog takes the keyboard while it is open
+  if (document.querySelector('dialog[open]')) return
   if (event.key === '/' && !typing(event.target) && !event.metaKey && !event.ctrlKey && !event.altKey) {
     event.preventDefault()
     if (document.body.classList.contains('sidebar-collapsed')) setSidebar(true)
@@ -198,7 +225,7 @@ fetch('snippets.json')
   .then((response) => response.json())
   .then((data) => {
     snippets = data
-    const last = snippets.find((s) => s.id === recall('snippet'))
+    const last = snippets.find((s) => s.id === saved.snippet)
     if (last) showSnippet(last)
     else showList()
   })

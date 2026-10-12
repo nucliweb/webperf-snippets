@@ -58,6 +58,23 @@ before(async () => {
         // The test calls window.__navigated(url) for a navigation of the inspected page
         network: { onNavigated: { addListener: (listener) => (window.__navigated = listener) } },
       },
+      // chrome.storage, kept in the localStorage of the panel so that it outlives a reload, as the real
+      // one outlives closing DevTools; each area under its own prefix
+      storage: Object.fromEntries(
+        ['sync', 'local'].map((name) => [
+          name,
+          {
+            get: async (keys) =>
+              Object.fromEntries(
+                keys.flatMap((k) => {
+                  const v = localStorage.getItem(`${name}:${k}`)
+                  return v === null ? [] : [[k, JSON.parse(v)]]
+                })
+              ),
+            set: async (items) => Object.entries(items).forEach(([k, v]) => localStorage.setItem(`${name}:${k}`, JSON.stringify(v))),
+          },
+        ])
+      ),
     }
   })
   await panel.goto(`http://127.0.0.1:${extension.address().port}/panel.html`)
@@ -185,6 +202,64 @@ test('a selector in the result selects its element in Elements', async () => {
   const inspected = await target.evaluate(() => window.__inspected)
   const expected = await target.evaluate((s) => document.querySelector(s).outerHTML.slice(0, 40), selector)
   assert.equal(inspected, expected)
+})
+
+test('the keyboard button lists the shortcuts, and ? is left to DevTools', async () => {
+  const dialog = panel.locator('#shortcuts')
+  // DevTools opens its settings with ?
+  await panel.locator('main').click()
+  await panel.keyboard.press('?')
+  assert.equal(await dialog.isVisible(), false)
+  await panel.click('#open-shortcuts')
+  assert.ok(await dialog.isVisible())
+  const text = await dialog.textContent()
+  for (const action of ['Search snippets', 'Move through the list', 'Open the snippet', 'Run the snippet', 'Clear the search']) {
+    assert.ok(text.includes(action), `no "${action}"`)
+  }
+  await panel.keyboard.press('Escape')
+  assert.equal(await dialog.isVisible(), false)
+  await panel.click('#open-shortcuts')
+  await panel.click('#shortcuts .close')
+  assert.equal(await dialog.isVisible(), false)
+})
+
+test('the settings choose the theme and the side of the list, and the panel remembers them', async () => {
+  const isDark = () => panel.evaluate(() => document.documentElement.classList.contains('dark'))
+  await panel.click('#open-settings')
+  await panel.check('input[name="theme"][value="dark"]')
+  assert.equal(await isDark(), true)
+  await panel.check('input[name="side"][value="right"]')
+  await panel.click('#settings .close')
+  const side = async () => {
+    const [list, main] = await Promise.all([panel.locator('.sidebar').boundingBox(), panel.locator('main').boundingBox()])
+    return list.x > main.x ? 'right' : 'left'
+  }
+  assert.equal(await side(), 'right')
+  await reopenPanel()
+  assert.equal(await isDark(), true)
+  assert.equal(await side(), 'right')
+  await panel.click('#open-settings')
+  assert.ok(await panel.isChecked('input[name="theme"][value="dark"]'))
+  await panel.check('input[name="theme"][value="light"]')
+  assert.equal(await isDark(), false)
+  // Following DevTools, which the test sets to the light theme
+  await panel.check('input[name="theme"][value="devtools"]')
+  assert.equal(await isDark(), false)
+  await panel.check('input[name="side"][value="left"]')
+  await panel.click('#settings .close')
+  assert.equal(await side(), 'left')
+})
+
+test('Clear empties the result, and only shows when there is one', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="Input-Latency-Breakdown"]')
+  assert.equal(await panel.locator('#clear').isVisible(), false)
+  await resultOf('#run')
+  assert.ok(await panel.locator('#read').isVisible())
+  await panel.click('#clear')
+  assert.equal((await panel.textContent('#result')).trim(), '')
+  assert.equal(await panel.locator('#clear').isVisible(), false)
+  assert.equal(await panel.locator('#read').isVisible(), false)
 })
 
 test('a snippet the CLI cannot run has no Copy prompt', async () => {
