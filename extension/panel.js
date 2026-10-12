@@ -3,6 +3,7 @@ import { renderResult } from './lib/render.js'
 import { readTrackingData, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
 import { createSettings } from './lib/settings.js'
+import { bySeverity, fromReport, overview, report, reportFileName, summarize } from './lib/audit.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
@@ -90,7 +91,141 @@ function showList() {
     : '<p class="empty">No snippet matches.</p>'
 }
 
-function showSnippet(snippet) {
+// The home page: what the snippets are, how to use them, the audit and the categories
+const SITE = 'https://webperf-snippets.nucliweb.net'
+function showHome() {
+  current = null
+  remember('snippet', null)
+  showList()
+  const auditCount = snippets.filter((s) => typeof s.audit === 'number').length
+  const categories = groupByCategory(snippets)
+    .map(([label, items]) => `<button type="button" data-category="${escape(label)}">${escape(label)} <span class="count">${items.length}</span></button>`)
+    .join('')
+  main.innerHTML = `<div class="home">
+    <h1><img class="logo" src="logo.svg" alt="" width="348" height="48"><span class="visually-hidden">WebPerf Snippets</span></h1>
+    <p class="lead">${snippets.length} scripts that measure the performance of the inspected page: Core Web Vitals, loading, interaction, media and network. Each one returns a structured result with its findings, the same one the CLI and AI agents read.</p>
+    <ol class="steps">
+      <li><strong>Choose a snippet</strong> in the list, or search for one with <kbd>/</kbd>.</li>
+      <li><strong>Run it</strong> on the inspected page, with the button or <kbd class="mod">Ctrl</kbd> <kbd>Enter</kbd>.</li>
+      <li><strong>Read the issues</strong>: each one says what is wrong and how to fix it. Snippets that record what happens, such as INP or long animation frames, run first; use the page, then press Read result.</li>
+    </ol>
+    <section class="home-card">
+      <h2>Structural audit</h2>
+      <p>Runs the ${auditCount} snippets of the audit of the CLI one after the other: render-blocking resources, resource hints, scripts, fonts, images, DOM size and more. Their checks do not depend on timing, so they give the same result on every run.</p>${
+        audit?.done
+          ? `<div class="last-audit"><p><strong>Last audit</strong>: ${escape(audit.url ?? 'unknown page')}, ${escape(new Date(audit.date).toLocaleString())}</p><p>${escape(overview(audit.rows))}</p></div>`
+          : ''
+      }
+      <div class="actions">${audit?.done ? '<button type="button" id="view-audit">View results</button>' : ''}
+        <button type="button" id="run-audit"${audit?.done ? ' class="secondary"' : ''}>${audit?.done ? 'Run again' : 'Run audit'}</button>
+      </div>
+    </section>
+    <section class="home-card">
+      <h2>Categories</h2>
+      <div class="categories">${categories}</div>
+    </section>
+    <p class="links"><a href="${SITE}" target="_blank" rel="noopener">Documentation</a> · <a href="${SITE}/which-snippet" target="_blank" rel="noopener">Which snippet do I need?</a> · <a href="${SITE}/CLI" target="_blank" rel="noopener">Command-line tool</a></p>
+  </div>`
+  if (/Mac|iPhone|iPad/.test(navigator.platform)) main.querySelector('.mod').textContent = '⌘'
+  document.getElementById('run-audit').addEventListener('click', runAudit)
+  document.getElementById('view-audit')?.addEventListener('click', showAudit)
+  main.querySelector('.categories').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-category]')
+    if (!button) return
+    setSidebar(true)
+    search.value = ''
+    showList()
+    const heading = [...list.querySelectorAll('h2')].find((h) => h.firstChild.textContent.trim() === button.dataset.category)
+    heading?.scrollIntoView({ block: 'start' })
+    heading?.nextElementSibling?.focus()
+  })
+}
+
+// The audit: its rows stay while the panel is open, so a result can be opened and the audit found
+// again. It keeps running when another view is shown
+let audit = null
+async function runAudit() {
+  const steps = snippets.filter((s) => typeof s.audit === 'number').sort((a, b) => a.audit - b.audit)
+  audit = { steps, rows: [], done: false, url: undefined, date: new Date().toISOString() }
+  const mine = audit
+  showAudit()
+  mine.url = await evaluate('location.href').catch(() => undefined)
+  for (const snippet of steps) {
+    const result = await runSnippet(evaluate, snippet.expression).catch((error) => ({ status: 'error', error: error.message }))
+    // A new audit replaced this one
+    if (audit !== mine) return
+    audit.rows.push({ snippet, result, summary: summarize(result) })
+    renderAudit()
+  }
+  audit.done = true
+  renderAudit()
+  // Kept, so the home page can show it again after DevTools closes
+  remember('audit', report({ url: audit.url, date: audit.date, rows: audit.rows }))
+}
+
+function showAudit() {
+  current = null
+  showList()
+  main.innerHTML = `<h1>Structural audit</h1>
+    <p>The snippets of the audit of the CLI, run on the inspected page. Open a row for its whole result.</p>
+    <div class="actions">
+      <button type="button" id="rerun-audit">Run again</button>
+      <button type="button" id="copy-audit" class="secondary" title="Copy the audit as JSON, in the shape of the CLI">Copy JSON</button>
+      <button type="button" id="download-audit" class="secondary" title="Save the audit as a JSON file">Download JSON</button>
+    </div>
+    <div id="audit" aria-live="polite"></div>`
+  document.getElementById('rerun-audit').addEventListener('click', runAudit)
+  const json = () => JSON.stringify(report({ url: audit.url, date: audit.date, rows: audit.rows }), null, 2)
+  document.getElementById('copy-audit').addEventListener('click', (event) => copyFrom(event.currentTarget, json()))
+  document.getElementById('download-audit').addEventListener('click', () => {
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(new Blob([json()], { type: 'application/json' }))
+    link.download = reportFileName(audit.url, audit.date)
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+  })
+  document.getElementById('audit').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-row]')
+    if (button) {
+      const row = audit.rows.find((r) => r.snippet.id === button.dataset.row)
+      showSnippet(row.snippet, { result: row.result, fromAudit: true })
+    }
+  })
+  renderAudit()
+}
+
+function renderAudit() {
+  const view = document.getElementById('audit')
+  if (!view || !audit) return
+  view.dataset.done = String(audit.done)
+  for (const id of ['rerun-audit', 'copy-audit', 'download-audit']) document.getElementById(id).disabled = !audit.done
+  const rows = audit.done ? [...audit.rows].sort(bySeverity) : audit.rows
+  // The step that runs now; none once the last row is in, before the audit is marked done
+  const next = audit.done ? undefined : audit.steps[audit.rows.length]
+  const status = next
+    ? `<p class="note">Running ${audit.rows.length + 1} of ${audit.steps.length}: ${escape(next.title)}…</p><progress max="${audit.steps.length}" value="${audit.rows.length}"></progress>`
+    : audit.done
+      ? `<p class="overview">${escape(overview(audit.rows))}</p>`
+      : ''
+  const cell = (n, kind) => `<td class="num">${n ? `<span class="tally tally-${kind}">${n}</span>` : ''}</td>`
+  const body = rows
+    .map(
+      ({ snippet, summary }) => `<tr>
+        <td><button type="button" class="row-link" data-row="${escape(snippet.id)}">${escape(snippet.title)}</button></td>
+        <td>${escape(summary.metric ?? '')}</td>
+        ${cell(summary.errors, 'error')}${cell(summary.warnings, 'warning')}${cell(summary.infos, 'info')}
+        <td class="long">${summary.top ? escape(summary.top) : '<span class="clean">No issues found</span>'}</td>
+      </tr>`
+    )
+    .join('')
+  view.innerHTML = `${status}${
+    rows.length
+      ? `<section><div class="table"><table><thead><tr><th>Snippet</th><th>Result</th><th>Errors</th><th>Warnings</th><th>Info</th><th>Main issue</th></tr></thead><tbody>${body}</tbody></table></div></section>`
+      : ''
+  }`
+}
+
+function showSnippet(snippet, { result: given, fromAudit = false } = {}) {
   current = snippet
   remember('snippet', snippet.id)
   showList()
@@ -99,7 +234,7 @@ function showSnippet(snippet) {
     : ''
   main.innerHTML = `<h1>${escape(snippet.title)}</h1>
     <p>${escape(snippet.description)}</p>${tracking}
-    <div class="actions">
+    <div class="actions">${fromAudit ? '<button type="button" id="back-to-audit" class="secondary">← Audit</button>' : ''}
       <button type="button" id="run">Run</button>
       <button type="button" id="read" hidden>Read result</button>
       <button type="button" id="clear" class="secondary" hidden>Clear</button>${snippet.prompt ? '<button type="button" id="copy-prompt" class="secondary" title="Copy a prompt that runs this snippet on the inspected page with the CLI, for an AI agent">Copy prompt</button>' : ''}
@@ -107,6 +242,12 @@ function showSnippet(snippet) {
     </div>
     <div id="result" aria-live="polite"></div>`
   document.getElementById('run').addEventListener('click', () => run(snippet))
+  document.getElementById('back-to-audit')?.addEventListener('click', showAudit)
+  if (given !== undefined) {
+    lastResult = given
+    document.getElementById('result').innerHTML = renderResult(given)
+    document.getElementById('clear').hidden = false
+  }
   document.getElementById('clear').addEventListener('click', () => {
     document.getElementById('result').innerHTML = ''
     document.getElementById('read').hidden = true
@@ -185,6 +326,7 @@ list.addEventListener('click', (event) => {
   if (button) showSnippet(snippets.find((s) => s.id === button.dataset.id))
 })
 search.addEventListener('input', showList)
+document.getElementById('go-home').addEventListener('click', () => snippets.length && showHome())
 
 // Keyboard: / goes to the search box, the arrows move through the list, Enter opens a snippet,
 // Ctrl+Enter or Cmd+Enter runs it, and Escape clears the search
@@ -225,9 +367,10 @@ fetch('snippets.json')
   .then((response) => response.json())
   .then((data) => {
     snippets = data
+    audit = fromReport(saved.audit, snippets)
     const last = snippets.find((s) => s.id === saved.snippet)
     if (last) showSnippet(last)
-    else showList()
+    else showHome()
   })
   .catch(() => {
     list.innerHTML = '<p class="empty">snippets.json is missing: run npm run extension:build.</p>'

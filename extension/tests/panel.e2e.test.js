@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { extname, join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { launch, startContractServers, STATUSES } from '../../cli/tests/helpers/contract.js'
+import { auditWorkflow } from '../../cli/src/workflows/audit.js'
 
 // Runs every snippet of snippets.json through the real panel: panel.html in one tab, and the seeded
 // page of the CLI contract tests in another. A DevTools panel cannot be automated, so the panel gets a
@@ -15,7 +16,7 @@ import { launch, startContractServers, STATUSES } from '../../cli/tests/helpers/
 
 const EXTENSION = join(dirname(fileURLToPath(import.meta.url)), '..')
 const snippets = JSON.parse(readFileSync(join(EXTENSION, 'snippets.json'), 'utf8'))
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' }
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' }
 
 let browser, servers, extension, target, panel
 const pageErrors = []
@@ -260,6 +261,79 @@ test('Clear empties the result, and only shows when there is one', async () => {
   assert.equal((await panel.textContent('#result')).trim(), '')
   assert.equal(await panel.locator('#clear').isVisible(), false)
   assert.equal(await panel.locator('#read').isVisible(), false)
+})
+
+test('the home page says what the snippets are for, and the home button goes back to it', async () => {
+  await panel.click('#go-home')
+  assert.equal(await panel.textContent('main h1'), 'WebPerf Snippets')
+  // The logo of the site, loaded from the extension
+  assert.ok(await panel.locator('main h1 img.logo').evaluate((img) => img.decode().then(() => img.naturalWidth > 0, () => false)))
+  const text = await panel.textContent('main')
+  assert.match(text, /inspected page/)
+  assert.match(text, /Read result/)
+  // A shortcut per category, with its number of snippets
+  const categories = [...new Set(snippets.map((s) => s.category))]
+  assert.equal(await panel.locator('main .categories button').count(), categories.length)
+  // It opens on the home page again after closing DevTools
+  await reopenPanel()
+  assert.equal(await panel.textContent('main h1'), 'WebPerf Snippets')
+  // A category shortcut shows its snippets in the list
+  await panel.click('main .categories button >> nth=1')
+  assert.equal(await panel.evaluate(() => document.activeElement?.closest('#list') !== null), true)
+})
+
+test('the audit runs the snippets of the audit of the CLI, sums them up and opens each result', async () => {
+  const inAudit = snippets.filter((s) => typeof s.audit === 'number')
+  assert.deepEqual(
+    [...inAudit].sort((a, b) => a.audit - b.audit).map((s) => s.path),
+    auditWorkflow.steps.map((step) => step.path)
+  )
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#go-home')
+  await panel.click('#run-audit')
+  await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
+  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+  assert.match(await panel.textContent('#audit .overview'), new RegExp(`^${auditWorkflow.steps.length} snippets: `))
+  // A snippet with nothing to fix says so, and a metric shows its value and rating
+  const rows = await panel.locator('#audit tbody tr').evaluateAll((trs) => trs.map((tr) => tr.textContent.replace(/\s+/g, ' ').trim()))
+  assert.ok(rows.some((r) => r.includes('No issues found')), 'no row says it has no issues')
+  assert.ok(await panel.locator('#audit tbody .clean').count() > 0)
+  const ttfb = rows.find((r) => r.startsWith('TTFB Sub Parts'))
+  assert.match(ttfb, /\d+ ms · (good|needs improvement|poor)/)
+  // Each row opens the result it got, and the way back keeps the audit
+  const title = await panel.textContent('#audit tbody tr >> nth=0 >> button')
+  await panel.click('#audit tbody tr >> nth=0 >> button')
+  assert.equal(await panel.textContent('main h1'), title)
+  await panel.waitForSelector('#result .raw pre', { state: 'attached' })
+  await panel.click('#back-to-audit')
+  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+
+  // The home page keeps the last audit, also after closing DevTools, and opens it again with its results
+  await panel.click('#go-home')
+  assert.match(await panel.textContent('main .last-audit'), new RegExp(`${servers.base}/seeded`))
+  await reopenPanel()
+  await panel.click('#go-home')
+  await panel.click('#view-audit')
+  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+  await panel.click('#audit tbody tr >> nth=0 >> button')
+  await panel.waitForSelector('#result .raw pre', { state: 'attached' })
+  await panel.click('#back-to-audit')
+  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+
+  // Copy JSON and Download JSON give the audit in the shape of the CLI
+  await panel.evaluate(() => (window.__copied.length = 0))
+  await panel.click('#copy-audit')
+  await panel.waitForFunction(() => window.__copied.length === 1)
+  const copied = JSON.parse(await panel.evaluate(() => window.__copied[0]))
+  assert.equal(copied.workflow, 'audit')
+  assert.equal(copied.url, `${servers.base}/seeded`)
+  assert.deepEqual(copied.results.map((r) => r.id), auditWorkflow.steps.map((step) => step.id))
+  assert.equal(copied.overview.snippets, auditWorkflow.steps.length)
+  assert.ok(copied.issues.length > 0)
+  const [download] = await Promise.all([panel.waitForEvent('download'), panel.click('#download-audit')])
+  assert.match(download.suggestedFilename(), /^webperf-audit-127\.0\.0\.1-\d{4}-\d{2}-\d{2}-\d{4}\.json$/)
+  const file = JSON.parse(readFileSync(await download.path(), 'utf8'))
+  assert.deepEqual(file.results.map((r) => r.id), copied.results.map((r) => r.id))
 })
 
 test('a snippet the CLI cannot run has no Copy prompt', async () => {

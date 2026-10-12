@@ -130,3 +130,39 @@ kbd { display: inline-block; min-width: 20px; padding: 1px 6px; font: 11px ui-mo
 fieldset { margin: 0 0 12px; padding: 0; border: 0; }
 legend { margin-bottom: 4px; font-weight: 600; }
 fieldset label { display: flex; gap: 6px; align-items: center; padding: 2px 0; cursor: pointer; }
+
+/* Home */
+.home { max-width: 760px; }
+.home h1 { margin-bottom: 12px; font-size: 20px; }
+.home .logo { display: block; width: 240px; max-width: 100%; height: auto; }
+.lead { font-size: 13px; color: var(--fg); }
+.steps { margin: 12px 0 16px; padding-left: 20px; }
+.steps li { margin: 4px 0; }
+.home-card { padding: 12px 16px; }
+#result > section, .home-card, #audit section { margin: 0 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); overflow: hidden; }
+.home-card h2 { margin: 0 0 4px; font-size: 13px; }
+.home-card p { margin: 0 0 10px; color: var(--muted); }
+#run-audit, #rerun-audit, #view-audit { padding: 4px 12px; font: inherit; color: #fff; background: var(--accent); border: 0; border-radius: 4px; cursor: pointer; }
+:root.dark #run-audit, :root.dark #rerun-audit, :root.dark #view-audit { color: #202124; }
+#run-audit.secondary { color: var(--accent); background: none; border: 1px solid var(--border); }
+.home-card .actions { margin: 0; }
+.last-audit { margin: 0 0 10px; padding: 8px 12px; background: var(--surface); border-radius: 6px; }
+.last-audit p { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
+#rerun-audit:disabled, #copy-audit:disabled, #download-audit:disabled { opacity: 0.6; cursor: default; }
+.categories { display: flex; flex-wrap: wrap; gap: 6px; }
+.categories button { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 14px; cursor: pointer; }
+.categories button:hover, .categories button:focus-visible { border-color: var(--accent); color: var(--accent); }
+.categories .count { color: var(--muted); font-size: 11px; }
+.links { color: var(--muted); }
+.links a { color: var(--accent); }
+
+/* Audit */
+#audit progress { width: 100%; margin: 0 0 12px; accent-color: var(--accent); }
+.overview { margin: 0 0 12px; font-weight: 600; }
+.row-link { padding: 0; font: inherit; color: var(--accent); text-align: left; background: none; border: 0; cursor: pointer; }
+.row-link:hover, .row-link:focus-visible { text-decoration: underline; }
+.tally { display: inline-block; min-width: 20px; padding: 0 6px; font-weight: 600; text-align: center; border-radius: 9px; }
+.tally-error { color: var(--poor); background: var(--poor-bg); }
+.tally-warning { color: var(--ni); background: var(--ni-bg); }
+.tally-info { color: var(--muted); background: var(--hover); }
+.clean { color: var(--good); font-weight: 600; }
