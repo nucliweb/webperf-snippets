@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Late video fixture</title>
+</head>
+<body style="margin:0">
+  <p style="font-size:8px;margin:0">Caption</p>
+  <script>
+    // The video appears 11 s after the load, as on a page left open without interaction
+    setTimeout(() => {
+      document.body.insertAdjacentHTML("afterbegin", '<video width="640" height="360" autoplay muted playsinline loop><source src="/clip.webm" type="video/webm"></video>');
+    }, 11000);
+  </script>
+</body>
+</html>
