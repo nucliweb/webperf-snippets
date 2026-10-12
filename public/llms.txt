@@ -40,7 +40,7 @@
   Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for instant back/forward navigations. When bfcache works, users get instant (0ms) page loads when using browser back/forward buttons, dramatically improving perceived performance.
 
 - [CSS media queries analysis](https://webperf-snippets.nucliweb.net/Loading/CSS-Media-Queries-Analysis.md)
-  Analyze all @media rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files, with byte size estimates for potential mobile savings.
+  Analyze all @media rules in CSS stylesheets that target viewports bigger than a breakpoint (default: 768px). Narrower screens download and parse that CSS without using it. The snippet groups the rules by distinct query, the way CSS analytics tools such as Project Wallace report at-rules, and breaks them down by stylesheet.
 
 - [Cache strategy analysis](https://webperf-snippets.nucliweb.net/Loading/Cache-Strategy-Analysis.md)
   Audits HTTP caching strategies across all page resources, identifying resources without cache, short-lived cache configurations, cache anti-patterns, and CDN cache hit rates. Provides a cache efficiency score and actionable recommendations.
