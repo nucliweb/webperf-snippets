@@ -16,3 +16,6 @@ public/_pagefind
 /public/Loading/
 /public/Media/
 /public/Resources/
+
+# Registry of the WebMCP tools, generated before the build (scripts/generate-webmcp-registry.mjs)
+/public/webmcp/

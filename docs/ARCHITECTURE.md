@@ -22,7 +22,7 @@ The normal flow is:
 
 Supporting files:
 
-- `lib/snippets-registry.js` powers site-level snippet metadata and imports.
+- `scripts/generate-page-markdown.mjs` writes the Markdown version of each page, and `scripts/generate-webmcp-registry.mjs` the registry of the WebMCP tools, to `public/` before the build.
 - `content/**/_meta.js` defines sidebar navigation for each section.
 - `scripts/check-consistency.js` validates source-to-doc parity, editorial page declarations, `_meta.js` alignment, and published counts.
 
@@ -33,7 +33,6 @@ Treat these as editable source:
 - `snippets/`
 - `content/`
 - `content/**/_meta.js`
-- `lib/snippets-registry.js`
 - `README.md`
 - `SKILLS.md`
 
@@ -41,6 +40,7 @@ Treat these as generated or derivative:
 
 - `skills/`
 - `dist/`
+- `public/<page>.md` and `public/webmcp/snippets.json` (not committed)
 
 ## Common Contributor Workflow
 
