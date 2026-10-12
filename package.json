@@ -19,7 +19,7 @@
     "eval:prompts": "node scripts/eval-prompts/run.mjs",
     "test:ci": "node --test scripts/ci-skip-slow-steps.test.js",
     "test:diagrams": "vitest run components/diagrams",
-    "test:components": "vitest run components",
+    "test:components": "vitest run components lib/page-metadata.test.js",
     "generate-skills": "node scripts/generate-skills.js",
     "generate-skills:check": "node scripts/generate-skills.js && git diff --exit-code -- skills dist .claude/skills",
     "install-skills": "node scripts/install-skills.js",
@@ -31,7 +31,7 @@
     "prepare": "git config core.hooksPath .githooks",
     "test": "echo \"No tests configured\"",
     "postbuild": "node scripts/build-search-index.js",
-    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs lib/markdown-path.test.mjs scripts/generate-llms.test.js",
+    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs lib/markdown-path.test.mjs scripts/generate-llms.test.js lib/page-info.test.js",
     "check:built-snippets": "node scripts/check-built-snippets.js"
   },
   "keywords": [
