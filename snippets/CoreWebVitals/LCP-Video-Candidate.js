@@ -94,14 +94,30 @@
   // --- LCP IS a video ---
   const posterAttr = element.getAttribute("poster") || "";
   const posterUrl = posterAttr ? normalizeUrl(posterAttr) : "";
-  const lcpUrl = lcp.url || "";
+  const lcpUrl = lcp.url ? normalizeUrl(lcp.url) : "";
+  const videoUrls = [element.currentSrc, element.getAttribute("src"), ...Array.from(element.querySelectorAll("source"), (s) => s.getAttribute("src"))]
+    .filter(Boolean)
+    .map(normalizeUrl);
 
-  // Chrome considers both poster image and first video frame as LCP candidates.
-  // lcpUrl is set when the LCP came from the poster; empty when from the first frame.
-  const lcpSource = lcpUrl ? "poster" : posterAttr ? "unknown" : "first-frame";
+  // Chrome considers both the poster image and the first video frame as LCP candidates, and gives
+  // the entry the URL of the poster or of the video file. The URL tells them apart. A video without
+  // a poster can only be its first frame, and a URL that matches neither (a redirected poster) is
+  // taken as the poster.
+  const lcpSource =
+    lcpUrl && videoUrls.includes(lcpUrl) ? "first-frame"
+    : lcpUrl && lcpUrl === posterUrl ? "poster"
+    : !posterAttr ? "first-frame"
+    : lcpUrl ? "poster"
+    : "unknown";
+  const videoUrl = lcpSource === "first-frame" ? lcpUrl || videoUrls[0] || null : null;
+
+  // Chrome keeps reporting LCP candidates until the user interacts with the page, so a page left
+  // open can report one long after its load, which is not the LCP of the load
+  const loadEventEnd = performance.getEntriesByType("navigation")[0]?.loadEventEnd || 0;
+  const secondsAfterLoad = loadEventEnd > 0 ? Math.round((lcp.startTime - loadEventEnd) / 1000) : 0;
 
   const rating = valueToRating(lcpTime);
-  const posterFormat = detectFormat(lcpUrl || posterUrl);
+  const posterFormat = detectFormat(posterUrl);
   const isModernFormat = ["avif", "webp", "jxl"].includes(posterFormat);
   const isCrossOrigin = lcp.renderTime === 0 && lcp.loadTime > 0;
 
@@ -122,6 +138,13 @@
   const playsinline = element.hasAttribute("playsinline");
 
   const issues = [];
+
+  if (secondsAfterLoad > 10) {
+    issues.push({
+      s: "warning",
+      msg: `The LCP candidate rendered ${secondsAfterLoad} s after the page loaded, because the page stayed open without interaction. Reload and run the snippet again to measure the LCP of the load`,
+    });
+  }
 
   if (lcpSource === "first-frame") {
     issues.push({ s: "info", msg: "LCP is the first video frame — adding a poster gives explicit control over the LCP image" });
@@ -159,7 +182,8 @@
   console.log(`   Render time : ${lcp.renderTime > 0 ? Math.round(lcp.renderTime) + " ms" : "0 (cross-origin — add Timing-Allow-Origin)"}`);
   console.log(`   Load time   : ${Math.round(lcp.loadTime)} ms`);
   console.log(`   Size        : ${Math.round(lcp.size)} px²`);
-  console.log(`   Poster URL  : ${lcpUrl || posterUrl || "⚠️ (none)"}`);
+  console.log(`   Poster URL  : ${posterUrl || "⚠️ (none)"}`);
+  if (videoUrl) console.log(`   Video URL   : ${videoUrl}`);
   console.log(`   Format      : ${posterFormat}`);
 
   // Video element
@@ -234,7 +258,8 @@
     details: {
       isVideo: true,
       lcpSource,
-      posterUrl: lcpUrl || posterUrl || null,
+      posterUrl: posterUrl || null,
+      videoUrl,
       posterFormat,
       posterPreloaded: !!posterPreload,
       fetchpriorityOnPreload: posterPreload?.getAttribute("fetchpriority") ?? null,

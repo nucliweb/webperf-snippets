@@ -22,7 +22,7 @@ beforeAll(
       server = createServer((req, res) => {
         const name = req.url.replace(/^\//, "") || "index.html";
         try {
-          const type = name.endsWith(".png") ? "image/png" : "text/html";
+          const type = name.endsWith(".png") ? "image/png" : name.endsWith(".webm") ? "video/webm" : "text/html";
           res.writeHead(200, { "Content-Type": type });
           res.end(fixture(name));
         } catch {
@@ -40,11 +40,11 @@ beforeAll(
 
 afterAll(() => new Promise((resolve) => server.close(resolve)));
 
-async function run(path, fixtureName) {
+async function run(path, fixtureName, waitMs = 1500) {
   const { results } = await runSnippets({
     url: `${baseUrl}/${fixtureName}`,
     items: [{ id: path, path, source: loadSnippet(path) }],
-    waitMs: 1500,
+    waitMs,
   });
   return results[0];
 }
@@ -66,6 +66,30 @@ describe("snippets that read observer-only entry types", () => {
     const r = await run("CoreWebVitals/LCP-Video-Candidate", "observer-lcp.html");
     expect(r.error).not.toBe("No LCP entries found");
   }, 30000);
+
+  it("LCP-Video-Candidate tells the first frame of a video from its poster", async () => {
+    const frame = await run("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
+    expect(frame.details.lcpSource).toBe("first-frame");
+    expect(frame.details.posterUrl).toBeNull();
+    expect(frame.details.videoUrl).toMatch(/\/clip\.webm$/);
+    expect(frame.issues.map((i) => i.message)).toContain(
+      "LCP is the first video frame — adding a poster gives explicit control over the LCP image"
+    );
+
+    const poster = await run("CoreWebVitals/LCP-Video-Candidate", "video-poster.html");
+    expect(poster.details.lcpSource).toBe("poster");
+    expect(poster.details.posterUrl).toMatch(/\/hero\.png$/);
+    expect(poster.details.videoUrl).toBeNull();
+  }, 30000);
+
+  it("LCP-Video-Candidate warns when the LCP rendered long after the load", async () => {
+    const late = await run("CoreWebVitals/LCP-Video-Candidate", "video-late.html", 12500);
+    expect(late.details.lcpSource).toBe("first-frame");
+    expect(late.issues.map((i) => i.message).join(" ")).toMatch(/rendered \d+ s after the page loaded/);
+
+    const early = await run("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
+    expect(early.issues.map((i) => i.message).join(" ")).not.toMatch(/after the page loaded/);
+  }, 40000);
 
   it("LongTask counts buffered long tasks", async () => {
     const r = await run("Interaction/LongTask", "observer-longtask.html");

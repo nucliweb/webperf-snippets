@@ -78,10 +78,14 @@
   }
   const posterAttr = element.getAttribute("poster") || "";
   const posterUrl = posterAttr ? normalizeUrl(posterAttr) : "";
-  const lcpUrl = lcp.url || "";
-  const lcpSource = lcpUrl ? "poster" : posterAttr ? "unknown" : "first-frame";
+  const lcpUrl = lcp.url ? normalizeUrl(lcp.url) : "";
+  const videoUrls = [ element.currentSrc, element.getAttribute("src"), ...Array.from(element.querySelectorAll("source"), s => s.getAttribute("src")) ].filter(Boolean).map(normalizeUrl);
+  const lcpSource = lcpUrl && videoUrls.includes(lcpUrl) ? "first-frame" : lcpUrl && lcpUrl === posterUrl ? "poster" : !posterAttr ? "first-frame" : lcpUrl ? "poster" : "unknown";
+  const videoUrl = lcpSource === "first-frame" ? lcpUrl || videoUrls[0] || null : null;
+  const loadEventEnd = performance.getEntriesByType("navigation")[0]?.loadEventEnd || 0;
+  const secondsAfterLoad = loadEventEnd > 0 ? Math.round((lcp.startTime - loadEventEnd) / 1000) : 0;
   const rating = valueToRating(lcpTime);
-  const posterFormat = detectFormat(lcpUrl || posterUrl);
+  const posterFormat = detectFormat(posterUrl);
   const isModernFormat = [ "avif", "webp", "jxl" ].includes(posterFormat);
   const isCrossOrigin = lcp.renderTime === 0 && lcp.loadTime > 0;
   const preloadLinks = Array.from(document.querySelectorAll('link[rel="preload"][as="image"]'));
@@ -99,6 +103,10 @@
   const muted = element.hasAttribute("muted") || element.muted;
   const playsinline = element.hasAttribute("playsinline");
   const issues = [];
+  if (secondsAfterLoad > 10) issues.push({
+    s: "warning",
+    msg: `The LCP candidate rendered ${secondsAfterLoad} s after the page loaded, because the page stayed open without interaction. Reload and run the snippet again to measure the LCP of the load`
+  });
   if (lcpSource === "first-frame") issues.push({
     s: "info",
     msg: "LCP is the first video frame — adding a poster gives explicit control over the LCP image"
@@ -126,6 +134,7 @@
     s: "warning",
     msg: 'preload="none" on a non-autoplay video may delay poster image loading in some browsers'
   });
+  if (videoUrl) void 0;
   if (posterPreload) {
     posterPreload.getAttribute("fetchpriority");
   } else {
@@ -154,7 +163,8 @@
     details: {
       isVideo: true,
       lcpSource: lcpSource,
-      posterUrl: lcpUrl || posterUrl || null,
+      posterUrl: posterUrl || null,
+      videoUrl: videoUrl,
       posterFormat: posterFormat,
       posterPreloaded: !!posterPreload,
       fetchpriorityOnPreload: posterPreload?.getAttribute("fetchpriority") ?? null,
