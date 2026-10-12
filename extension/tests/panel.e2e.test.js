@@ -173,6 +173,20 @@ test('the panel opens on the last snippet it showed', async () => {
   assert.equal(await panel.getAttribute('#list button[data-id="TTFB"]', 'aria-current'), 'true')
 })
 
+test('a selector in the result selects its element in Elements', async () => {
+  // inspect() is a DevTools console function; here it records what it got
+  await target.addInitScript(() => (window.inspect = (el) => (window.__inspected = el.outerHTML.slice(0, 40))))
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="LCP"]')
+  const result = await resultOf('#run')
+  const selector = result.details.element
+  assert.ok(selector, 'LCP gives the selector of its element')
+  await panel.click('#result button.inspect')
+  const inspected = await target.evaluate(() => window.__inspected)
+  const expected = await target.evaluate((s) => document.querySelector(s).outerHTML.slice(0, 40), selector)
+  assert.equal(inspected, expected)
+})
+
 test('a snippet the CLI cannot run has no Copy prompt', async () => {
   await panel.click('#list button[data-id="Long-Animation-Frames-Helpers"]')
   assert.equal(await panel.locator('#copy-prompt').count(), 0)

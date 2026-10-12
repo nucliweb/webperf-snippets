@@ -153,3 +153,15 @@ test('numbers in the items table are aligned to the right', () => {
   const html = renderResult({ script: 'X', status: 'ok', items: [{ name: 'a', bytes: 1200 }] })
   assert.match(html, /<td>a<\/td><td class="num">1200<\/td>/)
 })
+
+test('a selector in the items or the details is a button that inspects the element', () => {
+  const html = renderResult({
+    script: 'X',
+    status: 'ok',
+    items: [{ selector: 'img#hero', bytes: 10 }, { selector: '', bytes: 2 }],
+    details: { element: 'p.intro', elementType: 'Text block' },
+  })
+  assert.match(html, /<td><button type="button" class="inspect" data-selector="img#hero" title="Inspect in Elements">img#hero<\/button><\/td>/)
+  assert.match(html, /<dt>element<\/dt><dd><button type="button" class="inspect" data-selector="p.intro" title="Inspect in Elements">p.intro<\/button><\/dd>/)
+  assert.match(html, /<dt>elementType<\/dt><dd>Text block<\/dd>/)
+})

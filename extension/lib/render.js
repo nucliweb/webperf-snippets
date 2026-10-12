@@ -39,8 +39,16 @@ const isEmpty = (value) =>
 
 // Table cells do not wrap, so a column is as wide as its values; only long ones, such as URLs, wrap
 const LONG = 40
+// The fields that hold a CSS selector of an element of the page, which the panel can inspect
+const SELECTOR_FIELDS = new Set(['selector', 'element', 'lcpElement', 'finalElement'])
+const isSelector = (key, value) => SELECTOR_FIELDS.has(key) && typeof value === 'string' && value.trim() !== ''
+const field = (key, value) =>
+  isSelector(key, value)
+    ? `<button type="button" class="inspect" data-selector="${escape(value)}" title="Inspect in Elements">${escape(value)}</button>`
+    : cell(value)
+
 const cellClass = (value) => (typeof value === 'number' ? ' class="num"' : text(value).length > LONG ? ' class="long"' : '')
-const td = (value) => `<td${cellClass(value)}>${cell(value)}</td>`
+const td = (value, key) => `<td${isSelector(key, value) ? '' : cellClass(value)}>${field(key, value)}</td>`
 
 function metric(result) {
   if (typeof result.value !== 'number') return ''
@@ -71,7 +79,7 @@ function items(result) {
   // A column empty in every row says nothing
   const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))].filter((c) => rows.some((row) => !isEmpty(row[c])))
   const head = columns.map((c) => `<th>${escape(c)}</th>`).join('')
-  const body = rows.map((row) => `<tr>${columns.map((c) => td(row[c])).join('')}</tr>`).join('')
+  const body = rows.map((row) => `<tr>${columns.map((c) => td(row[c], c)).join('')}</tr>`).join('')
   const total = typeof result.count === 'number' && result.count > rows.length ? `<p class="note">${rows.length} of ${result.count} items</p>` : ''
   return `<section><h3>Items</h3>${total}<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></section>`
 }
@@ -80,7 +88,7 @@ function details(object) {
   if (!object || typeof object !== 'object') return ''
   const fields = Object.entries(object)
     .filter(([, value]) => !isEmpty(value))
-    .map(([key, value]) => `<dt>${escape(key)}</dt><dd>${cell(value)}</dd>`).join('')
+    .map(([key, value]) => `<dt>${escape(key)}</dt><dd>${field(key, value)}</dd>`).join('')
   return `<section><h3>Details</h3><dl class="details">${fields}</dl></section>`
 }
 

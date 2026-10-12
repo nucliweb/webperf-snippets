@@ -98,7 +98,18 @@ function showSnippet(snippet) {
   document.getElementById('result').addEventListener('click', (event) => {
     const button = event.target.closest('.copy-json')
     if (button) copyFrom(button, JSON.stringify(lastResult, null, 2))
+    const selector = event.target.closest('.inspect')
+    if (selector) inspectElement(selector)
   })
+}
+
+// Selects the element of a selector in the Elements panel, with inspect() of the DevTools console
+async function inspectElement(button) {
+  const found = await evaluate(
+    `(() => { try { const el = document.querySelector(${JSON.stringify(button.dataset.selector)}); if (!el) return false; inspect(el); return true } catch { return false } })()`
+  ).catch(() => false)
+  button.classList.toggle('not-found', !found)
+  button.title = found ? 'Inspect in Elements' : 'No element matches this selector on the page now'
 }
 
 async function show(snippet, work, button) {
