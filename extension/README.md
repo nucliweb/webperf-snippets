@@ -13,7 +13,7 @@ Run `npm run extension:build` again after a snippet changes, then reload the ext
 ## Copy buttons
 
 - Copy JSON copies the result, to paste it into an issue or an agent.
-- Copy prompt copies the prompt of the Copy prompt button of the site, which runs the snippet with the CLI, ending with the inspected page as the page to measure, so an agent can run it as it is. The two snippets the CLI cannot run have none.
+- Copy prompt copies the prompt of the Copy prompt button of the site, which runs the snippet with the CLI, with the inspected page in its command, quoted for the shell, and as the page to measure at the end, so an agent can run it as it is. The two snippets the CLI cannot run have none.
 
 ## Tracking snippets
 

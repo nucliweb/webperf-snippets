@@ -15,9 +15,13 @@ export async function copyText(text, env = globalThis) {
   }
 }
 
-// The Copy prompt of a snippet with the inspected page as the page to measure, so it can be pasted
-// into an agent as it is. A page the CLI cannot load, such as chrome://, keeps the prompt as it is,
-// which asks for the URL.
+// A URL as one shell argument: in single quotes, so ? or & do not break the command
+const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`
+
+// The Copy prompt of a snippet for the inspected page: the URL goes in the place of <url> in the
+// command, quoted for the shell, and at the end as the page to measure, so an agent can run it as it
+// is. A page the CLI cannot load, such as chrome://, keeps the prompt as it is, which asks for the URL.
 export function promptForPage(prompt, url) {
-  return /^https?:\/\//.test(url ?? '') ? `${prompt}\nPage to measure: ${url}\n` : prompt
+  if (!/^https?:\/\//.test(url ?? '')) return prompt
+  return `${prompt.replaceAll('<url>', shellQuote(url))}\nPage to measure: ${url}\n`
 }

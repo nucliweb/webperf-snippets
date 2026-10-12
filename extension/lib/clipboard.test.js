@@ -21,8 +21,18 @@ test('copyText falls back to a selected textarea and execCommand when the Clipbo
   assert.deepEqual(calls, ['append', 'select', 'copy', 'remove'])
 })
 
-test('promptForPage adds the page to measure to the prompt', () => {
-  assert.equal(promptForPage('# Run the LCP snippet\n', 'https://www.fedex.com/en-us/home.html'), '# Run the LCP snippet\n\nPage to measure: https://www.fedex.com/en-us/home.html\n')
+const PROMPT = 'Run:\n\n```bash\nnpx -y -p webperf-snippets@0.4.1 webperf-snippets <url> --snippet LCP --json\n```\n'
+
+test('promptForPage puts the inspected page in the command, and says it is the page to measure', () => {
+  assert.equal(
+    promptForPage(PROMPT, 'https://shop.example.com/products'),
+    "Run:\n\n```bash\nnpx -y -p webperf-snippets@0.4.1 webperf-snippets 'https://shop.example.com/products' --snippet LCP --json\n```\n\nPage to measure: https://shop.example.com/products\n"
+  )
+})
+
+test('promptForPage quotes the URL for the shell, also with a query string or a quote', () => {
+  assert.match(promptForPage(PROMPT, 'https://a.com/?q=1&b=2'), /webperf-snippets 'https:\/\/a\.com\/\?q=1&b=2' --snippet/)
+  assert.match(promptForPage(PROMPT, "https://a.com/it's"), /webperf-snippets 'https:\/\/a\.com\/it'\\''s' --snippet/)
 })
 
 test('promptForPage leaves the prompt as it is for a page the CLI cannot load', () => {

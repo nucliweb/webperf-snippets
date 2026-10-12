@@ -100,7 +100,8 @@ test('Copy JSON copies the result, and Copy prompt the prompt with the inspected
   await panel.waitForFunction(() => window.__copied.length === 2)
   const [json, prompt] = await panel.evaluate(() => window.__copied)
   assert.deepEqual(JSON.parse(json), result)
-  assert.match(prompt, /--snippet LCP --json/)
+  assert.ok(prompt.includes(`webperf-snippets '${servers.base}/seeded' --snippet LCP --json`), 'the command has the inspected page')
+  assert.ok(!prompt.includes('<url>'))
   assert.ok(prompt.endsWith(`\nPage to measure: ${servers.base}/seeded\n`), prompt.slice(-120))
 })
 
