@@ -135,6 +135,11 @@
     severity: "error",
     message: "Current LCP image has low entropy and may be skipped by Chrome"
   });
+  const lcpTag = lcpElementSync ? lcpElementSync.tagName.toLowerCase() : null;
+  if (lcpTag && !lcpImageSync) issuesSync.push({
+    severity: "info",
+    message: lcpTag === "img" ? "The LCP <img> has no file size to read, as with a data: URL or a cross-origin image without Timing-Allow-Origin, so its entropy cannot be computed." : lcpUrlSync ? `The LCP is the image of a <${lcpTag}>, such as a CSS background or a video poster, and this snippet reads <img> elements only. Run the LCP snippet to measure it.` : `The LCP element is <${lcpTag}>, text and not an image, so its entropy does not apply. Run the LCP snippet to measure it.`
+  });
   const MAX_ITEMS = 50;
   const rankedImages = [ ...imagesSync ].sort((a, b) => Number(b.isLCP) - Number(a.isLCP) || Number(b.isLowEntropy) - Number(a.isLowEntropy) || a.bpp - b.bpp);
   return {
@@ -144,6 +149,7 @@
     details: {
       totalImages: imagesSync.length,
       lowEntropyCount: lowEntropyCount,
+      lcpElement: lcpTag,
       lcpImageEligible: lcpImageSync ? !lcpImageSync.isLowEntropy : null,
       lcpImage: lcpImageSync ? {
         url: lcpImageSync.url,

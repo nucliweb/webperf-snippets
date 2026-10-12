@@ -53,6 +53,10 @@ BPP = (file size in bits) / (width × height)
 | LCP Eligible | Whether Chrome considers it for LCP |
 | Is LCP | `👈` marks the current LCP element |
 
+### When the LCP is not an `<img>`
+
+Entropy applies to the LCP only when it is an `<img>` whose file size the snippet can read. When the LCP is text, the image of another element such as a CSS background or a video poster, or an `<img>` with no readable size (a `data:` URL, or a cross-origin image without `Timing-Allow-Origin`), the result says so and points to the [LCP](/CoreWebVitals/LCP) snippet to measure it. The images of the page are still checked, since a low-entropy image cannot become the LCP.
+
 ### What causes low entropy
 - Solid color images
 - Simple gradients

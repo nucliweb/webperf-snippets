@@ -84,6 +84,43 @@ describe("snippets that read observer-only entry types", () => {
     expect(r.details.lcpImage).not.toBeNull();
   }, 30000);
 
+  it("LCP-Image-Entropy says when the LCP is text, not an image, and keeps the images of the page", async () => {
+    const r = await run("CoreWebVitals/LCP-Image-Entropy", "index.html");
+    expect(r.status).toBe("ok");
+    expect(r.details.lcpElement).toMatch(/^(h1|p)$/);
+    expect(r.details.lcpImage).toBeNull();
+    expect(r.issues).toContainEqual({
+      severity: "info",
+      message: `The LCP element is <${r.details.lcpElement}>, text and not an image, so its entropy does not apply. Run the LCP snippet to measure it.`,
+    });
+  }, 30000);
+
+  it("LCP-Image-Entropy says when the LCP image is not an <img>, such as a CSS background", async () => {
+    const r = await run("CoreWebVitals/LCP-Image-Entropy", "lcp-background.html");
+    expect(r.details.lcpElement).toBe("div");
+    expect(r.issues).toContainEqual({
+      severity: "info",
+      message:
+        "The LCP is the image of a <div>, such as a CSS background or a video poster, and this snippet reads <img> elements only. Run the LCP snippet to measure it.",
+    });
+  }, 30000);
+
+  it("LCP-Image-Entropy says when the size of the LCP <img> cannot be read", async () => {
+    const r = await run("CoreWebVitals/LCP-Image-Entropy", "lcp-data-image.html");
+    expect(r.details.lcpElement).toBe("img");
+    expect(r.issues).toContainEqual({
+      severity: "info",
+      message:
+        "The LCP <img> has no file size to read, as with a data: URL or a cross-origin image without Timing-Allow-Origin, so its entropy cannot be computed.",
+    });
+  }, 30000);
+
+  it("LCP-Image-Entropy adds no such issue when the LCP is an <img>", async () => {
+    const r = await run("CoreWebVitals/LCP-Image-Entropy", "observer-lcp.html");
+    expect(r.details.lcpElement).toBe("img");
+    expect(r.issues.map((i) => i.message).join(" ")).not.toMatch(/Run the LCP snippet/);
+  }, 30000);
+
   it("LCP-Video-Candidate finds an LCP entry", async () => {
     const r = await run("CoreWebVitals/LCP-Video-Candidate", "observer-lcp.html");
     expect(r.error).not.toBe("No LCP entries found");

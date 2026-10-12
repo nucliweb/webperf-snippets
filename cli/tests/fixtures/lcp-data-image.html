@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Data URL image LCP fixture</title>
+</head>
+<body style="margin:0">
+  <!-- The LCP is an <img> with a data: URL, whose file size the Resource Timing API does not give -->
+  <img id="hero" width="600" height="400" alt="hero">
+  <p style="font-size:8px;margin:0">Caption</p>
+  <script>
+    const canvas = document.createElement("canvas");
+    canvas.width = 600;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    for (let i = 0; i < 4000; i++) {
+      ctx.fillStyle = `hsl(${i % 360} 70% 50%)`;
+      ctx.fillRect((i * 37) % 600, (i * 53) % 400, 9, 9);
+    }
+    document.getElementById("hero").src = canvas.toDataURL("image/png");
+  </script>
+</body>
+</html>
