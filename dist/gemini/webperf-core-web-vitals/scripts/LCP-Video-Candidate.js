@@ -55,25 +55,22 @@
   })();
   const lcpTime = Math.round(Math.max(0, lcp.startTime - activationStart));
   if (!element || element.tagName !== "VIDEO") {
-    element && element.tagName.toLowerCase();
-    const rating = valueToRating(lcpTime);
+    const tag = element ? element.tagName.toLowerCase() : null;
+    const message = tag ? `The LCP element is <${tag}>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases.` : "The LCP element is no longer in the DOM, so it cannot be checked for a <video>. Run the LCP snippet to measure it.";
     if (lcp.url) void 0;
     if (element) void 0;
     return {
       script: "LCP-Video-Candidate",
       status: "ok",
-      metric: "LCP",
-      value: lcpTime,
-      unit: "ms",
-      rating: rating,
-      thresholds: {
-        good: 2500,
-        needsImprovement: 4000
-      },
       details: {
-        isVideo: false
+        isVideo: false,
+        lcpElement: tag,
+        lcpUrl: lcp.url || null
       },
-      issues: []
+      issues: [ {
+        severity: "info",
+        message: message
+      } ]
     };
   }
   const posterAttr = element.getAttribute("poster") || "";

@@ -68,26 +68,25 @@
   const lcpTime = Math.round(Math.max(0, lcp.startTime - activationStart));
 
   // --- LCP is NOT a video ---
+  // The value of a non-video LCP belongs to the LCP snippet; this one only says what the element is
   if (!element || element.tagName !== "VIDEO") {
-    const tag = element ? `<${element.tagName.toLowerCase()}>` : "(element no longer in DOM)";
-    const rating = valueToRating(lcpTime);
+    const tag = element ? element.tagName.toLowerCase() : null;
+    const message = tag
+      ? `The LCP element is <${tag}>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases.`
+      : "The LCP element is no longer in the DOM, so it cannot be checked for a <video>. Run the LCP snippet to measure it.";
     console.log("%cLCP element is not a <video>", "font-weight: bold;");
     console.log("");
-    console.log(`   LCP time : ${lcpTime} ms  ${RATING[rating].icon} ${RATING[rating].label}`);
-    console.log(`   Tag      : ${tag}`);
+    console.log(`   Tag      : ${tag ? `<${tag}>` : "(element no longer in DOM)"}`);
     if (lcp.url) console.log(`   URL      : ${lcp.url}`);
     if (element) console.log("   Element  :", element);
+    console.log("");
+    console.log(`   ${message}`);
     console.groupEnd();
     return {
       script: "LCP-Video-Candidate",
       status: "ok",
-      metric: "LCP",
-      value: lcpTime,
-      unit: "ms",
-      rating,
-      thresholds: { good: 2500, needsImprovement: 4000 },
-      details: { isVideo: false },
-      issues: [],
+      details: { isVideo: false, lcpElement: tag, lcpUrl: lcp.url || null },
+      issues: [{ severity: "info", message }],
     };
   }
 

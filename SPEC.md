@@ -10,7 +10,7 @@ but the IIFE return value remains accessible as the last evaluated expression. T
 that object into a readable report without requiring any setup or CLI.
 
 **Target users**: Web performance engineers doing reviews on sites with restrictive security
-policies (e.g., FedEx, enterprise sites with Akamai).
+policies (e.g., enterprise sites behind a CDN with bot protection).
 
 ---
 
