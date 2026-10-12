@@ -195,6 +195,19 @@
   if (lcpImageSync?.isLowEntropy) {
     issuesSync.push({ severity: "error", message: "Current LCP image has low entropy and may be skipped by Chrome" });
   }
+  // Entropy applies to the LCP only when it is an <img> whose file size can be read; for text, or an
+  // image this snippet cannot read, it says so. The images of the page are still listed.
+  const lcpTag = lcpElementSync ? lcpElementSync.tagName.toLowerCase() : null;
+  if (lcpTag && !lcpImageSync) {
+    issuesSync.push({
+      severity: "info",
+      message: lcpTag === "img"
+        ? "The LCP <img> has no file size to read, as with a data: URL or a cross-origin image without Timing-Allow-Origin, so its entropy cannot be computed."
+        : lcpUrlSync
+        ? `The LCP is the image of a <${lcpTag}>, such as a CSS background or a video poster, and this snippet reads <img> elements only. Run the LCP snippet to measure it.`
+        : `The LCP element is <${lcpTag}>, text and not an image, so its entropy does not apply. Run the LCP snippet to measure it.`,
+    });
+  }
   // The list keeps the 50 most relevant images (the LCP image, then low entropy, then lowest bits per pixel); count and details cover all of them
   const MAX_ITEMS = 50;
   const rankedImages = [...imagesSync].sort(
@@ -207,6 +220,7 @@
     details: {
       totalImages: imagesSync.length,
       lowEntropyCount,
+      lcpElement: lcpTag,
       lcpImageEligible: lcpImageSync ? !lcpImageSync.isLowEntropy : null,
       lcpImage: lcpImageSync ? { url: lcpImageSync.url, bpp: lcpImageSync.bpp, isLowEntropy: lcpImageSync.isLowEntropy } : null,
     },
