@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import hljs from "highlight.js/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
+import { trackEvent } from "../lib/analytics";
 
 hljs.registerLanguage("javascript", javascript);
 
@@ -21,7 +22,8 @@ async function copyText(text) {
   }
 }
 
-export function Snippet({ code, prompt }) {
+// snippet: the path of the snippet, such as "CoreWebVitals/LCP", which lib/remark-snippet-prompt.mjs adds
+export function Snippet({ code, prompt, snippet }) {
   const [copied, setCopied] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -30,12 +32,14 @@ export function Snippet({ code, prompt }) {
 
   async function handleCopy() {
     await copyText(code);
+    trackEvent("copy_snippet", { snippet });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleCopyPrompt() {
     await copyText(prompt);
+    trackEvent("copy_prompt", { snippet });
     setPromptCopied(true);
     setTimeout(() => setPromptCopied(false), 2000);
   }
