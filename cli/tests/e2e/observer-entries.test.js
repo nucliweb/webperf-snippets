@@ -40,13 +40,35 @@ beforeAll(
 
 afterAll(() => new Promise((resolve) => server.close(resolve)));
 
-async function run(path, fixtureName, waitMs = 1500) {
+async function run(path, fixtureName) {
   const { results } = await runSnippets({
     url: `${baseUrl}/${fixtureName}`,
     items: [{ id: path, path, source: loadSnippet(path) }],
-    waitMs,
+    waitMs: 1500,
   });
   return results[0];
+}
+
+// Runs a snippet once the video of the page has presented its first frame, and Chrome has had two
+// frames to report it as an LCP candidate. A fixed wait after the load is not enough on a busy
+// machine, where the frame comes later and the LCP is still the text of the page.
+async function runAfterFirstFrame(path, fixtureName, appearsWithinMs = 2000) {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${baseUrl}/${fixtureName}`, { waitUntil: "load" });
+    await page.waitForSelector("video", { state: "attached", timeout: appearsWithinMs });
+    await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          const video = document.querySelector("video");
+          video.requestVideoFrameCallback(() => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        })
+    );
+    return await page.evaluate(loadSnippet(path).trim().replace(/;\s*$/, ""));
+  } finally {
+    await browser.close();
+  }
 }
 
 describe("snippets that read observer-only entry types", () => {
@@ -67,8 +89,22 @@ describe("snippets that read observer-only entry types", () => {
     expect(r.error).not.toBe("No LCP entries found");
   }, 30000);
 
+  it("LCP-Video-Candidate gives no LCP value when the LCP is not a video, and points to the LCP snippet", async () => {
+    const r = await run("CoreWebVitals/LCP-Video-Candidate", "observer-lcp.html");
+    expect(r.status).toBe("ok");
+    expect(r).not.toHaveProperty("value");
+    expect(r).not.toHaveProperty("rating");
+    expect(r.details).toEqual({ isVideo: false, lcpElement: "img", lcpUrl: expect.stringMatching(/\/hero\.png$/) });
+    expect(r.issues).toEqual([
+      {
+        severity: "info",
+        message: "The LCP element is <img>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases.",
+      },
+    ]);
+  }, 30000);
+
   it("LCP-Video-Candidate tells the first frame of a video from its poster", async () => {
-    const frame = await run("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
+    const frame = await runAfterFirstFrame("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
     expect(frame.details.lcpSource).toBe("first-frame");
     expect(frame.details.posterUrl).toBeNull();
     expect(frame.details.videoUrl).toMatch(/\/clip\.webm$/);
@@ -83,11 +119,11 @@ describe("snippets that read observer-only entry types", () => {
   }, 30000);
 
   it("LCP-Video-Candidate warns when the LCP rendered long after the load", async () => {
-    const late = await run("CoreWebVitals/LCP-Video-Candidate", "video-late.html", 12500);
+    const late = await runAfterFirstFrame("CoreWebVitals/LCP-Video-Candidate", "video-late.html", 13000);
     expect(late.details.lcpSource).toBe("first-frame");
     expect(late.issues.map((i) => i.message).join(" ")).toMatch(/rendered \d+ s after the page loaded/);
 
-    const early = await run("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
+    const early = await runAfterFirstFrame("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
     expect(early.issues.map((i) => i.message).join(" ")).not.toMatch(/after the page loaded/);
   }, 40000);
 
