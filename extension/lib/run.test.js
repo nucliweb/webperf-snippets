@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import vm from 'node:vm'
-import { runSnippet, readTrackingData, toExpression } from './run.js'
+import { runSnippet, readTrackingData } from './run.js'
 
 // inspectedWindow.eval returns the value as JSON, without waiting for a promise
 const asJson = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)))
@@ -13,22 +13,18 @@ function inspectedPage(globals = {}) {
   return (expression) => Promise.resolve(asJson(vm.runInContext(expression, context)))
 }
 
-test('toExpression drops the trailing semicolon of an IIFE', () => {
-  assert.equal(toExpression('(() => 1)();\n'), '(() => 1)()')
-})
-
 test('runSnippet returns the value of a synchronous snippet', async () => {
-  const result = await runSnippet(inspectedPage(), '(() => ({ script: "TTFB", status: "ok", value: 42 }))();', { pollMs: 5 })
+  const result = await runSnippet(inspectedPage(), '(() => ({ script: "TTFB", status: "ok", value: 42 }))()', { pollMs: 5 })
   assert.deepEqual(result, { script: 'TTFB', status: 'ok', value: 42 })
 })
 
 test('runSnippet waits for an async snippet', async () => {
-  const code = '(async () => { await new Promise((r) => setTimeout(r, 30)); return { script: "LCP", status: "ok" }; })();'
+  const code = '(async () => { await new Promise((r) => setTimeout(r, 30)); return { script: "LCP", status: "ok" }; })()'
   assert.deepEqual(await runSnippet(inspectedPage(), code, { pollMs: 5 }), { script: 'LCP', status: 'ok' })
 })
 
 test('runSnippet turns a snippet that throws into an error result', async () => {
-  const result = await runSnippet(inspectedPage(), '(() => { throw new Error("boom"); })();', { pollMs: 5 })
+  const result = await runSnippet(inspectedPage(), '(() => { throw new Error("boom"); })()', { pollMs: 5 })
   assert.deepEqual(result, { status: 'error', error: 'boom' })
 })
 

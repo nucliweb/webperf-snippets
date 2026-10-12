@@ -6,9 +6,6 @@
 
 const STORE = '__webperfSnippets'
 
-// Snippets are IIFE statements; an expression has no trailing semicolon
-export const toExpression = (source) => source.trim().replace(/;\s*$/, '')
-
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function runExpression(evaluate, expression, { pollMs = 100, timeoutMs = 30000 } = {}) {
@@ -36,7 +33,8 @@ async function runExpression(evaluate, expression, { pollMs = 100, timeoutMs = 3
   return { status: 'error', error: `The snippet did not finish in ${timeoutMs / 1000} s` }
 }
 
-export const runSnippet = (evaluate, source, options) => runExpression(evaluate, toExpression(source), options)
+// expression: the snippet as one expression, as npm run extension:build writes it in snippets.json
+export const runSnippet = (evaluate, expression, options) => runExpression(evaluate, expression, options)
 
 // A tracking snippet answers later through the window function its result names, such as "getINP"
 // or "loafHelpers.getData"

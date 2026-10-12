@@ -71,7 +71,7 @@ async function show(snippet, work, button) {
 }
 
 async function run(snippet) {
-  const value = await show(snippet, () => runSnippet(evaluate, snippet.code), document.getElementById('run'))
+  const value = await show(snippet, () => runSnippet(evaluate, snippet.expression), document.getElementById('run'))
   const read = document.getElementById('read')
   if (!read || current !== snippet) return
   // A tracking snippet answers later through the function its result names

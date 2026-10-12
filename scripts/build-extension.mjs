@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildRegistry } from '../lib/webmcp-registry.mjs'
 import { isTrackingSnippet } from '../cli/src/tracking.js'
+import { snippetExpression } from '../lib/snippet-expression.mjs'
 
 // Writes extension/snippets.json, the snippets the extension runs. The Chrome Web Store does not allow
 // an extension to run code it did not ship with, so the snippets go in the package and a new version
@@ -17,7 +18,8 @@ const snippets = buildRegistry(ROOT).map(({ id, path, category, title, descripti
   title,
   description,
   url,
-  code,
+  // The snippet as one expression, which the panel runs inside its own (lib/snippet-expression.mjs)
+  expression: snippetExpression(code),
   tracking: isTrackingSnippet(path, code),
 }))
 writeFileSync(join(ROOT, 'extension', 'snippets.json'), JSON.stringify(snippets))

@@ -18,7 +18,7 @@
     "test:prompt": "node --test lib/snippet-prompt.test.mjs lib/remark-snippet-prompt.test.mjs scripts/eval-prompts/grade.test.mjs scripts/eval-prompts/summary.test.mjs",
     "eval:prompts": "node scripts/eval-prompts/run.mjs",
     "extension:build": "node scripts/build-extension.mjs",
-    "test:extension": "node --test extension/lib/*.test.js",
+    "test:extension": "node --test extension/lib/*.test.js lib/snippet-expression.test.mjs",
     "test:ci": "node --test scripts/ci-skip-slow-steps.test.js",
     "test:diagrams": "vitest run components/diagrams",
     "test:components": "vitest run components lib/page-metadata.test.js lib/analytics.test.js lib/webmcp.test.js",
