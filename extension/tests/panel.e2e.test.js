@@ -55,6 +55,8 @@ before(async () => {
       devtools: {
         panels: { themeName: 'default' },
         inspectedWindow: { eval: (e, callback) => window.__inspect(e).then(([value, exception]) => callback(value, exception)) },
+        // The test calls window.__navigated(url) for a navigation of the inspected page
+        network: { onNavigated: { addListener: (listener) => (window.__navigated = listener) } },
       },
     }
   })
@@ -105,13 +107,26 @@ test('Copy JSON copies the result, and Copy prompt the prompt with the inspected
   assert.ok(prompt.endsWith(`\nPage to measure: ${servers.base}/seeded\n`), prompt.slice(-120))
 })
 
+test('a navigation hides Read result, since it clears what a tracking snippet recorded', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="Input-Latency-Breakdown"]')
+  const result = await resultOf('#run')
+  assert.equal(result.status, 'tracking')
+  assert.ok(await panel.locator('#read').isVisible())
+  await panel.evaluate((url) => window.__navigated(url), `${servers.base}/seeded?again`)
+  assert.equal(await panel.locator('#read').isVisible(), false)
+  assert.match(await panel.locator('#result').textContent(), /navigated.*Run the snippet again/)
+})
+
 test('a snippet the CLI cannot run has no Copy prompt', async () => {
   await panel.click('#list button[data-id="Long-Animation-Frames-Helpers"]')
   assert.equal(await panel.locator('#copy-prompt').count(), 0)
 })
 
-test('the panel lists every snippet', async () => {
+test('the panel lists every snippet, and each category says how many it has', async () => {
   assert.equal(await panel.locator('#list button').count(), snippets.length)
+  const counts = await panel.locator('#list h2 .count').allTextContents()
+  assert.equal(counts.map(Number).reduce((a, b) => a + b, 0), snippets.length)
 })
 
 for (const snippet of snippets) {

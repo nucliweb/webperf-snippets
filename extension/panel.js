@@ -38,7 +38,7 @@ function showList() {
     ? groups
         .map(
           ([label, items]) =>
-            `<h2>${escape(label)}</h2>${items
+            `<h2>${escape(label)} <span class="count">${items.length}</span></h2>${items
               .map((s) => `<button type="button" data-id="${escape(s.id)}" title="${escape(s.description)}"${s.id === current?.id ? ' aria-current="true"' : ''}>${escape(s.title)}</button>`)
               .join('')}`
         )
@@ -103,6 +103,18 @@ async function run(snippet) {
     read.hidden = true
   }
 }
+
+// A reload or a navigation of the inspected page clears what a tracking snippet recorded, so its
+// Read result has nothing left to read
+chrome.devtools.network?.onNavigated?.addListener(() => {
+  const read = document.getElementById('read')
+  if (!read || read.hidden) return
+  read.hidden = true
+  document.getElementById('result').insertAdjacentHTML(
+    'afterbegin',
+    '<p class="note">The page navigated, which clears what the snippet recorded. Run the snippet again.</p>'
+  )
+})
 
 list.addEventListener('click', (event) => {
   const button = event.target.closest('button[data-id]')

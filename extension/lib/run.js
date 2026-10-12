@@ -42,5 +42,12 @@ export function readTrackingData(evaluate, getDataFn, options) {
   if (!/^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(getDataFn)) {
     return Promise.resolve({ status: 'error', error: `"${getDataFn}" is not a valid function name` })
   }
-  return runExpression(evaluate, `window.${getDataFn}()`, options)
+  // A reload or a navigation clears the page, and with it the function and what the snippet recorded
+  const missing = `${getDataFn}() is not on the page: it reloaded or navigated since the snippet ran, which clears what it recorded. Run the snippet again`
+  const path = getDataFn.split('.').map((part) => `?.[${JSON.stringify(part)}]`).join('')
+  return runExpression(
+    evaluate,
+    `typeof window${path} === 'function' ? window.${getDataFn}() : Promise.reject(new Error(${JSON.stringify(missing)}))`,
+    options
+  )
 }

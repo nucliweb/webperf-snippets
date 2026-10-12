@@ -52,3 +52,11 @@ test('readTrackingData rejects a name that is not a function path', async () => 
   const result = await readTrackingData(inspectedPage(), 'alert(1); x', { pollMs: 5 })
   assert.match(result.error, /not a valid function name/)
 })
+
+test('readTrackingData says the recording is gone when the page no longer has the data function', async () => {
+  const result = await readTrackingData(inspectedPage(), 'getInputLatencyBreakdown', { pollMs: 5 })
+  assert.equal(result.status, 'error')
+  assert.match(result.error, /getInputLatencyBreakdown\(\) is not on the page/)
+  assert.match(result.error, /reloaded or navigated/)
+  assert.match(result.error, /Run the snippet again/)
+})

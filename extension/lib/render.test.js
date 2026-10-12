@@ -55,7 +55,7 @@ test('items become a table with a column per field, and nested values as JSON', 
     ],
   })
   assert.match(html, /<th>url<\/th><th>size<\/th><th>position<\/th>/)
-  assert.match(html, /<td>https:\/\/a\/x\.js<\/td><td>120<\/td><td><\/td>/)
+  assert.match(html, /<td>https:\/\/a\/x\.js<\/td><td class="num">120<\/td><td><\/td>/)
   assert.match(html, /<td>\{&quot;top&quot;:10\}<\/td>/)
   assert.match(html, /2 of 3 items/)
 })
@@ -97,4 +97,59 @@ test('a value that is not a result object is shown as JSON', () => {
 
 test('the JSON comes with a button to copy it', () => {
   assert.match(renderResult({ script: 'X', status: 'ok' }), /<button type="button" class="copy-json">Copy JSON<\/button>/)
+})
+
+test('only long values wrap in the items table', () => {
+  const url = 'https://www.example.com/assets/fonts/Example-Sans-Regular-Latin.woff2'
+  const html = renderResult({ script: 'X', status: 'ok', items: [{ status: 'loaded', used: false, url }] })
+  assert.match(html, /<td>loaded<\/td>/)
+  assert.match(html, /<td>false<\/td>/)
+  assert.match(html, new RegExp(`<td class="long">${url}</td>`))
+})
+
+test('an ok result shows no status, since ok means the snippet ran, not that the page is fine', () => {
+  const html = renderResult({ script: 'LCP', status: 'ok', metric: 'LCP', value: 4864, unit: 'ms', rating: 'poor' })
+  assert.doesNotMatch(html, /class="status/)
+  assert.doesNotMatch(html, />OK</)
+})
+
+test('the issues heading counts them by severity', () => {
+  const html = renderResult({
+    script: 'X',
+    status: 'ok',
+    issues: [
+      { severity: 'warning', message: 'a' },
+      { severity: 'info', message: 'b' },
+      { severity: 'warning', message: 'c' },
+    ],
+  })
+  assert.match(html, /<h3>Issues <span class="count">2 warnings, 1 info<\/span><\/h3>/)
+})
+
+test('an audit with nothing to report says so', () => {
+  assert.match(renderResult({ script: 'X', status: 'ok', issues: [], details: { count: 0 } }), /<p class="summary">No issues found<\/p>/)
+  // A metric speaks for itself through its value and rating
+  assert.doesNotMatch(renderResult({ script: 'LCP', status: 'ok', value: 1200, unit: 'ms', rating: 'good' }), /No issues found/)
+})
+
+test('empty fields and columns are left out', () => {
+  const html = renderResult({
+    script: 'X',
+    status: 'ok',
+    items: [
+      { family: 'A', unicodeRange: '', note: '' },
+      { family: 'B', unicodeRange: '', note: 'declared again later' },
+    ],
+    details: { element: 'p', url: '', preloaded: [], none: null, count: 0 },
+  })
+  assert.match(html, /<th>family<\/th><th>note<\/th><\/tr>/)
+  assert.doesNotMatch(html, /<th>unicodeRange/)
+  assert.match(html, /<dt>element<\/dt>/)
+  assert.match(html, /<dt>count<\/dt><dd>0<\/dd>/)
+  assert.doesNotMatch(html, /<dt>(url|preloaded|none)<\/dt>/)
+})
+
+test('numbers in the items table are aligned to the right', () => {
+  const html = renderResult({ script: 'X', status: 'ok', items: [{ name: 'a', bytes: 1200 }] })
+  assert.match(html, /<td>a<\/td><td class="num">1200<\/td>/)
 })
