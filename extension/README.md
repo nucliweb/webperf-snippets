@@ -10,6 +10,11 @@ A DevTools panel that lists the snippets and runs the one you choose on the insp
 
 Run `npm run extension:build` again after a snippet changes, then reload the extension in `chrome://extensions`. The snippets ship inside the extension, since the Chrome Web Store does not allow an extension to run code it did not ship with.
 
+## Copy buttons
+
+- Copy JSON copies the result, to paste it into an issue or an agent.
+- Copy prompt copies the prompt of the Copy prompt button of the site, which runs the snippet with the CLI, ending with the inspected page as the page to measure, so an agent can run it as it is. The two snippets the CLI cannot run have none.
+
 ## Tracking snippets
 
 A snippet such as INP or Long Animation Frames records what happens after it runs. Run it, use the page, then choose Read result.

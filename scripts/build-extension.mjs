@@ -15,7 +15,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // return nothing; the CLI and the Copy prompt leave them out too
 const snippets = buildRegistry(ROOT)
   .filter(({ category }) => category !== 'DevTools-Overrides')
-  .map(({ id, path, category, title, description, url, code }) => ({
+  .map(({ id, path, category, title, description, url, code, prompt }) => ({
   id,
   path,
   category,
@@ -25,6 +25,8 @@ const snippets = buildRegistry(ROOT)
   // The snippet as one expression, which the panel runs inside its own (lib/snippet-expression.mjs)
   expression: snippetExpression(code),
   tracking: isTrackingSnippet(path, code),
+  // The Copy prompt of the site, to run the snippet on the inspected page with the CLI from an agent
+  prompt,
 }))
 writeFileSync(join(ROOT, 'extension', 'snippets.json'), JSON.stringify(snippets))
 console.log(`Built extension/snippets.json (${snippets.length} snippets). Load the extension folder unpacked in chrome://extensions.`)

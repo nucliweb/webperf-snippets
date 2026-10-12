@@ -38,6 +38,10 @@ h1 { margin: 0 0 4px; font-size: 16px; }
 .actions button { padding: 4px 12px; font: inherit; color: #fff; background: var(--accent); border: 0; border-radius: 4px; cursor: pointer; }
 :root.dark .actions button { color: #202124; }
 .actions button:disabled { opacity: 0.6; cursor: default; }
+.actions button.secondary, .copy-json { color: var(--accent); background: none; border: 1px solid var(--border); }
+:root.dark .actions button.secondary { color: var(--accent); }
+.copy-json { margin-top: 16px; padding: 2px 10px; font: inherit; border-radius: 4px; cursor: pointer; }
+.raw { margin-top: 8px; }
 .actions a { color: var(--accent); }
 .status { margin: 0 0 8px; font-weight: 600; }
 .status-error, .status-unsupported { color: var(--poor); }
@@ -60,5 +64,4 @@ th { background: var(--hover); }
 .details { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; }
 .details dt { color: var(--muted); }
 .details dd { margin: 0; overflow-wrap: anywhere; }
-.raw { margin-top: 16px; }
 .raw pre { overflow: auto; padding: 8px; background: var(--hover); border-radius: 4px; }

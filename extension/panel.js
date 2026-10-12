@@ -1,6 +1,7 @@
 import { filterSnippets, groupByCategory } from './lib/catalog.js'
 import { renderResult } from './lib/render.js'
 import { readTrackingData, runSnippet } from './lib/run.js'
+import { copyText, promptForPage } from './lib/clipboard.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
@@ -21,6 +22,15 @@ const main = document.getElementById('main')
 const search = document.getElementById('search')
 let snippets = []
 let current = null
+let lastResult
+
+// Copies text and says so on the button for a moment
+async function copyFrom(button, text) {
+  const label = button.textContent
+  await copyText(text)
+  button.textContent = 'Copied'
+  setTimeout(() => (button.textContent = label), 2000)
+}
 
 function showList() {
   const groups = groupByCategory(filterSnippets(snippets, search.value))
@@ -46,11 +56,21 @@ function showSnippet(snippet) {
     <p>${escape(snippet.description)}</p>${tracking}
     <div class="actions">
       <button type="button" id="run">Run</button>
-      <button type="button" id="read" hidden>Read result</button>
+      <button type="button" id="read" hidden>Read result</button>${snippet.prompt ? '<button type="button" id="copy-prompt" class="secondary" title="Copy a prompt that runs this snippet on the inspected page with the CLI, for an AI agent">Copy prompt</button>' : ''}
       <a href="${escape(snippet.url)}" target="_blank" rel="noopener">Documentation</a>
     </div>
     <div id="result" aria-live="polite"></div>`
   document.getElementById('run').addEventListener('click', () => run(snippet))
+  document.getElementById('copy-prompt')?.addEventListener('click', async (event) => {
+    // event.currentTarget is null once the handler awaits
+    const button = event.currentTarget
+    const url = await evaluate('location.href').catch(() => undefined)
+    await copyFrom(button, promptForPage(snippet.prompt, url))
+  })
+  document.getElementById('result').addEventListener('click', (event) => {
+    const button = event.target.closest('.copy-json')
+    if (button) copyFrom(button, JSON.stringify(lastResult, null, 2))
+  })
 }
 
 async function show(snippet, work, button) {
@@ -66,6 +86,7 @@ async function show(snippet, work, button) {
   // The user may have chosen another snippet meanwhile
   if (current !== snippet) return
   button.disabled = false
+  lastResult = value
   result.innerHTML = renderResult(value)
   return value
 }

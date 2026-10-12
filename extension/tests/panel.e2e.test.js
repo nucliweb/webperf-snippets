@@ -18,6 +18,7 @@ const snippets = JSON.parse(readFileSync(join(EXTENSION, 'snippets.json'), 'utf8
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json' }
 
 let browser, servers, extension, target, panel
+const pageErrors = []
 
 before(async () => {
   servers = await startContractServers()
@@ -33,6 +34,8 @@ before(async () => {
   const context = await browser.newContext()
   target = await context.newPage()
   panel = await context.newPage()
+  // An error of the panel fails the test that caused it
+  panel.on('pageerror', (error) => pageErrors.push(error.message))
   await panel.exposeFunction('__inspect', async (expression) => {
     try {
       const value = await target.evaluate((e) => {
@@ -45,6 +48,9 @@ before(async () => {
     }
   })
   await panel.addInitScript(() => {
+    // What the copy buttons write
+    window.__copied = []
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (text) => window.__copied.push(text) } })
     window.chrome = {
       devtools: {
         panels: { themeName: 'default' },
@@ -54,6 +60,11 @@ before(async () => {
   })
   await panel.goto(`http://127.0.0.1:${extension.address().port}/panel.html`)
   await panel.waitForSelector('#list button')
+})
+
+test.afterEach(() => {
+  const errors = pageErrors.splice(0)
+  assert.deepEqual(errors, [], 'the panel threw')
 })
 
 after(async () => {
@@ -78,6 +89,25 @@ function assertContract(id, result) {
   assert.ok(result.script, `${id}: no script, the panel failed: ${result.error ?? result.panelError}`)
   assert.ok(STATUSES.includes(result.status), `${id}: status ${result.status}`)
 }
+
+test('Copy JSON copies the result, and Copy prompt the prompt with the inspected page to measure', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="LCP"]')
+  const result = await resultOf('#run')
+  await panel.evaluate(() => (window.__copied.length = 0))
+  await panel.click('#result .copy-json')
+  await panel.click('#copy-prompt')
+  await panel.waitForFunction(() => window.__copied.length === 2)
+  const [json, prompt] = await panel.evaluate(() => window.__copied)
+  assert.deepEqual(JSON.parse(json), result)
+  assert.match(prompt, /--snippet LCP --json/)
+  assert.ok(prompt.endsWith(`\nPage to measure: ${servers.base}/seeded\n`), prompt.slice(-120))
+})
+
+test('a snippet the CLI cannot run has no Copy prompt', async () => {
+  await panel.click('#list button[data-id="Long-Animation-Frames-Helpers"]')
+  assert.equal(await panel.locator('#copy-prompt').count(), 0)
+})
 
 test('the panel lists every snippet', async () => {
   assert.equal(await panel.locator('#list button').count(), snippets.length)

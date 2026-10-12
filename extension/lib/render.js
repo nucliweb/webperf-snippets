@@ -67,7 +67,8 @@ function details(object) {
 
 export function renderResult(result) {
   if (result === undefined) return '<p class="status status-error">The snippet returned nothing.</p>'
-  const json = `<details class="raw"><summary>JSON</summary><pre>${escape(JSON.stringify(result, null, 2))}</pre></details>`
+  // panel.js gives the button its action
+  const json = `<div class="raw-actions"><button type="button" class="copy-json">Copy JSON</button></div><details class="raw"><summary>JSON</summary><pre>${escape(JSON.stringify(result, null, 2))}</pre></details>`
   if (!result || typeof result !== 'object') return json
 
   const status = `<p class="status status-${escape(result.status)}">${escape(STATUS[result.status] ?? result.status ?? '')}${

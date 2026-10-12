@@ -94,3 +94,7 @@ test('a value that is not a result object is shown as JSON', () => {
   assert.match(renderResult(42), /<pre>42<\/pre>/)
   assert.match(renderResult(undefined), /returned nothing/)
 })
+
+test('the JSON comes with a button to copy it', () => {
+  assert.match(renderResult({ script: 'X', status: 'ok' }), /<button type="button" class="copy-json">Copy JSON<\/button>/)
+})
