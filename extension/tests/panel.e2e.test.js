@@ -118,6 +118,61 @@ test('a navigation hides Read result, since it clears what a tracking snippet re
   assert.match(await panel.locator('#result').textContent(), /navigated.*Run the snippet again/)
 })
 
+// Reloads the panel, as closing and opening DevTools does
+async function reopenPanel() {
+  await panel.reload()
+  // Attached, not visible: the list may be folded
+  await panel.waitForSelector('#list button', { state: 'attached' })
+}
+
+test('the list folds away and comes back, and the panel remembers it', async () => {
+  await panel.click('#toggle-sidebar')
+  assert.equal(await panel.locator('#search').isVisible(), false)
+  assert.equal(await panel.getAttribute('#toggle-sidebar', 'aria-expanded'), 'false')
+  await reopenPanel()
+  assert.equal(await panel.locator('#search').isVisible(), false)
+  await panel.click('#toggle-sidebar')
+  assert.equal(await panel.locator('#search').isVisible(), true)
+  assert.equal(await panel.getAttribute('#toggle-sidebar', 'aria-expanded'), 'true')
+})
+
+test('/ goes to the search box, and opens the list when it is folded', async () => {
+  await panel.click('#toggle-sidebar')
+  await panel.locator('main').click()
+  await panel.keyboard.press('/')
+  assert.equal(await panel.evaluate(() => document.activeElement?.id), 'search')
+  assert.equal(await panel.getAttribute('#toggle-sidebar', 'aria-expanded'), 'true')
+  // Typed in the search box, / is just a character
+  await panel.keyboard.type('a/b')
+  assert.equal(await panel.inputValue('#search'), 'a/b')
+  await panel.keyboard.press('Escape')
+  assert.equal(await panel.inputValue('#search'), '')
+})
+
+test('the arrows move through the list, Enter opens a snippet and Ctrl+Enter runs it', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.locator('main').click()
+  await panel.keyboard.press('/')
+  await panel.keyboard.press('ArrowDown')
+  const first = await panel.evaluate(() => document.activeElement?.dataset.id)
+  await panel.keyboard.press('ArrowDown')
+  const second = await panel.evaluate(() => document.activeElement?.dataset.id)
+  const ids = await panel.locator('#list button').evaluateAll((buttons) => buttons.map((b) => b.dataset.id))
+  assert.deepEqual([first, second], ids.slice(0, 2))
+  await panel.keyboard.press('ArrowUp')
+  await panel.keyboard.press('Enter')
+  assert.equal(await panel.textContent('main h1'), snippets.find((s) => s.id === first).title)
+  await panel.keyboard.press('Control+Enter')
+  await panel.waitForSelector('#result .raw pre', { state: 'attached' })
+})
+
+test('the panel opens on the last snippet it showed', async () => {
+  await panel.click('#list button[data-id="TTFB"]')
+  await reopenPanel()
+  assert.equal(await panel.textContent('main h1'), snippets.find((s) => s.id === 'TTFB').title)
+  assert.equal(await panel.getAttribute('#list button[data-id="TTFB"]', 'aria-current'), 'true')
+})
+
 test('a snippet the CLI cannot run has no Copy prompt', async () => {
   await panel.click('#list button[data-id="Long-Animation-Frames-Helpers"]')
   assert.equal(await panel.locator('#copy-prompt').count(), 0)

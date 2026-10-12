@@ -24,6 +24,33 @@ let snippets = []
 let current = null
 let lastResult
 
+// What the panel remembers between openings of DevTools. Storage can be unavailable, and the panel
+// works the same without it
+const remember = (key, value) => {
+  try {
+    localStorage.setItem(`webperf-snippets:${key}`, value)
+  } catch {
+    // Nothing to remember then
+  }
+}
+const recall = (key) => {
+  try {
+    return localStorage.getItem(`webperf-snippets:${key}`)
+  } catch {
+    return null
+  }
+}
+
+const toggle = document.getElementById('toggle-sidebar')
+function setSidebar(expanded) {
+  document.body.classList.toggle('sidebar-collapsed', !expanded)
+  toggle.setAttribute('aria-expanded', String(expanded))
+  toggle.title = expanded ? 'Hide the list' : 'Show the list'
+  remember('sidebar', expanded ? 'expanded' : 'collapsed')
+}
+toggle.addEventListener('click', () => setSidebar(document.body.classList.contains('sidebar-collapsed')))
+if (recall('sidebar') === 'collapsed') setSidebar(false)
+
 // Copies text and says so on the button for a moment
 async function copyFrom(button, text) {
   const label = button.textContent
@@ -48,6 +75,7 @@ function showList() {
 
 function showSnippet(snippet) {
   current = snippet
+  remember('snippet', snippet.id)
   showList()
   const tracking = snippet.tracking
     ? '<p class="note">This snippet records what happens after it runs: run it, use the page, then read the result.</p>'
@@ -122,11 +150,46 @@ list.addEventListener('click', (event) => {
 })
 search.addEventListener('input', showList)
 
+// Keyboard: / goes to the search box, the arrows move through the list, Enter opens a snippet,
+// Ctrl+Enter or Cmd+Enter runs it, and Escape clears the search
+const typing = (el) => el?.matches?.('input, textarea, select, [contenteditable="true"]')
+const listButtons = () => [...list.querySelectorAll('button[data-id]')]
+document.addEventListener('keydown', (event) => {
+  if (event.key === '/' && !typing(event.target) && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    event.preventDefault()
+    if (document.body.classList.contains('sidebar-collapsed')) setSidebar(true)
+    search.focus()
+    search.select()
+    return
+  }
+  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && current) {
+    event.preventDefault()
+    document.getElementById('run')?.click()
+    return
+  }
+  if (event.key === 'Escape' && event.target === search && search.value) {
+    search.value = ''
+    showList()
+    return
+  }
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+  const buttons = listButtons()
+  if (buttons.length === 0) return
+  const at = buttons.indexOf(event.target)
+  if (event.target !== search && at === -1) return
+  event.preventDefault()
+  if (event.key === 'ArrowDown') buttons[Math.min(at + 1, buttons.length - 1)].focus()
+  else if (at <= 0) search.focus()
+  else buttons[at - 1].focus()
+})
+
 fetch('snippets.json')
   .then((response) => response.json())
   .then((data) => {
     snippets = data
-    showList()
+    const last = snippets.find((s) => s.id === recall('snippet'))
+    if (last) showSnippet(last)
+    else showList()
   })
   .catch(() => {
     list.innerHTML = '<p class="empty">snippets.json is missing: run npm run extension:build.</p>'

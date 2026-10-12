@@ -33,7 +33,14 @@
 * { box-sizing: border-box; }
 body { margin: 0; display: flex; height: 100vh; font: 12px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
 .sidebar { width: 260px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
-#search { margin: 8px; padding: 4px 8px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+.sidebar-top { display: flex; gap: 4px; align-items: center; padding: 8px; }
+#search { flex: 1; min-width: 0; padding: 4px 8px; font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+#toggle-sidebar { flex: none; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; color: var(--muted); background: none; border: 1px solid transparent; border-radius: 4px; cursor: pointer; }
+#toggle-sidebar:hover, #toggle-sidebar:focus-visible { color: var(--fg); background: var(--hover); border-color: var(--border); }
+.sidebar-collapsed .sidebar { width: 40px; }
+.sidebar-collapsed #search, .sidebar-collapsed #list { display: none; }
+.sidebar-collapsed #toggle-sidebar svg { transform: rotate(180deg); }
+#list button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 #list { overflow-y: auto; padding-bottom: 8px; }
 #list h2 { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center; margin: 0; padding: 6px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg); background: var(--surface); border-block: 1px solid var(--border); }
 #list h2:first-child { border-top: 0; }
