@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "prebuild": "rm -rf .next && node scripts/generate-llms.js",
+    "prebuild": "rm -rf .next && node scripts/generate-llms.js && node scripts/generate-page-markdown.mjs",
     "check:consistency": "node scripts/check-consistency.js",
     "test:demos": "node --test scripts/demos.test.js",
     "check:emoji": "node scripts/check-emoji.js",
@@ -31,7 +31,7 @@
     "prepare": "git config core.hooksPath .githooks",
     "test": "echo \"No tests configured\"",
     "postbuild": "node scripts/build-search-index.js",
-    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js",
+    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs",
     "check:built-snippets": "node scripts/check-built-snippets.js"
   },
   "keywords": [

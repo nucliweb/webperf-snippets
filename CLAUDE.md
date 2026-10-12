@@ -33,6 +33,7 @@ styles/globals.css      Global styles, including the --dg-* tokens and .wp-suppo
 public/demos/           Interactive HTML demos; see public/demos/README.md for the contract
 skills/, dist/, .claude/skills/   Generated Agent Skills (do not edit by hand)
 public/llms.txt, public/llms-full.txt   Generated
+public/<page>.md        Markdown version of each page, generated before the build and not committed (lib/page-markdown.mjs)
 cli/                    Playwright CLI, workflows, e2e tests and fixtures
 scripts/                Generators, checks and their tests
 workspace/              Local notes, ignored by git

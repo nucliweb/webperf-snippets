@@ -7,3 +7,12 @@ node_modules
 reports
 workspace
 public/_pagefind
+
+# Markdown versions of the pages, generated before the build (scripts/generate-page-markdown.mjs)
+/public/*.md
+/public/CoreWebVitals/
+/public/DevTools-Overrides/
+/public/Interaction/
+/public/Loading/
+/public/Media/
+/public/Resources/
