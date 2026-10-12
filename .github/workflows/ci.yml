@@ -100,3 +100,7 @@ jobs:
       - name: Run E2E tests
         if: steps.slow.outputs.skip != 'true'
         run: npm run test:e2e --prefix cli
+
+      - name: Run extension E2E tests
+        if: steps.slow.outputs.skip != 'true'
+        run: npm run test:extension:e2e

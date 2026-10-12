@@ -11,7 +11,11 @@ import { snippetExpression } from '../lib/snippet-expression.mjs'
 // of a snippet needs a new build of the extension. The file is not committed (see .gitignore).
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const snippets = buildRegistry(ROOT).map(({ id, path, category, title, description, url, code }) => ({
+// The DevTools-Overrides scripts are pasted into Local Overrides so they run before the page, and
+// return nothing; the CLI and the Copy prompt leave them out too
+const snippets = buildRegistry(ROOT)
+  .filter(({ category }) => category !== 'DevTools-Overrides')
+  .map(({ id, path, category, title, description, url, code }) => ({
   id,
   path,
   category,

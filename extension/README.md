@@ -21,4 +21,6 @@ A snippet such as INP or Long Animation Frames records what happens after it run
 - `lib/render.js`: the HTML of a result, with every value from the page escaped.
 - `lib/catalog.js`: the categories and the search.
 
-`npm run test:extension` runs their tests.
+`npm run test:extension` runs their tests. `npm run test:extension:e2e` runs every snippet through the real panel, against the seeded page of the CLI contract tests: a DevTools panel cannot be automated, so `panel.html` gets an `inspectedWindow.eval` that runs in another tab as the real one does, and each result must keep the return contract.
+
+The DevTools-Overrides scripts are not in the extension: they go into Local Overrides so they run before the page, and return nothing.

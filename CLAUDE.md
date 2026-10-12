@@ -60,6 +60,7 @@ npm run test:support         # browser support plugin
 npm run test:prompt          # agent prompt of each snippet (lib/snippet-prompt.mjs)
 npm run extension:build      # extension/snippets.json, then load extension/ unpacked in chrome://extensions
 npm run test:extension       # DevTools extension: runner, result rendering, catalog
+npm run test:extension:e2e   # every snippet through the real panel, on the seeded page of the CLI tests
 npm run eval:prompts         # an agent runs the prompts on local pages, graded from its transcript (eval-prompts.yml: on demand and on PRs that change the prompt)
 
 npm run test:unit --prefix cli
