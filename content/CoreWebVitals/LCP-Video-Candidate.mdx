@@ -24,6 +24,8 @@ When a `<video>` element has a `poster` attribute, the browser treats the poster
 | Preload link without `fetchpriority="high"`                 | LCP video poster preload     |
 | Poster using a legacy format (not AVIF / WebP / JXL)        | LCP video poster             |
 | `renderTime` is zero (cross-origin poster, TAO header missing) | LCP video poster          |
+| LCP is the first video frame, not a poster                  | LCP video                    |
+| LCP candidate rendered more than 10 s after the load         | Last LCP entry               |
 
 When a `<video>` drives LCP, the critical path for the poster image mirrors that of an LCP `<img>`:
 
@@ -68,11 +70,13 @@ The snippet reports the actual LCP element tag and URL, and exits. The [LCP Trai
 
 | Field        | Description                                                                                            |
 | ------------ | ------------------------------------------------------------------------------------------------------ |
-| `LCP time`   | `startTime` from the last LCP entry, the moment the poster was painted to screen                     |
-| `Render time`| Time the poster was rendered; `0` means the image is cross-origin without a `Timing-Allow-Origin` header |
-| `Load time`  | Time the poster finished loading over the network                                                      |
+| `LCP time`   | `startTime` from the last LCP entry, the moment the poster or the first frame was painted to screen   |
+| `Source`     | `poster`, or `first-frame` when the first frame of the video is the LCP; the entry has the URL of the poster or of the video file |
+| `Render time`| Time the poster or frame was rendered; `0` means the resource is cross-origin without a `Timing-Allow-Origin` header |
+| `Load time`  | Time the poster or video finished loading over the network                                             |
 | `Size`       | Rendered area of the video element in pixels²                                                          |
-| `Poster URL` | URL the browser used (`lcp.url`), which may differ from the `poster` attribute if redirected           |
+| `Poster URL` | The `poster` attribute of the video, if any                                                            |
+| `Video URL`  | The video file, when the first frame is the LCP                                                        |
 | `Format`     | Image format detected from the URL extension                                                           |
 
 #### Video element

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Video first frame fixture</title>
+</head>
+<body style="margin:0">
+  <!-- An autoplay video with no poster: its first frame is the LCP, and Chrome gives the entry the URL of the video -->
+  <video id="hero" width="640" height="360" autoplay muted playsinline loop>
+    <source src="/clip.webm" type="video/webm">
+  </video>
+  <p style="font-size:8px;margin:0">Caption</p>
+</body>
+</html>
