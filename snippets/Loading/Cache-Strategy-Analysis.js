@@ -236,7 +236,7 @@
   // --- Phase 2: Fetch headers for same-origin static assets ---
 
   // Scope: true same-origin only (same scheme+host+port, not just root domain).
-  // isFirstParty() matches root domains (api.fedex.com = first party for www.fedex.com)
+  // isFirstParty() matches root domains (api.example.com = first party for www.example.com)
   // but the browser enforces CORS per full origin, causing console errors.
   // Also limit to static asset types — API endpoints and iframes tend to reject HEAD
   // (503/403) and pollute the console without adding useful cache strategy data.
