@@ -19,13 +19,13 @@ test('without saved values, the settings are the defaults', async () => {
 
 test('the preferences come from the synced area and the state of the panel from the local one', async () => {
   const sync = area({ theme: 'dark', side: 'right' })
-  const local = area({ sidebar: 'collapsed', snippet: 'LCP', audit: { workflow: 'audit' } })
+  const local = area({ sidebar: 'collapsed', snippet: 'LCP', audits: [{ workflow: 'audit' }] })
   assert.deepEqual(await createSettings({ sync, local }).load(), {
     theme: 'dark',
     side: 'right',
     sidebar: 'collapsed',
     snippet: 'LCP',
-    audit: { workflow: 'audit' },
+    audits: [{ workflow: 'audit' }],
   })
 })
 

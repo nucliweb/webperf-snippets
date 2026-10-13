@@ -93,3 +93,11 @@ export function fromReport(saved, snippets) {
   })
   return { steps: rows.map((r) => r.snippet), rows, done: true, url: saved.url ?? undefined, date: saved.date }
 }
+
+// The audits the panel keeps, as reports, newest first. Each takes 50 to 150 KB, so the last ten fit
+// in chrome.storage.local with room to spare
+export function addToHistory(history, saved, max = 10) {
+  return [saved, ...(history ?? [])].slice(0, max)
+}
+
+export const removeFromHistory = (history, date) => history.filter((r) => r.date !== date)

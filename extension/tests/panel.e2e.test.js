@@ -310,10 +310,10 @@ test('the audit runs the snippets of the audit of the CLI, sums them up and open
 
   // The home page keeps the last audit, also after closing DevTools, and opens it again with its results
   await panel.click('#go-home')
-  assert.match(await panel.textContent('main .last-audit'), new RegExp(`${servers.base}/seeded`))
+  assert.match(await panel.textContent('main .audits li >> nth=0'), new RegExp(`${servers.base}/seeded`))
   await reopenPanel()
   await panel.click('#go-home')
-  await panel.click('#view-audit')
+  await panel.click('main .audits li >> nth=0 >> .open-audit')
   assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
   await panel.click('#audit tbody tr >> nth=0 >> button')
   await panel.waitForSelector('#result .raw pre', { state: 'attached' })
@@ -334,6 +334,34 @@ test('the audit runs the snippets of the audit of the CLI, sums them up and open
   assert.match(download.suggestedFilename(), /^webperf-audit-127\.0\.0\.1-\d{4}-\d{2}-\d{2}-\d{4}\.json$/)
   const file = JSON.parse(readFileSync(await download.path(), 'utf8'))
   assert.deepEqual(file.results.map((r) => r.id), copied.results.map((r) => r.id))
+})
+
+test('the home page lists the audits, opens and deletes them, and keeps them after closing DevTools', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  const before = await (async () => {
+    await panel.click('#go-home')
+    return panel.locator('main .audits li').count()
+  })()
+  await panel.click('#run-audit')
+  await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
+  await panel.click('#go-home')
+  const entries = panel.locator('main .audits li')
+  assert.equal(await entries.count(), before + 1)
+  assert.match(await entries.nth(0).textContent(), new RegExp(`${servers.base}/seeded`))
+  await reopenPanel()
+  await panel.click('#go-home')
+  assert.equal(await entries.count(), before + 1)
+  // The newest opens with its results
+  await entries.nth(0).locator('.open-audit').click()
+  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+  await panel.click('#go-home')
+  const [download] = await Promise.all([panel.waitForEvent('download'), entries.nth(0).locator('.download-audit').click()])
+  assert.match(download.suggestedFilename(), /^webperf-audit-127\.0\.0\.1-/)
+  await entries.nth(0).locator('.delete-audit').click()
+  assert.equal(await entries.count(), before)
+  await reopenPanel()
+  await panel.click('#go-home')
+  assert.equal(await entries.count(), before)
 })
 
 test('a snippet the CLI cannot run has no Copy prompt', async () => {

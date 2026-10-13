@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { summarize, bySeverity, overview, report, reportFileName, fromReport } from './audit.js'
+import { summarize, bySeverity, overview, report, reportFileName, fromReport, addToHistory, removeFromHistory } from './audit.js'
 
 test('summarize counts the issues of a result by severity and names the worst one', () => {
   const s = summarize({
@@ -135,4 +135,22 @@ test('fromReport gives nothing for a missing or broken report, and leaves out re
   assert.equal(fromReport({ workflow: 'other' }, snippets), null)
   const audit = fromReport({ workflow: 'audit', url: 'u', date: 'd', results: [{ id: 'ttfb', status: 'ok' }, { id: 'gone', status: 'ok' }] }, snippets)
   assert.deepEqual(audit.rows.map((r) => r.snippet.id), ['TTFB-Sub-Parts'])
+})
+
+test('the history keeps the last audits, newest first, and drops the oldest past its limit', () => {
+  const at = (n) => ({ workflow: 'audit', url: `https://example.com/${n}`, date: `2026-10-13T10:0${n}:00.000Z`, results: [] })
+  let history = []
+  for (let n = 0; n < 5; n++) history = addToHistory(history, at(n), 3)
+  assert.deepEqual(history.map((r) => r.url), ['https://example.com/4', 'https://example.com/3', 'https://example.com/2'])
+  assert.equal(addToHistory(undefined, at(1)).length, 1)
+  // The default limit is 10
+  for (let n = 0; n < 12; n++) history = addToHistory(history, { ...at(0), date: `2026-10-13T11:${String(n).padStart(2, '0')}:00.000Z` })
+  assert.equal(history.length, 10)
+})
+
+test('an audit leaves the history by its date', () => {
+  const a = { workflow: 'audit', url: 'a', date: '2026-10-13T10:00:00.000Z', results: [] }
+  const b = { workflow: 'audit', url: 'b', date: '2026-10-13T11:00:00.000Z', results: [] }
+  assert.deepEqual(removeFromHistory([b, a], a.date), [b])
+  assert.deepEqual(removeFromHistory([b, a], 'unknown'), [b, a])
 })

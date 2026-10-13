@@ -3,7 +3,7 @@ import { renderResult } from './lib/render.js'
 import { readTrackingData, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
 import { createSettings } from './lib/settings.js'
-import { bySeverity, fromReport, overview, report, reportFileName, summarize } from './lib/audit.js'
+import { addToHistory, bySeverity, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
@@ -111,14 +111,9 @@ function showHome() {
     </ol>
     <section class="home-card">
       <h2>Structural audit</h2>
-      <p>Runs the ${auditCount} snippets of the audit of the CLI one after the other: render-blocking resources, resource hints, scripts, fonts, images, DOM size and more. Their checks do not depend on timing, so they give the same result on every run.</p>${
-        audit?.done
-          ? `<div class="last-audit"><p><strong>Last audit</strong>: ${escape(audit.url ?? 'unknown page')}, ${escape(new Date(audit.date).toLocaleString())}</p><p>${escape(overview(audit.rows))}</p></div>`
-          : ''
-      }
-      <div class="actions">${audit?.done ? '<button type="button" id="view-audit">View results</button>' : ''}
-        <button type="button" id="run-audit"${audit?.done ? ' class="secondary"' : ''}>${audit?.done ? 'Run again' : 'Run audit'}</button>
-      </div>
+      <p>Runs the ${auditCount} snippets of the audit of the CLI one after the other: render-blocking resources, resource hints, scripts, fonts, images, DOM size and more. Their checks do not depend on timing, so they give the same result on every run.</p>
+      <div class="actions"><button type="button" id="run-audit">Run audit</button></div>
+      ${auditList()}
     </section>
     <section class="home-card">
       <h2>Categories</h2>
@@ -128,7 +123,23 @@ function showHome() {
   </div>`
   if (/Mac|iPhone|iPad/.test(navigator.platform)) main.querySelector('.mod').textContent = '⌘'
   document.getElementById('run-audit').addEventListener('click', runAudit)
-  document.getElementById('view-audit')?.addEventListener('click', showAudit)
+  main.querySelector('.audits')?.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-date]')
+    if (!button) return
+    const saved = audits.find((r) => r.date === button.dataset.date)
+    if (!saved) return
+    if (button.classList.contains('open-audit')) {
+      audit = fromReport(saved, snippets)
+      showAudit()
+    } else if (button.classList.contains('download-audit')) {
+      downloadReport(saved)
+    } else if (button.classList.contains('delete-audit')) {
+      audits = removeFromHistory(audits, saved.date)
+      remember('audits', audits)
+      if (audit?.date === saved.date) audit = fromReport(audits[0], snippets)
+      showHome()
+    }
+  })
   main.querySelector('.categories').addEventListener('click', (event) => {
     const button = event.target.closest('button[data-category]')
     if (!button) return
@@ -141,9 +152,38 @@ function showHome() {
   })
 }
 
-// The audit: its rows stay while the panel is open, so a result can be opened and the audit found
-// again. It keeps running when another view is shown
+// The audits the panel keeps (lib/audit.js), newest first, and the one it shows. An audit keeps running
+// when another view is shown, and its rows stay, so a result can be opened and the audit found again
+let audits = []
 let audit = null
+
+function auditList() {
+  if (audits.length === 0) return ''
+  const items = audits
+    .map((saved) => {
+      const a = fromReport(saved, snippets)
+      const when = new Date(saved.date).toLocaleString()
+      return `<li>
+        <button type="button" class="open-audit row-link" data-date="${escape(saved.date)}">${escape(saved.url ?? 'unknown page')}</button>
+        <span class="when">${escape(when)}</span>
+        <span class="summary-line">${escape(a ? overview(a.rows) : '')}</span>
+        <span class="audit-actions">
+          <button type="button" class="download-audit tool-text" data-date="${escape(saved.date)}" title="Save this audit as a JSON file">Download</button>
+          <button type="button" class="delete-audit tool-text" data-date="${escape(saved.date)}" title="Delete this audit">Delete</button>
+        </span>
+      </li>`
+    })
+    .join('')
+  return `<h3 class="audits-title">Saved audits <span class="count">${audits.length}</span></h3><ol class="audits">${items}</ol>`
+}
+
+function downloadReport(saved) {
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(saved, null, 2)], { type: 'application/json' }))
+  link.download = reportFileName(saved.url, saved.date)
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+}
 async function runAudit() {
   const steps = snippets.filter((s) => typeof s.audit === 'number').sort((a, b) => a.audit - b.audit)
   audit = { steps, rows: [], done: false, url: undefined, date: new Date().toISOString() }
@@ -159,8 +199,9 @@ async function runAudit() {
   }
   audit.done = true
   renderAudit()
-  // Kept, so the home page can show it again after DevTools closes
-  remember('audit', report({ url: audit.url, date: audit.date, rows: audit.rows }))
+  // Kept, so the home page lists it after DevTools closes
+  audits = addToHistory(audits, report({ url: audit.url, date: audit.date, rows: audit.rows }))
+  remember('audits', audits)
 }
 
 function showAudit() {
@@ -177,13 +218,9 @@ function showAudit() {
   document.getElementById('rerun-audit').addEventListener('click', runAudit)
   const json = () => JSON.stringify(report({ url: audit.url, date: audit.date, rows: audit.rows }), null, 2)
   document.getElementById('copy-audit').addEventListener('click', (event) => copyFrom(event.currentTarget, json()))
-  document.getElementById('download-audit').addEventListener('click', () => {
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(new Blob([json()], { type: 'application/json' }))
-    link.download = reportFileName(audit.url, audit.date)
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000)
-  })
+  document.getElementById('download-audit').addEventListener('click', () =>
+    downloadReport(report({ url: audit.url, date: audit.date, rows: audit.rows }))
+  )
   document.getElementById('audit').addEventListener('click', (event) => {
     const button = event.target.closest('button[data-row]')
     if (button) {
@@ -367,7 +404,8 @@ fetch('snippets.json')
   .then((response) => response.json())
   .then((data) => {
     snippets = data
-    audit = fromReport(saved.audit, snippets)
+    audits = Array.isArray(saved.audits) ? saved.audits : []
+    audit = fromReport(audits[0], snippets)
     const last = snippets.find((s) => s.id === saved.snippet)
     if (last) showSnippet(last)
     else showHome()
