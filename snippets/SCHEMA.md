@@ -421,7 +421,16 @@ If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "g
       "serverResponse": { "value": 165, "unit": "ms" }
     },
     "slowestPhase": "serverResponse"
-  }
+  },
+  "issues": []
+}
+```
+
+When the rating is not good, `issues` holds one entry that names the TTFB and the slowest phase, a `warning` for `needs-improvement` and an `error` for `poor`:
+
+```json
+{
+  "issues": [{ "severity": "warning", "message": "TTFB is 996 ms (needs-improvement); server response takes 993 ms of it (100%). Fix: optimize server processing, cache the HTML and check slow queries." }]
 }
 ```
 
@@ -1089,7 +1098,7 @@ Same shape as Image-Element-Audit but for video elements.
 
 #### SVG-Embedded-Bitmap-Analysis
 
-`details` counts the SVGs, also on a page with none. `spriteOpportunity` is `true` when five or more standalone inline SVGs could share one `<symbol>` sprite.
+`details` counts the SVGs, also on a page with none. `spriteOpportunity` is `true` when five or more standalone inline SVGs could share one `<symbol>` sprite, and it is then also an `info` issue with the counts.
 
 ```json
 {
@@ -1098,7 +1107,10 @@ Same shape as Image-Element-Audit but for video elements.
   "count": 2,
   "details": { "externalSvgCount": 3, "inlineSvgTotal": 7, "svgsWithUse": 1, "standaloneInlineSvgs": 6, "spriteOpportunity": true },
   "items": [{ "url": "icon.svg", "hasBitmap": true, "bitmapType": "image/png", "sizeBytes": 4500 }],
-  "issues": [{ "severity": "warning", "message": "2 SVG files contain embedded bitmaps" }]
+  "issues": [
+    { "severity": "warning", "message": "2 SVG file(s) contain embedded bitmaps" },
+    { "severity": "info", "message": "6 standalone inline SVGs could share one <symbol> sprite referenced with <use> (1 inline SVG already uses <use>)" }
+  ]
 }
 ```
 
