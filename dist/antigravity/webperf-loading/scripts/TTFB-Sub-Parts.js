@@ -89,6 +89,31 @@
     duration: ttfbValueSync - tcpEndSync
   } ];
   const slowestSync = subPartsSync.reduce((a, b) => a.duration > b.duration ? a : b);
+  const phaseLabels = {
+    redirectWait: "redirect and wait",
+    serviceWorkerCache: "service worker and cache",
+    dnsLookup: "DNS lookup",
+    tcpConnection: "TCP connection",
+    sslTls: "SSL/TLS",
+    serverResponse: "server response"
+  };
+  const phaseFixes = {
+    redirectWait: "minimize redirects and link to the final URL",
+    serviceWorkerCache: "review the service worker startup and consider a cache-first strategy",
+    dnsLookup: "use dns-prefetch or a faster DNS provider",
+    tcpConnection: "enable HTTP/2 or HTTP/3 and keep connections alive",
+    sslTls: "enable TLS 1.3 and session resumption, and check the certificate chain",
+    serverResponse: "optimize server processing, cache the HTML and check slow queries"
+  };
+  const issues = [];
+  if (rating !== "good") {
+    const slowestMs = Math.round(slowestSync.duration);
+    const share = ttfbValueSync > 0 ? Math.round(slowestSync.duration / ttfbValueSync * 100) : 0;
+    issues.push({
+      severity: rating === "poor" ? "error" : "warning",
+      message: `TTFB is ${value} ms (${rating}); ${phaseLabels[slowestSync.key]} takes ${slowestMs} ms of it (${share}%). Fix: ${phaseFixes[slowestSync.key]}.`
+    });
+  }
   return {
     script: "TTFB-Sub-Parts",
     status: "ok",
@@ -106,6 +131,7 @@
         unit: "ms"
       } ])),
       slowestPhase: slowestSync.key
-    }
+    },
+    issues: issues
   };
 })();
