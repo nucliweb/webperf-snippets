@@ -282,6 +282,8 @@ export function checkResult(name, inspected, prefix = "") {
   else if (!prefix && result.script !== name.split("/").pop()) add("script-name-mismatch");
   if (!STATUSES.includes(result.status)) add("invalid-status");
   if (inspected.json.length > MAX_BYTES) add("too-large");
+  // House style: returned text (issues, notes, errors) never uses a spaced em-dash
+  if (inspected.json.includes(" \u2014 ")) add("spaced-em-dash");
 
   const numericKey = /(Ms|Bytes|Count)$/;
   const looksNumeric = (s) => typeof s === "string" && /^-?\d[\d.,]*\s*[a-zA-Z%]*$/.test(s.trim());

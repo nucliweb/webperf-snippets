@@ -3,7 +3,8 @@ import { listSnippets, launch, startContractServers, observeSnippet } from "../h
 
 // Contract every snippet must keep (see snippets/SCHEMA.md): the value it returns, and the
 // value its getDataFn returns when it tracks, must be a JSON-serializable object with a valid
-// `script` and `status`, numbers as numbers, homogeneous items capped at 50 and under 50 KB.
+// `script` and `status`, numbers as numbers, homogeneous items capped at 50, under 50 KB, and
+// no spaced em-dash in any returned text.
 //
 // KNOWN_VIOLATIONS lists what is still broken, per snippet. It can only shrink: a listed
 // violation that no longer happens fails the test, so the entry has to be removed.

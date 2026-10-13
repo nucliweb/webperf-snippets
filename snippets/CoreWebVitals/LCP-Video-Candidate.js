@@ -146,24 +146,24 @@
   }
 
   if (lcpSource === "first-frame") {
-    issues.push({ s: "info", msg: "LCP is the first video frame — adding a poster gives explicit control over the LCP image" });
+    issues.push({ s: "info", msg: "LCP is the first video frame: adding a poster gives explicit control over the LCP image" });
   }
   if (lcpSource === "first-frame" && (!autoplay || !muted)) {
     issues.push({ s: "warning", msg: "First-frame LCP requires autoplay + muted for the browser to render it immediately" });
   }
 
   if (posterAttr && !posterPreload) {
-    issues.push({ s: "warning", msg: 'No <link rel="preload" as="image"> for the poster — browser discovers it late' });
+    issues.push({ s: "warning", msg: 'No <link rel="preload" as="image"> for the poster: the browser discovers it late' });
   } else if (posterPreload && posterPreload.getAttribute("fetchpriority") !== "high") {
-    issues.push({ s: "info", msg: 'Preload found but missing fetchpriority="high" — may be deprioritised' });
+    issues.push({ s: "info", msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised' });
   }
 
   if (posterAttr && !isModernFormat && posterFormat !== "unknown") {
-    issues.push({ s: "info", msg: `Poster uses ${posterFormat} — AVIF or WebP would reduce file size and LCP load time` });
+    issues.push({ s: "info", msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time` });
   }
 
   if (isCrossOrigin) {
-    issues.push({ s: "info", msg: "renderTime is 0 — resource is cross-origin and the server does not send Timing-Allow-Origin" });
+    issues.push({ s: "info", msg: "renderTime is 0: the resource is cross-origin and the server does not send Timing-Allow-Origin" });
   }
 
   if (!autoplay && preload === "none") {

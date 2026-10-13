@@ -457,3 +457,31 @@ describe("Content-Visibility", () => {
     expect(used.issues.some((i) => /No content-visibility usage/i.test(i.message))).toBe(false);
   }, 60000);
 });
+
+describe("Critical-CSS-Detection", () => {
+  it("has no issue with a spaced em-dash", async () => {
+    // /mq loads its only stylesheet with a <link> and inlines no CSS
+    const r = await onPage("/mq", (page) => page.evaluate(source("Loading/Critical-CSS-Detection")));
+    expect(r.issues.some((i) => /No critical CSS inlined/.test(i.message))).toBe(true);
+    expect(JSON.stringify(r)).not.toContain(" — ");
+  }, 30000);
+});
+
+describe("Client-Side-Redirect-Detection", () => {
+  it("has no issue with a spaced em-dash", async () => {
+    // Chromium records no same-origin resource entry of type navigation on a plain page, so the
+    // page adds one to what getEntriesByType("resource") returns
+    const r = await onPage("/empty", (page) => page.evaluate(source("Loading/Client-Side-Redirect-Detection")), {
+      init: () => {
+        const original = Performance.prototype.getEntriesByType;
+        Performance.prototype.getEntriesByType = function (type) {
+          const entries = original.call(this, type);
+          if (type !== "resource") return entries;
+          return [...entries, { name: `${location.origin}/landing`, initiatorType: "navigation", startTime: 10, duration: 5 }];
+        };
+      },
+    });
+    expect(r.issues.some((i) => /document navigation/.test(i.message))).toBe(true);
+    expect(JSON.stringify(r)).not.toContain(" — ");
+  }, 30000);
+});

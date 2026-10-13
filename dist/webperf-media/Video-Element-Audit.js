@@ -51,23 +51,23 @@
     const issues = [];
     if (preload === "auto" && !autoplay) issues.push({
       s: "error",
-      msg: 'preload="auto" loads the full video eagerly — use preload="none" or preload="metadata"'
+      msg: 'preload="auto" loads the full video eagerly: use preload="none" or preload="metadata"'
     });
     if (!autoplay && !inViewport && preload !== "none") issues.push({
       s: "warning",
-      msg: 'Off-viewport video without preload="none" — set preload="none" to avoid unnecessary loading'
+      msg: 'Off-viewport video without preload="none": set preload="none" to avoid unnecessary loading'
     });
     if (autoplay && !muted) issues.push({
       s: "error",
-      msg: "autoplay without muted — browsers block unmuted autoplay"
+      msg: "autoplay without muted: browsers block unmuted autoplay"
     });
     if (autoplay && !playsinline) issues.push({
       s: "warning",
-      msg: "autoplay without playsinline — iOS Safari forces fullscreen mode"
+      msg: "autoplay without playsinline: iOS Safari forces fullscreen mode"
     });
     if (!poster) issues.push({
       s: "warning",
-      msg: "Missing poster — no preview frame shown before playback starts"
+      msg: "Missing poster: no preview frame shown before playback starts"
     });
     if (!hasDimensions) issues.push({
       s: "warning",
@@ -75,11 +75,11 @@
     });
     if (!isModernCodec(codec) && codec !== "no source") issues.push({
       s: "info",
-      msg: "No modern codec source detected — consider adding a WebM source (VP9 or AV1) for better compression"
+      msg: "No modern codec source detected: consider adding a WebM source (VP9 or AV1) for better compression"
     });
     if (!controls && !autoplay) issues.push({
       s: "info",
-      msg: "No controls attribute and no autoplay — users may not be able to play the video"
+      msg: "No controls attribute and no autoplay, so users may not be able to play the video"
     });
     return {
       video: video,
