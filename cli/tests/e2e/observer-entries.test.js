@@ -49,22 +49,35 @@ async function run(path, fixtureName) {
   return results[0];
 }
 
-// Runs a snippet once the video of the page has presented its first frame, and Chrome has had two
-// frames to report it as an LCP candidate. A fixed wait after the load is not enough on a busy
-// machine, where the frame comes later and the LCP is still the text of the page.
-async function runAfterFirstFrame(path, fixtureName, appearsWithinMs = 2000) {
+// Runs a snippet once Chrome has reported the first frame of the video as an LCP candidate. Chrome
+// emits that entry asynchronously after it presents the frame, later on a slow runner, so neither a
+// fixed wait after the load nor the first frame itself is enough: until the entry is there, the LCP
+// is still the text of the page.
+async function runAfterVideoLcp(path, fixtureName, appearsWithinMs = 2000) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
     await page.goto(`${baseUrl}/${fixtureName}`, { waitUntil: "load" });
     await page.waitForSelector("video", { state: "attached", timeout: appearsWithinMs });
-    await page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          const video = document.querySelector("video");
-          video.requestVideoFrameCallback(() => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        })
-    );
+    await page
+      .waitForFunction(
+        () =>
+          new Promise((resolve) => {
+            const observer = new PerformanceObserver((list) => {
+              if (list.getEntries().some((e) => e.element?.tagName === "VIDEO")) resolve(true);
+            });
+            observer.observe({ type: "largest-contentful-paint", buffered: true });
+            setTimeout(() => {
+              observer.disconnect();
+              resolve(false);
+            }, 200);
+          }),
+        null,
+        { timeout: 15000 }
+      )
+      .catch(() => {
+        throw new Error(`${fixtureName}: Chrome reported no LCP entry for the video within 15 s`);
+      });
     return await page.evaluate(loadSnippet(path).trim().replace(/;\s*$/, ""));
   } finally {
     await browser.close();
@@ -141,7 +154,7 @@ describe("snippets that read observer-only entry types", () => {
   }, 30000);
 
   it("LCP-Video-Candidate tells the first frame of a video from its poster", async () => {
-    const frame = await runAfterFirstFrame("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
+    const frame = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
     expect(frame.details.lcpSource).toBe("first-frame");
     expect(frame.details.posterUrl).toBeNull();
     expect(frame.details.videoUrl).toMatch(/\/clip\.webm$/);
@@ -157,11 +170,11 @@ describe("snippets that read observer-only entry types", () => {
   }, 30000);
 
   it("LCP-Video-Candidate warns when the LCP rendered long after the load", async () => {
-    const late = await runAfterFirstFrame("CoreWebVitals/LCP-Video-Candidate", "video-late.html", 13000);
+    const late = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-late.html", 13000);
     expect(late.details.lcpSource).toBe("first-frame");
     expect(late.issues.map((i) => i.message).join(" ")).toMatch(/rendered \d+ s after the page loaded/);
 
-    const early = await runAfterFirstFrame("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
+    const early = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
     expect(early.issues.map((i) => i.message).join(" ")).not.toMatch(/after the page loaded/);
   }, 40000);
 
