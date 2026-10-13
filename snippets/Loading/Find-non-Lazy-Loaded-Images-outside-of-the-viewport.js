@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (function () {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   function getSelector(node) {
     let sel = "";
     try {
@@ -69,7 +77,7 @@
     const src = imgElement.currentSrc || imgElement.src;
     if (!src || src.startsWith("data:")) return 0;
 
-    const perfEntries = performance.getEntriesByType("resource");
+    const perfEntries = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
     const imgEntry = perfEntries.find((entry) => entry.name === src);
 
     if (imgEntry) {

@@ -1,10 +1,13 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   if (document.readyState !== "complete") {
   }
   const preloadLinks = Array.from(document.querySelectorAll('link[rel="preload"]'));
   const preconnectLinks = Array.from(document.querySelectorAll('link[rel="preconnect"]'));
   const dnsPrefetchLinks = Array.from(document.querySelectorAll('link[rel="dns-prefetch"]'));
-  const resources = performance.getEntriesByType("resource");
+  const resources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const getDomain = url => {
     try {
       const absoluteUrl = url.startsWith("http") ? url : new URL(url, location.href).href;

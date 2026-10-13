@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const formatMs = ms => ms > 0 ? ms.toFixed(0) + "ms" : "-";
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
@@ -16,7 +19,7 @@
   const domInteractive = nav?.domInteractive || 0;
   const domContentLoaded = nav?.domContentLoadedEventEnd || 0;
   const loadEvent = nav?.loadEventEnd || 0;
-  const scriptResources = performance.getEntriesByType("resource").filter(r => r.initiatorType === "script").map(r => {
+  const scriptResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.initiatorType === "script").map(r => {
     let shortName;
     try {
       const url = new URL(r.name);

@@ -2,6 +2,23 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
   // Only what the browser can report is analysed. Several blockers cannot be detected from
   // JavaScript (unload listeners added with addEventListener, open WebSocket, BroadcastChannel
   // or IndexedDB connections). After a back navigation, the NotRestoredReasons API reports
@@ -87,7 +104,7 @@
     // exposes the header; the value can differ from the original navigation.
     if (/^https?:$/.test(location.protocol)) {
       try {
-        const res = await fetch(location.href, { method: 'HEAD', credentials: 'same-origin' });
+        const res = await fetch(ownRequestUrl(location.href), { method: 'HEAD', credentials: 'same-origin' });
         const cacheControl = res.headers.get('cache-control') || '';
         if (/no-store/i.test(cacheControl) && !confirmed.some(({ reason }) => reason === 'response-cache-control-no-store')) {
           issues.push({

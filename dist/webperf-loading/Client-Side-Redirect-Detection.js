@@ -1,4 +1,7 @@
 (async () => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const navEntries = performance.getEntriesByType("navigation");
   if (navEntries.length === 0) {
     return {
@@ -9,7 +12,7 @@
   }
   const navEntry = navEntries[0];
   const currentURL = new URL(window.location.href);
-  const resources = performance.getEntriesByType("resource");
+  const resources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const documentNavigations = resources.filter(r => {
     if (r.initiatorType !== "navigation") return false;
     try {

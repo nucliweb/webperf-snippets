@@ -59,3 +59,28 @@ function formatBytes(bytes) {
   return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
 }
 // @end-shared formatBytes
+
+// @shared ownRequestUrl
+// The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+// new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+// comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+// which is how isOwnRequest leaves these requests out of what the page loaded.
+function ownRequestUrl(url) {
+  try {
+    const parsed = new URL(url, location.href);
+    if (!/^https?:$/.test(parsed.protocol)) return url;
+    parsed.hash = "webperf-snippets";
+    return parsed.href;
+  } catch {
+    return url;
+  }
+}
+// @end-shared ownRequestUrl
+
+// @shared isOwnRequest
+// True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+// did not make it, so no snippet counts it.
+function isOwnRequest(entry) {
+  return entry.name.endsWith("#webperf-snippets");
+}
+// @end-shared isOwnRequest

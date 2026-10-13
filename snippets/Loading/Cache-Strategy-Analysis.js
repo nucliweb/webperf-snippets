@@ -3,6 +3,31 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -182,13 +207,9 @@
 
   // --- Phase 1: Gather resource entries ---
 
-  // Exclude HEAD/aborted-GET entries injected by this snippet's own fetch calls
-  // on previous runs. Those entries have no body (encodedBodySize=0, decodedBodySize=0)
-  // but did transfer bytes (transferSize>0, i.e. only response headers were received).
-  // Real page resources always have encodedBodySize > 0 (or transferSize = 0 if cached).
-  const resources = performance.getEntriesByType("resource").filter(
-    (r) => !(r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.transferSize > 0)
-  );
+  // The HEAD requests this snippet makes in Phase 2 carry the ownRequestUrl tag, so a second run
+  // leaves them out
+  const resources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   // Detect duplicate URLs
   const urlCounts = new Map();
@@ -255,7 +276,7 @@
     await Promise.allSettled(
       batch.map(async (url) => {
         try {
-          const resp = await fetch(url, { method: "HEAD", cache: "no-store" });
+          const resp = await fetch(ownRequestUrl(url), { method: "HEAD", cache: "no-store" });
           if (!resp.ok) {
             headerCache.set(url, null);
             return;

@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
@@ -8,7 +11,7 @@
   }
   const criticalBudget = 14 * 1024;
   const linkStylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
-  const perfEntries = performance.getEntriesByType("resource");
+  const perfEntries = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const externalCSSData = linkStylesheets.map(link => {
     const href = link.href;
     const media = link.getAttribute("media") || "all";

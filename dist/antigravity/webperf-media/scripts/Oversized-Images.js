@@ -1,4 +1,17 @@
 (async () => {
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const OVERSIZED_RATIO = 1.5;
   const UNDERSIZED_RATIO = 0.9;
   const SEVERE_OVERSIZED = 2;
@@ -33,11 +46,11 @@
         clearTimeout(timer);
         resolve(null);
       };
-      probe.src = url;
+      probe.src = ownRequestUrl(url);
     });
   }
   const transferByUrl = new Map;
-  performance.getEntriesByType("resource").forEach(e => {
+  performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).forEach(e => {
     if (e.initiatorType !== "img" && e.initiatorType !== "css" && e.initiatorType !== "other") return;
     const bytes = e.transferSize > 0 ? e.transferSize : e.encodedBodySize > 0 ? e.encodedBodySize : null;
     if (bytes !== null) transferByUrl.set(e.name, bytes);

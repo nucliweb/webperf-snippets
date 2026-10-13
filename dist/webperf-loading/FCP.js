@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const valueToRating = ms => ms <= 1800 ? "good" : ms <= 3000 ? "needs-improvement" : "poor";
   const RATING = {
     good: {
@@ -23,7 +26,7 @@
     const rating = valueToRating(fcpTime);
     const {icon: icon, color: color} = RATING[rating];
     const ttfb = Math.max(0, (navEntry?.responseStart ?? 0) - activationStart);
-    const resources = performance.getEntriesByType("resource");
+    const resources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
     const blockingResources = resources.filter(r => r.renderBlockingStatus === "blocking");
     const lastBlockingEnd = blockingResources.length ? Math.max(...blockingResources.map(r => r.responseEnd)) - activationStart : ttfb;
     if (blockingResources.length > 0) void 0;
@@ -49,7 +52,7 @@
   const fcpTimeSync = Math.max(0, fcpEntrySync.startTime - activationStartSync);
   const ratingSync = valueToRating(fcpTimeSync);
   const ttfbSync = Math.max(0, (navEntrySync?.responseStart ?? 0) - activationStartSync);
-  const blockingSync = performance.getEntriesByType("resource").filter(r => r.renderBlockingStatus === "blocking");
+  const blockingSync = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.renderBlockingStatus === "blocking");
   const lastBlockingEndSync = Math.max(ttfbSync, ...blockingSync.map(r => r.responseEnd - activationStartSync));
   const ttfbMs = Math.round(ttfbSync);
   const renderBlockingLoadMs = Math.round(lastBlockingEndSync - ttfbSync);

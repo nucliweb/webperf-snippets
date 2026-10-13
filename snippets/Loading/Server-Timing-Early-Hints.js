@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const SCRIPT = "Server-Timing-Early-Hints";
   const MAX_ITEMS = 50;
 
@@ -38,7 +46,7 @@
   // counted as unreadable instead of being treated as a resource with no metrics.
   let resourcesWithServerTiming = 0;
   let corsRestrictedCount = 0;
-  for (const r of performance.getEntriesByType("resource")) {
+  for (const r of performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))) {
     if (r.serverTiming.length > 0) {
       resourcesWithServerTiming++;
       for (const m of r.serverTiming) all.push(toItem(m, "resource", r.name));

@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Get all preloaded scripts
   const preloadedScripts = Array.from(
     document.querySelectorAll('link[rel="preload"][as="script"]'),
@@ -21,7 +29,7 @@
 
   // Get performance entries for scripts
   const performanceScripts = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((r) => r.initiatorType === "script" || r.initiatorType === "link");
 
   // Find corresponding script elements for each preload

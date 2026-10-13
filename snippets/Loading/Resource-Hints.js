@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // @shared formatBytes
   function formatBytes(bytes) {
     if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
@@ -103,7 +111,7 @@
       if (type.rel === "preconnect" && !hint.crossorigin) {
         // Check if we load CORS resources from this origin
         const corsResources = performance
-          .getEntriesByType("resource")
+          .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
           .filter(
             (r) =>
               r.name.includes(hostname) &&
@@ -125,7 +133,7 @@
 
   // Check for unused preloads
   const preloads = allHints.filter((h) => h.rel === "preload");
-  const loadedResources = performance.getEntriesByType("resource");
+  const loadedResources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   preloads.forEach((preload) => {
     const wasUsed = loadedResources.some((r) => r.name === preload.href);

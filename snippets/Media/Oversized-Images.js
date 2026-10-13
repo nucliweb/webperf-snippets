@@ -2,6 +2,31 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const OVERSIZED_RATIO = 1.5; // file has at least 1.5x the pixels it needs on each axis
   const UNDERSIZED_RATIO = 0.9; // file has less than 90% of the pixels it needs
   const SEVERE_OVERSIZED = 2;
@@ -42,14 +67,14 @@
         clearTimeout(timer);
         resolve(null);
       };
-      probe.src = url;
+      probe.src = ownRequestUrl(url);
     });
   }
 
   // Bytes of each image URL; null when the browser hides them (cross-origin without
   // Timing-Allow-Origin).
   const transferByUrl = new Map();
-  performance.getEntriesByType("resource").forEach((e) => {
+  performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e)).forEach((e) => {
     if (e.initiatorType !== "img" && e.initiatorType !== "css" && e.initiatorType !== "other") return;
     const bytes = e.transferSize > 0 ? e.transferSize : e.encodedBodySize > 0 ? e.encodedBodySize : null;
     if (bytes !== null) transferByUrl.set(e.name, bytes);

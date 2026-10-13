@@ -1,4 +1,7 @@
 (async () => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
     return {
       script: "LCP-Subparts",
@@ -50,7 +53,7 @@
     if (!lcpEntry) return;
     const navEntry = getNavigationEntry();
     if (!navEntry) return;
-    const lcpResEntry = performance.getEntriesByType("resource").find(e => e.name === lcpEntry.url);
+    const lcpResEntry = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).find(e => e.name === lcpEntry.url);
     const activationStart = navEntry.activationStart || 0;
     const ttfb = Math.max(0, navEntry.responseStart - activationStart);
     const lcpRequestStart = Math.max(ttfb, lcpResEntry ? (lcpResEntry.requestStart || lcpResEntry.startTime) - activationStart : 0);
@@ -158,7 +161,7 @@
     status: "error",
     error: "No navigation entry"
   };
-  const lcpResEntrySync = performance.getEntriesByType("resource").find(e => e.name === lcpEntry.url);
+  const lcpResEntrySync = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).find(e => e.name === lcpEntry.url);
   const activationStartSync = navEntrySync.activationStart || 0;
   const ttfbSync = Math.max(0, navEntrySync.responseStart - activationStartSync);
   const lcpRequestStartSync = Math.max(ttfbSync, lcpResEntrySync ? (lcpResEntrySync.requestStart || lcpResEntrySync.startTime) - activationStartSync : 0);

@@ -1,4 +1,7 @@
 (function() {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   function getSelector(node) {
     let sel = "";
     try {
@@ -26,7 +29,7 @@
   function getFileSize(src) {
     if (!src) return null;
     try {
-      const entries = performance.getEntriesByType("resource");
+      const entries = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
       const entry = entries.find(e => e.name === src || e.name.includes(src.split("/").pop()));
       if (entry && entry.transferSize) return (entry.transferSize / 1024).toFixed(1) + " KB";
     } catch {}

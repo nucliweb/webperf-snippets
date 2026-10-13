@@ -1,4 +1,7 @@
 (async () => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   if (!("serviceWorker" in navigator)) {
     return {
       script: "Service-Worker-Analysis",
@@ -16,7 +19,7 @@
   const registrations = await navigator.serviceWorker.getRegistrations();
   const controller = navigator.serviceWorker.controller;
   const navEntry = performance.getEntriesByType("navigation")[0];
-  const resources = performance.getEntriesByType("resource");
+  const resources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const swResources = resources.filter(r => r.workerStart > 0);
   const fromCache = swResources.filter(r => r.transferSize === 0 && r.encodedBodySize > 0);
   const fromNetwork = swResources.filter(r => r.transferSize > 0);
