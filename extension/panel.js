@@ -102,7 +102,7 @@ function showHome() {
     .map(([label, items]) => `<button type="button" data-category="${escape(label)}">${escape(label)} <span class="count">${items.length}</span></button>`)
     .join('')
   main.innerHTML = `<div class="home">
-    <h1><img class="logo" src="logo.svg" alt="" width="348" height="48"><span class="visually-hidden">WebPerf Snippets</span></h1>
+    <h1><img class="icon" src="icons/icon.svg" alt="" width="34" height="34"><img class="logo" src="logo.svg" alt="" width="348" height="48"><span class="visually-hidden">WebPerf Snippets</span></h1>
     <p class="lead">${snippets.length} scripts that measure the performance of the inspected page: Core Web Vitals, loading, interaction, media and network. Each one returns a structured result with its findings, the same one the CLI and AI agents read.</p>
     <ol class="steps">
       <li><strong>Choose a snippet</strong> in the list, or search for one with <kbd>/</kbd>.</li>

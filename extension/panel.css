@@ -133,8 +133,9 @@ fieldset label { display: flex; gap: 6px; align-items: center; padding: 2px 0; c
 
 /* Home */
 .home { max-width: 760px; }
-.home h1 { margin-bottom: 12px; font-size: 20px; }
-.home .logo { display: block; width: 240px; max-width: 100%; height: auto; }
+.home h1 { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; font-size: 20px; }
+.home .icon { flex: none; width: 34px; height: 34px; }
+.home .logo { display: block; width: 240px; min-width: 0; max-width: 100%; height: auto; }
 .lead { font-size: 13px; color: var(--fg); }
 .steps { margin: 12px 0 16px; padding-left: 20px; }
 .steps li { margin: 4px 0; }
