@@ -842,6 +842,40 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     { name: "Element Render Delay", key: "elementRenderDelay", targetPercent: 10 },
   ];
 
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
   const getNavigationEntry = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) {
@@ -902,16 +936,9 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     // Element info
     if (lcpEntry.element) {
       const el = lcpEntry.element;
-      let selector = el.tagName.toLowerCase();
-      if (el.id) selector = `#${el.id}`;
-      else if (el.className && typeof el.className === "string") {
-        const classes = el.className.trim().split(/\s+/).slice(0, 2).join(".");
-        if (classes) selector = `${el.tagName.toLowerCase()}.${classes}`;
-      }
-
       console.log("");
       console.log("%cLCP Element:", "font-weight: bold;");
-      console.log(`   ${selector}`, el);
+      console.log(`   ${uniqueSelector(el)}`, el);
       if (lcpEntry.url) {
         const shortUrl = (() => {
           try {
@@ -1066,13 +1093,7 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
   const slowestPhaseSync = subPartsForRank.reduce((a, b) => a.value > b.value ? a : b).key;
   let lcpSelectorSync = null;
   if (lcpEntry.element) {
-    const el = lcpEntry.element;
-    lcpSelectorSync = el.tagName.toLowerCase();
-    if (el.id) lcpSelectorSync = `#${el.id}`;
-    else if (el.className && typeof el.className === "string") {
-      const classes = el.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) lcpSelectorSync = `${el.tagName.toLowerCase()}.${classes}`;
-    }
+    lcpSelectorSync = uniqueSelector(lcpEntry.element);
   }
   const shortUrlSync = lcpEntry.url
     ? (() => {
@@ -1147,14 +1168,39 @@ Tracks every LCP candidate element during page load and highlights each one with
     return navEntry?.activationStart || 0;
   };
 
-  const getSelector = (element) => {
-    if (element.id) return `#${element.id}`;
-    if (element.className && typeof element.className === "string") {
-      const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) return `${element.tagName.toLowerCase()}.${classes}`;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
     }
-    return element.tagName.toLowerCase();
-  };
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
 
   const getElementInfo = (element, entry) => {
     const tag = element.tagName.toLowerCase();
@@ -1232,7 +1278,7 @@ Tracks every LCP candidate element during page load and highlights each one with
       candidates.push({
         index: candidates.length + 1,
         element,
-        selector: getSelector(element),
+        selector: uniqueSelector(element),
         color,
         name,
         time: Math.max(0, entry.startTime - activationStart),
@@ -1269,7 +1315,7 @@ Tracks every LCP candidate element during page load and highlights each one with
     const el = entry.element;
     if (!el || seenEls.has(el)) continue;
     seenEls.add(el);
-    const selector = getSelector(el);
+    const selector = uniqueSelector(el);
     const time = Math.round(Math.max(0, entry.startTime - trailActivationStart));
     const { type, url } = getElementInfo(el, entry);
     syncCandidates.push({
@@ -1617,6 +1663,40 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
     poor: { icon: "🔴", color: "#FF4E42" },
   };
 
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
   const getActivationStart = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     return navEntry?.activationStart || 0;
@@ -1640,14 +1720,7 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
       console.log("");
       console.log("%cLCP Element:", "font-weight: bold;");
 
-      let selector = element.tagName.toLowerCase();
-      if (element.id) selector = `#${element.id}`;
-      else if (element.className && typeof element.className === "string") {
-        const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
-        if (classes) selector = `${element.tagName.toLowerCase()}.${classes}`;
-      }
-
-      console.log(`   Element: ${selector}`, element);
+      console.log(`   Element: ${uniqueSelector(element)}`, element);
 
       const tagName = element.tagName.toLowerCase();
       if (tagName === "img") {
@@ -1710,12 +1783,7 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
   let lcpSelector = null;
   let lcpType = null;
   if (lcpEl) {
-    lcpSelector = lcpEl.tagName.toLowerCase();
-    if (lcpEl.id) lcpSelector = `#${lcpEl.id}`;
-    else if (lcpEl.className && typeof lcpEl.className === "string") {
-      const classes = lcpEl.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) lcpSelector = `${lcpEl.tagName.toLowerCase()}.${classes}`;
-    }
+    lcpSelector = uniqueSelector(lcpEl);
     const tag = lcpEl.tagName.toLowerCase();
     lcpType = tag === "img" ? "Image" : tag === "video" ? "Video poster" :
       window.getComputedStyle(lcpEl).backgroundImage !== "none" ? "Background image" :

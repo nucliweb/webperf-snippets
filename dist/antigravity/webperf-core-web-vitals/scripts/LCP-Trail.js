@@ -44,14 +44,32 @@
     const navEntry = performance.getEntriesByType("navigation")[0];
     return navEntry?.activationStart || 0;
   };
-  const getSelector = element => {
-    if (element.id) return `#${element.id}`;
-    if (element.className && typeof element.className === "string") {
-      const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) return `${element.tagName.toLowerCase()}.${classes}`;
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = selector => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map(c => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [ node ];
+      if (siblings.filter(s => s.matches(part)).length > 1) part += `:nth-of-type(${siblings.filter(s => s.localName === tag).indexOf(node) + 1})`;
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
     }
-    return element.tagName.toLowerCase();
-  };
+    return parts.join(" > ");
+  }
   const getElementInfo = (element, entry) => {
     const tag = element.tagName.toLowerCase();
     if (tag === "img") return {
@@ -96,7 +114,7 @@
       candidates.push({
         index: candidates.length + 1,
         element: element,
-        selector: getSelector(element),
+        selector: uniqueSelector(element),
         color: color,
         name: name,
         time: Math.max(0, entry.startTime - activationStart),
@@ -134,7 +152,7 @@
     const el = entry.element;
     if (!el || seenEls.has(el)) continue;
     seenEls.add(el);
-    const selector = getSelector(el);
+    const selector = uniqueSelector(el);
     const time = Math.round(Math.max(0, entry.startTime - trailActivationStart));
     const {type: type, url: url} = getElementInfo(el, entry);
     syncCandidates.push({
