@@ -37,6 +37,8 @@ before(async () => {
   panel = await context.newPage()
   // An error of the panel fails the test that caused it
   panel.on('pageerror', (error) => pageErrors.push(error.message))
+  // inspectedWindow.reload reloads the other tab, as the real one reloads the inspected page
+  await panel.exposeFunction('__reloadTarget', () => target.reload({ waitUntil: 'commit' }).then(() => undefined))
   await panel.exposeFunction('__inspect', async (expression) => {
     try {
       const value = await target.evaluate((e) => {
@@ -55,7 +57,10 @@ before(async () => {
     window.chrome = {
       devtools: {
         panels: { themeName: 'default' },
-        inspectedWindow: { eval: (e, callback) => window.__inspect(e).then(([value, exception]) => callback(value, exception)) },
+        inspectedWindow: {
+          eval: (e, callback) => window.__inspect(e).then(([value, exception]) => callback(value, exception)),
+          reload: () => window.__reloadTarget(),
+        },
         // The test calls window.__navigated(url) for a navigation of the inspected page
         network: { onNavigated: { addListener: (listener) => (window.__navigated = listener) } },
       },
@@ -310,10 +315,10 @@ test('the audit runs the snippets of the audit of the CLI, sums them up and open
 
   // The home page keeps the last audit, also after closing DevTools, and opens it again with its results
   await panel.click('#go-home')
-  assert.match(await panel.textContent('main .last-audit'), new RegExp(`${servers.base}/seeded`))
+  assert.match(await panel.textContent('main .audits li >> nth=0'), new RegExp(`${servers.base}/seeded`))
   await reopenPanel()
   await panel.click('#go-home')
-  await panel.click('#view-audit')
+  await panel.click('main .audits li >> nth=0 >> .open-audit')
   assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
   await panel.click('#audit tbody tr >> nth=0 >> button')
   await panel.waitForSelector('#result .raw pre', { state: 'attached' })
@@ -334,6 +339,86 @@ test('the audit runs the snippets of the audit of the CLI, sums them up and open
   assert.match(download.suggestedFilename(), /^webperf-audit-127\.0\.0\.1-\d{4}-\d{2}-\d{2}-\d{4}\.json$/)
   const file = JSON.parse(readFileSync(await download.path(), 'utf8'))
   assert.deepEqual(file.results.map((r) => r.id), copied.results.map((r) => r.id))
+})
+
+test('the home page lists the audits, opens and deletes them, and keeps them after closing DevTools', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  const before = await (async () => {
+    await panel.click('#go-home')
+    return panel.locator('main .audits li').count()
+  })()
+  await panel.click('#run-audit')
+  await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
+  await panel.click('#go-home')
+  const entries = panel.locator('main .audits li')
+  assert.equal(await entries.count(), before + 1)
+  assert.match(await entries.nth(0).textContent(), new RegExp(`${servers.base}/seeded`))
+  await reopenPanel()
+  await panel.click('#go-home')
+  assert.equal(await entries.count(), before + 1)
+  // The newest opens with its results
+  await entries.nth(0).locator('.open-audit').click()
+  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+  await panel.click('#go-home')
+  const [download] = await Promise.all([panel.waitForEvent('download'), entries.nth(0).locator('.download-audit').click()])
+  assert.match(download.suggestedFilename(), /^webperf-audit-127\.0\.0\.1-/)
+  await entries.nth(0).locator('.delete-audit').click()
+  assert.equal(await entries.count(), before)
+  await reopenPanel()
+  await panel.click('#go-home')
+  assert.equal(await entries.count(), before)
+})
+
+test('an audit says what changed since the last audit of the same page', async () => {
+  const audit = async () => {
+    await panel.click('#go-home')
+    await panel.click('#run-audit')
+    await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
+  }
+  // The page changes between the audits, so the audit must not reload it
+  await panel.click('#go-home')
+  await panel.uncheck('#reload-before-audit')
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await audit()
+  // An image that is lazy and high priority at once: a new issue of Find-Images-With-Lazy-and-Fetchpriority
+  await target.evaluate(() => {
+    const img = Object.assign(document.createElement('img'), { src: '/hero.png?again', width: 10, height: 10, loading: 'lazy' })
+    img.setAttribute('fetchpriority', 'high')
+    document.body.prepend(img)
+  })
+  await audit()
+  const comparison = panel.locator('#audit .comparison')
+  assert.match(await comparison.textContent(), /Since /)
+  const added = await comparison.locator('.added li').allTextContents()
+  assert.ok(added.some((text) => /lazy/i.test(text)), `no new lazy issue in ${JSON.stringify(added)}`)
+  // From 1 to 2 conflicting images: the same issue of Find-Images-With-Lazy-and-Fetchpriority, changed
+  const changed = await comparison.locator('.changed li').allTextContents()
+  assert.ok(changed.some((text) => /1 element.*→.*2 element/s.test(text)), `no changed count in ${JSON.stringify(changed)}`)
+  await panel.click('#go-home')
+  await panel.check('#reload-before-audit')
+})
+
+test('the audit reloads the page first, as the CLI loads it, unless the option is off, which the panel remembers', async () => {
+  const marked = () => target.evaluate(() => window.__marked === true).catch(() => false)
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await target.evaluate(() => (window.__marked = true))
+  await panel.click('#go-home')
+  assert.ok(await panel.isChecked('#reload-before-audit'), 'on by default')
+  await panel.click('#run-audit')
+  await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
+  assert.equal(await marked(), false, 'the page was not reloaded')
+
+  await panel.click('#go-home')
+  await panel.uncheck('#reload-before-audit')
+  await reopenPanel()
+  await panel.click('#go-home')
+  assert.equal(await panel.isChecked('#reload-before-audit'), false)
+  await target.evaluate(() => (window.__marked = true))
+  await panel.click('#run-audit')
+  await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
+  assert.equal(await marked(), true, 'the page was reloaded with the option off')
+  await panel.click('#go-home')
+  await panel.check('#reload-before-audit')
 })
 
 test('a snippet the CLI cannot run has no Copy prompt', async () => {

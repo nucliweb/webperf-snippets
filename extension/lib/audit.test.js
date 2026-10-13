@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { summarize, bySeverity, overview, report, reportFileName, fromReport } from './audit.js'
+import { summarize, bySeverity, overview, report, reportFileName, fromReport, addToHistory, removeFromHistory, compare, previousOf } from './audit.js'
 
 test('summarize counts the issues of a result by severity and names the worst one', () => {
   const s = summarize({
@@ -135,4 +135,93 @@ test('fromReport gives nothing for a missing or broken report, and leaves out re
   assert.equal(fromReport({ workflow: 'other' }, snippets), null)
   const audit = fromReport({ workflow: 'audit', url: 'u', date: 'd', results: [{ id: 'ttfb', status: 'ok' }, { id: 'gone', status: 'ok' }] }, snippets)
   assert.deepEqual(audit.rows.map((r) => r.snippet.id), ['TTFB-Sub-Parts'])
+})
+
+test('the history keeps the last audits, newest first, and drops the oldest past its limit', () => {
+  const at = (n) => ({ workflow: 'audit', url: `https://example.com/${n}`, date: `2026-10-13T10:0${n}:00.000Z`, results: [] })
+  let history = []
+  for (let n = 0; n < 5; n++) history = addToHistory(history, at(n), 3)
+  assert.deepEqual(history.map((r) => r.url), ['https://example.com/4', 'https://example.com/3', 'https://example.com/2'])
+  assert.equal(addToHistory(undefined, at(1)).length, 1)
+  // The default limit is 10
+  for (let n = 0; n < 12; n++) history = addToHistory(history, { ...at(0), date: `2026-10-13T11:${String(n).padStart(2, '0')}:00.000Z` })
+  assert.equal(history.length, 10)
+})
+
+test('an audit leaves the history by its date', () => {
+  const a = { workflow: 'audit', url: 'a', date: '2026-10-13T10:00:00.000Z', results: [] }
+  const b = { workflow: 'audit', url: 'b', date: '2026-10-13T11:00:00.000Z', results: [] }
+  assert.deepEqual(removeFromHistory([b, a], a.date), [b])
+  assert.deepEqual(removeFromHistory([b, a], 'unknown'), [b, a])
+})
+
+const saved = (date, url, results) => ({ workflow: 'audit', url, date, results })
+const issue = (severity, message) => ({ severity, message })
+
+test('compare finds the issues that are new and the ones that are gone, reading the numbers as the same issue', () => {
+  const before = saved('2026-10-13T10:00:00.000Z', 'https://example.com/', [
+    { id: 'render-blocking', status: 'ok', issues: [issue('error', '7 render-blocking resource(s) delay rendering until 1543ms')] },
+    { id: 'webfonts', status: 'ok', issues: [issue('warning', 'Loaded but not used by any rendered element: Example Sans 500 normal, 36.5 KB downloaded for nothing')] },
+    { id: 'oversized-images', status: 'ok', issues: [issue('warning', 'icon.png: 1x1 file for a 56x54 slot at 2x'), issue('warning', 'icon.png: 1x1 file for a 52x60 slot at 2x'), issue('warning', 'icon.png: 1x1 file for a 50x46 slot at 2x')] },
+    { id: 'ttfb', status: 'ok', value: 996, unit: 'ms', rating: 'needs-improvement', issues: [] },
+  ])
+  const after = saved('2026-10-13T11:00:00.000Z', 'https://example.com/', [
+    // Same issue, other numbers
+    { id: 'render-blocking', status: 'ok', issues: [issue('error', '6 render-blocking resource(s) delay rendering until 1210ms')] },
+    // Fixed
+    { id: 'webfonts', status: 'ok', issues: [] },
+    // One of the three fixed
+    { id: 'oversized-images', status: 'ok', issues: [issue('warning', 'icon.png: 1x1 file for a 56x54 slot at 2x'), issue('warning', 'icon.png: 1x1 file for a 52x60 slot at 2x')] },
+    { id: 'ttfb', status: 'ok', value: 812, unit: 'ms', rating: 'needs-improvement', issues: [] },
+    // New
+    { id: 'dom-size', status: 'ok', issues: [issue('warning', '1266 nodes exceeds 800')] },
+  ])
+  const c = compare(after, before)
+  assert.equal(c.since, '2026-10-13T10:00:00.000Z')
+  assert.deepEqual(c.added.map((i) => [i.id, i.message]), [['dom-size', '1266 nodes exceeds 800']])
+  assert.deepEqual(
+    c.resolved.map((i) => i.id),
+    ['webfonts', 'oversized-images']
+  )
+  assert.deepEqual(c.metrics, [{ id: 'ttfb', before: '996 ms · needs improvement', after: '812 ms · needs improvement' }])
+  // Same issue with other numbers: changed, with the text before and after
+  assert.deepEqual(c.changed, [
+    {
+      id: 'render-blocking',
+      severity: 'error',
+      before: '7 render-blocking resource(s) delay rendering until 1543ms',
+      after: '6 render-blocking resource(s) delay rendering until 1210ms',
+    },
+  ])
+  assert.equal(c.unchanged, 2)
+})
+
+test('a change of a time alone, in ms or s, is not a change, since timings move on every run', () => {
+  const before = saved('a', 'u', [{ id: 'x', status: 'ok', issues: [issue('error', '7 resources delay rendering until 1543ms'), issue('info', 'Took 2.4 s to settle')] }])
+  const after = saved('b', 'u', [{ id: 'x', status: 'ok', issues: [issue('error', '7 resources delay rendering until 1210 ms'), issue('info', 'Took 1.9 s to settle')] }])
+  const c = compare(after, before)
+  assert.deepEqual(c.changed, [])
+  assert.equal(c.unchanged, 2)
+  // A count that moves is a change, even next to a time
+  const more = saved('c', 'u', [{ id: 'x', status: 'ok', issues: [issue('error', '8 resources delay rendering until 1210ms'), issue('info', 'Took 1.9 s to settle')] }])
+  assert.equal(compare(more, before).changed.length, 1)
+})
+
+test('compare counts the errors, warnings and info of both audits', () => {
+  const before = saved('a', 'u', [{ id: 'x', status: 'ok', issues: [issue('error', 'E1'), issue('warning', 'W1')] }])
+  const after = saved('b', 'u', [{ id: 'x', status: 'ok', issues: [issue('warning', 'W1'), issue('info', 'I1')] }])
+  assert.deepEqual(compare(after, before).counts, { errors: [1, 0], warnings: [1, 1], infos: [0, 1] })
+})
+
+test('previousOf finds the last audit of the same page before an audit', () => {
+  const history = [
+    saved('2026-10-13T12:00:00.000Z', 'https://example.com/', []),
+    saved('2026-10-13T11:00:00.000Z', 'https://example.com/other', []),
+    saved('2026-10-13T10:00:00.000Z', 'https://example.com/', []),
+    saved('2026-10-13T09:00:00.000Z', 'https://example.com/', []),
+  ]
+  assert.equal(previousOf(history, history[0]).date, '2026-10-13T10:00:00.000Z')
+  assert.equal(previousOf(history, history[2]).date, '2026-10-13T09:00:00.000Z')
+  assert.equal(previousOf(history, history[3]), undefined)
+  assert.equal(previousOf(history, history[1]), undefined)
 })

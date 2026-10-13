@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import vm from 'node:vm'
-import { runSnippet, readTrackingData } from './run.js'
+import { runSnippet, readTrackingData, reloadPage } from './run.js'
 
 // inspectedWindow.eval returns the value as JSON, without waiting for a promise
 const asJson = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)))
@@ -59,4 +59,31 @@ test('readTrackingData says the recording is gone when the page no longer has th
   assert.match(result.error, /getInputLatencyBreakdown\(\) is not on the page/)
   assert.match(result.error, /reloaded or navigated/)
   assert.match(result.error, /Run the snippet again/)
+})
+
+test('reloadPage reloads the page, waits for the new one to load and then for a while, as the CLI does', async () => {
+  const context = vm.createContext({ document: { readyState: 'complete' } })
+  context.window = context
+  const evaluate = (expression) => Promise.resolve(asJson(vm.runInContext(expression, context)))
+  let reloads = 0
+  // The new page keeps loading for a moment
+  const reload = () => {
+    reloads++
+    // A new page: nothing the old one had on window
+    vm.runInContext("for (const k of Object.keys(globalThis)) if (k.startsWith('__')) delete globalThis[k]", context)
+    context.document = { readyState: 'loading' }
+    setTimeout(() => (context.document = { readyState: 'complete' }), 30)
+  }
+  const started = Date.now()
+  assert.equal(await reloadPage(evaluate, reload, { afterLoadMs: 50, pollMs: 5 }), true)
+  assert.equal(reloads, 1)
+  assert.ok(Date.now() - started >= 80, 'it waits for the load and then afterLoadMs')
+})
+
+test('reloadPage gives up when the page does not load in time', async () => {
+  const context = vm.createContext({ document: { readyState: 'complete' } })
+  context.window = context
+  const evaluate = (expression) => Promise.resolve(asJson(vm.runInContext(expression, context)))
+  // A reload that never happens: the marker stays, so the old page is never taken for the new one
+  assert.equal(await reloadPage(evaluate, () => {}, { afterLoadMs: 0, pollMs: 5, timeoutMs: 40 }), false)
 })
