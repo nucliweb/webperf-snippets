@@ -52,33 +52,32 @@ async function run(path, fixtureName) {
 // Runs a snippet once Chrome has reported the first frame of the video as an LCP candidate. Chrome
 // emits that entry asynchronously after it presents the frame, later on a slow runner, so neither a
 // fixed wait after the load nor the first frame itself is enough: until the entry is there, the LCP
-// is still the text of the page.
-async function runAfterVideoLcp(path, fixtureName, appearsWithinMs = 2000) {
+// is still the text of the page. Under load, Chrome now and then never reports the frame, although
+// the video plays, so a load that gets no entry within a few seconds is tried again.
+async function runAfterVideoLcp(path, fixtureName, appearsWithinMs = 2000, attempts = 3) {
   const browser = await chromium.launch();
   try {
-    const page = await browser.newPage();
-    await page.goto(`${baseUrl}/${fixtureName}`, { waitUntil: "load" });
-    await page.waitForSelector("video", { state: "attached", timeout: appearsWithinMs });
-    await page
-      .waitForFunction(
-        () =>
-          new Promise((resolve) => {
-            const observer = new PerformanceObserver((list) => {
-              if (list.getEntries().some((e) => e.element?.tagName === "VIDEO")) resolve(true);
-            });
-            observer.observe({ type: "largest-contentful-paint", buffered: true });
-            setTimeout(() => {
-              observer.disconnect();
-              resolve(false);
-            }, 200);
-          }),
-        null,
-        { timeout: 15000 }
-      )
-      .catch(() => {
-        throw new Error(`${fixtureName}: Chrome reported no LCP entry for the video within 15 s`);
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      const page = await browser.newPage();
+      await page.goto(`${baseUrl}/${fixtureName}`, { waitUntil: "load" });
+      await page.waitForSelector("video", { state: "attached", timeout: appearsWithinMs });
+      // An observer that stays on marks the entry of the video, and the wait polls the mark: with a
+      // predicate that returns a promise, waitForFunction takes the promise as truthy and returns
+      // whatever it resolves to, false included, so it would not wait
+      await page.evaluate(() => {
+        window.__videoLcp = false;
+        new PerformanceObserver((list) => {
+          if (list.getEntries().some((e) => e.element?.tagName === "VIDEO")) window.__videoLcp = true;
+        }).observe({ type: "largest-contentful-paint", buffered: true });
       });
-    return await page.evaluate(loadSnippet(path).trim().replace(/;\s*$/, ""));
+      const reported = await page.waitForFunction(() => window.__videoLcp, null, { timeout: 5000 }).then(
+        () => true,
+        () => false
+      );
+      if (reported) return await page.evaluate(loadSnippet(path).trim().replace(/;\s*$/, ""));
+      await page.close();
+    }
+    throw new Error(`${fixtureName}: Chrome reported no LCP entry for the video in ${attempts} loads`);
   } finally {
     await browser.close();
   }
@@ -168,7 +167,7 @@ describe("snippets that read observer-only entry types", () => {
     expect(poster.details.lcpSource).toBe("poster");
     expect(poster.details.posterUrl).toMatch(/\/hero\.png$/);
     expect(poster.details.videoUrl).toBeNull();
-  }, 30000);
+  }, 45000);
 
   it("LCP-Video-Candidate warns when the LCP rendered long after the load", async () => {
     const late = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-late.html", 13000);
@@ -177,7 +176,7 @@ describe("snippets that read observer-only entry types", () => {
 
     const early = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
     expect(early.issues.map((i) => i.message).join(" ")).not.toMatch(/after the page loaded/);
-  }, 40000);
+  }, 90000);
 
   it("LongTask counts buffered long tasks", async () => {
     const r = await run("Interaction/LongTask", "observer-longtask.html");
