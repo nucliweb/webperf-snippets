@@ -155,7 +155,8 @@ describe("snippets that read observer-only entry types", () => {
 
   it("LCP-Video-Candidate tells the first frame of a video from its poster", async () => {
     const frame = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
-    expect(frame.details.lcpSource).toBe("first-frame");
+    // The whole result in the message: when it fails, it says which LCP element the snippet found
+    expect(frame.details.lcpSource, JSON.stringify(frame)).toBe("first-frame");
     expect(frame.details.posterUrl).toBeNull();
     expect(frame.details.videoUrl).toMatch(/\/clip\.webm$/);
     expect(frame.issues.map((i) => i.message)).toContain(
@@ -171,7 +172,7 @@ describe("snippets that read observer-only entry types", () => {
 
   it("LCP-Video-Candidate warns when the LCP rendered long after the load", async () => {
     const late = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-late.html", 13000);
-    expect(late.details.lcpSource).toBe("first-frame");
+    expect(late.details.lcpSource, JSON.stringify(late)).toBe("first-frame");
     expect(late.issues.map((i) => i.message).join(" ")).toMatch(/rendered \d+ s after the page loaded/);
 
     const early = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-first-frame.html");
