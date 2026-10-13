@@ -207,6 +207,30 @@ describe("Audit snippets — green fixture (no violations)", () => {
   );
 
   it(
+    "prefetch — ℹ️ says there was nothing to check on a page without prefetch hints",
+    async () => {
+      const [r] = await runAudit(baseUrl, step("prefetch"));
+      expect(r.status).toBe("ok");
+      expect(r.count).toBe(0);
+      expect(r.items).toEqual([]);
+      expect(r.issues).toEqual([{ severity: "info", message: expect.stringMatching(/No prefetch hints on this page/) }]);
+    },
+    30000,
+  );
+
+  it(
+    "video — ℹ️ says there was nothing to check on a page without videos",
+    async () => {
+      const [r] = await runAudit(baseUrl, step("video"));
+      expect(r.status).toBe("ok");
+      expect(r.count).toBe(0);
+      expect(r.items).toEqual([]);
+      expect(r.issues).toEqual([{ severity: "info", message: expect.stringMatching(/No <video> elements on this page/) }]);
+    },
+    30000,
+  );
+
+  it(
     "eager-below-fold — 🟢 all below-fold images are properly lazy",
     async () => {
       const [r] = await runAudit(baseUrl, step("eager-below-fold"));

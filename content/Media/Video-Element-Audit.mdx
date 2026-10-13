@@ -108,6 +108,7 @@ Every video on a page falls into one of three roles, each with its own optimal c
 | Missing `width`/`height`                         | ⚠️ Warning | No reserved space causes layout shift when the video renders (CLS)                         |
 | No modern codec source                           | ℹ️ Info    | Serving only MP4/H.264 when VP9 or AV1 would reduce file size by 30–50 %                  |
 | No `controls` and no `autoplay`                  | ℹ️ Info    | Users have no visible way to start playback                                                |
+| No `<video>` elements on the page                | ℹ️ Info    | There was nothing to audit, which is not the same as videos without issues                 |
 
 #### Codec detection
 
