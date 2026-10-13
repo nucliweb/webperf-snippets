@@ -51,3 +51,22 @@ export function readTrackingData(evaluate, getDataFn, options) {
     options
   )
 }
+
+// Reloads the inspected page and resolves once the new page has loaded and afterLoadMs more have
+// passed, as the CLI waits before it runs the snippets (--wait, 3000 ms by default). A marker on the
+// old page tells it apart from the new one; while the page reloads, an evaluation can fail, and the
+// next poll tries again. Resolves false when the page does not load in timeoutMs
+export async function reloadPage(evaluate, reload, { afterLoadMs = 3000, pollMs = 200, timeoutMs = 30000 } = {}) {
+  const MARK = '__webperfSnippetsBeforeReload'
+  await evaluate(`window.${MARK} = true`)
+  await reload()
+  for (let waited = 0; waited < timeoutMs; waited += pollMs) {
+    await sleep(pollMs)
+    const ready = await evaluate(`!window.${MARK} && document.readyState === 'complete'`).catch(() => false)
+    if (ready) {
+      await sleep(afterLoadMs)
+      return true
+    }
+  }
+  return false
+}

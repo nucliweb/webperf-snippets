@@ -4,6 +4,7 @@
 import { formatValue } from './render.js'
 
 const SEVERITY = ['error', 'warning', 'info']
+const COUNT_NAMES = { error: 'errors', warning: 'warnings', info: 'infos' }
 const RATING = { good: 'good', 'needs-improvement': 'needs improvement', poor: 'poor' }
 
 // What a result found: its issues by severity and the worst of them, and for a metric its value and
@@ -48,25 +49,16 @@ export function overview(rows) {
 // (webperf-snippets <url> --workflow audit --json), each with the id of its step, plus the overview and
 // every issue of every snippet in one list, by severity. A snippet that failed gives an error issue
 export function report({ url, date, rows }) {
-  const issues = rows.flatMap(({ snippet, result }) => {
-    const own = Array.isArray(result?.issues) ? result.issues : []
-    const failed = !result || typeof result !== 'object' || result.status === 'error'
-    const list = failed ? [{ severity: 'error', message: result?.error ?? 'The snippet returned nothing' }] : own
-    return list.map((i) => ({ severity: i.severity, id: snippet.auditId, path: snippet.path, message: i.message }))
-  })
-  issues.sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity))
-  return {
-    workflow: 'audit',
-    url: url ?? null,
-    date,
-    overview: counts(rows),
-    issues,
-    results: rows.map(({ snippet, result }) => ({
-      id: snippet.auditId,
-      path: snippet.path,
-      ...(result && typeof result === 'object' ? result : { status: 'error', error: 'The snippet returned nothing' }),
-    })),
-  }
+  const results = rows.map(({ snippet, result }) => ({
+    id: snippet.auditId,
+    path: snippet.path,
+    ...(result && typeof result === 'object' ? result : { status: 'error', error: 'The snippet returned nothing' }),
+  }))
+  const pathOf = new Map(results.map((r) => [r.id, r.path]))
+  const issues = issuesOf(results)
+    .map((i) => ({ severity: i.severity, id: i.id, path: pathOf.get(i.id), message: i.message }))
+    .sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity))
+  return { workflow: 'audit', url: url ?? null, date, overview: counts(rows), issues, results }
 }
 
 // webperf-audit-<host>-<YYYY-MM-DD-HHMM>.json, in UTC like the date of the report. The host goes
@@ -101,3 +93,55 @@ export function addToHistory(history, saved, max = 10) {
 }
 
 export const removeFromHistory = (history, date) => history.filter((r) => r.date !== date)
+
+// Every issue of a list of results, each with the id of its step; a result that failed gives an error
+function issuesOf(results) {
+  return results.flatMap((result) => {
+    const own = Array.isArray(result?.issues) ? result.issues : []
+    const failed = !result || result.status === 'error'
+    const list = failed ? [{ severity: 'error', message: result?.error ?? 'The snippet returned nothing' }] : own
+    return list.map((i) => ({ severity: i.severity, id: result.id, message: i.message }))
+  })
+}
+
+// The text of an issue without its times, which move on every run: "until 1543ms", "2.4 s"
+const withoutTimes = (message) => String(message).replace(/\d+(?:[.,]\d+)?\s?m?s\b/g, '#t')
+
+// An issue is the same in two audits when its snippet, severity and message match once the numbers are
+// left out: "7 resources delay rendering until 1543ms" and "6 resources … 1210ms" are one issue
+const issueKey = (i) => `${i.id}|${i.severity}|${withoutTimes(i.message).replace(/\d+(?:[.,]\d+)?/g, '#')}`
+
+// What changed from an audit to a later one of the same page: the issues that are new, the ones that
+// are gone, the ones whose numbers moved (changed, with the text before and after; a time alone does
+// not count), how many errors, warnings and info each has, and the metrics whose value or rating moved.
+// A message that appears several times counts as many times
+export function compare(after, before) {
+  const old = issuesOf(before.results)
+  const now = issuesOf(after.results)
+  const waiting = new Map() // key -> issues of the audit before, not matched yet, in their order
+  for (const i of old) waiting.set(issueKey(i), [...(waiting.get(issueKey(i)) ?? []), i])
+  const added = []
+  const changed = []
+  let unchanged = 0
+  for (const i of now) {
+    const match = waiting.get(issueKey(i))?.shift()
+    if (!match) added.push(i)
+    else if (withoutTimes(match.message) !== withoutTimes(i.message)) changed.push({ id: i.id, severity: i.severity, before: match.message, after: i.message })
+    else unchanged++
+  }
+  const left = new Set([...waiting.values()].flat())
+  const resolved = old.filter((i) => left.has(i))
+  const tally = (list, severity) => list.filter((i) => i.severity === severity).length
+  const counts = Object.fromEntries(SEVERITY.map((s) => [COUNT_NAMES[s], [tally(old, s), tally(now, s)]]))
+  const beforeById = new Map(before.results.map((r) => [r.id, r]))
+  const metrics = after.results.flatMap((r) => {
+    const b = beforeById.get(r.id)
+    if (typeof r.value !== 'number' || typeof b?.value !== 'number') return []
+    const [was, is] = [summarize(b).metric, summarize(r).metric]
+    return was === is ? [] : [{ id: r.id, before: was, after: is }]
+  })
+  return { since: before.date, added, resolved, changed, unchanged, counts, metrics }
+}
+
+// The audit of the same page that came just before, in a history that is newest first
+export const previousOf = (history, saved) => history.find((r) => r !== saved && r.url === saved.url && r.date < saved.date)

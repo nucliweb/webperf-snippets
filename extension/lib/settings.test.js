@@ -26,6 +26,7 @@ test('the preferences come from the synced area and the state of the panel from 
     sidebar: 'collapsed',
     snippet: 'LCP',
     audits: [{ workflow: 'audit' }],
+    reloadBeforeAudit: true,
   })
 })
 

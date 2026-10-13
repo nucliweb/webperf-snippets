@@ -1,9 +1,9 @@
 import { filterSnippets, groupByCategory } from './lib/catalog.js'
 import { renderResult } from './lib/render.js'
-import { readTrackingData, runSnippet } from './lib/run.js'
+import { readTrackingData, reloadPage, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
 import { createSettings } from './lib/settings.js'
-import { addToHistory, bySeverity, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
+import { addToHistory, bySeverity, compare, fromReport, overview, previousOf, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
@@ -112,7 +112,11 @@ function showHome() {
     <section class="home-card">
       <h2>Structural audit</h2>
       <p>Runs the ${auditCount} snippets of the audit of the CLI one after the other: render-blocking resources, resource hints, scripts, fonts, images, DOM size and more. Their checks do not depend on timing, so they give the same result on every run.</p>
-      <div class="actions"><button type="button" id="run-audit">Run audit</button></div>
+      <div class="actions"><button type="button" id="run-audit">Run audit</button>
+        <label class="option" title="Snippets that make requests of their own add them to Resource Timing, and the next audit would count them; a fresh load of the page starts each audit clean, as the CLI does">
+          <input type="checkbox" id="reload-before-audit"${reloadBeforeAudit ? ' checked' : ''}> Reload the page before the audit
+        </label>
+      </div>
       ${auditList()}
     </section>
     <section class="home-card">
@@ -123,6 +127,10 @@ function showHome() {
   </div>`
   if (/Mac|iPhone|iPad/.test(navigator.platform)) main.querySelector('.mod').textContent = '⌘'
   document.getElementById('run-audit').addEventListener('click', runAudit)
+  document.getElementById('reload-before-audit').addEventListener('change', (event) => {
+    reloadBeforeAudit = event.target.checked
+    remember('reloadBeforeAudit', reloadBeforeAudit)
+  })
   main.querySelector('.audits')?.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-date]')
     if (!button) return
@@ -156,6 +164,7 @@ function showHome() {
 // when another view is shown, and its rows stay, so a result can be opened and the audit found again
 let audits = []
 let audit = null
+let reloadBeforeAudit = saved.reloadBeforeAudit
 
 function auditList() {
   if (audits.length === 0) return ''
@@ -186,9 +195,20 @@ function downloadReport(saved) {
 }
 async function runAudit() {
   const steps = snippets.filter((s) => typeof s.audit === 'number').sort((a, b) => a.audit - b.audit)
-  audit = { steps, rows: [], done: false, url: undefined, date: new Date().toISOString() }
+  audit = { steps, rows: [], done: false, reloading: reloadBeforeAudit, url: undefined, date: new Date().toISOString() }
   const mine = audit
   showAudit()
+  if (mine.reloading) {
+    const loaded = await reloadPage(evaluate, () => chrome.devtools.inspectedWindow.reload())
+    if (audit !== mine) return
+    mine.reloading = false
+    if (!loaded) {
+      mine.done = true
+      mine.error = 'The page did not finish loading in 30 s, so the audit did not run. Try again, or turn off the reload'
+      renderAudit()
+      return
+    }
+  }
   mine.url = await evaluate('location.href').catch(() => undefined)
   for (const snippet of steps) {
     const result = await runSnippet(evaluate, snippet.expression).catch((error) => ({ status: 'error', error: error.message }))
@@ -198,10 +218,10 @@ async function runAudit() {
     renderAudit()
   }
   audit.done = true
-  renderAudit()
-  // Kept, so the home page lists it after DevTools closes
+  // Kept, so the home page lists it after DevTools closes, and before it shows, so it can be compared
   audits = addToHistory(audits, report({ url: audit.url, date: audit.date, rows: audit.rows }))
   remember('audits', audits)
+  renderAudit()
 }
 
 function showAudit() {
@@ -231,15 +251,49 @@ function showAudit() {
   renderAudit()
 }
 
+// What changed since the last audit of the same page, if there is one
+function comparison() {
+  const saved = audits.find((r) => r.date === audit.date)
+  const before = saved && previousOf(audits, saved)
+  if (!before) return ''
+  const c = compare(saved, before)
+  const since = escape(new Date(c.since).toLocaleString())
+  const title = (id) => snippets.find((s) => s.auditId === id)?.title ?? id
+  const list = (items, kind) =>
+    items.length
+      ? `<ul class="${kind}">${items.map((i) => `<li><span class="sev sev-${escape(i.severity)}">${escape(i.severity)}</span> <strong>${escape(title(i.id))}</strong>: ${escape(i.message)}</li>`).join('')}</ul>`
+      : ''
+  const moved = ({ errors, warnings, infos }) =>
+    [['Errors', errors], ['Warnings', warnings], ['Info', infos]].map(([label, [b, a]]) => `${label} ${b} → ${a}`).join(' · ')
+  const metrics = c.metrics.map((m) => `<li><strong>${escape(title(m.id))}</strong>: ${escape(m.before)} → ${escape(m.after)}</li>`).join('')
+  const changed = c.changed
+    .map((i) => `<li><span class="sev sev-${escape(i.severity)}">${escape(i.severity)}</span> <strong>${escape(title(i.id))}</strong>: ${escape(i.before)} → ${escape(i.after)}</li>`)
+    .join('')
+  const section = (heading, count, html) => (count ? `<h4>${heading} <span class="count">${count}</span></h4>${html}` : '')
+  const body =
+    c.added.length || c.resolved.length || c.changed.length || c.metrics.length
+      ? section('Metrics', c.metrics.length, `<ul class="metrics">${metrics}</ul>`) +
+        section('New issues', c.added.length, list(c.added, 'added')) +
+        section('Changed', c.changed.length, `<ul class="changed">${changed}</ul>`) +
+        section('Resolved', c.resolved.length, list(c.resolved, 'resolved'))
+      : '<p class="note">No issue appeared, changed or went away.</p>'
+  return `<section class="comparison"><h3>Since ${since} <span class="count">${escape(moved(c.counts))}</span></h3><div class="comparison-body">${body}</div></section>`
+}
+
 function renderAudit() {
   const view = document.getElementById('audit')
   if (!view || !audit) return
   view.dataset.done = String(audit.done)
-  for (const id of ['rerun-audit', 'copy-audit', 'download-audit']) document.getElementById(id).disabled = !audit.done
+  document.getElementById('rerun-audit').disabled = !audit.done
+  for (const id of ['copy-audit', 'download-audit']) document.getElementById(id).disabled = !audit.done || Boolean(audit.error)
   const rows = audit.done ? [...audit.rows].sort(bySeverity) : audit.rows
   // The step that runs now; none once the last row is in, before the audit is marked done
-  const next = audit.done ? undefined : audit.steps[audit.rows.length]
-  const status = next
+  const next = audit.done || audit.reloading ? undefined : audit.steps[audit.rows.length]
+  const status = audit.error
+    ? `<p class="status status-error">${escape(audit.error)}</p>`
+    : audit.reloading
+      ? '<p class="note">Reloading the page, then waiting 3 s after it loads, as the CLI does…</p><progress></progress>'
+      : next
     ? `<p class="note">Running ${audit.rows.length + 1} of ${audit.steps.length}: ${escape(next.title)}…</p><progress max="${audit.steps.length}" value="${audit.rows.length}"></progress>`
     : audit.done
       ? `<p class="overview">${escape(overview(audit.rows))}</p>`
@@ -255,7 +309,7 @@ function renderAudit() {
       </tr>`
     )
     .join('')
-  view.innerHTML = `${status}${
+  view.innerHTML = `${status}${audit.done ? comparison() : ''}${
     rows.length
       ? `<section><div class="table"><table><thead><tr><th>Snippet</th><th>Result</th><th>Errors</th><th>Warnings</th><th>Info</th><th>Main issue</th></tr></thead><tbody>${body}</tbody></table></div></section>`
       : ''
