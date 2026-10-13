@@ -271,8 +271,13 @@ test('Clear empties the result, and only shows when there is one', async () => {
 test('the home page says what the snippets are for, and the home button goes back to it', async () => {
   await panel.click('#go-home')
   assert.equal(await panel.textContent('main h1'), 'WebPerf Snippets')
-  // The logo of the site, loaded from the extension
-  assert.ok(await panel.locator('main h1 img.logo').evaluate((img) => img.decode().then(() => img.naturalWidth > 0, () => false)))
+  // The icon and the logo of the site, loaded from the extension, the icon on the left
+  const loaded = (img) => img.decode().then(() => img.naturalWidth > 0, () => false)
+  assert.ok(await panel.locator('main h1 img.icon').evaluate(loaded))
+  assert.ok(await panel.locator('main h1 img.logo').evaluate(loaded))
+  const icon = await panel.locator('main h1 img.icon').boundingBox()
+  const logo = await panel.locator('main h1 img.logo').boundingBox()
+  assert.ok(icon.x + icon.width <= logo.x, 'the icon is not on the left of the logo')
   const text = await panel.textContent('main')
   assert.match(text, /inspected page/)
   assert.match(text, /Read result/)
