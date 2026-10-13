@@ -68,7 +68,9 @@
   // --- Font file URLs, from the @font-face rules ---------------------------------------
 
   let unreadableStylesheets = 0;
-  const ruleSources = new Map(); // "family|weight|style|range" -> [absolute urls]
+  // Two stylesheets can declare the same face with different files, so each rule keeps its own list,
+  // in document order, which is also the order of document.fonts
+  const ruleSources = new Map(); // "family|weight|style|range" -> [[absolute urls of each rule]]
   const faceKey = (family, weight, style, range) =>
     [stripQuotes(family).toLowerCase(), String(weight).trim() || "normal", String(style).trim() || "normal", isDefaultRange(range) ? "" : parseRanges(range).map((r) => r.join("-")).join(",")].join("|");
 
@@ -87,7 +89,7 @@
           })
           .filter((u) => u && !u.startsWith("data:"));
         const key = faceKey(s.getPropertyValue("font-family"), s.getPropertyValue("font-weight"), s.getPropertyValue("font-style"), s.getPropertyValue("unicode-range"));
-        ruleSources.set(key, [...(ruleSources.get(key) ?? []), ...urls]);
+        ruleSources.set(key, [...(ruleSources.get(key) ?? []), urls]);
       } else if (rule.styleSheet) {
         readSheet(rule.styleSheet, depth + 1);
       } else if (rule.cssRules) {
@@ -108,7 +110,7 @@
 
   // --- Bytes, from Resource Timing -----------------------------------------------------
 
-  const knownUrls = new Set([...ruleSources.values()].flat());
+  const knownUrls = new Set([...ruleSources.values()].flat(2));
   const fontEntries = new Map(); // url -> encodedBodySize
   for (const e of performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))) {
     if (FONT_FILE.test(e.name) || knownUrls.has(e.name)) {
@@ -166,10 +168,14 @@
 
   // --- Faces ---------------------------------------------------------------------------
 
+  const seenKeys = new Map(); // key -> faces seen so far, to pair the nth face with the nth rule
   const faces = Array.from(document.fonts).map((f) => {
     const family = stripQuotes(f.family);
     const range = isDefaultRange(f.unicodeRange) ? "" : f.unicodeRange.trim();
-    const urls = ruleSources.get(faceKey(f.family, f.weight, f.style, f.unicodeRange)) ?? [];
+    const key = faceKey(f.family, f.weight, f.style, f.unicodeRange);
+    const nth = seenKeys.get(key) ?? 0;
+    seenKeys.set(key, nth + 1);
+    const urls = ruleSources.get(key)?.[nth] ?? [];
     const url = urls.find((u) => fontEntries.has(u)) ?? urls[0] ?? "";
     return {
       family,
@@ -179,8 +185,11 @@
       unicodeRange: range,
       status: f.status,
       used: false,
-      bytes: url && fontEntries.has(url) ? fontEntries.get(url) : 0,
+      // A face that did not load cost nothing, even when another declaration fetched the same file
+      bytes: f.status === "loaded" && fontEntries.has(url) ? fontEntries.get(url) : 0,
       url,
+      _key: key,
+      _redeclared: false,
       _weightRange: parseWeight(f.weight),
       _ranges: range ? parseRanges(range) : null,
     };
@@ -205,6 +214,21 @@
     }
   }
 
+  // When several rules declare the same face, the browser renders with the later one that loaded;
+  // the others are not used, whether they loaded or not. When none loaded, they are all faces the
+  // page did not need
+  const byKey = new Map();
+  faces.forEach((f) => byKey.set(f._key, [...(byKey.get(f._key) ?? []), f]));
+  for (const group of byKey.values()) {
+    if (group.length < 2) continue;
+    const active = group.findLast((f) => f.status === "loaded");
+    if (!active) continue;
+    group.filter((f) => f !== active).forEach((f) => {
+      f.used = false;
+      f._redeclared = true;
+    });
+  }
+
   // --- Classification ------------------------------------------------------------------
 
   // Split fonts declare long ranges; keep reported text short
@@ -214,10 +238,15 @@
   const loadedUnused = loaded.filter((f) => !f.used);
   const neverLoaded = faces.filter((f) => f.status === "unloaded");
   const failed = faces.filter((f) => f.status === "error");
-  const neverLoadedSubsets = neverLoaded.filter((f) => f.unicodeRange);
-  const neverLoadedWhole = neverLoaded.filter((f) => !f.unicodeRange);
+  const shadowed = neverLoaded.filter((f) => f._redeclared);
+  const neverLoadedSubsets = neverLoaded.filter((f) => f.unicodeRange && !f._redeclared);
+  const neverLoadedWhole = neverLoaded.filter((f) => !f.unicodeRange && !f._redeclared);
   const blockingDisplay = faces.filter((f) => (f.status === "loaded" || f.status === "loading") && (f.display === "auto" || f.display === "block"));
-  const loadedUnusedBytes = loadedUnused.reduce((sum, f) => sum + f.bytes, 0);
+  // A file counts once, and not at all when a used face renders with it
+  const usedUrls = new Set(loaded.filter((f) => f.used && f.url).map((f) => f.url));
+  const wastedBytes = (f) => (f.url && usedUrls.has(f.url) ? 0 : f.bytes);
+  const wastedByFile = new Map(loadedUnused.map((f) => [f.url || label(f), wastedBytes(f)]));
+  const loadedUnusedBytes = [...wastedByFile.values()].reduce((sum, b) => sum + b, 0);
 
   const bySubsetFamily = new Map();
   for (const f of faces.filter((x) => x.unicodeRange)) {
@@ -231,34 +260,43 @@
   const displayCounts = {};
   faces.forEach((f) => (displayCounts[f.display] = (displayCounts[f.display] ?? 0) + 1));
 
+  // A stylesheet can declare the same face twice, so messages name and count each face once
+  const uniqueLabels = (list) => [...new Set(list.map(label))];
   const names = (list) => {
-    // A stylesheet can declare the same face twice
-    const unique = [...new Set(list.map(label))];
+    const unique = uniqueLabels(list);
     const shown = unique.slice(0, 8).join(", ");
     return unique.length > 8 ? `${shown} and ${unique.length - 8} more` : shown;
   };
 
   const issues = [
     ...failed.map((f) => ({ severity: "error", message: `Font failed to load: ${label(f)}` })),
-    ...loadedUnused.map((f) => ({
-      severity: "warning",
-      message: `Loaded but not used by any rendered element: ${label(f)}${f.bytes ? `, ${kb(f.bytes)} downloaded for nothing` : ""}`,
-    })),
+    ...[...new Map(loadedUnused.map((f) => [`${label(f)}|${f.url}`, f])).values()].map((f) => {
+      const bytes = wastedBytes(f) ? `, ${kb(wastedBytes(f))} downloaded for nothing` : "";
+      return {
+        severity: "warning",
+        message: f._redeclared
+          ? `Loaded but declared again later with the same descriptors, so the page renders with the other file: ${label(f)}${f.url ? ` from ${f.url}` : ""}${bytes}`
+          : `Loaded but not used by any rendered element: ${label(f)}${bytes}`,
+      };
+    }),
   ];
   if (blockingDisplay.length > 0) {
     issues.push({
       severity: "warning",
-      message: `font-display is auto or block on ${blockingDisplay.length} face(s), so text can stay invisible while they load. Use swap or optional: ${names(blockingDisplay)}`,
+      message: `font-display is auto or block on ${uniqueLabels(blockingDisplay).length} face(s), so text can stay invisible while they load. Use swap or optional: ${names(blockingDisplay)}`,
     });
   }
   if (totalFontBytes > BYTES_WARNING) {
     issues.push({ severity: "warning", message: `Web fonts weigh ${kb(totalFontBytes)} in total (over ${kb(BYTES_WARNING)}). Subset, use WOFF2 or drop unused weights` });
   }
   if (neverLoadedWhole.length > 0) {
-    issues.push({ severity: "info", message: `Declared but never loaded (${neverLoadedWhole.length}); nothing on this page needed them: ${names(neverLoadedWhole)}` });
+    issues.push({ severity: "info", message: `Declared but never loaded (${uniqueLabels(neverLoadedWhole).length}); nothing on this page needed them: ${names(neverLoadedWhole)}` });
+  }
+  if (shadowed.length > 0) {
+    issues.push({ severity: "info", message: `Declared more than once with the same descriptors; the page uses a later declaration, so these never loaded (${uniqueLabels(shadowed).length}): ${names(shadowed)}` });
   }
   if (neverLoadedSubsets.length > 0) {
-    issues.push({ severity: "info", message: `unicode-range subsets this page did not need (${neverLoadedSubsets.length}), which is the intended behavior of a split font: ${names(neverLoadedSubsets)}` });
+    issues.push({ severity: "info", message: `unicode-range subsets this page did not need (${uniqueLabels(neverLoadedSubsets).length}), which is the intended behavior of a split font: ${names(neverLoadedSubsets)}` });
   }
   if (!bytesReadable) {
     issues.push({ severity: "info", message: "Some font files are cross-origin without Timing-Allow-Origin, so their size reads as 0 and the byte totals are a lower bound" });
@@ -270,14 +308,37 @@
     issues.push({ severity: "info", message: `Only the first ${MAX_ELEMENTS} elements were scanned for text; some faces may be reported as unused` });
   }
 
+  // --- One row per face and file --------------------------------------------------------
+
+  // Identical rules (same face, same file) are one row, with how many rules declare it. Rows are the
+  // faces that downloaded or tried to; the ones that never loaded cost nothing and are only named
+  const STATUS_ORDER = ["loaded", "loading", "error"];
+  const rowGroups = new Map();
+  faces.filter((f) => f.status !== "unloaded").forEach((f) => {
+    const key = `${f._key}|${f.url}`;
+    rowGroups.set(key, [...(rowGroups.get(key) ?? []), f]);
+  });
+  const note = (f) => {
+    if (f.used) return "";
+    if (f.status === "error") return "failed to load";
+    if (f.status === "loaded") return f._redeclared ? "declared again later" : "loaded but not used";
+    return "";
+  };
+  const rows = [...rowGroups.values()].map((group) => {
+    const f = group.find((x) => x.used) ?? [...group].sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status))[0];
+    return { ...f, declarations: group.length, note: note(f) };
+  });
+  const rowsLoaded = rows.filter((f) => f.status === "loaded");
+  const neverLoadedNames = uniqueLabels([...neverLoadedWhole, ...neverLoadedSubsets]);
+
   // --- Console output ------------------------------------------------------------------
 
   console.group("%cWebfont Usage Analyzer", "font-weight: bold; font-size: 14px;");
-  console.log(`Faces: ${faces.length} | loaded: ${loaded.length} | used: ${faces.filter((f) => f.used).length} | loaded but unused: ${loadedUnused.length} | never loaded: ${neverLoaded.length}`);
+  console.log(`Rules: ${faces.length} | loaded: ${rowsLoaded.length} | used: ${rowsLoaded.filter((f) => f.used).length} | loaded but unused: ${rowsLoaded.filter((f) => !f.used).length} | never needed: ${neverLoadedNames.length}`);
   console.log(`Font files: ${fontEntries.size} | total: ${kb(totalFontBytes)}${bytesReadable ? "" : " (lower bound, cross-origin sizes hidden)"}`);
-  if (faces.length > 0) {
+  if (rows.length > 0) {
     console.table(
-      faces.map((f) => ({
+      rows.map((f) => ({
         Family: f.family,
         Weight: f.weight,
         Style: f.style,
@@ -285,11 +346,13 @@
         "unicode-range": shortRange(f.unicodeRange) || "all",
         Status: f.status,
         Used: f.used ? "yes" : "no",
+        Rules: f.declarations,
         Size: f.bytes ? kb(f.bytes) : "-",
+        Note: f.note,
       }))
     );
   } else {
-    console.log("No @font-face rules or FontFace objects on this page.");
+    console.log(faces.length > 0 ? "No web font loaded on this page." : "No @font-face rules or FontFace objects on this page.");
   }
   issues.forEach((i) => console.log(`[${i.severity}] ${i.message}`));
   console.groupEnd();
@@ -298,7 +361,7 @@
 
   // Problems first, so the 50-item cap never hides them
   const rank = (f) => (f.status === "error" ? 0 : f.status === "loaded" && !f.used ? 1 : f.status === "loaded" ? 2 : 3);
-  const items = faces
+  const items = rows
     .map((f, index) => ({ f, index }))
     .sort((a, b) => rank(a.f) - rank(b.f) || a.index - b.index)
     .slice(0, MAX_ITEMS)
@@ -310,22 +373,26 @@
       unicodeRange: shortRange(f.unicodeRange),
       status: f.status,
       used: f.used,
+      declarations: f.declarations,
       bytes: f.bytes,
+      note: f.note,
       url: f.url,
     }));
 
   return {
     script: SCRIPT,
     status: "ok",
-    count: faces.length,
+    count: rows.length,
     corsLimitedAnalysis: !bytesReadable,
     details: {
-      loadedCount: loaded.length,
-      usedCount: loaded.filter((f) => f.used).length,
-      loadedUnusedCount: loadedUnused.length,
+      declarationCount: faces.length,
+      loadedCount: rowsLoaded.length,
+      usedCount: rowsLoaded.filter((f) => f.used).length,
+      loadedUnusedCount: rowsLoaded.filter((f) => !f.used).length,
       loadedUnusedBytes,
-      neverLoadedCount: neverLoaded.length,
-      errorCount: failed.length,
+      neverLoadedCount: neverLoadedNames.length,
+      neverLoaded: neverLoadedNames.slice(0, MAX_ITEMS),
+      errorCount: rows.filter((f) => f.status === "error").length,
       fontFileCount: fontEntries.size,
       totalFontBytes,
       bytesReadable,

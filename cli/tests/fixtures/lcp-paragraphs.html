@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paragraphs LCP fixture</title>
+</head>
+<body style="margin:0">
+  <!-- The LCP is a paragraph among several paragraphs with the same class and no id -->
+  <main>
+    <section class="intro">
+      <p class="copy" style="font-size:8px;margin:0">First short paragraph.</p>
+      <p class="copy" style="font-size:8px;margin:0">Second short paragraph.</p>
+    </section>
+    <section class="intro">
+      <p class="copy" style="font-size:8px;margin:0">Third short paragraph.</p>
+      <p class="copy" data-lcp style="font-size:48px;margin:0">The largest paragraph of the page is the LCP element.</p>
+      <p class="copy" style="font-size:8px;margin:0">Fourth short paragraph.</p>
+    </section>
+  </main>
+</body>
+</html>

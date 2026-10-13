@@ -21,6 +21,32 @@
       color: "#FF4E42"
     }
   };
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = selector => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map(c => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [ node ];
+      if (siblings.filter(s => s.matches(part)).length > 1) part += `:nth-of-type(${siblings.filter(s => s.localName === tag).indexOf(node) + 1})`;
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
   const getActivationStart = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     return navEntry?.activationStart || 0;
@@ -35,11 +61,6 @@
     const {icon: icon, color: color} = RATING[rating];
     const element = entry.element;
     if (element) {
-      let selector = element.tagName.toLowerCase();
-      if (element.id) selector = `#${element.id}`; else if (element.className && typeof element.className === "string") {
-        const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
-        if (classes) selector = `${element.tagName.toLowerCase()}.${classes}`;
-      }
       const tagName = element.tagName.toLowerCase();
       if (tagName === "img") {
         if (element.naturalWidth) void 0;
@@ -84,11 +105,7 @@
   let lcpSelector = null;
   let lcpType = null;
   if (lcpEl) {
-    lcpSelector = lcpEl.tagName.toLowerCase();
-    if (lcpEl.id) lcpSelector = `#${lcpEl.id}`; else if (lcpEl.className && typeof lcpEl.className === "string") {
-      const classes = lcpEl.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) lcpSelector = `${lcpEl.tagName.toLowerCase()}.${classes}`;
-    }
+    lcpSelector = uniqueSelector(lcpEl);
     const tag = lcpEl.tagName.toLowerCase();
     lcpType = tag === "img" ? "Image" : tag === "video" ? "Video poster" : window.getComputedStyle(lcpEl).backgroundImage !== "none" ? "Background image" : tag === "h1" || tag === "p" ? "Text block" : tag;
   }

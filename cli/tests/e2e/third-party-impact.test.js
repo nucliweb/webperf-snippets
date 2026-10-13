@@ -39,8 +39,10 @@ beforeAll(async () => {
             `<img src="${tp}/pic.png" alt="">`
         );
       }
+      // One script over the warning threshold on its own: how Chrome splits two scripts into long
+      // animation frames depends on the load of the machine, so the sum is tested with fixed frames
       if (path === "/heavy") {
-        return html(`<script src="${tp}/blocking.js?ms=180"></script><script src="${tp}/blocking.js?ms=180&n=2"></script>`);
+        return html(`<script src="${tp}/blocking.js?ms=320"></script>`);
       }
       if (path === "/first-party") return html(`<script src="/own.js"></script>`);
       // A long frame caused by first-party code, next to a third party that does almost nothing
@@ -81,7 +83,8 @@ afterAll(async () => {
   await new Promise((r) => server.close(r));
 });
 
-async function run(route, { withoutLoaf = false } = {}) {
+// frames replaces the long animation frames of the page with fixed ones: [{ duration, scripts: [{ sourceURL, duration }] }]
+async function run(route, { withoutLoaf = false, frames } = {}) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage();
@@ -89,6 +92,12 @@ async function run(route, { withoutLoaf = false } = {}) {
       await page.addInitScript(() => {
         Object.defineProperty(PerformanceObserver, "supportedEntryTypes", { get: () => ["resource", "navigation"] });
       });
+    }
+    if (frames) {
+      await page.addInitScript((fixed) => {
+        const original = performance.getEntriesByType.bind(performance);
+        performance.getEntriesByType = (type) => (type === "long-animation-frame" ? fixed : original(type));
+      }, frames);
     }
     await page.goto(`${pageBase}${route}`, { waitUntil: "load" });
     await page.waitForTimeout(500);
@@ -258,6 +267,22 @@ describe("Third-Party-Impact-by-Domain", () => {
     expect(other.loafMs).toBeLessThan(400);
     const metrics = r.items.find((i) => i.domain === "metrics.localhost");
     expect(metrics.loafMs).toBe(0);
+  }, 30000);
+
+  it("adds up the main-thread time of every script of a domain, across long animation frames", async () => {
+    const tp = `http://other.localhost:${port}`;
+    const r = await run("/", {
+      frames: [
+        { duration: 200, scripts: [{ sourceURL: `${tp}/a.js`, duration: 150 }] },
+        { duration: 180, scripts: [{ sourceURL: `${tp}/b.js`, duration: 130 }, { sourceURL: `http://pixel.metrics.localhost:${port}/pixel.js`, duration: 60 }] },
+      ],
+    });
+    const other = r.items.find((i) => i.domain === "other.localhost");
+    expect(other.loafMs).toBe(280);
+    expect(other.loafScripts).toBe(2);
+    expect(r.items.find((i) => i.domain === "metrics.localhost").loafMs).toBe(60);
+    // Two scripts over the threshold together, none alone
+    expect(r.issues.some((i) => i.severity === "warning" && /other\.localhost.*main-thread/.test(i.message))).toBe(true);
   }, 30000);
 
   it("warns when one domain holds a large share of main-thread time", async () => {

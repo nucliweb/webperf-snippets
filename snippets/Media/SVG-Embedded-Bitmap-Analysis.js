@@ -114,6 +114,8 @@
   const inlineSvgTotal = inlineSvgs.length;
   const svgsWithUse = inlineSvgs.filter((svg) => svg.querySelector("use")).length;
   const standaloneInlineSvgs = inlineSvgTotal - svgsWithUse;
+  // Five or more standalone inline SVGs are worth moving into a <symbol> sprite
+  const spriteOpportunity = standaloneInlineSvgs >= 5;
 
   const inlineResults = Array.from(document.querySelectorAll("svg"))
     .map((svg, i) => {
@@ -214,7 +216,7 @@
     );
   }
 
-  if (standaloneInlineSvgs >= 5) {
+  if (spriteOpportunity) {
     console.log("");
     console.group("%c💡 SVG Sprite Opportunity", "color: #3b82f6; font-weight: bold;");
     console.log("");
@@ -238,6 +240,21 @@
 
   console.groupEnd();
 
+  const issues = [];
+  if (withBitmaps.length > 0) {
+    issues.push({ severity: "warning", message: `${withBitmaps.length} SVG file(s) contain embedded bitmaps` });
+  }
+  if (spriteOpportunity) {
+    const withUse =
+      svgsWithUse > 0
+        ? ` (${svgsWithUse} inline SVG${svgsWithUse === 1 ? " already uses" : "s already use"} <use>)`
+        : "";
+    issues.push({
+      severity: "info",
+      message: `${standaloneInlineSvgs} standalone inline SVGs could share one <symbol> sprite referenced with <use>${withUse}`,
+    });
+  }
+
   return {
     script: "SVG-Embedded-Bitmap-Analysis",
     status: "ok",
@@ -247,8 +264,7 @@
       inlineSvgTotal,
       svgsWithUse,
       standaloneInlineSvgs,
-      // Five or more standalone inline SVGs are worth moving into a <symbol> sprite
-      spriteOpportunity: standaloneInlineSvgs >= 5,
+      spriteOpportunity,
     },
     items: withBitmaps.map((r) => ({
       url: r.url || r.name,
@@ -258,8 +274,6 @@
       bitmapTypes: r.bitmaps.map((b) => b.format).join(", "),
       sizeBytes: r.transferSize,
     })),
-    issues: withBitmaps.length > 0
-      ? [{ severity: "warning", message: `${withBitmaps.length} SVG file(s) contain embedded bitmaps` }]
-      : [],
+    issues,
   };
 })();

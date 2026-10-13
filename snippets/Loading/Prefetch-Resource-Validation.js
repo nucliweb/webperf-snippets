@@ -16,14 +16,20 @@
   if (prefetchLinks.length === 0) {
     // Early return is safe here - console.group hasn't been opened yet
     console.log(
-      '%c✅ No prefetch hints found (rel="prefetch").',
-      "color: #22c55e; font-weight: bold;",
+      '%cℹ️ No prefetch hints on this page (rel="prefetch"), nothing to validate.',
+      "color: #3b82f6; font-weight: bold;",
     );
     console.log(
       "%cℹ️ Prefetch is for future navigation resources. Use it sparingly for predictable user journeys.",
       "color: #3b82f6;",
     );
-    return { script: "Prefetch-Resource-Validation", status: "ok", count: 0, items: [], issues: [] };
+    return {
+      script: "Prefetch-Resource-Validation",
+      status: "ok",
+      count: 0,
+      items: [],
+      issues: [{ severity: "info", message: 'No prefetch hints on this page (rel="prefetch"), so there was nothing to validate.' }],
+    };
   }
 
   // Get performance entries for all resources

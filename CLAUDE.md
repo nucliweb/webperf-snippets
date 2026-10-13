@@ -35,6 +35,7 @@ skills/, dist/, .claude/skills/   Generated Agent Skills (do not edit by hand)
 public/llms.txt, public/llms-full.txt   Generated
 public/<page>.md        Markdown version of each page, generated before the build and not committed (lib/page-markdown.mjs)
 cli/                    Playwright CLI, workflows, e2e tests and fixtures
+extension/              Chrome DevTools panel that runs the snippets (MV3, loaded unpacked)
 scripts/                Generators, checks and their tests
 workspace/              Local notes, ignored by git
 ```
@@ -57,6 +58,9 @@ npm run check:built-snippets # after `npm run build`: every page shows its snipp
 npm run test:icons           # emoji to icon plugins
 npm run test:support         # browser support plugin
 npm run test:prompt          # agent prompt of each snippet (lib/snippet-prompt.mjs)
+npm run extension:build      # extension/snippets.json, then load extension/ unpacked in chrome://extensions
+npm run test:extension       # DevTools extension: runner, result rendering, catalog
+npm run test:extension:e2e   # every snippet through the real panel, on the seeded page of the CLI tests
 npm run eval:prompts         # an agent runs the prompts on local pages, graded from its transcript (eval-prompts.yml: on demand and on PRs that change the prompt)
 
 npm run test:unit --prefix cli

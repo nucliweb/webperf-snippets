@@ -9,7 +9,10 @@
       status: "ok",
       count: 0,
       items: [],
-      issues: []
+      issues: [ {
+        severity: "info",
+        message: 'No prefetch hints on this page (rel="prefetch"), so there was nothing to validate.'
+      } ]
     };
   }
   const performanceEntries = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));

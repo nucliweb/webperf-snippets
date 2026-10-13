@@ -74,6 +74,9 @@ jobs:
       - name: Run snippet prompt tests
         run: npm run test:prompt
 
+      - name: Run extension tests
+        run: npm run test:extension
+
       - name: Check generated skills are up to date
         run: npm run generate-skills:check
 
@@ -97,3 +100,7 @@ jobs:
       - name: Run E2E tests
         if: steps.slow.outputs.skip != 'true'
         run: npm run test:e2e --prefix cli
+
+      - name: Run extension E2E tests
+        if: steps.slow.outputs.skip != 'true'
+        run: npm run test:extension:e2e

@@ -282,6 +282,8 @@ export function checkResult(name, inspected, prefix = "") {
   else if (!prefix && result.script !== name.split("/").pop()) add("script-name-mismatch");
   if (!STATUSES.includes(result.status)) add("invalid-status");
   if (inspected.json.length > MAX_BYTES) add("too-large");
+  // House style: returned text (issues, notes, errors) never uses a spaced em-dash
+  if (inspected.json.includes(" \u2014 ")) add("spaced-em-dash");
 
   const numericKey = /(Ms|Bytes|Count)$/;
   const looksNumeric = (s) => typeof s === "string" && /^-?\d[\d.,]*\s*[a-zA-Z%]*$/.test(s.trim());
@@ -338,6 +340,11 @@ export async function startContractServers() {
       res.end(body);
     };
     if (path === "/empty") return send("text/html", "<!DOCTYPE html><html><head><title>e</title></head><body><h1>Empty</h1></body></html>");
+    // The server waits `?ms=N` before answering, which sets the TTFB of the page
+    if (path === "/slow-ttfb") {
+      const ms = Number(new URLSearchParams(query).get("ms") || 0);
+      return setTimeout(() => send("text/html", "<!DOCTYPE html><html><head><title>s</title></head><body><h1>Slow TTFB</h1></body></html>"), ms);
+    }
     if (path === "/seeded") return send("text/html", SEEDED_PAGE(otherUrl));
     const small = SMALL_PAGES(otherUrl)[path];
     if (small) return send("text/html", small);

@@ -68,6 +68,7 @@
   const inlineSvgTotal = inlineSvgs.length;
   const svgsWithUse = inlineSvgs.filter(svg => svg.querySelector("use")).length;
   const standaloneInlineSvgs = inlineSvgTotal - svgsWithUse;
+  const spriteOpportunity = standaloneInlineSvgs >= 5;
   const inlineResults = Array.from(document.querySelectorAll("svg")).map((svg, i) => {
     const html = svg.outerHTML;
     const bitmaps = findEmbeddedBitmaps(html);
@@ -106,7 +107,19 @@
     });
   } else {
   }
-  if (standaloneInlineSvgs >= 5) {
+  if (spriteOpportunity) {
+  }
+  const issues = [];
+  if (withBitmaps.length > 0) issues.push({
+    severity: "warning",
+    message: `${withBitmaps.length} SVG file(s) contain embedded bitmaps`
+  });
+  if (spriteOpportunity) {
+    const withUse = svgsWithUse > 0 ? ` (${svgsWithUse} inline SVG${svgsWithUse === 1 ? " already uses" : "s already use"} <use>)` : "";
+    issues.push({
+      severity: "info",
+      message: `${standaloneInlineSvgs} standalone inline SVGs could share one <symbol> sprite referenced with <use>${withUse}`
+    });
   }
   return {
     script: "SVG-Embedded-Bitmap-Analysis",
@@ -117,7 +130,7 @@
       inlineSvgTotal: inlineSvgTotal,
       svgsWithUse: svgsWithUse,
       standaloneInlineSvgs: standaloneInlineSvgs,
-      spriteOpportunity: standaloneInlineSvgs >= 5
+      spriteOpportunity: spriteOpportunity
     },
     items: withBitmaps.map(r => ({
       url: r.url || r.name,
@@ -127,9 +140,6 @@
       bitmapTypes: r.bitmaps.map(b => b.format).join(", "),
       sizeBytes: r.transferSize
     })),
-    issues: withBitmaps.length > 0 ? [ {
-      severity: "warning",
-      message: `${withBitmaps.length} SVG file(s) contain embedded bitmaps`
-    } ] : []
+    issues: issues
   };
 })();

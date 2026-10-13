@@ -312,6 +312,42 @@ describe("SVG-Embedded-Bitmap-Analysis", () => {
     const none = await runOn("/empty", "Media/SVG-Embedded-Bitmap-Analysis");
     expect(none.details.spriteOpportunity).toBe(false);
   }, 30000);
+
+  it("reports the sprite opportunity as an info issue with the counts", async () => {
+    const many = await runOn("/svgs", "Media/SVG-Embedded-Bitmap-Analysis");
+    expect(many.issues).toEqual([
+      { severity: "info", message: "6 standalone inline SVGs could share one <symbol> sprite referenced with <use> (1 inline SVG already uses <use>)" },
+    ]);
+    const none = await runOn("/empty", "Media/SVG-Embedded-Bitmap-Analysis");
+    expect(none.issues).toEqual([]);
+  }, 30000);
+});
+
+describe("TTFB-Sub-Parts issues", () => {
+  it("gives no issue when the TTFB is good", async () => {
+    const r = await runOn("/empty", "Loading/TTFB-Sub-Parts");
+    expect(r.rating).toBe("good");
+    expect(r.issues).toEqual([]);
+  }, 30000);
+
+  it("gives a warning naming the TTFB and the slowest phase when it needs improvement", async () => {
+    const r = await runOn("/slow-ttfb?ms=1000", "Loading/TTFB-Sub-Parts");
+    expect(r.rating).toBe("needs-improvement");
+    expect(r.details.slowestPhase).toBe("serverResponse");
+    expect(r.issues).toHaveLength(1);
+    expect(r.issues[0].severity).toBe("warning");
+    expect(r.issues[0].message).toMatch(
+      new RegExp(`^TTFB is ${r.value} ms \\(needs-improvement\\); server response takes ${r.details.subParts.serverResponse.value} ms of it \\(\\d+%\\)`)
+    );
+  }, 30000);
+
+  it("gives an error when the TTFB is poor", async () => {
+    const r = await runOn("/slow-ttfb?ms=2000", "Loading/TTFB-Sub-Parts");
+    expect(r.rating).toBe("poor");
+    expect(r.issues).toHaveLength(1);
+    expect(r.issues[0].severity).toBe("error");
+    expect(r.issues[0].message).toMatch(/^TTFB is \d+ ms \(poor\); server response takes \d+ ms of it/);
+  }, 30000);
 });
 
 describe("Network-Bandwidth-Connection-Quality", () => {
@@ -372,29 +408,6 @@ describe("SSR-Hydration-Data-Analysis", () => {
   }, 30000);
 });
 
-describe("CSS-Media-Queries-Analysis", () => {
-  it("returns the performance impact as numbers, without printing the impact report", async () => {
-    const lines = [];
-    const r = await onPage("/mq", async (page) => {
-      page.on("console", (m) => lines.push(m.text()));
-      const result = await page.evaluate(source("Loading/CSS-Media-Queries-Analysis"));
-      await page.waitForTimeout(300);
-      return result;
-    });
-    expect(r.status).toBe("ok");
-    const impact = r.details.performanceImpact;
-    expect(impact.unnecessaryBytes).toBeGreaterThan(0);
-    const devices = Object.values(impact.deviceImpact);
-    expect(devices.length).toBeGreaterThan(0);
-    for (const d of devices) {
-      expect(keysOf(d)).toBe("fcpImpactMs,inpOverheadMs,lcpImpactMs,renderBlockingTimeMs,runtimeOverheadMs");
-      for (const v of Object.values(d)) expect(typeof v).toBe("number");
-    }
-    expect(JSON.stringify(impact)).not.toMatch(/KB|%"/);
-    expect(lines.some((l) => l.includes("PERFORMANCE IMPACT ANALYSIS"))).toBe(false);
-  }, 30000);
-});
-
 describe("running a snippet twice in the same console", () => {
   it.each(["Loading/CSS-Media-Queries-Analysis", "Loading/Content-Visibility"])(
     "%s does not fail the second time",
@@ -420,4 +433,32 @@ describe("Content-Visibility", () => {
     expect(used.count).toBeGreaterThan(0);
     expect(used.issues.some((i) => /No content-visibility usage/i.test(i.message))).toBe(false);
   }, 60000);
+});
+
+describe("Critical-CSS-Detection", () => {
+  it("has no issue with a spaced em-dash", async () => {
+    // /mq loads its only stylesheet with a <link> and inlines no CSS
+    const r = await onPage("/mq", (page) => page.evaluate(source("Loading/Critical-CSS-Detection")));
+    expect(r.issues.some((i) => /No critical CSS inlined/.test(i.message))).toBe(true);
+    expect(JSON.stringify(r)).not.toContain(" — ");
+  }, 30000);
+});
+
+describe("Client-Side-Redirect-Detection", () => {
+  it("has no issue with a spaced em-dash", async () => {
+    // Chromium records no same-origin resource entry of type navigation on a plain page, so the
+    // page adds one to what getEntriesByType("resource") returns
+    const r = await onPage("/empty", (page) => page.evaluate(source("Loading/Client-Side-Redirect-Detection")), {
+      init: () => {
+        const original = Performance.prototype.getEntriesByType;
+        Performance.prototype.getEntriesByType = function (type) {
+          const entries = original.call(this, type);
+          if (type !== "resource") return entries;
+          return [...entries, { name: `${location.origin}/landing`, initiatorType: "navigation", startTime: 10, duration: 5 }];
+        };
+      },
+    });
+    expect(r.issues.some((i) => /document navigation/.test(i.message))).toBe(true);
+    expect(JSON.stringify(r)).not.toContain(" — ");
+  }, 30000);
 });

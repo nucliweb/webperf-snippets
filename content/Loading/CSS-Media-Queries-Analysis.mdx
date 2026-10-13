@@ -9,12 +9,7 @@ import { Snippet } from '../../components/Snippet'
 
 # CSS media queries analysis
 
-Analyze all `@media` rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files, with byte size estimates for potential mobile savings.
-
-This page provides two complementary analysis functions:
-
-1. **`analyzeCSSMediaQueries(minWidth)`** - Identifies desktop-specific CSS and calculates byte savings
-2. **`analyzeCSSPerformanceImpact(minWidth)`** - Estimates real-world performance impact across device profiles, including Core Web Vitals effects, render-blocking time, and business impact projections
+Analyze all `@media` rules in CSS stylesheets that target viewports bigger than a breakpoint (default: 768px). Narrower screens download and parse that CSS without using it. The snippet groups the rules by distinct query, the way CSS analytics tools such as [Project Wallace](https://www.projectwallace.com/) report at-rules, and breaks them down by stylesheet.
 
 ### Snippet
 
@@ -22,71 +17,22 @@ This page provides two complementary analysis functions:
 
 ### Understanding the results
 
-#### `analyzeCSSMediaQueries()` results
+Each item is a distinct media query, largest first, with:
 
-This function provides a detailed breakdown of desktop-specific CSS:
+- **mediaQuery**: the condition, such as `(min-width: 1024px)`
+- **rules**: how many `@media` blocks use it
+- **files**: in how many stylesheets
+- **classes** and **properties**: class selectors and declarations inside those blocks
+- **bytes**: size of those blocks, measured on the CSS as the browser serializes it, before compression
 
-##### Potential mobile savings
+`details` sums them up:
 
-- **Estimated bytes** that mobile devices don't need to download/process
-- Breakdown by inline CSS vs external files
-- This represents CSS that could be eliminated from mobile experience by splitting files
+- **rules**, **totalUnique** and **uniquenessRatio**: how many blocks, how many distinct queries, and the ratio between both. A low ratio means the same few queries repeat across many blocks, the pattern of component-scoped or compiled CSS
+- **classes**, **properties** and **bytes**: totals of all the blocks
+- **bySource**: rules and bytes of each stylesheet, with `inline: true` for `<style>` tags
+- **corsBlockedCount**: cross-origin stylesheets that could not be read
 
-##### Inline CSS (`<style>` tags)
-
-- Number of @media rules targeting viewports larger than the specified breakpoint
-- Total CSS class selectors in inline media queries
-- Total CSS properties in inline media queries
-- Total byte size of inline media queries
-
-##### External files (`.css` files)
-
-- Number of @media rules targeting viewports larger than the specified breakpoint
-- Total CSS class selectors in external file media queries
-- Total CSS properties in external file media queries
-- Total byte size of external file media queries
-
-##### Each media query includes
-
-- **source**: Stylesheet URL or inline style tag identifier
-- **mediaQuery**: The media query condition (e.g., `min-width: 1024px`)
-- **classes**: Number of CSS class selectors
-- **properties**: Number of CSS properties
-- **bytesFormatted**: Size of the CSS in bytes (KB/MB)
-
-#### `analyzeCSSPerformanceImpact()` results
-
-This function estimates the real-world performance cost on mobile devices:
-
-##### Performance impact analysis (per device profile)
-
-- **High-end devices** (Pixel 7, iPhone 14): Fast CSS parsing, good network
-- **Mid-range devices** (Moto G Power, iPhone SE): Median mobile performance
-- **Low-end devices** (Moto E, older devices): Slower parsing and network
-
-For each profile, you'll see:
-
-- **Render-blocking impact**: Network download + CSS parsing + CSSOM construction time
-- **Runtime overhead**: Selector matching + style recalculation per interaction
-- **Core Web Vitals impact**: FCP delay, LCP delay, INP overhead, TBT contribution
-
-##### Potential savings
-
-- Total render-blocking time that could be eliminated
-- INP reduction per interaction
-- Bandwidth savings
-- Implementation strategy recommendations
-
-##### Memory impact
-
-- Estimated CSSOM memory overhead
-- Total unnecessary memory allocation
-- Impact on low-end devices
-
-##### Business impact estimation
-
-- FCP improvement estimate
-- Potential conversion lift based on Google/Deloitte research (100ms FCP ≈ 1% conversion increase)
+The issues give the total bytes, as a warning above 50 KB, and point to moving these rules to a stylesheet with a `media` attribute.
 
 ### Customizing the breakpoint
 
@@ -148,7 +94,7 @@ Understanding how much CSS is dedicated to larger viewports helps identify optim
 
 ### 6. measure the impact
 
-- The "Potential Mobile Savings" metric shows exactly how many bytes mobile users could save
+- `details.bytes` shows how many bytes of CSS narrower screens get without using them
 - Compare this against your total CSS size to understand the optimization opportunity
 - Even 20-50 KB savings can improve mobile performance significantly
 
@@ -169,4 +115,4 @@ This article covers:
 
 ### Note
 
-_Cross-origin stylesheets cannot be accessed due to CORS restrictions. The snippet will warn about these and skip them._
+_Cross-origin stylesheets cannot be read through `cssRules`. The snippet then fetches them, which works when the server sends CORS headers; the ones it still cannot read are counted in `details.corsBlockedCount` and reported as an issue._

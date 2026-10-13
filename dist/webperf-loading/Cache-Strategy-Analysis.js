@@ -223,12 +223,12 @@
     if (isStaticAsset(type) && cc["no-store"]) entry.antiPatterns.push({
       id: "static-no-store",
       severity: "error",
-      message: `${type} asset with no-store — static assets should be cacheable`
+      message: `${type} asset with no-store; static assets should be cacheable`
     });
     if (entry.hasHash && maxAge !== null && maxAge < 86400 && !cc["no-store"]) entry.antiPatterns.push({
       id: "versioned-short-cache",
       severity: "warning",
-      message: `Versioned URL (hash detected) but max-age=${maxAge}s — consider long cache or immutable`
+      message: `Versioned URL (hash detected) but max-age=${maxAge}s: consider long cache or immutable`
     });
     if (entry.hasHash && !cc["immutable"] && !cc["no-store"] && (maxAge === null || maxAge >= 86400)) entry.antiPatterns.push({
       id: "versioned-not-immutable",
@@ -248,12 +248,12 @@
     if (isStaticAsset(type) && maxAge === 0) entry.antiPatterns.push({
       id: "maxage-zero-static",
       severity: "warning",
-      message: `Static asset with max-age=0 — forces revalidation on every request`
+      message: `Static asset with max-age=0, which forces revalidation on every request`
     });
     if (isStaticAsset(type) && maxAge !== null && maxAge > 0 && maxAge < 3600 && !cc["no-store"]) entry.antiPatterns.push({
       id: "short-cache-static",
       severity: "warning",
-      message: `Static asset with max-age=${maxAge}s (< 1h) — consider a longer cache duration`
+      message: `Static asset with max-age=${maxAge}s (< 1h): consider a longer cache duration`
     });
   }
   const cdnEntries = entries.filter(e => e.cdnInfo && e.cdnInfo.cdn !== "none" && e.cdnInfo.cdn !== "unknown");
@@ -286,12 +286,12 @@
   for (const entry of uncompressedResources) entry.antiPatterns.push({
     id: "uncompressed",
     severity: "warning",
-    message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}) — enable Brotli or gzip`
+    message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}): enable Brotli or gzip`
   });
   for (const duplicate of costlyDuplicates) entries.find(e => e.url === duplicate.url).antiPatterns.push({
     id: "duplicate-uncached",
     severity: "warning",
-    message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network — load it once or make it cacheable`
+    message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network: load it once or make it cacheable`
   });
   if (entries.length === 0) {
     return {
@@ -370,14 +370,14 @@
   }
   const recommendations = [];
   if (noCacheEntries.filter(e => isStaticAsset(e.type)).length > 0) recommendations.push("🔴 Add Cache-Control headers to static assets (JS, CSS, fonts, images). Start with max-age=86400 and move to immutable for versioned files.");
-  if (shortCacheEntries.filter(e => e.hasHash).length > 0) recommendations.push("🟡 Versioned files (with content hash) should use long cache or Cache-Control: immutable — they can be cached indefinitely since the URL changes on update.");
-  if (allAntiPatterns.some(p => p.id === "expires-without-cc")) recommendations.push("🟡 Replace Expires headers with Cache-Control: max-age — Expires is an outdated mechanism and less reliable.");
+  if (shortCacheEntries.filter(e => e.hasHash).length > 0) recommendations.push("🟡 Versioned files (with content hash) should use long cache or Cache-Control: immutable; they can be cached indefinitely since the URL changes on update.");
+  if (allAntiPatterns.some(p => p.id === "expires-without-cc")) recommendations.push("🟡 Replace Expires headers with Cache-Control: max-age. Expires is an outdated mechanism and less reliable.");
   if (cacheEfficiencyPercent !== null && cacheEfficiencyPercent < 50) recommendations.push(`🔴 Cache efficiency is low (${cacheEfficiencyPercent}%, measured on the ${analyzableEntries.length} resources whose cache headers could be read). Review caching strategy for those static assets.`);
   if (cdnHitRate !== null && cdnHitRate < 70) recommendations.push(`🟡 CDN hit rate is ${cdnHitRate}%. Check CDN cache rules and ensure static assets have appropriate TTLs.`);
   if (protocolDistribution["http/1.1"] > 0) recommendations.push(`🟡 ${protocolDistribution["http/1.1"]} resources still use HTTP/1.1. Consider upgrading to HTTP/2 for better multiplexing.`);
   if (uncompressedResources.length > 0) recommendations.push(`🟡 ${uncompressedResources.length} text resources appear uncompressed. Enable Brotli or gzip compression on your server.`);
-  if (costlyDuplicates.length > 0) recommendations.push(`🟡 ${costlyDuplicates.length} resources are loaded multiple times with uncached network requests. Check for duplicate script, stylesheet, or fetch includes.`); else if (cachedDuplicates.length > 0) recommendations.push(`ℹ️ ${cachedDuplicates.length} resources are requested multiple times but served from cache — low performance impact, but worth reviewing for correctness.`);
-  if (corsRestricted > 0 && headersAnalyzed === 0) recommendations.push(`ℹ️ All resources are cross-origin CORS-restricted — header analysis was limited. Add Timing-Allow-Origin for more insights.`);
+  if (costlyDuplicates.length > 0) recommendations.push(`🟡 ${costlyDuplicates.length} resources are loaded multiple times with uncached network requests. Check for duplicate script, stylesheet, or fetch includes.`); else if (cachedDuplicates.length > 0) recommendations.push(`ℹ️ ${cachedDuplicates.length} resources are requested multiple times but served from cache; low performance impact, but worth reviewing for correctness.`);
+  if (corsRestricted > 0 && headersAnalyzed === 0) recommendations.push(`ℹ️ All resources are cross-origin CORS-restricted, so header analysis was limited. Add Timing-Allow-Origin for more insights.`);
   if (recommendations.length > 0) {
     for (const rec of recommendations) void 0;
   }

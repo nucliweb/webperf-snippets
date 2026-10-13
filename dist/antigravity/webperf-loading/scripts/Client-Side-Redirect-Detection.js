@@ -126,7 +126,7 @@
       message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)`
     } ] : [], ...documentNavigations.length > 0 ? [ {
       severity: "error",
-      message: `${documentNavigations.length} same-origin document navigation(s) detected — likely client-side redirect`
+      message: `${documentNavigations.length} same-origin document navigation(s) detected, likely a client-side redirect`
     } ] : [], ...indicators.filter(i => i.severity === "warning").map(i => ({
       severity: "warning",
       message: i.type

@@ -43,6 +43,32 @@
     key: "elementRenderDelay",
     targetPercent: 10
   } ];
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = selector => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map(c => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [ node ];
+      if (siblings.filter(s => s.matches(part)).length > 1) part += `:nth-of-type(${siblings.filter(s => s.localName === tag).indexOf(node) + 1})`;
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
   const getNavigationEntry = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) return navEntry;
@@ -69,11 +95,6 @@
     const {icon: icon, color: color} = RATING[rating];
     if (lcpEntry.element) {
       const el = lcpEntry.element;
-      let selector = el.tagName.toLowerCase();
-      if (el.id) selector = `#${el.id}`; else if (el.className && typeof el.className === "string") {
-        const classes = el.className.trim().split(/\s+/).slice(0, 2).join(".");
-        if (classes) selector = `${el.tagName.toLowerCase()}.${classes}`;
-      }
       if (lcpEntry.url) {
         (() => {
           try {
@@ -188,14 +209,7 @@
   } ];
   const slowestPhaseSync = subPartsForRank.reduce((a, b) => a.value > b.value ? a : b).key;
   let lcpSelectorSync = null;
-  if (lcpEntry.element) {
-    const el = lcpEntry.element;
-    lcpSelectorSync = el.tagName.toLowerCase();
-    if (el.id) lcpSelectorSync = `#${el.id}`; else if (el.className && typeof el.className === "string") {
-      const classes = el.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) lcpSelectorSync = `${el.tagName.toLowerCase()}.${classes}`;
-    }
-  }
+  if (lcpEntry.element) lcpSelectorSync = uniqueSelector(lcpEntry.element);
   const shortUrlSync = lcpEntry.url ? (() => {
     try {
       const u = new URL(lcpEntry.url);

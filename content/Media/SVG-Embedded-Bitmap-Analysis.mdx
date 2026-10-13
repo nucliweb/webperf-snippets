@@ -84,7 +84,7 @@ The correct pattern is to reference bitmap assets as separate files:
 
 #### SVG sprite opportunity
 
-When 5 or more standalone inline `<svg>` elements are detected (i.e. not already using `<use>`), the snippet shows a tip suggesting the SVG sprite pattern.
+When 5 or more standalone inline `<svg>` elements are detected (i.e. not already using `<use>`), the snippet shows a tip suggesting the SVG sprite pattern, and returns it as an `info` issue with the counts, for example `93 standalone inline SVGs could share one <symbol> sprite referenced with <use> (7 inline SVGs already use <use>)`.
 
 Inline SVGs repeated across a page inflate HTML size and cannot be cached independently. The sprite pattern defines each icon once as a `<symbol>` in a hidden `<svg>` block and references it anywhere with `<use href="#id">`:
 
