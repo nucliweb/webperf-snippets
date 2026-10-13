@@ -1,4 +1,17 @@
 (async () => {
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const OWN_DOMAINS = [];
   function getRootDomain(hostname) {
     const host = hostname.replace(/\.$/, "");
@@ -133,7 +146,7 @@
       status: "no-cdn-headers"
     };
   }
-  const resources = performance.getEntriesByType("resource").filter(r => !(r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.transferSize > 0));
+  const resources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const urlCounts = new Map;
   for (const r of resources) urlCounts.set(r.name, (urlCounts.get(r.name) || 0) + 1);
   const entries = resources.map(r => {
@@ -179,7 +192,7 @@
     const batch = uniqueUrls.slice(i, i + BATCH_SIZE);
     await Promise.allSettled(batch.map(async url => {
       try {
-        const resp = await fetch(url, {
+        const resp = await fetch(ownRequestUrl(url), {
           method: "HEAD",
           cache: "no-store"
         });

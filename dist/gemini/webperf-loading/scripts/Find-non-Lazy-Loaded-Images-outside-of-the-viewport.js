@@ -1,4 +1,7 @@
 (function() {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   function getSelector(node) {
     let sel = "";
     try {
@@ -44,7 +47,7 @@
   function getImageSize(imgElement) {
     const src = imgElement.currentSrc || imgElement.src;
     if (!src || src.startsWith("data:")) return 0;
-    const perfEntries = performance.getEntriesByType("resource");
+    const perfEntries = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
     const imgEntry = perfEntries.find(entry => entry.name === src);
     if (imgEntry) return imgEntry.transferSize || imgEntry.encodedBodySize || 0;
     return 0;

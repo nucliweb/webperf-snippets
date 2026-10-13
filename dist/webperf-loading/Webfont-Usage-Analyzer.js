@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const SCRIPT = "Webfont-Usage-Analyzer";
   const MAX_ITEMS = 50;
   const MAX_ELEMENTS = 20000;
@@ -63,7 +66,7 @@
   Array.from(document.styleSheets).forEach(sheet => readSheet(sheet, 0));
   const knownUrls = new Set([ ...ruleSources.values() ].flat(2));
   const fontEntries = new Map;
-  for (const e of performance.getEntriesByType("resource")) if (FONT_FILE.test(e.name) || knownUrls.has(e.name)) fontEntries.set(e.name, Math.max(fontEntries.get(e.name) ?? 0, e.encodedBodySize || 0));
+  for (const e of performance.getEntriesByType("resource").filter(e => !isOwnRequest(e))) if (FONT_FILE.test(e.name) || knownUrls.has(e.name)) fontEntries.set(e.name, Math.max(fontEntries.get(e.name) ?? 0, e.encodedBodySize || 0));
   const totalFontBytes = [ ...fontEntries.values() ].reduce((sum, b) => sum + b, 0);
   const bytesReadable = [ ...fontEntries.values() ].every(b => b > 0);
   const groups = new Map;

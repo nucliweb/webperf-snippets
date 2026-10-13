@@ -407,6 +407,14 @@ test('the audit reloads the page first, as the CLI loads it, unless the option i
   await panel.click('#run-audit')
   await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
   assert.equal(await marked(), false, 'the page was not reloaded')
+  // A second audit without reloading finds the same issues: no snippet counts the requests the first audit made.
+  // Metrics such as TTFB may move between audits, so only the issues are compared
+  await panel.click('#go-home')
+  await panel.uncheck('#reload-before-audit')
+  await panel.click('#run-audit')
+  await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
+  const issues = await panel.locator('#audit .comparison').locator('.added li, .changed li, .resolved li').allTextContents()
+  assert.deepEqual(issues, [], `the second audit found other issues: ${JSON.stringify(issues)}`)
 
   await panel.click('#go-home')
   await panel.uncheck('#reload-before-audit')

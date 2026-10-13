@@ -3,6 +3,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const MIN_BYTES = 1024; // Below this, compression saves too little to matter
   const MAX_ITEMS = 50;
 
@@ -46,7 +54,7 @@
     return null;
   };
 
-  const entries = [...performance.getEntriesByType("navigation"), ...performance.getEntriesByType("resource")];
+  const entries = [...performance.getEntriesByType("navigation"), ...performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))];
   const contentEncodingSupported = entries.some((e) => "contentEncoding" in e);
 
   const candidates = [];

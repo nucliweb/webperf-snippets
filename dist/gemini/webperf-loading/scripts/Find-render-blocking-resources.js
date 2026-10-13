@@ -1,5 +1,8 @@
 (() => {
-  const testEntry = performance.getEntriesByType("resource")[0];
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  const testEntry = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e))[0];
   if (testEntry && !("renderBlockingStatus" in testEntry)) {
     return {
       script: "Find-render-blocking-resources",
@@ -7,7 +10,7 @@
       error: "renderBlockingStatus API requires Chrome 107+"
     };
   }
-  const blockingResources = performance.getEntriesByType("resource").filter(entry => entry.renderBlockingStatus === "blocking").map(entry => {
+  const blockingResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(entry => entry.renderBlockingStatus === "blocking").map(entry => {
     const url = new URL(entry.name);
     return {
       name: entry.name,

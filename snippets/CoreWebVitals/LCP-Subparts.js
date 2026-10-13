@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
     console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
     return { script: "LCP-Subparts", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
@@ -75,7 +83,7 @@
     if (!navEntry) return;
 
     const lcpResEntry = performance
-      .getEntriesByType("resource")
+      .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
       .find((e) => e.name === lcpEntry.url);
 
     const activationStart = navEntry.activationStart || 0;
@@ -250,7 +258,7 @@
   if (!navEntrySync) {
     return { script: "LCP-Subparts", status: "error", error: "No navigation entry" };
   }
-  const lcpResEntrySync = performance.getEntriesByType("resource")
+  const lcpResEntrySync = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .find((e) => e.name === lcpEntry.url);
   const activationStartSync = navEntrySync.activationStart || 0;
   const ttfbSync = Math.max(0, navEntrySync.responseStart - activationStartSync);

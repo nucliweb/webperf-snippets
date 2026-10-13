@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const prefetchLinks = Array.from(document.querySelectorAll('link[rel="prefetch"]'));
   if (prefetchLinks.length === 0) {
     return {
@@ -12,7 +15,7 @@
       } ]
     };
   }
-  const performanceEntries = performance.getEntriesByType("resource");
+  const performanceEntries = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const entryUrlMap = new Map;
   performanceEntries.forEach(entry => {
     try {

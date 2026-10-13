@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   console.group("%c🔍 Resource Hints Validation", "font-weight: bold; font-size: 14px;");
 
   // Check if page is fully loaded
@@ -18,7 +26,7 @@
   const dnsPrefetchLinks = Array.from(document.querySelectorAll('link[rel="dns-prefetch"]'));
 
   // Get all loaded resources from Performance API
-  const resources = performance.getEntriesByType("resource");
+  const resources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   // Helper: Extract domain from URL
   const getDomain = (url) => {

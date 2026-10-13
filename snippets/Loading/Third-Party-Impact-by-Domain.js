@@ -3,6 +3,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const MAX_ITEMS = 50;
   const LOAF_WARNING_MS = 250; // Script time in long animation frames above which one domain is a problem
   const MAX_LISTED_DOMAINS = 5;
@@ -85,7 +93,7 @@
   let thirdPartyBytes = 0;
   let sizeUnknownCount = 0;
 
-  performance.getEntriesByType("resource").forEach((entry) => {
+  performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e)).forEach((entry) => {
     const parsed = rootDomainOf(entry.name);
     if (!parsed) return;
     if (parsed.first) {

@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const MIN_BYTES = 1024;
   const MAX_ITEMS = 50;
   const SAVINGS_RATIO = {
@@ -48,7 +51,7 @@
     if (entry.initiatorType === "script") return "js";
     return null;
   };
-  const entries = [ ...performance.getEntriesByType("navigation"), ...performance.getEntriesByType("resource") ];
+  const entries = [ ...performance.getEntriesByType("navigation"), ...performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)) ];
   const contentEncodingSupported = entries.some(e => "contentEncoding" in e);
   const candidates = [];
   entries.forEach(entry => {

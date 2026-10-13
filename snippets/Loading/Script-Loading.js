@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -64,7 +72,7 @@
 
   // Get resource timing data
   const resourceTiming = new Map();
-  performance.getEntriesByType("resource").forEach((r) => {
+  performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e)).forEach((r) => {
     if (r.initiatorType === "script") {
       resourceTiming.set(r.name, {
         size: r.transferSize || 0,

@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
@@ -74,7 +77,7 @@
         fix: 'Add crossorigin="anonymous"'
       });
       if (type.rel === "preconnect" && !hint.crossorigin) {
-        const corsResources = performance.getEntriesByType("resource").filter(r => r.name.includes(hostname) && (r.initiatorType === "script" || r.initiatorType === "css" || r.initiatorType === "font"));
+        const corsResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.name.includes(hostname) && (r.initiatorType === "script" || r.initiatorType === "css" || r.initiatorType === "font"));
         if (corsResources.length > 0) issues.push({
           hint: hint,
           issue: "Preconnect may need crossorigin for CORS resources",
@@ -85,7 +88,7 @@
     });
   });
   const preloads = allHints.filter(h => h.rel === "preload");
-  const loadedResources = performance.getEntriesByType("resource");
+  const loadedResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   preloads.forEach(preload => {
     const wasUsed = loadedResources.some(r => r.name === preload.href);
     if (!wasUsed) issues.push({

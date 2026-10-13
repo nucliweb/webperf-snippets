@@ -7,6 +7,14 @@
 // Idea and original script: https://github.com/paulcalvano/webfont-usage-analyzer
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const SCRIPT = "Webfont-Usage-Analyzer";
   const MAX_ITEMS = 50;
   const MAX_ELEMENTS = 20000;
@@ -104,7 +112,7 @@
 
   const knownUrls = new Set([...ruleSources.values()].flat(2));
   const fontEntries = new Map(); // url -> encodedBodySize
-  for (const e of performance.getEntriesByType("resource")) {
+  for (const e of performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))) {
     if (FONT_FILE.test(e.name) || knownUrls.has(e.name)) {
       fontEntries.set(e.name, Math.max(fontEntries.get(e.name) ?? 0, e.encodedBodySize || 0));
     }

@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const formatMs = (ms) => (ms > 0 ? ms.toFixed(0) + "ms" : "-");
   // @shared formatBytes
   function formatBytes(bytes) {
@@ -25,7 +33,7 @@
   const loadEvent = nav?.loadEventEnd || 0;
   // 2. Script resource timing (download phase)
   const scriptResources = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((r) => r.initiatorType === "script")
     .map((r) => {
       let shortName;

@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const OWN_DOMAINS = [];
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
@@ -35,7 +38,7 @@
     }
   };
   const resourceTiming = new Map;
-  performance.getEntriesByType("resource").forEach(r => {
+  performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).forEach(r => {
     if (r.initiatorType === "script") resourceTiming.set(r.name, {
       size: r.transferSize || 0,
       sizeKnown: r.transferSize > 0 || r.encodedBodySize > 0 || r.decodedBodySize > 0,

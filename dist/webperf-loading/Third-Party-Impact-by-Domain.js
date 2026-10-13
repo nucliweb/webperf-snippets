@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const MAX_ITEMS = 50;
   const LOAF_WARNING_MS = 250;
   const MAX_LISTED_DOMAINS = 5;
@@ -50,7 +53,7 @@
   let thirdPartyRequests = 0;
   let thirdPartyBytes = 0;
   let sizeUnknownCount = 0;
-  performance.getEntriesByType("resource").forEach(entry => {
+  performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).forEach(entry => {
     const parsed = rootDomainOf(entry.name);
     if (!parsed) return;
     if (parsed.first) {

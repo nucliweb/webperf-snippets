@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const preloadedScripts = Array.from(document.querySelectorAll('link[rel="preload"][as="script"]'));
   if (preloadedScripts.length === 0) {
     return {
@@ -9,7 +12,7 @@
       issues: []
     };
   }
-  const performanceScripts = performance.getEntriesByType("resource").filter(r => r.initiatorType === "script" || r.initiatorType === "link");
+  const performanceScripts = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.initiatorType === "script" || r.initiatorType === "link");
   const issues = [];
   const validPreloads = [];
   const allScripts = Array.from(document.querySelectorAll("script[src]"));

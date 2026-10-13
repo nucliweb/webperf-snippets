@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Get all prefetch hints
   const prefetchLinks = Array.from(document.querySelectorAll('link[rel="prefetch"]'));
 
@@ -25,7 +33,7 @@
   }
 
   // Get performance entries for all resources
-  const performanceEntries = performance.getEntriesByType("resource");
+  const performanceEntries = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   // Pre-normalize URLs for efficient matching (avoids repeated URL parsing in nested loops)
   const entryUrlMap = new Map();

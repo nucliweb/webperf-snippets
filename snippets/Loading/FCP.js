@@ -3,6 +3,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const valueToRating = (ms) =>
     ms <= 1800 ? "good" : ms <= 3000 ? "needs-improvement" : "poor";
 
@@ -28,7 +36,7 @@
     const ttfb = Math.max(0, (navEntry?.responseStart ?? 0) - activationStart);
 
     // Render-blocking resources (Chrome 107+, requires renderBlockingStatus API)
-    const resources = performance.getEntriesByType("resource");
+    const resources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
     const blockingResources = resources.filter(
       (r) => r.renderBlockingStatus === "blocking"
     );
@@ -98,7 +106,7 @@
   // render-blocking resource, then the rest until the paint
   const ttfbSync = Math.max(0, (navEntrySync?.responseStart ?? 0) - activationStartSync);
   const blockingSync = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((r) => r.renderBlockingStatus === "blocking");
   const lastBlockingEndSync = Math.max(
     ttfbSync,

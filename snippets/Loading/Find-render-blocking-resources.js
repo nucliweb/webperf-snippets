@@ -2,8 +2,16 @@
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Check browser support
-  const testEntry = performance.getEntriesByType("resource")[0];
+  const testEntry = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))[0];
   if (testEntry && !("renderBlockingStatus" in testEntry)) {
     console.log(
       "%c⚠️ renderBlockingStatus not supported in this browser",
@@ -15,7 +23,7 @@
   }
 
   const blockingResources = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((entry) => entry.renderBlockingStatus === "blocking")
     .map((entry) => {
       const url = new URL(entry.name);

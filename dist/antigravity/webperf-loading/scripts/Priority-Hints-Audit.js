@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
@@ -22,7 +25,7 @@
     return src.split("/").pop()?.split("?")[0] || src.slice(-50) || "(unknown)";
   }
   const entryMap = new Map;
-  performance.getEntriesByType("resource").forEach(e => {
+  performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).forEach(e => {
     try {
       entryMap.set(new URL(e.name, location.origin).href, e);
     } catch {}

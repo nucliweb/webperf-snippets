@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const OWN_DOMAINS = [];
   function getRootDomain(hostname) {
     const host = hostname.replace(/\.$/, "");
@@ -26,7 +29,7 @@
     const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
     return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
-  const scripts = performance.getEntriesByType("resource").filter(r => r.initiatorType === "script").map(r => {
+  const scripts = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.initiatorType === "script").map(r => {
     const url = new URL(r.name);
     const firstParty = isFirstParty(url.hostname);
     return {

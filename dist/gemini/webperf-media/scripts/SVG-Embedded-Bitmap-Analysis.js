@@ -1,4 +1,17 @@
 (async () => {
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   function shortName(url) {
     try {
       const path = new URL(url).pathname;
@@ -30,12 +43,12 @@
     });
     return found;
   }
-  const svgEntries = performance.getEntriesByType("resource").filter(e => e.name.split("?")[0].toLowerCase().endsWith(".svg"));
+  const svgEntries = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(e => e.name.split("?")[0].toLowerCase().endsWith(".svg"));
   const externalResults = await Promise.all(svgEntries.map(async entry => {
     let compression = compressionFromEntry(entry);
     let bitmaps = [];
     try {
-      const res = await fetch(entry.name, {
+      const res = await fetch(ownRequestUrl(entry.name), {
         cache: "force-cache"
       });
       const ce = res.headers.get("content-encoding");

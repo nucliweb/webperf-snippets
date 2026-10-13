@@ -819,6 +819,14 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
     console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
     return { script: "LCP-Subparts", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
@@ -892,7 +900,7 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     if (!navEntry) return;
 
     const lcpResEntry = performance
-      .getEntriesByType("resource")
+      .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
       .find((e) => e.name === lcpEntry.url);
 
     const activationStart = navEntry.activationStart || 0;
@@ -1067,7 +1075,7 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
   if (!navEntrySync) {
     return { script: "LCP-Subparts", status: "error", error: "No navigation entry" };
   }
-  const lcpResEntrySync = performance.getEntriesByType("resource")
+  const lcpResEntrySync = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .find((e) => e.name === lcpEntry.url);
   const activationStartSync = navEntrySync.activationStart || 0;
   const ttfbSync = Math.max(0, navEntrySync.responseStart - activationStartSync);
@@ -1821,6 +1829,23 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
   // Only what the browser can report is analysed. Several blockers cannot be detected from
   // JavaScript (unload listeners added with addEventListener, open WebSocket, BroadcastChannel
   // or IndexedDB connections). After a back navigation, the NotRestoredReasons API reports
@@ -1906,7 +1931,7 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
     // exposes the header; the value can differ from the original navigation.
     if (/^https?:$/.test(location.protocol)) {
       try {
-        const res = await fetch(location.href, { method: 'HEAD', credentials: 'same-origin' });
+        const res = await fetch(ownRequestUrl(location.href), { method: 'HEAD', credentials: 'same-origin' });
         const cacheControl = res.headers.get('cache-control') || '';
         if (/no-store/i.test(cacheControl) && !confirmed.some(({ reason }) => reason === 'response-cache-control-no-store')) {
           issues.push({
@@ -2097,6 +2122,23 @@ Analyze all @media rules in CSS stylesheets that target viewports bigger than a 
 // Default minWidth = 768 (px), but you can customize it
 
 async function analyzeCSSMediaQueries(minWidth = 768) {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
   const SCRIPT = "CSS-Media-Queries-Analysis";
   const MAX_ITEMS = 50;
   const WARNING_BYTES = 50 * 1024;
@@ -2181,7 +2223,7 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
       // Cross-origin stylesheet without CORS: try to fetch it
       if (sheet.href) {
         try {
-          const response = await fetch(sheet.href);
+          const response = await fetch(ownRequestUrl(sheet.href));
           parseMediaQueriesFromCSS(await response.text(), sheet.href);
         } catch {
           corsBlockedCount++;
@@ -2300,6 +2342,31 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -2479,13 +2546,9 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 
   // --- Phase 1: Gather resource entries ---
 
-  // Exclude HEAD/aborted-GET entries injected by this snippet's own fetch calls
-  // on previous runs. Those entries have no body (encodedBodySize=0, decodedBodySize=0)
-  // but did transfer bytes (transferSize>0, i.e. only response headers were received).
-  // Real page resources always have encodedBodySize > 0 (or transferSize = 0 if cached).
-  const resources = performance.getEntriesByType("resource").filter(
-    (r) => !(r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.transferSize > 0)
-  );
+  // The HEAD requests this snippet makes in Phase 2 carry the ownRequestUrl tag, so a second run
+  // leaves them out
+  const resources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   // Detect duplicate URLs
   const urlCounts = new Map();
@@ -2552,7 +2615,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     await Promise.allSettled(
       batch.map(async (url) => {
         try {
-          const resp = await fetch(url, { method: "HEAD", cache: "no-store" });
+          const resp = await fetch(ownRequestUrl(url), { method: "HEAD", cache: "no-store" });
           if (!resp.ok) {
             headerCache.set(url, null);
             return;
@@ -3215,6 +3278,14 @@ Detects client-side redirects that add unnecessary latency to page load and impa
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const navEntries = performance.getEntriesByType('navigation');
 
   if (navEntries.length === 0) {
@@ -3227,7 +3298,7 @@ Detects client-side redirects that add unnecessary latency to page load and impa
 
   const navEntry = navEntries[0];
   const currentURL = new URL(window.location.href);
-  const resources = performance.getEntriesByType('resource');
+  const resources = performance.getEntriesByType('resource').filter((e) => !isOwnRequest(e));
 
   // Check for document navigations (only navigation type, exclude iframes)
   // Filter out third-party iframes (analytics, ads, etc.)
@@ -3563,6 +3634,14 @@ Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fo
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const MIN_BYTES = 1024; // Below this, compression saves too little to matter
   const MAX_ITEMS = 50;
 
@@ -3606,7 +3685,7 @@ Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fo
     return null;
   };
 
-  const entries = [...performance.getEntriesByType("navigation"), ...performance.getEntriesByType("resource")];
+  const entries = [...performance.getEntriesByType("navigation"), ...performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))];
   const contentEncodingSupported = entries.some((e) => "contentEncoding" in e);
 
   const candidates = [];
@@ -4112,6 +4191,14 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // @shared formatBytes
   function formatBytes(bytes) {
     if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
@@ -4129,7 +4216,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
     document.querySelectorAll('link[rel="stylesheet"]')
   );
 
-  const perfEntries = performance.getEntriesByType("resource");
+  const perfEntries = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   const externalCSSData = linkStylesheets.map((link) => {
     const href = link.href;
@@ -4655,6 +4742,14 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const valueToRating = (ms) =>
     ms <= 1800 ? "good" : ms <= 3000 ? "needs-improvement" : "poor";
 
@@ -4680,7 +4775,7 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
     const ttfb = Math.max(0, (navEntry?.responseStart ?? 0) - activationStart);
 
     // Render-blocking resources (Chrome 107+, requires renderBlockingStatus API)
-    const resources = performance.getEntriesByType("resource");
+    const resources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
     const blockingResources = resources.filter(
       (r) => r.renderBlockingStatus === "blocking"
     );
@@ -4750,7 +4845,7 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
   // render-blocking resource, then the rest until the paint
   const ttfbSync = Math.max(0, (navEntrySync?.responseStart ?? 0) - activationStartSync);
   const blockingSync = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((r) => r.renderBlockingStatus === "blocking");
   const lastBlockingEndSync = Math.max(
     ttfbSync,
@@ -4799,6 +4894,14 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
 // https://webperf-snippets.nucliweb.net
 
 (function() {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   function getSelector(node) {
     let sel = "";
     try {
@@ -4846,7 +4949,7 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
   function getFileSize(src) {
     if (!src) return null;
     try {
-      const entries = performance.getEntriesByType("resource");
+      const entries = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
       const entry = entries.find(e => e.name === src || e.name.includes(src.split("/").pop()));
       if (entry && entry.transferSize) {
         return (entry.transferSize / 1024).toFixed(1) + " KB";
@@ -5238,6 +5341,14 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
 // https://webperf-snippets.nucliweb.net
 
 (function () {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   function getSelector(node) {
     let sel = "";
     try {
@@ -5305,7 +5416,7 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
     const src = imgElement.currentSrc || imgElement.src;
     if (!src || src.startsWith("data:")) return 0;
 
-    const perfEntries = performance.getEntriesByType("resource");
+    const perfEntries = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
     const imgEntry = perfEntries.find((entry) => entry.name === src);
 
     if (imgEntry) {
@@ -5550,8 +5661,16 @@ Identifies resources that block the browser from rendering the page. These resou
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Check browser support
-  const testEntry = performance.getEntriesByType("resource")[0];
+  const testEntry = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))[0];
   if (testEntry && !("renderBlockingStatus" in testEntry)) {
     console.log(
       "%c⚠️ renderBlockingStatus not supported in this browser",
@@ -5563,7 +5682,7 @@ Identifies resources that block the browser from rendering the page. These resou
   }
 
   const blockingResources = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((entry) => entry.renderBlockingStatus === "blocking")
     .map((entry) => {
       const url = new URL(entry.name);
@@ -5719,6 +5838,14 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -5771,7 +5898,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 
   // Gather script data
   const scripts = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((r) => r.initiatorType === "script")
     .map((r) => {
       const url = new URL(r.name);
@@ -6036,6 +6163,14 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -6078,7 +6213,7 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
 
   // Gather script timing data
   const scripts = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((r) => r.initiatorType === "script")
     .map((r) => {
       const url = new URL(r.name);
@@ -7343,6 +7478,14 @@ Identifies where JavaScript time goes during page load: network download vs brow
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const formatMs = (ms) => (ms > 0 ? ms.toFixed(0) + "ms" : "-");
   // @shared formatBytes
   function formatBytes(bytes) {
@@ -7366,7 +7509,7 @@ Identifies where JavaScript time goes during page load: network download vs brow
   const loadEvent = nav?.loadEventEnd || 0;
   // 2. Script resource timing (download phase)
   const scriptResources = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((r) => r.initiatorType === "script")
     .map((r) => {
       let shortName;
@@ -7702,6 +7845,14 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Get all prefetch hints
   const prefetchLinks = Array.from(document.querySelectorAll('link[rel="prefetch"]'));
 
@@ -7725,7 +7876,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
   }
 
   // Get performance entries for all resources
-  const performanceEntries = performance.getEntriesByType("resource");
+  const performanceEntries = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   // Pre-normalize URLs for efficient matching (avoids repeated URL parsing in nested loops)
   const entryUrlMap = new Map();
@@ -8174,6 +8325,14 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -8208,7 +8367,7 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
 
   // Build performance entry map for timing lookups
   const entryMap = new Map();
-  performance.getEntriesByType("resource").forEach((e) => {
+  performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e)).forEach((e) => {
     try {
       entryMap.set(new URL(e.name, location.origin).href, e);
     } catch {}
@@ -8523,6 +8682,14 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   console.group("%c🔍 Resource Hints Validation", "font-weight: bold; font-size: 14px;");
 
   // Check if page is fully loaded
@@ -8539,7 +8706,7 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
   const dnsPrefetchLinks = Array.from(document.querySelectorAll('link[rel="dns-prefetch"]'));
 
   // Get all loaded resources from Performance API
-  const resources = performance.getEntriesByType("resource");
+  const resources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   // Helper: Extract domain from URL
   const getDomain = (url) => {
@@ -9071,6 +9238,14 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // @shared formatBytes
   function formatBytes(bytes) {
     if (bytes === null || bytes === undefined || Number.isNaN(bytes)) return "-";
@@ -9172,7 +9347,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
       if (type.rel === "preconnect" && !hint.crossorigin) {
         // Check if we load CORS resources from this origin
         const corsResources = performance
-          .getEntriesByType("resource")
+          .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
           .filter(
             (r) =>
               r.name.includes(hostname) &&
@@ -9194,7 +9369,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
 
   // Check for unused preloads
   const preloads = allHints.filter((h) => h.rel === "preload");
-  const loadedResources = performance.getEntriesByType("resource");
+  const loadedResources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 
   preloads.forEach((preload) => {
     const wasUsed = loadedResources.some((r) => r.name === preload.href);
@@ -9945,6 +10120,14 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -10007,7 +10190,7 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 
   // Get resource timing data
   const resourceTiming = new Map();
-  performance.getEntriesByType("resource").forEach((r) => {
+  performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e)).forEach((r) => {
     if (r.initiatorType === "script") {
       resourceTiming.set(r.name, {
         size: r.transferSize || 0,
@@ -10335,6 +10518,14 @@ Lists the Server-Timing metrics that the server sends with the document and with
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const SCRIPT = "Server-Timing-Early-Hints";
   const MAX_ITEMS = 50;
 
@@ -10371,7 +10562,7 @@ Lists the Server-Timing metrics that the server sends with the document and with
   // counted as unreadable instead of being treated as a resource with no metrics.
   let resourcesWithServerTiming = 0;
   let corsRestrictedCount = 0;
-  for (const r of performance.getEntriesByType("resource")) {
+  for (const r of performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))) {
     if (r.serverTiming.length > 0) {
       resourcesWithServerTiming++;
       for (const m of r.serverTiming) all.push(toItem(m, "resource", r.name));
@@ -10471,6 +10662,14 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   if (!('serviceWorker' in navigator)) {
     console.log(
       '%c⚠️ Service Workers not supported in this browser',
@@ -10490,7 +10689,7 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
   const registrations = await navigator.serviceWorker.getRegistrations();
   const controller = navigator.serviceWorker.controller;
   const navEntry = performance.getEntriesByType('navigation')[0];
-  const resources = performance.getEntriesByType('resource');
+  const resources = performance.getEntriesByType('resource').filter((e) => !isOwnRequest(e));
 
   // Resources intercepted by SW (workerStart > 0)
   const swResources = resources.filter((r) => r.workerStart > 0);
@@ -11187,6 +11386,14 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -11240,7 +11447,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
   };
 
   new PerformanceObserver((entryList) => {
-  const entries = entryList.getEntries();
+  const entries = entryList.getEntries().filter((e) => !isOwnRequest(e));
   const restrictedCount = entries.filter((entry) => !hasTiming(entry)).length;
 
   const resourcesData = entries
@@ -11323,7 +11530,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
   });
 
   // Synchronous return for agent
-  const allResources = performance.getEntriesByType("resource");
+  const allResources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
   const corsRestrictedCount = allResources.filter((entry) => !hasTiming(entry)).length;
   const resourcesSync = allResources
     .filter(hasTiming)
@@ -11381,6 +11588,14 @@ Groups every third-party request by root domain and reports, per domain, the req
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const MAX_ITEMS = 50;
   const LOAF_WARNING_MS = 250; // Script time in long animation frames above which one domain is a problem
   const MAX_LISTED_DOMAINS = 5;
@@ -11463,7 +11678,7 @@ Groups every third-party request by root domain and reports, per domain, the req
   let thirdPartyBytes = 0;
   let sizeUnknownCount = 0;
 
-  performance.getEntriesByType("resource").forEach((entry) => {
+  performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e)).forEach((entry) => {
     const parsed = rootDomainOf(entry.name);
     if (!parsed) return;
     if (parsed.first) {
@@ -11634,6 +11849,14 @@ Detects preload resource hints for scripts that use async or defer attributes. T
 // https://webperf-snippets.nucliweb.net
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   // Get all preloaded scripts
   const preloadedScripts = Array.from(
     document.querySelectorAll('link[rel="preload"][as="script"]'),
@@ -11653,7 +11876,7 @@ Detects preload resource hints for scripts that use async or defer attributes. T
 
   // Get performance entries for scripts
   const performanceScripts = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((r) => r.initiatorType === "script" || r.initiatorType === "link");
 
   // Find corresponding script elements for each preload
@@ -12061,6 +12284,14 @@ Cross-checks every font face the page knows about against the text that renders,
 // Idea and original script: https://github.com/paulcalvano/webfont-usage-analyzer
 
 (() => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const SCRIPT = "Webfont-Usage-Analyzer";
   const MAX_ITEMS = 50;
   const MAX_ELEMENTS = 20000;
@@ -12158,7 +12389,7 @@ Cross-checks every font face the page knows about against the text that renders,
 
   const knownUrls = new Set([...ruleSources.values()].flat(2));
   const fontEntries = new Map(); // url -> encodedBodySize
-  for (const e of performance.getEntriesByType("resource")) {
+  for (const e of performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))) {
     if (FONT_FILE.test(e.name) || knownUrls.has(e.name)) {
       fontEntries.set(e.name, Math.max(fontEntries.get(e.name) ?? 0, e.encodedBodySize || 0));
     }
@@ -15316,6 +15547,23 @@ Audits all <img> elements on the page against image performance best practices, 
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -15416,7 +15664,7 @@ Audits all <img> elements on the page against image performance best practices, 
   async function fetchFormat(url) {
     if (!url) return detectFormat(url);
     try {
-      const res = await fetch(url, { cache: "force-cache" });
+      const res = await fetch(ownRequestUrl(url), { cache: "force-cache" });
       const ct = res.headers.get("content-type")?.split(";")[0]?.trim() || "";
       if (ct.includes("avif")) return "avif";
       if (ct.includes("webp")) return "webp";
@@ -15739,6 +15987,31 @@ Compares the pixels of each downloaded image file with the pixels the page draws
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const OVERSIZED_RATIO = 1.5; // file has at least 1.5x the pixels it needs on each axis
   const UNDERSIZED_RATIO = 0.9; // file has less than 90% of the pixels it needs
   const SEVERE_OVERSIZED = 2;
@@ -15779,14 +16052,14 @@ Compares the pixels of each downloaded image file with the pixels the page draws
         clearTimeout(timer);
         resolve(null);
       };
-      probe.src = url;
+      probe.src = ownRequestUrl(url);
     });
   }
 
   // Bytes of each image URL; null when the browser hides them (cross-origin without
   // Timing-Allow-Origin).
   const transferByUrl = new Map();
-  performance.getEntriesByType("resource").forEach((e) => {
+  performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e)).forEach((e) => {
     if (e.initiatorType !== "img" && e.initiatorType !== "css" && e.initiatorType !== "other") return;
     const bytes = e.transferSize > 0 ? e.transferSize : e.encodedBodySize > 0 ? e.encodedBodySize : null;
     if (bytes !== null) transferByUrl.set(e.name, bytes);
@@ -15966,6 +16239,31 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   function formatSize(bytes) {
     if (!bytes || bytes === 0) return "—";
     if (bytes < 1024) return `${bytes} B`;
@@ -16019,7 +16317,7 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
 
   // ── External SVG files (Performance API) ──────────────────────────────
   const svgEntries = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((e) => e.name.split("?")[0].toLowerCase().endsWith(".svg"));
 
   const externalResults = await Promise.all(
@@ -16028,7 +16326,7 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
       let bitmaps = [];
 
       try {
-        const res = await fetch(entry.name, { cache: "force-cache" });
+        const res = await fetch(ownRequestUrl(entry.name), { cache: "force-cache" });
         const ce = res.headers.get("content-encoding");
         if (ce) compression = ce; // gzip | br | zstd | deflate
         bitmaps = findEmbeddedBitmaps(await res.text());

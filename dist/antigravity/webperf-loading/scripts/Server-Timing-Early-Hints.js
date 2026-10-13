@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const SCRIPT = "Server-Timing-Early-Hints";
   const MAX_ITEMS = 50;
   const [nav] = performance.getEntriesByType("navigation");
@@ -25,7 +28,7 @@
   const all = nav.serverTiming.map(m => toItem(m, "navigation", location.href));
   let resourcesWithServerTiming = 0;
   let corsRestrictedCount = 0;
-  for (const r of performance.getEntriesByType("resource")) {
+  for (const r of performance.getEntriesByType("resource").filter(e => !isOwnRequest(e))) {
     if (r.serverTiming.length > 0) {
       resourcesWithServerTiming++;
       for (const m of r.serverTiming) all.push(toItem(m, "resource", r.name));

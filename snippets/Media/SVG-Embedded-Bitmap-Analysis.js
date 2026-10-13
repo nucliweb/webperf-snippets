@@ -2,6 +2,31 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   function formatSize(bytes) {
     if (!bytes || bytes === 0) return "—";
     if (bytes < 1024) return `${bytes} B`;
@@ -55,7 +80,7 @@
 
   // ── External SVG files (Performance API) ──────────────────────────────
   const svgEntries = performance
-    .getEntriesByType("resource")
+    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
     .filter((e) => e.name.split("?")[0].toLowerCase().endsWith(".svg"));
 
   const externalResults = await Promise.all(
@@ -64,7 +89,7 @@
       let bitmaps = [];
 
       try {
-        const res = await fetch(entry.name, { cache: "force-cache" });
+        const res = await fetch(ownRequestUrl(entry.name), { cache: "force-cache" });
         const ce = res.headers.get("content-encoding");
         if (ce) compression = ce; // gzip | br | zstd | deflate
         bitmaps = findEmbeddedBitmaps(await res.text());

@@ -1,4 +1,14 @@
 (async () => {
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
@@ -85,7 +95,7 @@
   async function fetchFormat(url) {
     if (!url) return detectFormat(url);
     try {
-      const res = await fetch(url, {
+      const res = await fetch(ownRequestUrl(url), {
         cache: "force-cache"
       });
       const ct = res.headers.get("content-type")?.split(";")[0]?.trim() || "";

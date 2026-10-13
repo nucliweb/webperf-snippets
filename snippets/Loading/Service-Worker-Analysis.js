@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   if (!('serviceWorker' in navigator)) {
     console.log(
       '%c⚠️ Service Workers not supported in this browser',
@@ -21,7 +29,7 @@
   const registrations = await navigator.serviceWorker.getRegistrations();
   const controller = navigator.serviceWorker.controller;
   const navEntry = performance.getEntriesByType('navigation')[0];
-  const resources = performance.getEntriesByType('resource');
+  const resources = performance.getEntriesByType('resource').filter((e) => !isOwnRequest(e));
 
   // Resources intercepted by SW (workerStart > 0)
   const swResources = resources.filter((r) => r.workerStart > 0);

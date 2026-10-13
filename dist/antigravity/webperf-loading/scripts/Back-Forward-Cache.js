@@ -1,4 +1,14 @@
 (async () => {
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
   const results = {
     supported: "PerformanceNavigationTiming" in window,
     wasRestored: false,
@@ -52,7 +62,7 @@
       description: REASON_HELP["unload-listener"]
     });
     if (/^https?:$/.test(location.protocol)) try {
-      const res = await fetch(location.href, {
+      const res = await fetch(ownRequestUrl(location.href), {
         method: "HEAD",
         credentials: "same-origin"
       });

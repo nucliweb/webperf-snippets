@@ -1,4 +1,14 @@
 async function analyzeCSSMediaQueries(minWidth = 768) {
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
   const SCRIPT = "CSS-Media-Queries-Analysis";
   const MAX_ITEMS = 50;
   const WARNING_BYTES = 50 * 1024;
@@ -64,7 +74,7 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
       });
     } catch {
       if (sheet.href) try {
-        const response = await fetch(sheet.href);
+        const response = await fetch(ownRequestUrl(sheet.href));
         parseMediaQueriesFromCSS(await response.text(), sheet.href);
       } catch {
         corsBlockedCount++;

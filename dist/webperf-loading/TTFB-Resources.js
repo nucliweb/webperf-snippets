@@ -1,4 +1,7 @@
 (() => {
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
   const OWN_DOMAINS = [];
   const waitTime = entry => entry.responseStart - entry.requestStart;
   const hasTiming = entry => entry.responseStart > 0;
@@ -29,7 +32,7 @@
     }
   };
   new PerformanceObserver(entryList => {
-    const entries = entryList.getEntries();
+    const entries = entryList.getEntries().filter(e => !isOwnRequest(e));
     const restrictedCount = entries.filter(entry => !hasTiming(entry)).length;
     const resourcesData = entries.filter(hasTiming).map(entry => {
       const isThirdParty = isThirdPartyUrl(entry.name);
@@ -72,7 +75,7 @@
     type: "resource",
     buffered: true
   });
-  const allResources = performance.getEntriesByType("resource");
+  const allResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const corsRestrictedCount = allResources.filter(entry => !hasTiming(entry)).length;
   const resourcesSync = allResources.filter(hasTiming).map(entry => ({
     url: entry.name,

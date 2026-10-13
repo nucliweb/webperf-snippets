@@ -2,6 +2,14 @@
 // https://webperf-snippets.nucliweb.net
 
 (async () => {
+  // @shared isOwnRequest
+  // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
+  // did not make it, so no snippet counts it.
+  function isOwnRequest(entry) {
+    return entry.name.endsWith("#webperf-snippets");
+  }
+  // @end-shared isOwnRequest
+
   const navEntries = performance.getEntriesByType('navigation');
 
   if (navEntries.length === 0) {
@@ -14,7 +22,7 @@
 
   const navEntry = navEntries[0];
   const currentURL = new URL(window.location.href);
-  const resources = performance.getEntriesByType('resource');
+  const resources = performance.getEntriesByType('resource').filter((e) => !isOwnRequest(e));
 
   // Check for document navigations (only navigation type, exclude iframes)
   // Filter out third-party iframes (analytics, ads, etc.)
