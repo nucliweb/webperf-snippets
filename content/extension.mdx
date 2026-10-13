@@ -1,0 +1,70 @@
+---
+type: guide
+---
+
+import { Callout } from '../components/Callout'
+import { ExtensionDownload } from '../components/ExtensionDownload'
+
+# DevTools extension
+
+A Chrome DevTools panel that runs the snippets on the inspected page and shows their results: the metric and its rating, the issues with how to fix them, and the items as a table. It runs the same code as the CLI and the agents, without pasting anything into the console.
+
+<picture style={{ marginTop: "20px", display: "block" }}>
+  <img
+    width="1200"
+    height="622"
+    sizes="(min-width: 1024px) 670px, 92vw"
+    srcSet="https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_342/v1791929810/webperf-snippets/WebPerf-Snippets-Chrome-Extension.png 342w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_600/v1791929810/webperf-snippets/WebPerf-Snippets-Chrome-Extension.png 600w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_800/v1791929810/webperf-snippets/WebPerf-Snippets-Chrome-Extension.png 800w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_1200/v1791929810/webperf-snippets/WebPerf-Snippets-Chrome-Extension.png 1200w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_1400/v1791929810/webperf-snippets/WebPerf-Snippets-Chrome-Extension.png 1400w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_2000/v1791929810/webperf-snippets/WebPerf-Snippets-Chrome-Extension.png 2000w"
+    src="https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_600/v1791929810/webperf-snippets/WebPerf-Snippets-Chrome-Extension.png"
+    loading="eager"
+    decoding="async"
+    fetchPriority="high"
+    alt="The WebPerf Snippets panel in Chrome DevTools: the list of snippets by category on the left, and on the right the home page with the steps, the structural audit with its Run audit button, and the categories"
+  />
+</picture>
+
+<Callout type="warning">
+  **Beta.** The extension installs from a zip, not from the Chrome Web Store. Whether it goes to the store depends on the interest and the feedback on this beta.
+</Callout>
+
+<ExtensionDownload />
+
+## What it does
+
+- Lists the 56 snippets by category, with a search (`/`), and runs the chosen one on the inspected page (`Ctrl` `Enter` or `Cmd` `Enter`).
+- Shows each result by the [return contract](https://github.com/nucliweb/webperf-snippets/blob/main/snippets/SCHEMA.md): the metric and its rating, the issues sorted by severity, the items as a table and the details. A selector in the result opens its element in the Elements panel.
+- Runs snippets that record what happens, such as INP or long animation frames: run it, use the page, then press Read result.
+- Runs a structural audit: the 22 snippets of the [CLI](/CLI) audit workflow, one after the other, on a page it reloads first, as the CLI loads it. Each audit says what changed since the previous audit of the same page: new, changed and resolved issues, and metrics whose rating moved. The panel keeps the last ten audits.
+- Copies a result as JSON, downloads an audit as JSON in the shape of `--workflow audit --json`, and copies the prompt that runs a snippet with the CLI from an AI agent, with the inspected page in its command.
+- Works on pages whose Content Security Policy blocks code pasted into the console, since it runs the snippets through the DevTools API.
+
+## Install the beta
+
+The extension needs Chrome 120 or later.
+
+1. Download the zip and unzip it. Keep the folder: Chrome loads the extension from it.
+2. Open `chrome://extensions` and turn on **Developer mode**, at the top right.
+3. Choose **Load unpacked** and select the unzipped folder, the one with `manifest.json`.
+4. Open DevTools on any page and go to the **WebPerf Snippets** panel. If it is not in sight, it is in the `»` menu of the panels.
+
+To update it, download the new zip, remove the extension in `chrome://extensions` and load the new folder.
+
+## Privacy
+
+The extension asks for no permission beyond storage, and runs a snippet only when you press Run or start an audit. It sends nothing anywhere: the results stay in the panel, the last audits in the local storage of the browser, and the settings, the theme and the side of the list, in the storage that Chrome syncs with your account.
+
+## Limitations
+
+- It is a beta: expect rough edges.
+- It runs in Chrome. Firefox and Safari versions come later, if there is interest.
+- The snippets ship inside the extension, so a new version of a snippet arrives with a new version of the extension.
+- The [DevTools Overrides](/DevTools-Overrides) scripts are not in it: they run before the page, from Local Overrides.
+
+## Feedback
+
+Every bug, idea or confusing result helps decide what comes next. [Open a feedback issue](https://github.com/nucliweb/webperf-snippets/issues/new?template=extension-feedback.yml): the form asks for the snippet, what happened, and the result from Copy JSON. The [open feedback](https://github.com/nucliweb/webperf-snippets/issues?q=is%3Aissue%20is%3Aopen%20label%3Aextension) shows what is already reported.
