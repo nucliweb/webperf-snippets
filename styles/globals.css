@@ -148,6 +148,38 @@ pre code {
   outline-offset: 2px;
 }
 
+.wp-extension-download {
+  margin-top: 1.5rem;
+}
+
+.wp-extension-download-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--wp-button-border);
+  border-radius: 0.375rem;
+  background-color: var(--wp-button-bg);
+  color: var(--wp-link);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.wp-extension-download-link:hover {
+  color: var(--wp-button-fg-hover);
+}
+
+.wp-extension-download-link:focus-visible {
+  outline: 2px solid var(--wp-button-fg-hover);
+  outline-offset: 2px;
+}
+
+.wp-extension-download-version {
+  color: var(--wp-caption-fg);
+  font-weight: 400;
+  font-size: 0.875em;
+}
+
 .wp-snippet-copy:hover {
   color: var(--wp-button-fg-hover);
 }

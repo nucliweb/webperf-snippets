@@ -26,6 +26,9 @@ export default {
   "CLI": {
     "title": "CLI"
   },
+  "extension": {
+    "title": "DevTools extension (beta)"
+  },
   "visualizer": {
     "title": "Visualizer"
   }
