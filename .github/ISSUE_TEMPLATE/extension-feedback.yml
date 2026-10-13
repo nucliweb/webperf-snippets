@@ -1,0 +1,62 @@
+name: Extension beta feedback
+description: A bug, an idea or anything that got in the way while using the DevTools extension.
+title: "[Extension beta]: "
+labels: ["extension"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying the beta of the WebPerf Snippets extension. Any feedback helps, including "it worked, but I did not understand the result".
+
+        Do not paste private URLs, tokens or personal data: the issue is public.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of feedback is it?
+      options:
+        - Something does not work
+        - A result is wrong or hard to understand
+        - An idea or a missing feature
+        - Installing or loading the extension
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: snippet
+    attributes:
+      label: Snippet or part of the panel
+      description: The snippet you ran, or the part of the panel, such as the structural audit, the list or the settings.
+      placeholder: INP, Structural audit
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, and what you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: textarea
+    id: result
+    attributes:
+      label: Result
+      description: If it is about a result, press Copy JSON in the panel and paste it here. Remove any URL you do not want to share.
+      render: json
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: In chrome://extensions, next to the name.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: In chrome://version.
+      placeholder: Chrome 141, macOS
+    validations:
+      required: true
