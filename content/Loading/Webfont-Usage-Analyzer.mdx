@@ -27,7 +27,7 @@ The snippet reports:
 
 ### Understanding the results
 
-Every face in `document.fonts` is one item, with its family, weight, style, `font-display`, `unicode-range`, load status, whether text uses it, and the encoded size of its file.
+Each item is a face that downloaded or tried to, and the file it points to, with its family, weight, style, `font-display`, `unicode-range`, load status, whether text uses it, how many `@font-face` rules declare it (`declarations`), the encoded size of its file, and a `note` with the reason when it is not used: `declared again later`, `loaded but not used` or `failed to load`. Faces that never loaded cost nothing, so they are not items: `details.neverLoaded` names each of them once.
 
 #### How usage is decided
 
@@ -50,6 +50,13 @@ Browsers download a face only when text needs it, so an unloaded face costs noth
 - A `unicode-range` subset that the page had no characters for. This is how a split font is meant to behave, for example a Cyrillic subset on a Latin page.
 - A whole face with no `unicode-range` that nothing used. It is dead CSS that is safe to remove.
 
+#### Declared more than once
+
+Two stylesheets can declare the same face, with the same family, weight, style and `unicode-range`, for example a page and a shared header that each bring their own copy. The browser renders with the later declaration, so:
+
+- When the earlier declaration also loaded, its file was downloaded for nothing, and the report raises a warning with its URL and size. This happens when text renders before the later stylesheet arrives. Keep one declaration per face.
+- When only the later one loaded, the earlier ones cost nothing, and the report lists them apart from the faces nothing needs.
+
 #### font-display
 
 | Value | Behavior while the font loads |
@@ -69,7 +76,7 @@ The snippet reads the font URLs from the stylesheets' `@font-face` rules. Cross-
 
 #### Returned data
 
-The snippet returns an object with `count` (faces), `items` (at most 50, problems first, with `unicode-range` values over 60 characters shortened), `issues`, and `details` with the counts, byte totals, `font-display` distribution and per-family `unicode-range` coverage (`unicodeRangeFamilies`).
+The snippet returns an object with `count` (face and file pairs that loaded or failed), `items` (at most 50, problems first, with `unicode-range` values over 60 characters shortened), `issues`, and `details` with the counts, the number of `@font-face` rules (`declarationCount`), the faces nothing needed (`neverLoaded`), byte totals, `font-display` distribution and per-family `unicode-range` coverage (`unicodeRangeFamilies`).
 
 ### Attribution
 
