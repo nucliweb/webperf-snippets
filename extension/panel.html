@@ -9,6 +9,7 @@
 <body>
   <aside class="sidebar">
     <div class="sidebar-top">
+      <button type="button" id="go-home" class="tool" title="Home"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5M4 6.5V13h3V9.5h2V13h3V6.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Home</span></button>
       <input id="search" type="search" placeholder="Search snippets  /" aria-label="Search snippets" aria-keyshortcuts="/" autocomplete="off">
       <button type="button" id="toggle-sidebar" aria-controls="list" aria-expanded="true" title="Hide the list">
         <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -19,7 +20,6 @@
     <nav id="list" aria-label="Snippets"></nav>
   </aside>
   <main id="main">
-    <p class="empty">Choose a snippet to run it on the inspected page.</p>
   </main>
   <dialog id="shortcuts" aria-labelledby="shortcuts-title">
     <h2 id="shortcuts-title">Keyboard shortcuts</h2>

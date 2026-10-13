@@ -3,7 +3,8 @@
 // since the synced area limits how many writes it takes per minute. Without chrome.storage, or when it
 // fails, the panel uses the defaults and saves nothing.
 
-export const DEFAULTS = { theme: 'devtools', side: 'left', sidebar: 'expanded', snippet: null }
+// audit is the report of the last audit (lib/audit.js), shown again on the home page
+export const DEFAULTS = { theme: 'devtools', side: 'left', sidebar: 'expanded', snippet: null, audit: null }
 const SYNCED = new Set(['theme', 'side'])
 
 export function createSettings(storage) {
