@@ -54,8 +54,14 @@
   const videos = Array.from(document.querySelectorAll("video"));
 
   if (videos.length === 0) {
-    console.log("No <video> elements found on this page.");
-    return { script: "Video-Element-Audit", status: "ok", count: 0, items: [], issues: [] };
+    console.log("No <video> elements on this page, nothing to audit.");
+    return {
+      script: "Video-Element-Audit",
+      status: "ok",
+      count: 0,
+      items: [],
+      issues: [{ severity: "info", message: "No <video> elements on this page, so there was nothing to audit." }],
+    };
   }
 
   const audited = videos.map((video) => {

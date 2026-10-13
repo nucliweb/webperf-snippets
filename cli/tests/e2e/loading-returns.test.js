@@ -312,6 +312,42 @@ describe("SVG-Embedded-Bitmap-Analysis", () => {
     const none = await runOn("/empty", "Media/SVG-Embedded-Bitmap-Analysis");
     expect(none.details.spriteOpportunity).toBe(false);
   }, 30000);
+
+  it("reports the sprite opportunity as an info issue with the counts", async () => {
+    const many = await runOn("/svgs", "Media/SVG-Embedded-Bitmap-Analysis");
+    expect(many.issues).toEqual([
+      { severity: "info", message: "6 standalone inline SVGs could share one <symbol> sprite referenced with <use> (1 inline SVG already uses <use>)" },
+    ]);
+    const none = await runOn("/empty", "Media/SVG-Embedded-Bitmap-Analysis");
+    expect(none.issues).toEqual([]);
+  }, 30000);
+});
+
+describe("TTFB-Sub-Parts issues", () => {
+  it("gives no issue when the TTFB is good", async () => {
+    const r = await runOn("/empty", "Loading/TTFB-Sub-Parts");
+    expect(r.rating).toBe("good");
+    expect(r.issues).toEqual([]);
+  }, 30000);
+
+  it("gives a warning naming the TTFB and the slowest phase when it needs improvement", async () => {
+    const r = await runOn("/slow-ttfb?ms=1000", "Loading/TTFB-Sub-Parts");
+    expect(r.rating).toBe("needs-improvement");
+    expect(r.details.slowestPhase).toBe("serverResponse");
+    expect(r.issues).toHaveLength(1);
+    expect(r.issues[0].severity).toBe("warning");
+    expect(r.issues[0].message).toMatch(
+      new RegExp(`^TTFB is ${r.value} ms \\(needs-improvement\\); server response takes ${r.details.subParts.serverResponse.value} ms of it \\(\\d+%\\)`)
+    );
+  }, 30000);
+
+  it("gives an error when the TTFB is poor", async () => {
+    const r = await runOn("/slow-ttfb?ms=2000", "Loading/TTFB-Sub-Parts");
+    expect(r.rating).toBe("poor");
+    expect(r.issues).toHaveLength(1);
+    expect(r.issues[0].severity).toBe("error");
+    expect(r.issues[0].message).toMatch(/^TTFB is \d+ ms \(poor\); server response takes \d+ ms of it/);
+  }, 30000);
 });
 
 describe("Network-Bandwidth-Connection-Quality", () => {

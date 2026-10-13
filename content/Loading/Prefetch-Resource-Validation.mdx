@@ -95,6 +95,7 @@ Shows the overall state of prefetch usage:
 | **High size**          | Warning  | Total prefetch &gt;2MB should be reduced                             |
 | **Inappropriate type** | Warning  | Resource type/size not suitable (video, large image/script)          |
 | **Not loaded**         | Info     | Prefetch hint present but resource not loaded yet                    |
+| **No prefetch hints**  | Info     | No `rel="prefetch"` on the page, so there was nothing to validate    |
 
 <Callout type="default">
 **(\*) Note on "Wrong hint type" detection:** This check uses a 5-second heuristic (resources loaded in the first 5s are considered current-page resources). On very slow-loading pages (>5s), this may produce false positives. The heuristic works well for most pages but consider the page load time when evaluating this error.
