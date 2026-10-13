@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" class="loading">
+<head>
+  <meta charset="utf-8">
+  <title>WebPerf Snippets</title>
+  <link rel="stylesheet" href="panel.css">
+  <script type="module" src="panel.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <button type="button" id="go-home" class="tool" title="Home"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5M4 6.5V13h3V9.5h2V13h3V6.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Home</span></button>
+      <input id="search" type="search" placeholder="Search snippets  /" aria-label="Search snippets" aria-keyshortcuts="/" autocomplete="off">
+      <button type="button" id="toggle-sidebar" aria-controls="list" aria-expanded="true" title="Hide the list">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" id="open-shortcuts" class="tool" title="Keyboard shortcuts"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="1.5" y="4" width="13" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M4 6.5h1M7.5 6.5h1M11 6.5h1M5 9.5h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span class="visually-hidden">Keyboard shortcuts</span></button>
+      <button type="button" id="open-settings" class="tool" title="Settings"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg><span class="visually-hidden">Settings</span></button>
+    </div>
+    <nav id="list" aria-label="Snippets"></nav>
+  </aside>
+  <main id="main">
+  </main>
+  <dialog id="shortcuts" aria-labelledby="shortcuts-title">
+    <h2 id="shortcuts-title">Keyboard shortcuts</h2>
+    <dl class="keys">
+      <dt><kbd>/</kbd></dt><dd>Search snippets</dd>
+      <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Move through the list</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Open the snippet</dd>
+      <dt><kbd class="mod">Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Run the snippet</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Clear the search, or close this dialog</dd>
+    </dl>
+    <button type="button" class="close">Close</button>
+  </dialog>
+  <dialog id="settings" aria-labelledby="settings-title">
+    <h2 id="settings-title">Settings</h2>
+    <fieldset>
+      <legend>Theme</legend>
+      <label><input type="radio" name="theme" value="devtools"> Same as DevTools</label>
+      <label><input type="radio" name="theme" value="light"> Light</label>
+      <label><input type="radio" name="theme" value="dark"> Dark</label>
+    </fieldset>
+    <fieldset>
+      <legend>List of snippets</legend>
+      <label><input type="radio" name="side" value="left"> On the left</label>
+      <label><input type="radio" name="side" value="right"> On the right</label>
+    </fieldset>
+    <button type="button" class="close">Close</button>
+  </dialog>
+</body>
+</html>

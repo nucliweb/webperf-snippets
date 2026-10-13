@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "WebPerf Snippets",
+  "version": "0.1.0",
+  "description": "Run the WebPerf Snippets on the inspected page from a DevTools panel, and read their results.",
+  "homepage_url": "https://webperf-snippets.nucliweb.net",
+  "minimum_chrome_version": "120",
+  "devtools_page": "devtools.html",
+  "permissions": ["storage"]
+}
