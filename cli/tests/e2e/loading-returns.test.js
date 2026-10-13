@@ -408,29 +408,6 @@ describe("SSR-Hydration-Data-Analysis", () => {
   }, 30000);
 });
 
-describe("CSS-Media-Queries-Analysis", () => {
-  it("returns the performance impact as numbers, without printing the impact report", async () => {
-    const lines = [];
-    const r = await onPage("/mq", async (page) => {
-      page.on("console", (m) => lines.push(m.text()));
-      const result = await page.evaluate(source("Loading/CSS-Media-Queries-Analysis"));
-      await page.waitForTimeout(300);
-      return result;
-    });
-    expect(r.status).toBe("ok");
-    const impact = r.details.performanceImpact;
-    expect(impact.unnecessaryBytes).toBeGreaterThan(0);
-    const devices = Object.values(impact.deviceImpact);
-    expect(devices.length).toBeGreaterThan(0);
-    for (const d of devices) {
-      expect(keysOf(d)).toBe("fcpImpactMs,inpOverheadMs,lcpImpactMs,renderBlockingTimeMs,runtimeOverheadMs");
-      for (const v of Object.values(d)) expect(typeof v).toBe("number");
-    }
-    expect(JSON.stringify(impact)).not.toMatch(/KB|%"/);
-    expect(lines.some((l) => l.includes("PERFORMANCE IMPACT ANALYSIS"))).toBe(false);
-  }, 30000);
-});
-
 describe("running a snippet twice in the same console", () => {
   it.each(["Loading/CSS-Media-Queries-Analysis", "Loading/Content-Visibility"])(
     "%s does not fail the second time",

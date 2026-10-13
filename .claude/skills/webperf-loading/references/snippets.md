@@ -5,7 +5,7 @@
 ---
 ## CSS media queries analysis
 
-Analyze all @media rules in CSS stylesheets to identify classes and properties targeting viewports bigger than a specified breakpoint (default: 768px). Results are grouped by inline CSS and external files, with byte size estimates for potential mobile savings.
+Analyze all @media rules in CSS stylesheets that target viewports bigger than a breakpoint (default: 768px). Narrower screens download and parse that CSS without using it. The snippet groups the rules by distinct query, the way CSS analytics tools such as Project Wallace report at-rules, and breaks them down by stylesheet.
 
 **Script:** `scripts/CSS-Media-Queries-Analysis.js`
 ---
