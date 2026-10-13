@@ -842,6 +842,40 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     { name: "Element Render Delay", key: "elementRenderDelay", targetPercent: 10 },
   ];
 
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
   const getNavigationEntry = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) {
@@ -902,16 +936,9 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     // Element info
     if (lcpEntry.element) {
       const el = lcpEntry.element;
-      let selector = el.tagName.toLowerCase();
-      if (el.id) selector = `#${el.id}`;
-      else if (el.className && typeof el.className === "string") {
-        const classes = el.className.trim().split(/\s+/).slice(0, 2).join(".");
-        if (classes) selector = `${el.tagName.toLowerCase()}.${classes}`;
-      }
-
       console.log("");
       console.log("%cLCP Element:", "font-weight: bold;");
-      console.log(`   ${selector}`, el);
+      console.log(`   ${uniqueSelector(el)}`, el);
       if (lcpEntry.url) {
         const shortUrl = (() => {
           try {
@@ -1066,13 +1093,7 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
   const slowestPhaseSync = subPartsForRank.reduce((a, b) => a.value > b.value ? a : b).key;
   let lcpSelectorSync = null;
   if (lcpEntry.element) {
-    const el = lcpEntry.element;
-    lcpSelectorSync = el.tagName.toLowerCase();
-    if (el.id) lcpSelectorSync = `#${el.id}`;
-    else if (el.className && typeof el.className === "string") {
-      const classes = el.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) lcpSelectorSync = `${el.tagName.toLowerCase()}.${classes}`;
-    }
+    lcpSelectorSync = uniqueSelector(lcpEntry.element);
   }
   const shortUrlSync = lcpEntry.url
     ? (() => {
@@ -1147,14 +1168,39 @@ Tracks every LCP candidate element during page load and highlights each one with
     return navEntry?.activationStart || 0;
   };
 
-  const getSelector = (element) => {
-    if (element.id) return `#${element.id}`;
-    if (element.className && typeof element.className === "string") {
-      const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) return `${element.tagName.toLowerCase()}.${classes}`;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
     }
-    return element.tagName.toLowerCase();
-  };
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
 
   const getElementInfo = (element, entry) => {
     const tag = element.tagName.toLowerCase();
@@ -1232,7 +1278,7 @@ Tracks every LCP candidate element during page load and highlights each one with
       candidates.push({
         index: candidates.length + 1,
         element,
-        selector: getSelector(element),
+        selector: uniqueSelector(element),
         color,
         name,
         time: Math.max(0, entry.startTime - activationStart),
@@ -1269,7 +1315,7 @@ Tracks every LCP candidate element during page load and highlights each one with
     const el = entry.element;
     if (!el || seenEls.has(el)) continue;
     seenEls.add(el);
-    const selector = getSelector(el);
+    const selector = uniqueSelector(el);
     const time = Math.round(Math.max(0, entry.startTime - trailActivationStart));
     const { type, url } = getElementInfo(el, entry);
     syncCandidates.push({
@@ -1468,24 +1514,24 @@ Detects whether the LCP element is a <video> and audits the poster image configu
   }
 
   if (lcpSource === "first-frame") {
-    issues.push({ s: "info", msg: "LCP is the first video frame — adding a poster gives explicit control over the LCP image" });
+    issues.push({ s: "info", msg: "LCP is the first video frame: adding a poster gives explicit control over the LCP image" });
   }
   if (lcpSource === "first-frame" && (!autoplay || !muted)) {
     issues.push({ s: "warning", msg: "First-frame LCP requires autoplay + muted for the browser to render it immediately" });
   }
 
   if (posterAttr && !posterPreload) {
-    issues.push({ s: "warning", msg: 'No <link rel="preload" as="image"> for the poster — browser discovers it late' });
+    issues.push({ s: "warning", msg: 'No <link rel="preload" as="image"> for the poster: the browser discovers it late' });
   } else if (posterPreload && posterPreload.getAttribute("fetchpriority") !== "high") {
-    issues.push({ s: "info", msg: 'Preload found but missing fetchpriority="high" — may be deprioritised' });
+    issues.push({ s: "info", msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised' });
   }
 
   if (posterAttr && !isModernFormat && posterFormat !== "unknown") {
-    issues.push({ s: "info", msg: `Poster uses ${posterFormat} — AVIF or WebP would reduce file size and LCP load time` });
+    issues.push({ s: "info", msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time` });
   }
 
   if (isCrossOrigin) {
-    issues.push({ s: "info", msg: "renderTime is 0 — resource is cross-origin and the server does not send Timing-Allow-Origin" });
+    issues.push({ s: "info", msg: "renderTime is 0: the resource is cross-origin and the server does not send Timing-Allow-Origin" });
   }
 
   if (!autoplay && preload === "none") {
@@ -1617,6 +1663,40 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
     poor: { icon: "🔴", color: "#FF4E42" },
   };
 
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
   const getActivationStart = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     return navEntry?.activationStart || 0;
@@ -1640,14 +1720,7 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
       console.log("");
       console.log("%cLCP Element:", "font-weight: bold;");
 
-      let selector = element.tagName.toLowerCase();
-      if (element.id) selector = `#${element.id}`;
-      else if (element.className && typeof element.className === "string") {
-        const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
-        if (classes) selector = `${element.tagName.toLowerCase()}.${classes}`;
-      }
-
-      console.log(`   Element: ${selector}`, element);
+      console.log(`   Element: ${uniqueSelector(element)}`, element);
 
       const tagName = element.tagName.toLowerCase();
       if (tagName === "img") {
@@ -1710,12 +1783,7 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
   let lcpSelector = null;
   let lcpType = null;
   if (lcpEl) {
-    lcpSelector = lcpEl.tagName.toLowerCase();
-    if (lcpEl.id) lcpSelector = `#${lcpEl.id}`;
-    else if (lcpEl.className && typeof lcpEl.className === "string") {
-      const classes = lcpEl.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) lcpSelector = `${lcpEl.tagName.toLowerCase()}.${classes}`;
-    }
+    lcpSelector = uniqueSelector(lcpEl);
     const tag = lcpEl.tagName.toLowerCase();
     lcpType = tag === "img" ? "Image" : tag === "video" ? "Video poster" :
       window.getComputedStyle(lcpEl).backgroundImage !== "none" ? "Background image" :
@@ -2546,7 +2614,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       entry.antiPatterns.push({
         id: "static-no-store",
         severity: "error",
-        message: `${type} asset with no-store — static assets should be cacheable`,
+        message: `${type} asset with no-store; static assets should be cacheable`,
       });
     }
 
@@ -2554,7 +2622,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       entry.antiPatterns.push({
         id: "versioned-short-cache",
         severity: "warning",
-        message: `Versioned URL (hash detected) but max-age=${maxAge}s — consider long cache or immutable`,
+        message: `Versioned URL (hash detected) but max-age=${maxAge}s: consider long cache or immutable`,
       });
     }
 
@@ -2589,7 +2657,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       entry.antiPatterns.push({
         id: "maxage-zero-static",
         severity: "warning",
-        message: `Static asset with max-age=0 — forces revalidation on every request`,
+        message: `Static asset with max-age=0, which forces revalidation on every request`,
       });
     }
 
@@ -2603,7 +2671,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       entry.antiPatterns.push({
         id: "short-cache-static",
         severity: "warning",
-        message: `Static asset with max-age=${maxAge}s (< 1h) — consider a longer cache duration`,
+        message: `Static asset with max-age=${maxAge}s (< 1h): consider a longer cache duration`,
       });
     }
   }
@@ -2681,7 +2749,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     entry.antiPatterns.push({
       id: "uncompressed",
       severity: "warning",
-      message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}) — enable Brotli or gzip`,
+      message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}): enable Brotli or gzip`,
     });
   }
   for (const duplicate of costlyDuplicates) {
@@ -2689,7 +2757,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     entries.find((e) => e.url === duplicate.url).antiPatterns.push({
       id: "duplicate-uncached",
       severity: "warning",
-      message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network — load it once or make it cacheable`,
+      message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network: load it once or make it cacheable`,
     });
   }
 
@@ -3007,12 +3075,12 @@ Audits HTTP caching strategies across all page resources, identifying resources 
   }
   if (shortCacheEntries.filter((e) => e.hasHash).length > 0) {
     recommendations.push(
-      "🟡 Versioned files (with content hash) should use long cache or Cache-Control: immutable — they can be cached indefinitely since the URL changes on update."
+      "🟡 Versioned files (with content hash) should use long cache or Cache-Control: immutable; they can be cached indefinitely since the URL changes on update."
     );
   }
   if (allAntiPatterns.some((p) => p.id === "expires-without-cc")) {
     recommendations.push(
-      "🟡 Replace Expires headers with Cache-Control: max-age — Expires is an outdated mechanism and less reliable."
+      "🟡 Replace Expires headers with Cache-Control: max-age. Expires is an outdated mechanism and less reliable."
     );
   }
   if (cacheEfficiencyPercent !== null && cacheEfficiencyPercent < 50) {
@@ -3041,12 +3109,12 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     );
   } else if (cachedDuplicates.length > 0) {
     recommendations.push(
-      `ℹ️ ${cachedDuplicates.length} resources are requested multiple times but served from cache — low performance impact, but worth reviewing for correctness.`
+      `ℹ️ ${cachedDuplicates.length} resources are requested multiple times but served from cache; low performance impact, but worth reviewing for correctness.`
     );
   }
   if (corsRestricted > 0 && headersAnalyzed === 0) {
     recommendations.push(
-      `ℹ️ All resources are cross-origin CORS-restricted — header analysis was limited. Add Timing-Allow-Origin for more insights.`
+      `ℹ️ All resources are cross-origin CORS-restricted, so header analysis was limited. Add Timing-Allow-Origin for more insights.`
     );
   }
 
@@ -3475,7 +3543,7 @@ Detects client-side redirects that add unnecessary latency to page load and impa
     },
     issues: [
       ...(serverRedirects > 0 ? [{ severity: "warning", message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)` }] : []),
-      ...(documentNavigations.length > 0 ? [{ severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected — likely client-side redirect` }] : []),
+      ...(documentNavigations.length > 0 ? [{ severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected, likely a client-side redirect` }] : []),
       ...indicators.filter(i => i.severity === "warning").map(i => ({ severity: "warning", message: i.type })),
     ],
   };
@@ -4255,7 +4323,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
   if (renderBlockingCSS.length > 0 && inlineStyles.length === 0) {
     issues.push({
       severity: "high",
-      message: "No critical CSS inlined — all CSS loads via render-blocking requests",
+      message: "No critical CSS inlined: all CSS loads via render-blocking requests",
       suggestion:
         'Extract above-the-fold styles into a <style> tag in <head> and defer the rest',
     });
@@ -4986,8 +5054,8 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
       isLcpCandidate: image.isLcpCandidate,
     })),
     issues: [
-      ...(results.summary.lcpAffected ? [{ severity: "error", message: 'LCP candidate image has lazy loading — remove loading="lazy" and add fetchpriority="high"' }] : []),
-      ...(results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [{ severity: "warning", message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading — remove loading="lazy"` }] : []),
+      ...(results.summary.lcpAffected ? [{ severity: "error", message: 'LCP candidate image has lazy loading: remove loading="lazy" and add fetchpriority="high"' }] : []),
+      ...(results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [{ severity: "warning", message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading: remove loading="lazy"` }] : []),
     ],
   };
 })();
@@ -7640,14 +7708,20 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
   if (prefetchLinks.length === 0) {
     // Early return is safe here - console.group hasn't been opened yet
     console.log(
-      '%c✅ No prefetch hints found (rel="prefetch").',
-      "color: #22c55e; font-weight: bold;",
+      '%cℹ️ No prefetch hints on this page (rel="prefetch"), nothing to validate.',
+      "color: #3b82f6; font-weight: bold;",
     );
     console.log(
       "%cℹ️ Prefetch is for future navigation resources. Use it sparingly for predictable user journeys.",
       "color: #3b82f6;",
     );
-    return { script: "Prefetch-Resource-Validation", status: "ok", count: 0, items: [], issues: [] };
+    return {
+      script: "Prefetch-Resource-Validation",
+      status: "ok",
+      count: 0,
+      items: [],
+      issues: [{ severity: "info", message: 'No prefetch hints on this page (rel="prefetch"), so there was nothing to validate.' }],
+    };
   }
 
   // Get performance entries for all resources
@@ -11066,6 +11140,31 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
     { key: "serverResponse", duration: ttfbValueSync - tcpEndSync },
   ];
   const slowestSync = subPartsSync.reduce((a, b) => a.duration > b.duration ? a : b);
+  const phaseLabels = {
+    redirectWait: "redirect and wait",
+    serviceWorkerCache: "service worker and cache",
+    dnsLookup: "DNS lookup",
+    tcpConnection: "TCP connection",
+    sslTls: "SSL/TLS",
+    serverResponse: "server response",
+  };
+  const phaseFixes = {
+    redirectWait: "minimize redirects and link to the final URL",
+    serviceWorkerCache: "review the service worker startup and consider a cache-first strategy",
+    dnsLookup: "use dns-prefetch or a faster DNS provider",
+    tcpConnection: "enable HTTP/2 or HTTP/3 and keep connections alive",
+    sslTls: "enable TLS 1.3 and session resumption, and check the certificate chain",
+    serverResponse: "optimize server processing, cache the HTML and check slow queries",
+  };
+  const issues = [];
+  if (rating !== "good") {
+    const slowestMs = Math.round(slowestSync.duration);
+    const share = ttfbValueSync > 0 ? Math.round((slowestSync.duration / ttfbValueSync) * 100) : 0;
+    issues.push({
+      severity: rating === "poor" ? "error" : "warning",
+      message: `TTFB is ${value} ms (${rating}); ${phaseLabels[slowestSync.key]} takes ${slowestMs} ms of it (${share}%). Fix: ${phaseFixes[slowestSync.key]}.`,
+    });
+  }
   return {
     script: "TTFB-Sub-Parts",
     status: "ok",
@@ -11078,6 +11177,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
       subParts: Object.fromEntries(subPartsSync.map((p) => [p.key, { value: Math.round(p.duration), unit: "ms" }])),
       slowestPhase: slowestSync.key,
     },
+    issues,
   };
 })();
 ```
@@ -12014,7 +12114,9 @@ Cross-checks every font face the page knows about against the text that renders,
   // --- Font file URLs, from the @font-face rules ---------------------------------------
 
   let unreadableStylesheets = 0;
-  const ruleSources = new Map(); // "family|weight|style|range" -> [absolute urls]
+  // Two stylesheets can declare the same face with different files, so each rule keeps its own list,
+  // in document order, which is also the order of document.fonts
+  const ruleSources = new Map(); // "family|weight|style|range" -> [[absolute urls of each rule]]
   const faceKey = (family, weight, style, range) =>
     [stripQuotes(family).toLowerCase(), String(weight).trim() || "normal", String(style).trim() || "normal", isDefaultRange(range) ? "" : parseRanges(range).map((r) => r.join("-")).join(",")].join("|");
 
@@ -12033,7 +12135,7 @@ Cross-checks every font face the page knows about against the text that renders,
           })
           .filter((u) => u && !u.startsWith("data:"));
         const key = faceKey(s.getPropertyValue("font-family"), s.getPropertyValue("font-weight"), s.getPropertyValue("font-style"), s.getPropertyValue("unicode-range"));
-        ruleSources.set(key, [...(ruleSources.get(key) ?? []), ...urls]);
+        ruleSources.set(key, [...(ruleSources.get(key) ?? []), urls]);
       } else if (rule.styleSheet) {
         readSheet(rule.styleSheet, depth + 1);
       } else if (rule.cssRules) {
@@ -12054,7 +12156,7 @@ Cross-checks every font face the page knows about against the text that renders,
 
   // --- Bytes, from Resource Timing -----------------------------------------------------
 
-  const knownUrls = new Set([...ruleSources.values()].flat());
+  const knownUrls = new Set([...ruleSources.values()].flat(2));
   const fontEntries = new Map(); // url -> encodedBodySize
   for (const e of performance.getEntriesByType("resource")) {
     if (FONT_FILE.test(e.name) || knownUrls.has(e.name)) {
@@ -12112,10 +12214,14 @@ Cross-checks every font face the page knows about against the text that renders,
 
   // --- Faces ---------------------------------------------------------------------------
 
+  const seenKeys = new Map(); // key -> faces seen so far, to pair the nth face with the nth rule
   const faces = Array.from(document.fonts).map((f) => {
     const family = stripQuotes(f.family);
     const range = isDefaultRange(f.unicodeRange) ? "" : f.unicodeRange.trim();
-    const urls = ruleSources.get(faceKey(f.family, f.weight, f.style, f.unicodeRange)) ?? [];
+    const key = faceKey(f.family, f.weight, f.style, f.unicodeRange);
+    const nth = seenKeys.get(key) ?? 0;
+    seenKeys.set(key, nth + 1);
+    const urls = ruleSources.get(key)?.[nth] ?? [];
     const url = urls.find((u) => fontEntries.has(u)) ?? urls[0] ?? "";
     return {
       family,
@@ -12125,8 +12231,11 @@ Cross-checks every font face the page knows about against the text that renders,
       unicodeRange: range,
       status: f.status,
       used: false,
-      bytes: url && fontEntries.has(url) ? fontEntries.get(url) : 0,
+      // A face that did not load cost nothing, even when another declaration fetched the same file
+      bytes: f.status === "loaded" && fontEntries.has(url) ? fontEntries.get(url) : 0,
       url,
+      _key: key,
+      _redeclared: false,
       _weightRange: parseWeight(f.weight),
       _ranges: range ? parseRanges(range) : null,
     };
@@ -12151,6 +12260,21 @@ Cross-checks every font face the page knows about against the text that renders,
     }
   }
 
+  // When several rules declare the same face, the browser renders with the later one that loaded;
+  // the others are not used, whether they loaded or not. When none loaded, they are all faces the
+  // page did not need
+  const byKey = new Map();
+  faces.forEach((f) => byKey.set(f._key, [...(byKey.get(f._key) ?? []), f]));
+  for (const group of byKey.values()) {
+    if (group.length < 2) continue;
+    const active = group.findLast((f) => f.status === "loaded");
+    if (!active) continue;
+    group.filter((f) => f !== active).forEach((f) => {
+      f.used = false;
+      f._redeclared = true;
+    });
+  }
+
   // --- Classification ------------------------------------------------------------------
 
   // Split fonts declare long ranges; keep reported text short
@@ -12160,10 +12284,15 @@ Cross-checks every font face the page knows about against the text that renders,
   const loadedUnused = loaded.filter((f) => !f.used);
   const neverLoaded = faces.filter((f) => f.status === "unloaded");
   const failed = faces.filter((f) => f.status === "error");
-  const neverLoadedSubsets = neverLoaded.filter((f) => f.unicodeRange);
-  const neverLoadedWhole = neverLoaded.filter((f) => !f.unicodeRange);
+  const shadowed = neverLoaded.filter((f) => f._redeclared);
+  const neverLoadedSubsets = neverLoaded.filter((f) => f.unicodeRange && !f._redeclared);
+  const neverLoadedWhole = neverLoaded.filter((f) => !f.unicodeRange && !f._redeclared);
   const blockingDisplay = faces.filter((f) => (f.status === "loaded" || f.status === "loading") && (f.display === "auto" || f.display === "block"));
-  const loadedUnusedBytes = loadedUnused.reduce((sum, f) => sum + f.bytes, 0);
+  // A file counts once, and not at all when a used face renders with it
+  const usedUrls = new Set(loaded.filter((f) => f.used && f.url).map((f) => f.url));
+  const wastedBytes = (f) => (f.url && usedUrls.has(f.url) ? 0 : f.bytes);
+  const wastedByFile = new Map(loadedUnused.map((f) => [f.url || label(f), wastedBytes(f)]));
+  const loadedUnusedBytes = [...wastedByFile.values()].reduce((sum, b) => sum + b, 0);
 
   const bySubsetFamily = new Map();
   for (const f of faces.filter((x) => x.unicodeRange)) {
@@ -12177,34 +12306,43 @@ Cross-checks every font face the page knows about against the text that renders,
   const displayCounts = {};
   faces.forEach((f) => (displayCounts[f.display] = (displayCounts[f.display] ?? 0) + 1));
 
+  // A stylesheet can declare the same face twice, so messages name and count each face once
+  const uniqueLabels = (list) => [...new Set(list.map(label))];
   const names = (list) => {
-    // A stylesheet can declare the same face twice
-    const unique = [...new Set(list.map(label))];
+    const unique = uniqueLabels(list);
     const shown = unique.slice(0, 8).join(", ");
     return unique.length > 8 ? `${shown} and ${unique.length - 8} more` : shown;
   };
 
   const issues = [
     ...failed.map((f) => ({ severity: "error", message: `Font failed to load: ${label(f)}` })),
-    ...loadedUnused.map((f) => ({
-      severity: "warning",
-      message: `Loaded but not used by any rendered element: ${label(f)}${f.bytes ? `, ${kb(f.bytes)} downloaded for nothing` : ""}`,
-    })),
+    ...[...new Map(loadedUnused.map((f) => [`${label(f)}|${f.url}`, f])).values()].map((f) => {
+      const bytes = wastedBytes(f) ? `, ${kb(wastedBytes(f))} downloaded for nothing` : "";
+      return {
+        severity: "warning",
+        message: f._redeclared
+          ? `Loaded but declared again later with the same descriptors, so the page renders with the other file: ${label(f)}${f.url ? ` from ${f.url}` : ""}${bytes}`
+          : `Loaded but not used by any rendered element: ${label(f)}${bytes}`,
+      };
+    }),
   ];
   if (blockingDisplay.length > 0) {
     issues.push({
       severity: "warning",
-      message: `font-display is auto or block on ${blockingDisplay.length} face(s), so text can stay invisible while they load. Use swap or optional: ${names(blockingDisplay)}`,
+      message: `font-display is auto or block on ${uniqueLabels(blockingDisplay).length} face(s), so text can stay invisible while they load. Use swap or optional: ${names(blockingDisplay)}`,
     });
   }
   if (totalFontBytes > BYTES_WARNING) {
     issues.push({ severity: "warning", message: `Web fonts weigh ${kb(totalFontBytes)} in total (over ${kb(BYTES_WARNING)}). Subset, use WOFF2 or drop unused weights` });
   }
   if (neverLoadedWhole.length > 0) {
-    issues.push({ severity: "info", message: `Declared but never loaded (${neverLoadedWhole.length}); nothing on this page needed them: ${names(neverLoadedWhole)}` });
+    issues.push({ severity: "info", message: `Declared but never loaded (${uniqueLabels(neverLoadedWhole).length}); nothing on this page needed them: ${names(neverLoadedWhole)}` });
+  }
+  if (shadowed.length > 0) {
+    issues.push({ severity: "info", message: `Declared more than once with the same descriptors; the page uses a later declaration, so these never loaded (${uniqueLabels(shadowed).length}): ${names(shadowed)}` });
   }
   if (neverLoadedSubsets.length > 0) {
-    issues.push({ severity: "info", message: `unicode-range subsets this page did not need (${neverLoadedSubsets.length}), which is the intended behavior of a split font: ${names(neverLoadedSubsets)}` });
+    issues.push({ severity: "info", message: `unicode-range subsets this page did not need (${uniqueLabels(neverLoadedSubsets).length}), which is the intended behavior of a split font: ${names(neverLoadedSubsets)}` });
   }
   if (!bytesReadable) {
     issues.push({ severity: "info", message: "Some font files are cross-origin without Timing-Allow-Origin, so their size reads as 0 and the byte totals are a lower bound" });
@@ -12216,14 +12354,37 @@ Cross-checks every font face the page knows about against the text that renders,
     issues.push({ severity: "info", message: `Only the first ${MAX_ELEMENTS} elements were scanned for text; some faces may be reported as unused` });
   }
 
+  // --- One row per face and file --------------------------------------------------------
+
+  // Identical rules (same face, same file) are one row, with how many rules declare it. Rows are the
+  // faces that downloaded or tried to; the ones that never loaded cost nothing and are only named
+  const STATUS_ORDER = ["loaded", "loading", "error"];
+  const rowGroups = new Map();
+  faces.filter((f) => f.status !== "unloaded").forEach((f) => {
+    const key = `${f._key}|${f.url}`;
+    rowGroups.set(key, [...(rowGroups.get(key) ?? []), f]);
+  });
+  const note = (f) => {
+    if (f.used) return "";
+    if (f.status === "error") return "failed to load";
+    if (f.status === "loaded") return f._redeclared ? "declared again later" : "loaded but not used";
+    return "";
+  };
+  const rows = [...rowGroups.values()].map((group) => {
+    const f = group.find((x) => x.used) ?? [...group].sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status))[0];
+    return { ...f, declarations: group.length, note: note(f) };
+  });
+  const rowsLoaded = rows.filter((f) => f.status === "loaded");
+  const neverLoadedNames = uniqueLabels([...neverLoadedWhole, ...neverLoadedSubsets]);
+
   // --- Console output ------------------------------------------------------------------
 
   console.group("%cWebfont Usage Analyzer", "font-weight: bold; font-size: 14px;");
-  console.log(`Faces: ${faces.length} | loaded: ${loaded.length} | used: ${faces.filter((f) => f.used).length} | loaded but unused: ${loadedUnused.length} | never loaded: ${neverLoaded.length}`);
+  console.log(`Rules: ${faces.length} | loaded: ${rowsLoaded.length} | used: ${rowsLoaded.filter((f) => f.used).length} | loaded but unused: ${rowsLoaded.filter((f) => !f.used).length} | never needed: ${neverLoadedNames.length}`);
   console.log(`Font files: ${fontEntries.size} | total: ${kb(totalFontBytes)}${bytesReadable ? "" : " (lower bound, cross-origin sizes hidden)"}`);
-  if (faces.length > 0) {
+  if (rows.length > 0) {
     console.table(
-      faces.map((f) => ({
+      rows.map((f) => ({
         Family: f.family,
         Weight: f.weight,
         Style: f.style,
@@ -12231,11 +12392,13 @@ Cross-checks every font face the page knows about against the text that renders,
         "unicode-range": shortRange(f.unicodeRange) || "all",
         Status: f.status,
         Used: f.used ? "yes" : "no",
+        Rules: f.declarations,
         Size: f.bytes ? kb(f.bytes) : "-",
+        Note: f.note,
       }))
     );
   } else {
-    console.log("No @font-face rules or FontFace objects on this page.");
+    console.log(faces.length > 0 ? "No web font loaded on this page." : "No @font-face rules or FontFace objects on this page.");
   }
   issues.forEach((i) => console.log(`[${i.severity}] ${i.message}`));
   console.groupEnd();
@@ -12244,7 +12407,7 @@ Cross-checks every font face the page knows about against the text that renders,
 
   // Problems first, so the 50-item cap never hides them
   const rank = (f) => (f.status === "error" ? 0 : f.status === "loaded" && !f.used ? 1 : f.status === "loaded" ? 2 : 3);
-  const items = faces
+  const items = rows
     .map((f, index) => ({ f, index }))
     .sort((a, b) => rank(a.f) - rank(b.f) || a.index - b.index)
     .slice(0, MAX_ITEMS)
@@ -12256,22 +12419,26 @@ Cross-checks every font face the page knows about against the text that renders,
       unicodeRange: shortRange(f.unicodeRange),
       status: f.status,
       used: f.used,
+      declarations: f.declarations,
       bytes: f.bytes,
+      note: f.note,
       url: f.url,
     }));
 
   return {
     script: SCRIPT,
     status: "ok",
-    count: faces.length,
+    count: rows.length,
     corsLimitedAnalysis: !bytesReadable,
     details: {
-      loadedCount: loaded.length,
-      usedCount: loaded.filter((f) => f.used).length,
-      loadedUnusedCount: loadedUnused.length,
+      declarationCount: faces.length,
+      loadedCount: rowsLoaded.length,
+      usedCount: rowsLoaded.filter((f) => f.used).length,
+      loadedUnusedCount: rowsLoaded.filter((f) => !f.used).length,
       loadedUnusedBytes,
-      neverLoadedCount: neverLoaded.length,
-      errorCount: failed.length,
+      neverLoadedCount: neverLoadedNames.length,
+      neverLoaded: neverLoadedNames.slice(0, MAX_ITEMS),
+      errorCount: rows.filter((f) => f.status === "error").length,
       fontFileCount: fontEntries.size,
       totalFontBytes,
       bytesReadable,
@@ -15886,6 +16053,8 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
   const inlineSvgTotal = inlineSvgs.length;
   const svgsWithUse = inlineSvgs.filter((svg) => svg.querySelector("use")).length;
   const standaloneInlineSvgs = inlineSvgTotal - svgsWithUse;
+  // Five or more standalone inline SVGs are worth moving into a <symbol> sprite
+  const spriteOpportunity = standaloneInlineSvgs >= 5;
 
   const inlineResults = Array.from(document.querySelectorAll("svg"))
     .map((svg, i) => {
@@ -15986,7 +16155,7 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
     );
   }
 
-  if (standaloneInlineSvgs >= 5) {
+  if (spriteOpportunity) {
     console.log("");
     console.group("%c💡 SVG Sprite Opportunity", "color: #3b82f6; font-weight: bold;");
     console.log("");
@@ -16010,6 +16179,21 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
 
   console.groupEnd();
 
+  const issues = [];
+  if (withBitmaps.length > 0) {
+    issues.push({ severity: "warning", message: `${withBitmaps.length} SVG file(s) contain embedded bitmaps` });
+  }
+  if (spriteOpportunity) {
+    const withUse =
+      svgsWithUse > 0
+        ? ` (${svgsWithUse} inline SVG${svgsWithUse === 1 ? " already uses" : "s already use"} <use>)`
+        : "";
+    issues.push({
+      severity: "info",
+      message: `${standaloneInlineSvgs} standalone inline SVGs could share one <symbol> sprite referenced with <use>${withUse}`,
+    });
+  }
+
   return {
     script: "SVG-Embedded-Bitmap-Analysis",
     status: "ok",
@@ -16019,8 +16203,7 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
       inlineSvgTotal,
       svgsWithUse,
       standaloneInlineSvgs,
-      // Five or more standalone inline SVGs are worth moving into a <symbol> sprite
-      spriteOpportunity: standaloneInlineSvgs >= 5,
+      spriteOpportunity,
     },
     items: withBitmaps.map((r) => ({
       url: r.url || r.name,
@@ -16030,9 +16213,7 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
       bitmapTypes: r.bitmaps.map((b) => b.format).join(", "),
       sizeBytes: r.transferSize,
     })),
-    issues: withBitmaps.length > 0
-      ? [{ severity: "warning", message: `${withBitmaps.length} SVG file(s) contain embedded bitmaps` }]
-      : [],
+    issues,
   };
 })();
 ```
@@ -16101,8 +16282,14 @@ Audits all <video> elements on the page against video performance best practices
   const videos = Array.from(document.querySelectorAll("video"));
 
   if (videos.length === 0) {
-    console.log("No <video> elements found on this page.");
-    return { script: "Video-Element-Audit", status: "ok", count: 0, items: [], issues: [] };
+    console.log("No <video> elements on this page, nothing to audit.");
+    return {
+      script: "Video-Element-Audit",
+      status: "ok",
+      count: 0,
+      items: [],
+      issues: [{ severity: "info", message: "No <video> elements on this page, so there was nothing to audit." }],
+    };
   }
 
   const audited = videos.map((video) => {
@@ -16126,35 +16313,35 @@ Audits all <video> elements on the page against video performance best practices
     if (preload === "auto" && !autoplay) {
       issues.push({
         s: "error",
-        msg: 'preload="auto" loads the full video eagerly — use preload="none" or preload="metadata"',
+        msg: 'preload="auto" loads the full video eagerly: use preload="none" or preload="metadata"',
       });
     }
 
     if (!autoplay && !inViewport && preload !== "none") {
       issues.push({
         s: "warning",
-        msg: 'Off-viewport video without preload="none" — set preload="none" to avoid unnecessary loading',
+        msg: 'Off-viewport video without preload="none": set preload="none" to avoid unnecessary loading',
       });
     }
 
     if (autoplay && !muted) {
       issues.push({
         s: "error",
-        msg: "autoplay without muted — browsers block unmuted autoplay",
+        msg: "autoplay without muted: browsers block unmuted autoplay",
       });
     }
 
     if (autoplay && !playsinline) {
       issues.push({
         s: "warning",
-        msg: "autoplay without playsinline — iOS Safari forces fullscreen mode",
+        msg: "autoplay without playsinline: iOS Safari forces fullscreen mode",
       });
     }
 
     if (!poster) {
       issues.push({
         s: "warning",
-        msg: "Missing poster — no preview frame shown before playback starts",
+        msg: "Missing poster: no preview frame shown before playback starts",
       });
     }
 
@@ -16168,14 +16355,14 @@ Audits all <video> elements on the page against video performance best practices
     if (!isModernCodec(codec) && codec !== "no source") {
       issues.push({
         s: "info",
-        msg: "No modern codec source detected — consider adding a WebM source (VP9 or AV1) for better compression",
+        msg: "No modern codec source detected: consider adding a WebM source (VP9 or AV1) for better compression",
       });
     }
 
     if (!controls && !autoplay) {
       issues.push({
         s: "info",
-        msg: "No controls attribute and no autoplay — users may not be able to play the video",
+        msg: "No controls attribute and no autoplay, so users may not be able to play the video",
       });
     }
 

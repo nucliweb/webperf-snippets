@@ -146,8 +146,9 @@ describe("snippets that read observer-only entry types", () => {
     expect(frame.details.posterUrl).toBeNull();
     expect(frame.details.videoUrl).toMatch(/\/clip\.webm$/);
     expect(frame.issues.map((i) => i.message)).toContain(
-      "LCP is the first video frame — adding a poster gives explicit control over the LCP image"
+      "LCP is the first video frame: adding a poster gives explicit control over the LCP image"
     );
+    expect(JSON.stringify(frame)).not.toContain(" — ");
 
     const poster = await run("CoreWebVitals/LCP-Video-Candidate", "video-poster.html");
     expect(poster.details.lcpSource).toBe("poster");

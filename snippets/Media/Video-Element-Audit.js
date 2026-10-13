@@ -54,8 +54,14 @@
   const videos = Array.from(document.querySelectorAll("video"));
 
   if (videos.length === 0) {
-    console.log("No <video> elements found on this page.");
-    return { script: "Video-Element-Audit", status: "ok", count: 0, items: [], issues: [] };
+    console.log("No <video> elements on this page, nothing to audit.");
+    return {
+      script: "Video-Element-Audit",
+      status: "ok",
+      count: 0,
+      items: [],
+      issues: [{ severity: "info", message: "No <video> elements on this page, so there was nothing to audit." }],
+    };
   }
 
   const audited = videos.map((video) => {
@@ -79,35 +85,35 @@
     if (preload === "auto" && !autoplay) {
       issues.push({
         s: "error",
-        msg: 'preload="auto" loads the full video eagerly — use preload="none" or preload="metadata"',
+        msg: 'preload="auto" loads the full video eagerly: use preload="none" or preload="metadata"',
       });
     }
 
     if (!autoplay && !inViewport && preload !== "none") {
       issues.push({
         s: "warning",
-        msg: 'Off-viewport video without preload="none" — set preload="none" to avoid unnecessary loading',
+        msg: 'Off-viewport video without preload="none": set preload="none" to avoid unnecessary loading',
       });
     }
 
     if (autoplay && !muted) {
       issues.push({
         s: "error",
-        msg: "autoplay without muted — browsers block unmuted autoplay",
+        msg: "autoplay without muted: browsers block unmuted autoplay",
       });
     }
 
     if (autoplay && !playsinline) {
       issues.push({
         s: "warning",
-        msg: "autoplay without playsinline — iOS Safari forces fullscreen mode",
+        msg: "autoplay without playsinline: iOS Safari forces fullscreen mode",
       });
     }
 
     if (!poster) {
       issues.push({
         s: "warning",
-        msg: "Missing poster — no preview frame shown before playback starts",
+        msg: "Missing poster: no preview frame shown before playback starts",
       });
     }
 
@@ -121,14 +127,14 @@
     if (!isModernCodec(codec) && codec !== "no source") {
       issues.push({
         s: "info",
-        msg: "No modern codec source detected — consider adding a WebM source (VP9 or AV1) for better compression",
+        msg: "No modern codec source detected: consider adding a WebM source (VP9 or AV1) for better compression",
       });
     }
 
     if (!controls && !autoplay) {
       issues.push({
         s: "info",
-        msg: "No controls attribute and no autoplay — users may not be able to play the video",
+        msg: "No controls attribute and no autoplay, so users may not be able to play the video",
       });
     }
 

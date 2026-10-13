@@ -214,7 +214,7 @@
   if (renderBlockingCSS.length > 0 && inlineStyles.length === 0) {
     issues.push({
       severity: "high",
-      message: "No critical CSS inlined — all CSS loads via render-blocking requests",
+      message: "No critical CSS inlined: all CSS loads via render-blocking requests",
       suggestion:
         'Extract above-the-fold styles into a <style> tag in <head> and defer the rest',
     });

@@ -76,6 +76,8 @@ Based on [pagespeed](https://github.com/corewebvitals/pagespeed) by [Arjen Karel
 | **SSL/TLS** | Secure connection negotiation | No TLS session resumption, slow handshake |
 | **Request** | Time to first byte after connection | Slow server, database queries, no caching |
 
+When the TTFB is not good, the snippet returns an issue that names the TTFB, the slowest phase with its time and share, and a fix for that phase, for example `TTFB is 996 ms (needs-improvement); server response takes 993 ms of it (100%)`. The issue is a `warning` when the TTFB needs improvement and an `error` when it is poor.
+
 <Demo
   src="/demos/ttfb-subparts.html"
   title="Timeline of the TTFB sub-parts for five scenarios: cold visit, warm connection, redirect chain, service worker cold start and slow server"

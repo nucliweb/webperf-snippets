@@ -128,6 +128,13 @@ describe("Cache-Strategy-Analysis, findings that need no cache headers", () => {
     expect(result.issues.some((i) => i.id === "uncompressed" && i.severity === "warning")).toBe(true);
   }, 30000);
 
+  it("has no issue or recommendation with a spaced em-dash", async () => {
+    const { result } = await run("/");
+    expect(result.issues.some((i) => i.id === "uncompressed")).toBe(true);
+    expect(result.issues.some((i) => i.id === "duplicate-uncached")).toBe(true);
+    expect(JSON.stringify(result)).not.toContain(" — ");
+  }, 30000);
+
   it("keeps every issue the items point to, and the count of anti-patterns", async () => {
     const { result } = await run("/");
     const fromItems = result.items.flatMap((i) => i.antiPatterns);
