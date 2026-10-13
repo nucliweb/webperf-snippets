@@ -147,10 +147,10 @@
     })),
     issues: [ ...results.summary.lcpAffected ? [ {
       severity: "error",
-      message: 'LCP candidate image has lazy loading — remove loading="lazy" and add fetchpriority="high"'
+      message: 'LCP candidate image has lazy loading: remove loading="lazy" and add fetchpriority="high"'
     } ] : [], ...results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [ {
       severity: "warning",
-      message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading — remove loading="lazy"`
+      message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading: remove loading="lazy"`
     } ] : [] ]
   };
 })();

@@ -1468,24 +1468,24 @@ Detects whether the LCP element is a <video> and audits the poster image configu
   }
 
   if (lcpSource === "first-frame") {
-    issues.push({ s: "info", msg: "LCP is the first video frame — adding a poster gives explicit control over the LCP image" });
+    issues.push({ s: "info", msg: "LCP is the first video frame: adding a poster gives explicit control over the LCP image" });
   }
   if (lcpSource === "first-frame" && (!autoplay || !muted)) {
     issues.push({ s: "warning", msg: "First-frame LCP requires autoplay + muted for the browser to render it immediately" });
   }
 
   if (posterAttr && !posterPreload) {
-    issues.push({ s: "warning", msg: 'No <link rel="preload" as="image"> for the poster — browser discovers it late' });
+    issues.push({ s: "warning", msg: 'No <link rel="preload" as="image"> for the poster: the browser discovers it late' });
   } else if (posterPreload && posterPreload.getAttribute("fetchpriority") !== "high") {
-    issues.push({ s: "info", msg: 'Preload found but missing fetchpriority="high" — may be deprioritised' });
+    issues.push({ s: "info", msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised' });
   }
 
   if (posterAttr && !isModernFormat && posterFormat !== "unknown") {
-    issues.push({ s: "info", msg: `Poster uses ${posterFormat} — AVIF or WebP would reduce file size and LCP load time` });
+    issues.push({ s: "info", msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time` });
   }
 
   if (isCrossOrigin) {
-    issues.push({ s: "info", msg: "renderTime is 0 — resource is cross-origin and the server does not send Timing-Allow-Origin" });
+    issues.push({ s: "info", msg: "renderTime is 0: the resource is cross-origin and the server does not send Timing-Allow-Origin" });
   }
 
   if (!autoplay && preload === "none") {
@@ -2898,7 +2898,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       entry.antiPatterns.push({
         id: "static-no-store",
         severity: "error",
-        message: `${type} asset with no-store — static assets should be cacheable`,
+        message: `${type} asset with no-store; static assets should be cacheable`,
       });
     }
 
@@ -2906,7 +2906,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       entry.antiPatterns.push({
         id: "versioned-short-cache",
         severity: "warning",
-        message: `Versioned URL (hash detected) but max-age=${maxAge}s — consider long cache or immutable`,
+        message: `Versioned URL (hash detected) but max-age=${maxAge}s: consider long cache or immutable`,
       });
     }
 
@@ -2941,7 +2941,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       entry.antiPatterns.push({
         id: "maxage-zero-static",
         severity: "warning",
-        message: `Static asset with max-age=0 — forces revalidation on every request`,
+        message: `Static asset with max-age=0, which forces revalidation on every request`,
       });
     }
 
@@ -2955,7 +2955,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       entry.antiPatterns.push({
         id: "short-cache-static",
         severity: "warning",
-        message: `Static asset with max-age=${maxAge}s (< 1h) — consider a longer cache duration`,
+        message: `Static asset with max-age=${maxAge}s (< 1h): consider a longer cache duration`,
       });
     }
   }
@@ -3033,7 +3033,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     entry.antiPatterns.push({
       id: "uncompressed",
       severity: "warning",
-      message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}) — enable Brotli or gzip`,
+      message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}): enable Brotli or gzip`,
     });
   }
   for (const duplicate of costlyDuplicates) {
@@ -3041,7 +3041,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     entries.find((e) => e.url === duplicate.url).antiPatterns.push({
       id: "duplicate-uncached",
       severity: "warning",
-      message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network — load it once or make it cacheable`,
+      message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network: load it once or make it cacheable`,
     });
   }
 
@@ -3359,12 +3359,12 @@ Audits HTTP caching strategies across all page resources, identifying resources 
   }
   if (shortCacheEntries.filter((e) => e.hasHash).length > 0) {
     recommendations.push(
-      "🟡 Versioned files (with content hash) should use long cache or Cache-Control: immutable — they can be cached indefinitely since the URL changes on update."
+      "🟡 Versioned files (with content hash) should use long cache or Cache-Control: immutable; they can be cached indefinitely since the URL changes on update."
     );
   }
   if (allAntiPatterns.some((p) => p.id === "expires-without-cc")) {
     recommendations.push(
-      "🟡 Replace Expires headers with Cache-Control: max-age — Expires is an outdated mechanism and less reliable."
+      "🟡 Replace Expires headers with Cache-Control: max-age. Expires is an outdated mechanism and less reliable."
     );
   }
   if (cacheEfficiencyPercent !== null && cacheEfficiencyPercent < 50) {
@@ -3393,12 +3393,12 @@ Audits HTTP caching strategies across all page resources, identifying resources 
     );
   } else if (cachedDuplicates.length > 0) {
     recommendations.push(
-      `ℹ️ ${cachedDuplicates.length} resources are requested multiple times but served from cache — low performance impact, but worth reviewing for correctness.`
+      `ℹ️ ${cachedDuplicates.length} resources are requested multiple times but served from cache; low performance impact, but worth reviewing for correctness.`
     );
   }
   if (corsRestricted > 0 && headersAnalyzed === 0) {
     recommendations.push(
-      `ℹ️ All resources are cross-origin CORS-restricted — header analysis was limited. Add Timing-Allow-Origin for more insights.`
+      `ℹ️ All resources are cross-origin CORS-restricted, so header analysis was limited. Add Timing-Allow-Origin for more insights.`
     );
   }
 
@@ -3827,7 +3827,7 @@ Detects client-side redirects that add unnecessary latency to page load and impa
     },
     issues: [
       ...(serverRedirects > 0 ? [{ severity: "warning", message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)` }] : []),
-      ...(documentNavigations.length > 0 ? [{ severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected — likely client-side redirect` }] : []),
+      ...(documentNavigations.length > 0 ? [{ severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected, likely a client-side redirect` }] : []),
       ...indicators.filter(i => i.severity === "warning").map(i => ({ severity: "warning", message: i.type })),
     ],
   };
@@ -4607,7 +4607,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
   if (renderBlockingCSS.length > 0 && inlineStyles.length === 0) {
     issues.push({
       severity: "high",
-      message: "No critical CSS inlined — all CSS loads via render-blocking requests",
+      message: "No critical CSS inlined: all CSS loads via render-blocking requests",
       suggestion:
         'Extract above-the-fold styles into a <style> tag in <head> and defer the rest',
     });
@@ -5338,8 +5338,8 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
       isLcpCandidate: image.isLcpCandidate,
     })),
     issues: [
-      ...(results.summary.lcpAffected ? [{ severity: "error", message: 'LCP candidate image has lazy loading — remove loading="lazy" and add fetchpriority="high"' }] : []),
-      ...(results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [{ severity: "warning", message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading — remove loading="lazy"` }] : []),
+      ...(results.summary.lcpAffected ? [{ severity: "error", message: 'LCP candidate image has lazy loading: remove loading="lazy" and add fetchpriority="high"' }] : []),
+      ...(results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [{ severity: "warning", message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading: remove loading="lazy"` }] : []),
     ],
   };
 })();
@@ -16478,35 +16478,35 @@ Audits all <video> elements on the page against video performance best practices
     if (preload === "auto" && !autoplay) {
       issues.push({
         s: "error",
-        msg: 'preload="auto" loads the full video eagerly — use preload="none" or preload="metadata"',
+        msg: 'preload="auto" loads the full video eagerly: use preload="none" or preload="metadata"',
       });
     }
 
     if (!autoplay && !inViewport && preload !== "none") {
       issues.push({
         s: "warning",
-        msg: 'Off-viewport video without preload="none" — set preload="none" to avoid unnecessary loading',
+        msg: 'Off-viewport video without preload="none": set preload="none" to avoid unnecessary loading',
       });
     }
 
     if (autoplay && !muted) {
       issues.push({
         s: "error",
-        msg: "autoplay without muted — browsers block unmuted autoplay",
+        msg: "autoplay without muted: browsers block unmuted autoplay",
       });
     }
 
     if (autoplay && !playsinline) {
       issues.push({
         s: "warning",
-        msg: "autoplay without playsinline — iOS Safari forces fullscreen mode",
+        msg: "autoplay without playsinline: iOS Safari forces fullscreen mode",
       });
     }
 
     if (!poster) {
       issues.push({
         s: "warning",
-        msg: "Missing poster — no preview frame shown before playback starts",
+        msg: "Missing poster: no preview frame shown before playback starts",
       });
     }
 
@@ -16520,14 +16520,14 @@ Audits all <video> elements on the page against video performance best practices
     if (!isModernCodec(codec) && codec !== "no source") {
       issues.push({
         s: "info",
-        msg: "No modern codec source detected — consider adding a WebM source (VP9 or AV1) for better compression",
+        msg: "No modern codec source detected: consider adding a WebM source (VP9 or AV1) for better compression",
       });
     }
 
     if (!controls && !autoplay) {
       issues.push({
         s: "info",
-        msg: "No controls attribute and no autoplay — users may not be able to play the video",
+        msg: "No controls attribute and no autoplay, so users may not be able to play the video",
       });
     }
 
