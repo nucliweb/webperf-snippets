@@ -207,6 +207,8 @@ A script wrapped in `void (async () => {...})()` discards its return value. Neve
 }
 ```
 
+`details.element` is a CSS selector that matches only the LCP element, so `document.querySelector(details.element)` returns it: the id when it is unique, otherwise a path of tag, classes and `:nth-of-type()` from the nearest ancestor with a unique id, such as `section.intro:nth-of-type(2) > p.copy:nth-of-type(2)`. LCP-Subparts (`details.element`) and LCP-Trail (`finalElement` and each `selector`) build it the same way.
+
 #### CLS
 
 Returns buffered CLS immediately and keeps tracking. Always call `getCLS()` after interactions to get an updated value.
