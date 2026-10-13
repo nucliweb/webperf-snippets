@@ -7992,14 +7992,20 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
   if (prefetchLinks.length === 0) {
     // Early return is safe here - console.group hasn't been opened yet
     console.log(
-      '%c✅ No prefetch hints found (rel="prefetch").',
-      "color: #22c55e; font-weight: bold;",
+      '%cℹ️ No prefetch hints on this page (rel="prefetch"), nothing to validate.',
+      "color: #3b82f6; font-weight: bold;",
     );
     console.log(
       "%cℹ️ Prefetch is for future navigation resources. Use it sparingly for predictable user journeys.",
       "color: #3b82f6;",
     );
-    return { script: "Prefetch-Resource-Validation", status: "ok", count: 0, items: [], issues: [] };
+    return {
+      script: "Prefetch-Resource-Validation",
+      status: "ok",
+      count: 0,
+      items: [],
+      issues: [{ severity: "info", message: 'No prefetch hints on this page (rel="prefetch"), so there was nothing to validate.' }],
+    };
   }
 
   // Get performance entries for all resources
@@ -16520,8 +16526,14 @@ Audits all <video> elements on the page against video performance best practices
   const videos = Array.from(document.querySelectorAll("video"));
 
   if (videos.length === 0) {
-    console.log("No <video> elements found on this page.");
-    return { script: "Video-Element-Audit", status: "ok", count: 0, items: [], issues: [] };
+    console.log("No <video> elements on this page, nothing to audit.");
+    return {
+      script: "Video-Element-Audit",
+      status: "ok",
+      count: 0,
+      items: [],
+      issues: [{ severity: "info", message: "No <video> elements on this page, so there was nothing to audit." }],
+    };
   }
 
   const audited = videos.map((video) => {

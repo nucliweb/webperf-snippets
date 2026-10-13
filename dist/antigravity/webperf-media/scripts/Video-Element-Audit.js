@@ -28,7 +28,10 @@
       status: "ok",
       count: 0,
       items: [],
-      issues: []
+      issues: [ {
+        severity: "info",
+        message: "No <video> elements on this page, so there was nothing to audit."
+      } ]
     };
   }
   const audited = videos.map(video => {
