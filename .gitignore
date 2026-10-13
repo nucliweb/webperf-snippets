@@ -22,3 +22,5 @@ public/_pagefind
 
 # Snippets of the extension, built by npm run extension:build
 /extension/snippets.json
+# Zip of the extension, written by npm run extension:zip
+/webperf-snippets-extension-*.zip

@@ -1,0 +1,61 @@
+name: Release extension
+
+# A tag extension-vX.Y.Z publishes the zip of the DevTools extension, the file the beta page links to.
+# The version of the tag must be the one of extension/manifest.json.
+
+on:
+  push:
+    tags:
+      - 'extension-v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check the version of the tag
+        run: |
+          manifest=$(node -p "require('./extension/manifest.json').version")
+          if [ "${GITHUB_REF_NAME#extension-v}" != "$manifest" ]; then
+            echo "::error::The tag $GITHUB_REF_NAME does not match the version $manifest of extension/manifest.json"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: cli
+
+      - name: Test the zip
+        run: node --test extension/tests/package.test.js
+
+      - name: Package the extension
+        run: npm run extension:zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DevTools extension ${{ github.ref_name }} (beta)
+          prerelease: true
+          files: webperf-snippets-extension-*.zip
+          body: |
+            Beta of the WebPerf Snippets DevTools extension, to load unpacked in Chrome.
+
+            1. Download `webperf-snippets-extension-*.zip` below and unzip it.
+            2. In `chrome://extensions`, turn on Developer mode, choose Load unpacked and select the unzipped folder.
+            3. Open DevTools on any page and go to the WebPerf Snippets panel.
+
+            Guide: https://webperf-snippets.nucliweb.net/extension
+            Feedback: https://github.com/nucliweb/webperf-snippets/issues/new?template=extension-feedback.yml

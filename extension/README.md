@@ -10,6 +10,10 @@ A DevTools panel that lists the snippets and runs the one you choose on the insp
 
 Run `npm run extension:build` again after a snippet changes, then reload the extension in `chrome://extensions`. The snippets ship inside the extension, since the Chrome Web Store does not allow an extension to run code it did not ship with.
 
+## Release the beta
+
+`npm run extension:zip` builds the snippets and writes `webperf-snippets-extension-<version>.zip`, without the tests. A tag `extension-v<version>`, with the version of `manifest.json`, makes the Release extension workflow test the zip and publish it as a prerelease, the file the beta page links to.
+
 ## Copy buttons
 
 - Copy JSON copies the result, to paste it into an issue or an agent.
