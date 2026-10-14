@@ -57,5 +57,5 @@ jobs:
             2. In `chrome://extensions`, turn on Developer mode, choose Load unpacked and select the unzipped folder.
             3. Open DevTools on any page and go to the WebPerf Snippets panel.
 
-            Guide: https://webperf-snippets.nucliweb.net/extension
+            Guide: https://webperf-snippets.net/extension
             Feedback: https://github.com/nucliweb/webperf-snippets/issues/new?template=extension-feedback.yml

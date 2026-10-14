@@ -1,5 +1,5 @@
 // LCP Subparts Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared isOwnRequest

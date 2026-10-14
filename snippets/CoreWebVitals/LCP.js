@@ -1,5 +1,5 @@
 // LCP Quick Check
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {

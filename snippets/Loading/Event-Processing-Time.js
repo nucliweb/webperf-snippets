@@ -1,5 +1,5 @@
 // Event Processing Time - Analyze page load phases
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const phases = [

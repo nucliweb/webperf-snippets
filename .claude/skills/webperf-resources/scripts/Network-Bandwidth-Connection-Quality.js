@@ -1,2 +1,2 @@
-// snippets/Resources/Network-Bandwidth-Connection-Quality.js | sha256:200abdfa1736538a | https://github.com/nucliweb/webperf-snippets/blob/main/snippets/Resources/Network-Bandwidth-Connection-Quality.js
+// snippets/Resources/Network-Bandwidth-Connection-Quality.js | sha256:62f2146f9f4a1fad | https://github.com/nucliweb/webperf-snippets/blob/main/snippets/Resources/Network-Bandwidth-Connection-Quality.js
 (()=>{const n=navigator.connection||navigator.mozConnection||navigator.webkitConnection;if(!n)return{script:"Network-Bandwidth-Connection-Quality",status:"unsupported",error:"Network Information API not supported"};n.addEventListener("change",()=>{})})();

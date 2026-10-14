@@ -1,5 +1,5 @@
 // Find render-blocking resources
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

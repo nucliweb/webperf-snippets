@@ -303,7 +303,7 @@ The standard `.claude/skills/` directory and `SKILL.md` format work across all c
 
 ## Resources
 
-- [WebPerf Snippets Documentation](https://webperf-snippets.nucliweb.net)
+- [WebPerf Snippets Documentation](https://webperf-snippets.net)
 - [Agent Skills Specification](https://agentskills.io/specification)
 - [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp)
 - [Web Vitals](https://web.dev/articles/vitals)

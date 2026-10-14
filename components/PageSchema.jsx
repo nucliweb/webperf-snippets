@@ -3,7 +3,7 @@ import { site } from "../lib/site";
 // JSON-LD of a page, built on the server from what the page says about itself (lib/page-info.js): the
 // breadcrumb, and on a snippet page the article and the source code of each snippet.
 
-const BASE_URL = "https://webperf-snippets.nucliweb.net";
+const BASE_URL = "https://webperf-snippets.net";
 const AUTHOR = { "@type": "Person", name: site.author.name, url: site.author.url };
 
 const CATEGORY_LABELS = {

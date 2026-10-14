@@ -1,5 +1,5 @@
 // Fetch & XHR Timeline — Run in console after page load
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   const calls = window.__perfCalls;

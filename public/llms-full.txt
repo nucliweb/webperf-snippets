@@ -2,20 +2,20 @@
 
 A curated collection of JavaScript snippets for web performance measurement.
 Each snippet runs in the browser console or Chrome DevTools.
-Source: https://webperf-snippets.nucliweb.net
+Source: https://webperf-snippets.net
 
 ---
 
 # Core Web Vitals
 
 ## Cumulative layout shift (CLS)
-URL: https://webperf-snippets.nucliweb.net/CoreWebVitals/CLS
+URL: https://webperf-snippets.net/CoreWebVitals/CLS
 
 Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual stability. CLS tracks how much the page layout shifts unexpectedly during its lifetime, providing a single score that represents the largest burst of unexpected layout shifts.
 
 ```js
 // CLS Quick Check
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
@@ -121,13 +121,13 @@ Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual s
 ---
 
 ## Interaction to next paint (INP)
-URL: https://webperf-snippets.nucliweb.net/CoreWebVitals/INP
+URL: https://webperf-snippets.net/CoreWebVitals/INP
 
 Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness. INP evaluates how quickly a page responds to user interactions throughout the entire page visit, replacing First Input Delay (FID) as a Core Web Vital in March 2024.
 
 ```js
 // INP (Interaction to Next Paint) Tracking
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("event")) {
@@ -570,13 +570,13 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
 ---
 
 ## LCP image entropy
-URL: https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP-Image-Entropy
+URL: https://webperf-snippets.net/CoreWebVitals/LCP-Image-Entropy
 
 Checks if images qualify as LCP candidates based on their entropy (bits per pixel). Since Chrome 112, low-entropy images are ignored for LCP measurement.
 
 ```js
 // LCP Image Entropy Check
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
@@ -810,13 +810,13 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
 ---
 
 ## LCP subparts
-URL: https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP-Subparts
+URL: https://webperf-snippets.net/CoreWebVitals/LCP-Subparts
 
 Breaks down Largest Contentful Paint into its four phases to identify optimization opportunities. Understanding which phase is slowest helps you focus your optimization efforts where they'll have the most impact. Based on the Web Vitals Chrome Extension.
 
 ```js
 // LCP Subparts Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared isOwnRequest
@@ -1139,14 +1139,14 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
 ---
 
 ## LCP trail
-URL: https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP-Trail
+URL: https://webperf-snippets.net/CoreWebVitals/LCP-Trail
 
 Tracks every LCP candidate element during page load and highlights each one with a distinct pastel-colored dashed outline, so you can see the full trail from first candidate to final LCP.
 
 ```js
 // LCP Trail
 // Tracks all LCP candidate elements during page load
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
@@ -1369,13 +1369,13 @@ Tracks every LCP candidate element during page load and highlights each one with
 ---
 
 ## LCP video candidate
-URL: https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP-Video-Candidate
+URL: https://webperf-snippets.net/CoreWebVitals/LCP-Video-Candidate
 
 Detects whether the LCP element is a <video> and audits the poster image configuration, the most common source of avoidable LCP delay when video is the hero element.
 
 ```js
 // LCP Video Candidate
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
@@ -1649,13 +1649,13 @@ Detects whether the LCP element is a <video> and audits the poster image configu
 ---
 
 ## Largest contentful paint (LCP)
-URL: https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP
+URL: https://webperf-snippets.net/CoreWebVitals/LCP
 
 Quick check for Largest Contentful Paint, a Core Web Vital that measures loading performance. LCP marks when the largest content element becomes visible in the viewport.
 
 ```js
 // LCP Quick Check
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
@@ -1820,13 +1820,13 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
 # Loading
 
 ## Back/forward cache (bfcache)
-URL: https://webperf-snippets.nucliweb.net/Loading/Back-Forward-Cache
+URL: https://webperf-snippets.net/Loading/Back-Forward-Cache
 
 Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for instant back/forward navigations. When bfcache works, users get instant (0ms) page loads when using browser back/forward buttons, dramatically improving perceived performance.
 
 ```js
 // Back/Forward Cache (bfcache) Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl
@@ -2113,7 +2113,7 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
 ---
 
 ## CSS media queries analysis
-URL: https://webperf-snippets.nucliweb.net/Loading/CSS-Media-Queries-Analysis
+URL: https://webperf-snippets.net/Loading/CSS-Media-Queries-Analysis
 
 Analyze all @media rules in CSS stylesheets that target viewports bigger than a breakpoint (default: 768px). Narrower screens download and parse that CSS without using it. The snippet groups the rules by distinct query, the way CSS analytics tools such as Project Wallace report at-rules, and breaks them down by stylesheet.
 
@@ -2332,14 +2332,14 @@ analyzeCSSMediaQueries();
 ---
 
 ## Cache strategy analysis
-URL: https://webperf-snippets.nucliweb.net/Loading/Cache-Strategy-Analysis
+URL: https://webperf-snippets.net/Loading/Cache-Strategy-Analysis
 
 Audits HTTP caching strategies across all page resources, identifying resources without cache, short-lived cache configurations, cache anti-patterns, and CDN cache hit rates. Provides a cache efficiency score and actionable recommendations.
 
 ```js
 // Cache Strategy Analysis
 // Analyzes HTTP caching strategies, CDN hit rates, and cache anti-patterns across all page resources
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl
@@ -3269,13 +3269,13 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 ---
 
 ## Client-side redirect detection
-URL: https://webperf-snippets.nucliweb.net/Loading/Client-Side-Redirect-Detection
+URL: https://webperf-snippets.net/Loading/Client-Side-Redirect-Detection
 
 Detects client-side redirects that add unnecessary latency to page load and impact Core Web Vitals, particularly LCP. Client-side redirects implemented via JavaScript or SPA routers can add seconds to the critical rendering path, yet they're often invisible to standard monitoring tools.
 
 ```js
 // Client-Side Redirect Detection
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared isOwnRequest
@@ -3624,14 +3624,14 @@ Detects client-side redirects that add unnecessary latency to page load and impa
 ---
 
 ## Compression audit
-URL: https://webperf-snippets.nucliweb.net/Loading/Compression-Audit
+URL: https://webperf-snippets.net/Loading/Compression-Audit
 
 Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fonts) served without HTTP compression, and estimates how many bytes gzip or brotli would save. Compressing text typically shrinks it by 60–80%, so an uncompressed script or stylesheet is one of the cheapest fixes for slow loading.
 
 ```js
 // Compression Audit
 // Finds text-based resources served without HTTP compression and estimates the savings
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -3814,7 +3814,7 @@ Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fo
 ---
 
 ## Content visibility
-URL: https://webperf-snippets.nucliweb.net/Loading/Content-Visibility
+URL: https://webperf-snippets.net/Loading/Content-Visibility
 
 Detect and analyze all elements using content-visibility: auto on a page. This CSS property is a powerful rendering optimization that allows browsers to skip layout and painting work for offscreen content, significantly improving initial page load performance.
 
@@ -4181,14 +4181,14 @@ window.analyzeContentVisibilityOpportunities = analyzeContentVisibilityOpportuni
 ---
 
 ## Critical CSS detection
-URL: https://webperf-snippets.nucliweb.net/Loading/Critical-CSS-Detection
+URL: https://webperf-snippets.net/Loading/Critical-CSS-Detection
 
 Analyzes the CSS loading strategy of a page, identifying render-blocking stylesheets, measuring their size against the critical 14 KB budget, and detecting whether critical CSS is properly inlined for above-the-fold content.
 
 ```js
 // Critical CSS Detection
 // Analyzes render-blocking stylesheets, inline CSS budget, and loading strategy
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -4530,13 +4530,13 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
 ---
 
 ## Event processing time
-URL: https://webperf-snippets.nucliweb.net/Loading/Event-Processing-Time
+URL: https://webperf-snippets.net/Loading/Event-Processing-Time
 
 Analyzes the time spent in each phase of page navigation, from initial redirect to the load event. This helps identify bottlenecks in the page loading process and understand where time is being spent.
 
 ```js
 // Event Processing Time - Analyze page load phases
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const phases = [
@@ -4732,14 +4732,14 @@ Analyzes the time spent in each phase of page navigation, from initial redirect 
 ---
 
 ## First contentful paint (FCP)
-URL: https://webperf-snippets.nucliweb.net/Loading/FCP
+URL: https://webperf-snippets.net/Loading/FCP
 
 Quick check for First Contentful Paint, the metric that marks when the browser renders the first piece of DOM content, text, image, canvas, or SVG. FCP measures the user's perception of whether the page is loading.
 
 ```js
 // FCP Analysis
 // First Contentful Paint with render-blocking phase breakdown
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -4819,7 +4819,7 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
         });
       console.log("");
       console.log(
-        "%c→ Find Render-Blocking Resources: %chttps://webperf-snippets.nucliweb.net/Loading/Find-render-blocking-resources",
+        "%c→ Find Render-Blocking Resources: %chttps://webperf-snippets.net/Loading/Find-render-blocking-resources",
         "color: #3b82f6;",
         "color: #3b82f6; text-decoration: underline;"
       );
@@ -4885,13 +4885,13 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
 ---
 
 ## Find above the fold lazy loaded images
-URL: https://webperf-snippets.nucliweb.net/Loading/Find-Above-The-Fold-Lazy-Loaded-Images
+URL: https://webperf-snippets.net/Loading/Find-Above-The-Fold-Lazy-Loaded-Images
 
 Detect images with lazy loading that are incorrectly placed above the fold (in the viewport). Lazy loading above-the-fold images is a common performance anti-pattern that can significantly harm your Largest Contentful Paint (LCP) score.
 
 ```js
 // Detect lazy loaded images above the fold
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (function() {
   // @shared isOwnRequest
@@ -5167,13 +5167,13 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
 ---
 
 ## Find images with loading lazy and fetchpriority
-URL: https://webperf-snippets.nucliweb.net/Loading/Find-Images-With-Lazy-and-Fetchpriority
+URL: https://webperf-snippets.net/Loading/Find-Images-With-Lazy-and-Fetchpriority
 
 Detects images that have both loading="lazy" and fetchpriority="high" - a contradictory combination that indicates a misconfiguration.
 
 ```js
 // Find images with contradictory loading="lazy" and fetchpriority="high"
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   function getSelector(node) {
@@ -5332,13 +5332,13 @@ Detects images that have both loading="lazy" and fetchpriority="high" - a contra
 ---
 
 ## Find non lazy loaded images outside of the viewport
-URL: https://webperf-snippets.nucliweb.net/Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport
+URL: https://webperf-snippets.net/Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport
 
 Identifies images that are loaded eagerly but not visible in the initial viewport, representing wasted bandwidth and parsing time that delays page interactivity. The snippet analyzes all <img> elements to find optimization opportunities for lazy loading.
 
 ```js
 // Execute after page load without user interaction (scroll, click, etc)
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (function () {
   // @shared isOwnRequest
@@ -5652,13 +5652,13 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
 ---
 
 ## Find render-blocking resources
-URL: https://webperf-snippets.nucliweb.net/Loading/Find-render-blocking-resources
+URL: https://webperf-snippets.net/Loading/Find-render-blocking-resources
 
 Identifies resources that block the browser from rendering the page. These resources must be fully downloaded and processed before the browser can display any content, directly impacting First Contentful Paint (FCP) and Largest Contentful Paint (LCP).
 
 ```js
 // Find render-blocking resources
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -5829,13 +5829,13 @@ Identifies resources that block the browser from rendering the page. These resou
 ---
 
 ## First and third party script info
-URL: https://webperf-snippets.nucliweb.net/Loading/First-And-Third-Party-Script-Info
+URL: https://webperf-snippets.net/Loading/First-And-Third-Party-Script-Info
 
 Analyzes all scripts loaded on the page, separating them into first-party (your domain) and third-party (external) scripts. This helps identify the performance impact of external dependencies.
 
 ```js
 // First and Third Party Script Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -6154,13 +6154,13 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 ---
 
 ## First and third party script timings
-URL: https://webperf-snippets.nucliweb.net/Loading/First-And-Third-Party-Script-Timings
+URL: https://webperf-snippets.net/Loading/First-And-Third-Party-Script-Timings
 
 Analyzes detailed timing phases for all scripts, comparing first-party vs third-party performance. This helps identify slow connection phases, DNS issues, or server response problems.
 
 ```js
 // First and Third Party Script Timings Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -6500,13 +6500,13 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
 ---
 
 ## Fonts preloaded, loaded, and used above the fold
-URL: https://webperf-snippets.nucliweb.net/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold
+URL: https://webperf-snippets.net/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold
 
 Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and fonts actually used above the fold. This helps identify optimization opportunities and wasted resources.
 
 ```js
 // Font Loading Analysis - Preloaded, Loaded, and Used Above The Fold
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
@@ -6876,20 +6876,20 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 ---
 
 ## Get your `<head>` in order
-URL: https://webperf-snippets.nucliweb.net/Loading/Get-Your-Head-in-Order
+URL: https://webperf-snippets.net/Loading/Get-Your-Head-in-Order
 
 How you order elements in the <head> can have an effect on the (perceived) performance of the page. The order of elements matters because the browser processes them sequentially.
 
 ---
 
 ## Inline CSS info and size
-URL: https://webperf-snippets.nucliweb.net/Loading/Inline-CSS-Info-and-Size
+URL: https://webperf-snippets.net/Loading/Inline-CSS-Info-and-Size
 
 Analyzes all inline <style> tags on the page, measuring their size and identifying optimization opportunities. This helps understand how much CSS is inlined and whether it's being used effectively.
 
 ```js
 // Inline CSS Analysis - Find and analyze all inline style tags
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared formatBytes
@@ -7129,13 +7129,13 @@ Analyzes all inline <style> tags on the page, measuring their size and identifyi
 ---
 
 ## Inline script info and size
-URL: https://webperf-snippets.nucliweb.net/Loading/Inline-Script-Info-and-Size
+URL: https://webperf-snippets.net/Loading/Inline-Script-Info-and-Size
 
 Analyzes all inline <script> tags on the page, measuring their size and identifying potential performance issues. This helps understand the impact of inline JavaScript on page load.
 
 ```js
 // Inline Script Analysis - Find and analyze all inline scripts
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared formatBytes
@@ -7469,13 +7469,13 @@ Analyzes all inline <script> tags on the page, measuring their size and identify
 ---
 
 ## JavaScript execution time breakdown
-URL: https://webperf-snippets.nucliweb.net/Loading/JS-Execution-Time-Breakdown
+URL: https://webperf-snippets.net/Loading/JS-Execution-Time-Breakdown
 
 Identifies where JavaScript time goes during page load: network download vs browser parsing. Shows which scripts delay domInteractive (TTI proxy) and flags code splitting opportunities.
 
 ```js
 // JavaScript Execution Time Breakdown
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -7836,13 +7836,13 @@ Identifies where JavaScript time goes during page load: network download vs brow
 ---
 
 ## Prefetch resource validation
-URL: https://webperf-snippets.nucliweb.net/Loading/Prefetch-Resource-Validation
+URL: https://webperf-snippets.net/Loading/Prefetch-Resource-Validation
 
 Detects potential performance issues with rel="prefetch" resource hints by analyzing quantity, size, type, and appropriateness of prefetched resources. Excessive or incorrect prefetch usage can waste bandwidth, delay critical resources, and negatively impact mobile users.
 
 ```js
 // Prefetch Resource Validation
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -8316,13 +8316,13 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
 ---
 
 ## Priority hints audit
-URL: https://webperf-snippets.nucliweb.net/Loading/Priority-Hints-Audit
+URL: https://webperf-snippets.net/Loading/Priority-Hints-Audit
 
 Audits all fetchpriority attribute usage across the page, covering non-image resources (scripts, preload links, iframes), fetchpriority="low" analysis, and conflicts between preload and low priority. Identifies the LCP candidate when it lacks fetchpriority="high".
 
 ```js
 // Priority Hints Audit
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -8640,7 +8640,7 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
 
   console.log("");
   console.log(
-    '%c💡 Related: "Find Images With Lazy and Fetchpriority" detects the lazy+high conflict on images. https://webperf-snippets.nucliweb.net/Loading/Find-Images-With-Lazy-and-Fetchpriority',
+    '%c💡 Related: "Find Images With Lazy and Fetchpriority" detects the lazy+high conflict on images. https://webperf-snippets.net/Loading/Find-Images-With-Lazy-and-Fetchpriority',
     "color: #6b7280;"
   );
 
@@ -8673,13 +8673,13 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
 ---
 
 ## Resource hints validation
-URL: https://webperf-snippets.nucliweb.net/Loading/Resource-Hints-Validation
+URL: https://webperf-snippets.net/Loading/Resource-Hints-Validation
 
 Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which hints are declared and whether the resources or connections are actually used. Detects unused hints that waste browser resources and opportunities to optimize loading.
 
 ```js
 // Resource Hints Validation
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -9229,13 +9229,13 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
 ---
 
 ## Resource hints
-URL: https://webperf-snippets.nucliweb.net/Loading/Resource-Hints
+URL: https://webperf-snippets.net/Loading/Resource-Hints
 
 Analyzes resource hints on the page, checking for proper usage and identifying optimization opportunities. Resource hints help the browser prioritize resource loading for better performance.
 
 ```js
 // Resource Hints Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -9668,13 +9668,13 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
 ---
 
 ## SSR framework hydration data analysis
-URL: https://webperf-snippets.nucliweb.net/Loading/SSR-Hydration-Data-Analysis
+URL: https://webperf-snippets.net/Loading/SSR-Hydration-Data-Analysis
 
 Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix, Gatsby, and others. These scripts contain serialized state that the client needs to "hydrate" the server-rendered HTML into an interactive application.
 
 ```js
 // SSR Framework Hydration Data Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared formatBytes
@@ -10111,13 +10111,13 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
 ---
 
 ## Scripts loading
-URL: https://webperf-snippets.nucliweb.net/Loading/Script-Loading
+URL: https://webperf-snippets.net/Loading/Script-Loading
 
 Analyzes all scripts on the page, showing their loading strategy and identifying potential performance issues. Scripts are often the biggest cause of main thread blocking and delayed rendering. This snippet helps you audit which scripts are blocking the critical rendering path.
 
 ```js
 // Script Loading Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -10509,13 +10509,13 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
 ---
 
 ## Server-Timing and Early Hints viewer
-URL: https://webperf-snippets.nucliweb.net/Loading/Server-Timing-Early-Hints
+URL: https://webperf-snippets.net/Loading/Server-Timing-Early-Hints
 
 Lists the Server-Timing metrics that the server sends with the document and with each resource, and reports the 103 Early Hints timing of the navigation. These two signals show where the backend spends time before the first byte and whether the server lets the browser start fetching critical resources while it still builds the response.
 
 ```js
 // Server-Timing & Early Hints Viewer
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -10653,13 +10653,13 @@ Lists the Server-Timing metrics that the server sends with the document and with
 ---
 
 ## Service worker analysis
-URL: https://webperf-snippets.nucliweb.net/Loading/Service-Worker-Analysis
+URL: https://webperf-snippets.net/Loading/Service-Worker-Analysis
 
 Analyzes the Service Worker lifecycle, cache behavior, and its performance impact on resource loading. Service Workers can dramatically improve performance through caching strategies, but misconfigured workers can introduce startup delays and degrade TTFB.
 
 ```js
 // Service Worker Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared isOwnRequest
@@ -11039,13 +11039,13 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 ---
 
 ## Speculation rules inspector
-URL: https://webperf-snippets.nucliweb.net/Loading/Speculation-Rules-Inspector
+URL: https://webperf-snippets.net/Loading/Speculation-Rules-Inspector
 
 Inspects how a page uses the Speculation Rules API to prefetch and prerender future navigations, and whether the current page was itself prerendered. A prerendered page can activate instantly, which makes navigations feel immediate and changes how load metrics are measured.
 
 ```js
 // Prerender & Speculation Rules Inspector
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const MAX_ITEMS = 50;
@@ -11183,13 +11183,13 @@ Inspects how a page uses the Speculation Rules API to prefetch and prerender fut
 ---
 
 ## Time to first byte
-URL: https://webperf-snippets.nucliweb.net/Loading/TTFB
+URL: https://webperf-snippets.net/Loading/TTFB
 
 Time to First Byte (TTFB) measures the time from when the user starts navigating to a page until the first byte of the HTML response is received. It's a critical metric that reflects server responsiveness and network latency.
 
 ```js
 // Measure TTFB with threshold indicator
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   new PerformanceObserver((entryList) => {
@@ -11230,7 +11230,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 
 ```js
 // Measure TTFB sub-parts breakdown
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   new PerformanceObserver((entryList) => {
@@ -11383,7 +11383,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 
 ```js
 // Measure TTFB for all resources with sorting and summary
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -11578,14 +11578,14 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
 ---
 
 ## Third-party impact by domain
-URL: https://webperf-snippets.nucliweb.net/Loading/Third-Party-Impact-by-Domain
+URL: https://webperf-snippets.net/Loading/Third-Party-Impact-by-Domain
 
 Groups every third-party request by root domain and reports, per domain, the request count, the transfer size, whether any of its requests blocks rendering, and the main-thread time its scripts take inside long animation frames. It answers which third party to fix first.
 
 ```js
 // Third-Party Impact by Domain
 // Groups third-party requests by root domain and reports requests, transfer size, render-blocking and main-thread time
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -11840,13 +11840,13 @@ Groups every third-party request by root domain and reports, per domain, the req
 ---
 
 ## Validate preload on async/defer scripts
-URL: https://webperf-snippets.nucliweb.net/Loading/Validate-Preload-Async-Defer-Scripts
+URL: https://webperf-snippets.net/Loading/Validate-Preload-Async-Defer-Scripts
 
 Detects preload resource hints for scripts that use async or defer attributes. This is an anti-pattern that wastes bandwidth and can hurt performance by artificially elevating the priority of resources that should load at lower priority.
 
 ```js
 // Validate Preload on Async/Defer Scripts
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -12270,13 +12270,13 @@ Detects preload resource hints for scripts that use async or defer attributes. T
 ---
 
 ## Webfont usage analyzer
-URL: https://webperf-snippets.nucliweb.net/Loading/Webfont-Usage-Analyzer
+URL: https://webperf-snippets.net/Loading/Webfont-Usage-Analyzer
 
 Cross-checks every font face the page knows about against the text that renders, and reports which faces are used, which downloaded for nothing, and which never loaded. Each unused font file is bytes the visitor pays for and, when the file is on the critical path, delay before text appears.
 
 ```js
 // Webfont Usage Analyzer
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 //
 // Cross-checks every @font-face known to document.fonts against the text that renders on the
 // page: faces loaded but not used, faces declared but never loaded, unicode-range subsets,
@@ -12689,13 +12689,13 @@ Cross-checks every font face the page knows about against the text that renders,
 # Interaction
 
 ## DOM size and depth
-URL: https://webperf-snippets.nucliweb.net/Interaction/DOM-Size-and-Depth
+URL: https://webperf-snippets.net/Interaction/DOM-Size-and-Depth
 
 Measures the total number of DOM elements, the maximum nesting depth, and the parent with the most children, and checks them against the Lighthouse thresholds. The traversal includes open shadow roots.
 
 ```js
 // DOM Size and Depth
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // Lighthouse "Avoid an excessive DOM size" thresholds
@@ -12833,13 +12833,13 @@ Measures the total number of DOM elements, the maximum nesting depth, and the pa
 ---
 
 ## Forced synchronous layout detector
-URL: https://webperf-snippets.nucliweb.net/Interaction/Forced-Synchronous-Layout
+URL: https://webperf-snippets.net/Interaction/Forced-Synchronous-Layout
 
 Detects the Forced Synchronous Layout (FSL) pattern at runtime, when JavaScript reads geometric properties from the DOM immediately after mutating styles, forcing the browser to perform layout synchronously on the main thread.
 
 ```js
 // Forced Synchronous Layout Detector
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   let isDirty = false;
@@ -13155,13 +13155,13 @@ Detects the Forced Synchronous Layout (FSL) pattern at runtime, when JavaScript 
 ---
 
 ## Input latency breakdown
-URL: https://webperf-snippets.nucliweb.net/Interaction/Input-Latency-Breakdown
+URL: https://webperf-snippets.net/Interaction/Input-Latency-Breakdown
 
 Aggregates interaction latency by event type to reveal which phase causes slowness across all interactions with the page. While Interactions shows a per-interaction breakdown in real time, this snippet collects data over time and answers a different question: is click systematically slower than keypress? Is the bottleneck always input delay, or does it vary by event?
 
 ```js
 // Input Latency Breakdown
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const formatMs = (ms) => `${Math.round(ms)}ms`;
@@ -13408,13 +13408,13 @@ Aggregates interaction latency by event type to reveal which phase causes slowne
 ---
 
 ## Interactions
-URL: https://webperf-snippets.nucliweb.net/Interaction/Interactions
+URL: https://webperf-snippets.net/Interaction/Interactions
 
 Tracks all user interactions in real-time to help debug and improve Interaction to Next Paint (INP). INP measures responsiveness by tracking the latency of all interactions during a page visit. This snippet breaks down each interaction into three phases to identify bottlenecks. Based on the Web Vitals Chrome Extension.
 
 ```js
 // Interaction Tracking
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const formatMs = (ms) => `${Math.round(ms)}ms`;
@@ -13649,13 +13649,13 @@ Tracks all user interactions in real-time to help debug and improve Interaction 
 ---
 
 ## Layout shift tracking
-URL: https://webperf-snippets.nucliweb.net/Interaction/Layout-Shift-Loading-and-Interaction
+URL: https://webperf-snippets.net/Interaction/Layout-Shift-Loading-and-Interaction
 
 Tracks all layout shifts during page load and user interaction, identifying the elements causing Cumulative Layout Shift (CLS). This debugging-focused snippet logs every shift with detailed information about which elements moved and when.
 
 ```js
 // Layout Shift Tracking
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) {
@@ -13956,13 +13956,13 @@ Tracks all layout shifts during page load and user interaction, identifying the 
 ---
 
 ## LoAF helpers
-URL: https://webperf-snippets.nucliweb.net/Interaction/Long-Animation-Frames-Helpers
+URL: https://webperf-snippets.net/Interaction/Long-Animation-Frames-Helpers
 
 Advanced debugging utilities for Long Animation Frames. While the basic LoAF snippet shows real-time frame data, this helper library provides powerful analysis, filtering, and export capabilities.
 
 ```js
 // LoAF Helpers - Advanced Debugging
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   "use strict";
@@ -14390,13 +14390,13 @@ Advanced debugging utilities for Long Animation Frames. While the basic LoAF sni
 ---
 
 ## Long animation frames script attribution
-URL: https://webperf-snippets.nucliweb.net/Interaction/Long-Animation-Frames-Script-Attribution
+URL: https://webperf-snippets.net/Interaction/Long-Animation-Frames-Script-Attribution
 
 Analyzes and visualizes which scripts are responsible for blocking the main thread. This snippet categorizes blocking time by script origin (your code, framework, third-party, extensions) and provides actionable insights for optimization.
 
 ```js
 // Long Animation Frames - Script Attribution Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // Check browser support
@@ -14545,13 +14545,13 @@ Analyzes and visualizes which scripts are responsible for blocking the main thre
 ---
 
 ## Long animation frames (LoAF)
-URL: https://webperf-snippets.nucliweb.net/Interaction/Long-Animation-Frames
+URL: https://webperf-snippets.net/Interaction/Long-Animation-Frames
 
 Tracks Long Animation Frames to identify JavaScript and rendering work that blocks the main thread. LoAF is the underlying API that powers INP debugging and provides detailed attribution for slow interactions.
 
 ```js
 // Long Animation Frames Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const formatMs = (ms) => `${Math.round(ms)}ms`;
@@ -14882,13 +14882,13 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
 ---
 
 ## Long tasks
-URL: https://webperf-snippets.nucliweb.net/Interaction/LongTask
+URL: https://webperf-snippets.net/Interaction/LongTask
 
 Tracks tasks that block the main thread for more than 50ms. Long tasks prevent the browser from responding to user input, causing poor Interaction to Next Paint (INP) and sluggish user experience.
 
 ```js
 // Long Tasks Tracking
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("longtask")) {
@@ -15127,13 +15127,13 @@ Tracks tasks that block the main thread for more than 50ms. Long tasks prevent t
 ---
 
 ## Scroll performance analysis
-URL: https://webperf-snippets.nucliweb.net/Interaction/Scroll-Performance
+URL: https://webperf-snippets.net/Interaction/Scroll-Performance
 
 Measures scroll jank, frame drops, and event listener configuration to identify what makes scrolling feel laggy or unresponsive. Scroll jank, visible stuttering during scroll, is one of the most common UX problems on the web, especially on mobile.
 
 ```js
 // Scroll Performance Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const formatMs = (ms) => `${ms.toFixed(1)}ms`;
@@ -15538,13 +15538,13 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
 # Media
 
 ## Image element audit
-URL: https://webperf-snippets.nucliweb.net/Media/Image-Element-Audit
+URL: https://webperf-snippets.net/Media/Image-Element-Audit
 
 Audits all <img> elements on the page against image performance best practices, covering loading strategy, fetch priority, format modernisation, responsive markup, and CLS prevention.
 
 ```js
 // Image Element Audit
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl
@@ -15978,13 +15978,13 @@ Audits all <img> elements on the page against image performance best practices, 
 ---
 
 ## Oversized images
-URL: https://webperf-snippets.nucliweb.net/Media/Oversized-Images
+URL: https://webperf-snippets.net/Media/Oversized-Images
 
 Compares the pixels of each downloaded image file with the pixels the page draws it at (rendered size × devicePixelRatio), and reports the images that are much larger than needed, which waste bytes, and the images that are smaller than needed, which look blurry.
 
 ```js
 // Oversized Images
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl
@@ -16230,13 +16230,13 @@ Compares the pixels of each downloaded image file with the pixels the page draws
 ---
 
 ## SVG embedded bitmap analysis
-URL: https://webperf-snippets.nucliweb.net/Media/SVG-Embedded-Bitmap-Analysis
+URL: https://webperf-snippets.net/Media/SVG-Embedded-Bitmap-Analysis
 
 Scans all SVG resources on the page, both external files and inline <svg> elements, and flags any that contain embedded bitmap images, reporting name, transfer size, compression encoding, and embedded bitmap details.
 
 ```js
 // SVG Embedded Bitmap Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl
@@ -16519,13 +16519,13 @@ Scans all SVG resources on the page, both external files and inline <svg> elemen
 ---
 
 ## Video element audit
-URL: https://webperf-snippets.nucliweb.net/Media/Video-Element-Audit
+URL: https://webperf-snippets.net/Media/Video-Element-Audit
 
 Audits all <video> elements on the page against video performance best practices, covering preload strategy, autoplay configuration, format modernisation, CLS prevention, and playback accessibility.
 
 ```js
 // Video Element Audit
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   function isInViewport(el) {
@@ -16819,13 +16819,13 @@ Audits all <video> elements on the page against video performance best practices
 # Resources
 
 ## Network bandwidth & connection quality
-URL: https://webperf-snippets.nucliweb.net/Resources/Network-Bandwidth-Connection-Quality
+URL: https://webperf-snippets.net/Resources/Network-Bandwidth-Connection-Quality
 
 Network quality directly affects web performance. Segmenting metrics by connection type helps identify whether performance issues are infrastructure-related or affect only users on slower connections.
 
 ```js
 // Network Bandwidth & Connection Quality Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const connection =
@@ -16941,13 +16941,13 @@ Network quality directly affects web performance. Segmenting metrics by connecti
 # DevTools Overrides
 
 ## Fetch & XHR timeline
-URL: https://webperf-snippets.nucliweb.net/DevTools-Overrides/Fetch-XHR-Timeline
+URL: https://webperf-snippets.net/DevTools-Overrides/Fetch-XHR-Timeline
 
 Intercepts every fetch() and XMLHttpRequest call made during the page lifecycle and correlates them with the Largest Contentful Paint (LCP) timing.
 
 ```js
 // Fetch & XHR Timeline — Inject via DevTools Overrides
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 (() => {
   const calls = [];
 
@@ -17023,7 +17023,7 @@ Intercepts every fetch() and XMLHttpRequest call made during the page lifecycle 
 
 ```js
 // Fetch & XHR Timeline — Run in console after page load
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   const calls = window.__perfCalls;

@@ -1,6 +1,6 @@
 # webperf-snippets CLI
 
-Run curated [WebPerf Snippets](https://webperf-snippets.nucliweb.net) headlessly via Playwright. Diagnose Core Web Vitals beyond what Lighthouse exposes and gate CI on real performance budgets.
+Run curated [WebPerf Snippets](https://webperf-snippets.net) headlessly via Playwright. Diagnose Core Web Vitals beyond what Lighthouse exposes and gate CI on real performance budgets.
 
 <img width="1820" height="1442" alt="webperf-snippets-CLI" src="https://github.com/user-attachments/assets/af7e6b02-8877-407e-87a4-db063468b5fb" />
 
@@ -38,13 +38,13 @@ Run the default Core Web Vitals workflow (LCP + CLS, plus LCP-Subparts if LCP > 
 npx webperf-snippets https://web.dev
 ```
 
-Loading audit (11 steps: TTFB, FCP, render-blocking, scripts, resource timings, third-party impact, fonts, cache; the list is in the [CLI page](https://webperf-snippets.nucliweb.net/CLI)):
+Loading audit (11 steps: TTFB, FCP, render-blocking, scripts, resource timings, third-party impact, fonts, cache; the list is in the [CLI page](https://webperf-snippets.net/CLI)):
 
 ```bash
 npx webperf-snippets https://web.dev --workflow loading
 ```
 
-Structural checks for CI (22 checks: render-blocking, compression, fonts, images, hints, DOM size and more; the list is in the [CLI page](https://webperf-snippets.nucliweb.net/CLI)):
+Structural checks for CI (22 checks: render-blocking, compression, fonts, images, hints, DOM size and more; the list is in the [CLI page](https://webperf-snippets.net/CLI)):
 
 ```bash
 npx webperf-snippets https://web.dev --workflow audit
@@ -194,7 +194,7 @@ npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
 
 ### Follow-up steps
 
-The results of a run can add steps on the same page load: LCP over 2.5 s adds `LCP-Subparts`, over 4 s `LCP-Trail`; an image or video LCP adds its entropy, image or video audit; CLS over 0.1 adds `Layout-Shift-Loading-and-Interaction`, over 0.25 also the lazy images, fonts, critical CSS and images without dimensions; TTFB over 600 ms adds `TTFB-Sub-Parts`; FCP over 1.8 s adds the render-blocking check. The full table is in the [CLI page](https://webperf-snippets.nucliweb.net/CLI). Each snippet runs once, and a follow-up informs: its `error` issues do not change the exit code.
+The results of a run can add steps on the same page load: LCP over 2.5 s adds `LCP-Subparts`, over 4 s `LCP-Trail`; an image or video LCP adds its entropy, image or video audit; CLS over 0.1 adds `Layout-Shift-Loading-and-Interaction`, over 0.25 also the lazy images, fonts, critical CSS and images without dimensions; TTFB over 600 ms adds `TTFB-Sub-Parts`; FCP over 1.8 s adds the render-blocking check. The full table is in the [CLI page](https://webperf-snippets.net/CLI). Each snippet runs once, and a follow-up informs: its `error` issues do not change the exit code.
 
 ### Exit codes
 

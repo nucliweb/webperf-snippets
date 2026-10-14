@@ -1,5 +1,5 @@
 // Detect lazy loaded images above the fold
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (function() {
   // @shared isOwnRequest

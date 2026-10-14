@@ -1,5 +1,5 @@
 // First and Third Party Script Timings Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

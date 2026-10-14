@@ -42,7 +42,7 @@
     "url": "git+https://github.com/nucliweb/webperf-snippets.git",
     "directory": "cli"
   },
-  "homepage": "https://webperf-snippets.nucliweb.net",
+  "homepage": "https://webperf-snippets.net",
   "peerDependencies": {
     "playwright": ">=1.40.0"
   },

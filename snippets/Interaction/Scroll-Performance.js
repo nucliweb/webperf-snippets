@@ -1,5 +1,5 @@
 // Scroll Performance Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const formatMs = (ms) => `${ms.toFixed(1)}ms`;

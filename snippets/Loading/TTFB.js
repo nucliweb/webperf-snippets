@@ -1,5 +1,5 @@
 // Measure TTFB with threshold indicator
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   new PerformanceObserver((entryList) => {

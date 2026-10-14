@@ -1,5 +1,5 @@
 // Priority Hints Audit
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -317,7 +317,7 @@
 
   console.log("");
   console.log(
-    '%c💡 Related: "Find Images With Lazy and Fetchpriority" detects the lazy+high conflict on images. https://webperf-snippets.nucliweb.net/Loading/Find-Images-With-Lazy-and-Fetchpriority',
+    '%c💡 Related: "Find Images With Lazy and Fetchpriority" detects the lazy+high conflict on images. https://webperf-snippets.net/Loading/Find-Images-With-Lazy-and-Fetchpriority',
     "color: #6b7280;"
   );
 

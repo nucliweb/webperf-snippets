@@ -1,5 +1,5 @@
 // Oversized Images
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl

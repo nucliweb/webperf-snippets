@@ -1,5 +1,5 @@
 // Resource Hints Validation
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

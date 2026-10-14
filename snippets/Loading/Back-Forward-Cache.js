@@ -1,5 +1,5 @@
 // Back/Forward Cache (bfcache) Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl

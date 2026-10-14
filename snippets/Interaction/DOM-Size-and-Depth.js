@@ -1,5 +1,5 @@
 // DOM Size and Depth
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // Lighthouse "Avoid an excessive DOM size" thresholds

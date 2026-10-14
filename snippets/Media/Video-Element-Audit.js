@@ -1,5 +1,5 @@
 // Video Element Audit
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   function isInViewport(el) {

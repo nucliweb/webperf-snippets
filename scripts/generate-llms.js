@@ -9,7 +9,7 @@ const ROOT = path.join(__dirname, '..')
 const PAGES_DIR = path.join(ROOT, 'content')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
 const PUBLIC_DIR = path.join(ROOT, 'public')
-const BASE_URL = 'https://webperf-snippets.nucliweb.net'
+const BASE_URL = 'https://webperf-snippets.net'
 
 const CATEGORIES = ['CoreWebVitals', 'Loading', 'Interaction', 'Media', 'Resources', 'DevTools-Overrides']
 

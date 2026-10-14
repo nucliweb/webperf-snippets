@@ -92,7 +92,7 @@ function showList() {
 }
 
 // The home page: what the snippets are, how to use them, the audit and the categories
-const SITE = 'https://webperf-snippets.nucliweb.net'
+const SITE = 'https://webperf-snippets.net'
 function showHome() {
   current = null
   remember('snippet', null)

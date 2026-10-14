@@ -1,5 +1,5 @@
 // Inline Script Analysis - Find and analyze all inline scripts
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared formatBytes

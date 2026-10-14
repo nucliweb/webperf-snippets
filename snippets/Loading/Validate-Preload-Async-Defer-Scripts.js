@@ -1,5 +1,5 @@
 // Validate Preload on Async/Defer Scripts
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

@@ -1,5 +1,5 @@
 // INP (Interaction to Next Paint) Tracking
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   if (!PerformanceObserver.supportedEntryTypes?.includes("event")) {

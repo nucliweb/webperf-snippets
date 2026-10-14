@@ -1,5 +1,5 @@
 // Long Animation Frames Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const formatMs = (ms) => `${Math.round(ms)}ms`;

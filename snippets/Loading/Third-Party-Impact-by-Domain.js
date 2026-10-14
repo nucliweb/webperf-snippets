@@ -1,6 +1,6 @@
 // Third-Party Impact by Domain
 // Groups third-party requests by root domain and reports requests, transfer size, render-blocking and main-thread time
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

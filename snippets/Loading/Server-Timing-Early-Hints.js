@@ -1,5 +1,5 @@
 // Server-Timing & Early Hints Viewer
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

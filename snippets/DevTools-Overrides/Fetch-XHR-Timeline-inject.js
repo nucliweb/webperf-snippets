@@ -1,5 +1,5 @@
 // Fetch & XHR Timeline — Inject via DevTools Overrides
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 (() => {
   const calls = [];
 

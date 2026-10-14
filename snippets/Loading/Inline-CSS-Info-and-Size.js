@@ -1,5 +1,5 @@
 // Inline CSS Analysis - Find and analyze all inline style tags
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared formatBytes

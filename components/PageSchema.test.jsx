@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { buildPageSchemas, PageSchema } from "./PageSchema";
 
-const BASE = "https://webperf-snippets.nucliweb.net";
+const BASE = "https://webperf-snippets.net";
 const types = (schemas) => schemas.map((s) => s["@type"]);
 
 const TTFB = {
