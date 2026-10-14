@@ -42,6 +42,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `LCP-Image-Entropy`, `LCP-Subparts`, `LCP-Trail` and `LCP-Video-Candidate` return `status: "unsupported"` in a browser without LCP entries, instead of an empty result.
 - `First-And-Third-Party-Script-Timings` reports the DNS, connection, request and response phases of a cross-origin script without `Timing-Allow-Origin` as `null`, instead of numbers computed against zero.
 - The demo animations start their clock on the first frame, so the progress does not stay at zero inside an iframe.
+- The scripts of the skills return their result object again. The minifier dropped the final `return { script, status, ... }` of 53 of the 56 scripts, so `evaluate_script` gave the agent `undefined`. `npm run test:skills` checks that every built script keeps the result objects of its source.
 
 ### Security
 - The site runs on Next.js 16, which resolves the `next` and `postcss` advisories reported by `npm audit`. `dev` and `build` use webpack (`--webpack`) for the `?raw` snippet imports, and React stays on 18.
