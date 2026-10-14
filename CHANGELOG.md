@@ -32,7 +32,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `snippets/SCHEMA.md`, the return-value contract of every snippet, enforced by an end-to-end test.
 - `corsLimitedAnalysis` in the result of the snippets whose analysis is partial because cross-origin data is hidden.
 - `OWN_DOMAINS` at the top of the first-party snippets (`First-And-Third-Party-Script-Info`, `First-And-Third-Party-Script-Timings`, `Script-Loading`, `TTFB-Resources`, `Cache-Strategy-Analysis` and `Fonts-Preloaded-Loaded-and-used-above-the-fold`) to count a site's own CDN on another root domain as first party.
-- The CLI reaches version 0.4.1 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `audit`, `loading` and `interaction` workflows, CrUX field data, `--storage-state` for pages behind a login, `--report-to` and decision-tree follow-ups for LCP and CLS.
+- The CLI reaches version 0.5.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `audit`, `loading` and `interaction` workflows, CrUX field data, `--storage-state` for pages behind a login, `--report-to` and decision-tree follow-ups for LCP and CLS.
 - GitHub Action at `.github/actions/webperf-snippets` that runs the CLI with LCP and CLS budgets and writes the report to the job summary.
 - A `skip-e2e` label that skips the build and the end-to-end tests on documentation-only pull requests.
 - `npm run check:built-snippets` fails after a build when a page shows a snippet different from its source file. CI runs it.
