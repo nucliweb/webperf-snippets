@@ -4,7 +4,7 @@ A curated collection of JavaScript snippets to measure and debug Web Performance
 
 [![CI](https://github.com/nucliweb/webperf-snippets/actions/workflows/ci.yml/badge.svg)](https://github.com/nucliweb/webperf-snippets/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/nucliweb/webperf-snippets)](https://github.com/nucliweb/webperf-snippets/releases)
-[![Snippets](https://img.shields.io/badge/snippets-56-0f766e)](https://webperf-snippets.nucliweb.net)
+[![Snippets](https://img.shields.io/badge/snippets-56-0f766e)](https://webperf-snippets.net)
 [![License](https://img.shields.io/github/license/nucliweb/webperf-snippets)](./LICENSE)
 [![Star History](https://img.shields.io/github/stars/nucliweb/webperf-snippets?style=social)](https://star-history.com/#nucliweb/webperf-snippets&Date)
 
@@ -12,10 +12,10 @@ A curated collection of JavaScript snippets to measure and debug Web Performance
 
 ## Start here
 
-- Measure your first page: start with [LCP](https://webperf-snippets.nucliweb.net/CoreWebVitals/LCP), [CLS](https://webperf-snippets.nucliweb.net/CoreWebVitals/CLS), and [INP](https://webperf-snippets.nucliweb.net/CoreWebVitals/INP).
-- Investigate slow loading: continue with [TTFB](https://webperf-snippets.nucliweb.net/Loading/TTFB), [FCP](https://webperf-snippets.nucliweb.net/Loading/FCP), and [render-blocking resources](https://webperf-snippets.nucliweb.net/Loading/Find-render-blocking-resources).
-- Debug interaction issues: use [Long Animation Frames](https://webperf-snippets.nucliweb.net/Interaction/Long-Animation-Frames) and [Scroll Performance](https://webperf-snippets.nucliweb.net/Interaction/Scroll-Performance).
-- Audit media-heavy pages: open [Image Element Audit](https://webperf-snippets.nucliweb.net/Media/Image-Element-Audit) and [Video Element Audit](https://webperf-snippets.nucliweb.net/Media/Video-Element-Audit).
+- Measure your first page: start with [LCP](https://webperf-snippets.net/CoreWebVitals/LCP), [CLS](https://webperf-snippets.net/CoreWebVitals/CLS), and [INP](https://webperf-snippets.net/CoreWebVitals/INP).
+- Investigate slow loading: continue with [TTFB](https://webperf-snippets.net/Loading/TTFB), [FCP](https://webperf-snippets.net/Loading/FCP), and [render-blocking resources](https://webperf-snippets.net/Loading/Find-render-blocking-resources).
+- Debug interaction issues: use [Long Animation Frames](https://webperf-snippets.net/Interaction/Long-Animation-Frames) and [Scroll Performance](https://webperf-snippets.net/Interaction/Scroll-Performance).
+- Audit media-heavy pages: open [Image Element Audit](https://webperf-snippets.net/Media/Image-Element-Audit) and [Video Element Audit](https://webperf-snippets.net/Media/Video-Element-Audit).
 - Automate the workflow with agents: see [SKILLS.md](./SKILLS.md) and the installation section below.
 
 ## What you can measure
@@ -30,7 +30,7 @@ A curated collection of JavaScript snippets to measure and debug Web Performance
 
 ### Option 1: Run in browser console
 
-1. Copy any snippet from [webperf-snippets.nucliweb.net](https://webperf-snippets.nucliweb.net)
+1. Copy any snippet from [webperf-snippets.net](https://webperf-snippets.net)
 2. Open DevTools (`F12` or `Cmd+Option+I` / `Ctrl+Shift+I`)
 3. Go to the **Console** tab
 4. Paste and press `Enter`
@@ -154,7 +154,7 @@ A composite GitHub Action (`nucliweb/webperf-snippets/.github/actions/webperf-sn
 
 ## Documentation
 
-Visit **[webperf-snippets.nucliweb.net](https://webperf-snippets.nucliweb.net)** for the full documentation with all snippets.
+Visit **[webperf-snippets.net](https://webperf-snippets.net)** for the full documentation with all snippets.
 
 ## Resources
 

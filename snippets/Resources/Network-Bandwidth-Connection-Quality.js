@@ -1,5 +1,5 @@
 // Network Bandwidth & Connection Quality Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const connection =

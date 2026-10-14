@@ -9,7 +9,7 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "homepage_url": "https://webperf-snippets.nucliweb.net",
+  "homepage_url": "https://webperf-snippets.net",
   "minimum_chrome_version": "120",
   "devtools_page": "devtools.html",
   "permissions": ["storage"]

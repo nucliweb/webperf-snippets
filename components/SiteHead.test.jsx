@@ -26,7 +26,7 @@ describe("SiteHead", () => {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: "WebPerf Snippets",
-      url: "https://webperf-snippets.nucliweb.net/",
+      url: "https://webperf-snippets.net/",
       description: DESCRIPTION,
       author: { "@type": "Person", name: "Joan León", url: "https://twitter.com/nucliweb" },
     });

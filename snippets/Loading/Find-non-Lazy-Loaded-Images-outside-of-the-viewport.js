@@ -1,5 +1,5 @@
 // Execute after page load without user interaction (scroll, click, etc)
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (function () {
   // @shared isOwnRequest

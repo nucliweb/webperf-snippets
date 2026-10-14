@@ -1,6 +1,6 @@
 // Cache Strategy Analysis
 // Analyzes HTTP caching strategies, CDN hit rates, and cache anti-patterns across all page resources
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl

@@ -1,6 +1,6 @@
 // Compression Audit
 // Finds text-based resources served without HTTP compression and estimates the savings
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

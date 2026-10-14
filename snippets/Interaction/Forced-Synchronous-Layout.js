@@ -1,5 +1,5 @@
 // Forced Synchronous Layout Detector
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   let isDirty = false;

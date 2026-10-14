@@ -1,5 +1,5 @@
 // Webfont Usage Analyzer
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 //
 // Cross-checks every @font-face known to document.fonts against the text that renders on the
 // page: faces loaded but not used, faces declared but never loaded, unicode-range subsets,

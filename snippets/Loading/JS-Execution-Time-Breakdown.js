@@ -1,5 +1,5 @@
 // JavaScript Execution Time Breakdown
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

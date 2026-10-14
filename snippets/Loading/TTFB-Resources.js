@@ -1,5 +1,5 @@
 // Measure TTFB for all resources with sorting and summary
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

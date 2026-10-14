@@ -1,5 +1,5 @@
 // Font Loading Analysis - Preloaded, Loaded, and Used Above The Fold
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.

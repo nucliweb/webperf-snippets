@@ -1,6 +1,6 @@
 // Critical CSS Detection
 // Analyzes render-blocking stylesheets, inline CSS budget, and loading strategy
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest

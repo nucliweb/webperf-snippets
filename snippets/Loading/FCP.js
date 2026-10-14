@@ -1,6 +1,6 @@
 // FCP Analysis
 // First Contentful Paint with render-blocking phase breakdown
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared isOwnRequest
@@ -80,7 +80,7 @@
         });
       console.log("");
       console.log(
-        "%c→ Find Render-Blocking Resources: %chttps://webperf-snippets.nucliweb.net/Loading/Find-render-blocking-resources",
+        "%c→ Find Render-Blocking Resources: %chttps://webperf-snippets.net/Loading/Find-render-blocking-resources",
         "color: #3b82f6;",
         "color: #3b82f6; text-decoration: underline;"
       );

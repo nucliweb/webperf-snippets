@@ -1,5 +1,5 @@
 // Prerender & Speculation Rules Inspector
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   const MAX_ITEMS = 50;

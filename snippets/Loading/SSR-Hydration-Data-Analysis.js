@@ -1,5 +1,5 @@
 // SSR Framework Hydration Data Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // @shared formatBytes

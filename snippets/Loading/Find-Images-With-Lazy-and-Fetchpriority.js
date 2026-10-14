@@ -1,5 +1,5 @@
 // Find images with contradictory loading="lazy" and fetchpriority="high"
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   function getSelector(node) {

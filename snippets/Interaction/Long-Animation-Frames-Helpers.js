@@ -1,5 +1,5 @@
 // LoAF Helpers - Advanced Debugging
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   "use strict";

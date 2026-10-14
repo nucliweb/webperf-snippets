@@ -1,5 +1,5 @@
 // Measure TTFB sub-parts breakdown
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   new PerformanceObserver((entryList) => {

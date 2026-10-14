@@ -2,7 +2,7 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 const { buildSnippetEntries, buildGuideEntries, generateLlmsTxt } = require('./generate-llms')
 
-const BASE = 'https://webperf-snippets.nucliweb.net'
+const BASE = 'https://webperf-snippets.net'
 
 test('llms.txt links each page to its Markdown version', () => {
   const txt = generateLlmsTxt(buildSnippetEntries(), buildGuideEntries())

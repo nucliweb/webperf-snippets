@@ -1,5 +1,5 @@
 // Long Animation Frames - Script Attribution Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (() => {
   // Check browser support

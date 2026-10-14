@@ -1,5 +1,5 @@
 // SVG Embedded Bitmap Analysis
-// https://webperf-snippets.nucliweb.net
+// https://webperf-snippets.net
 
 (async () => {
   // @shared ownRequestUrl
