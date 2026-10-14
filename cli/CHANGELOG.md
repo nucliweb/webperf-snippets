@@ -10,6 +10,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
+## [0.5.0] — 2026-10-15
+
+### Changed
+- The snippets the CLI runs include changes since 0.4.1 that alter their results:
+  - `TTFB-Sub-Parts` returns a warning issue when the TTFB needs improvement and an error issue when it is poor, naming the slowest phase. The `audit` workflow runs it as a step, so a poor TTFB makes `--workflow audit` exit with code `1`.
+  - `CSS-Media-Queries-Analysis` returns one item per distinct query, largest first and at most 50, with the totals in `details` and an issue for the bytes that narrower screens download without using them. The device estimates and `details.performanceImpact` are removed.
+  - `Webfont-Usage-Analyzer` attributes each `@font-face` rule to its own file. Items are one row per face and file, the faces nothing needed are in `details.neverLoaded`, and a face whose file downloaded twice raises a warning.
+  - `LCP-Video-Candidate` returns no LCP value when the LCP is not a video, only the tag and URL of the LCP element and an info issue. It tells the first frame of a video (`details.videoUrl`) from its poster, and warns when the LCP rendered more than 10 s after the load.
+  - `LCP`, `LCP-Subparts` and `LCP-Trail` give the LCP element a selector that matches only that element.
+  - `LCP-Image-Entropy` gives the tag of the LCP element in `details.lcpElement`, and an info issue that says why when the LCP is not an image whose entropy it can compute.
+  - `SVG-Embedded-Bitmap-Analysis` returns an info issue when five or more inline SVGs could share a sprite, and `Video-Element-Audit` and `Prefetch-Resource-Validation` return one when the page has nothing to check.
+  - The requests the snippets make to read files of the page carry the fragment `#webperf-snippets`, and the snippets that read Resource Timing leave them out, so a snippet that runs after another no longer counts those requests as the page's.
+- The package homepage is https://webperf-snippets.net.
+
+---
+
 ## [0.4.1] — 2026-10-04
 
 ### Fixed
