@@ -11,7 +11,7 @@ The snippet source files in `snippets/` are the single source of truth. Document
 ## Technology stack
 
 - **Site**: Next.js 16 App Router with Nextra 4 (`nextra-theme-docs`) and React 19, deployed on Vercel. Search is Pagefind, built after `next build`
-- **Media**: Cloudinary through `next-cloudinary`
+- **Media**: Cloudinary URLs (`res.cloudinary.com/nucliweb`), with no SDK
 - **Analytics**: Google Analytics and DebugBear
 - **CLI** (`cli/`, npm workspace `webperf-snippets`): Playwright runner for the snippets, tested with Vitest
 
@@ -103,4 +103,4 @@ Writing rules for pages are in the `webperf-docs-reviewer` skill: sentence-case 
 - `agentRules: false` in `next.config.mjs` stops `next dev` from writing a Next.js block into `CLAUDE.md` and `AGENTS.md`.
 - The code block and the demo are components of this repository, and `Callout` wraps the one of the theme (`components/`); their styles use `wp-*` classes and `--wp-*` tokens in `styles/globals.css`, never the utility classes of the theme.
 - The dev server does not pick up changes in `lib/`; restart it after editing a plugin.
-- Cloudinary URLs and `CldVideoPlayer` are available in MDX for media.
+- Images in MDX are Cloudinary URLs in a plain `<img>` with a `srcSet` of transformations (`content/CLI.mdx`); videos use `components/LazyVideoPlayer.js`, a native `<video>` that loads on click.
