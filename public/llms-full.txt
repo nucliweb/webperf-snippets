@@ -3,7 +3,7 @@
 A curated collection of JavaScript snippets for web performance measurement.
 Each snippet runs in the browser console or Chrome DevTools.
 Source: https://webperf-snippets.net
-Version: 1.3.0
+Version: 2.0.0
 
 ---
 

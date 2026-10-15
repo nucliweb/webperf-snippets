@@ -2,7 +2,7 @@
 
 > A curated collection of JavaScript snippets for web performance measurement in browser consoles and Chrome DevTools.
 > Source: https://webperf-snippets.net
-> Version: 1.3.0
+> Version: 2.0.0
 > Each link points to the Markdown version of a page; the HTML page is at the same URL without .md.
 
 ---
