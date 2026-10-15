@@ -48,6 +48,7 @@ npm run build                # production build (regenerates llms files first)
 npm run lint                 # eslint
 npm run generate-skills      # regenerate skills/, dist/, .claude/skills/ from snippets/
 npm run generate-skills:check  # CI check: generation leaves no diff
+npm run test:skills            # every skill script keeps the result objects of its snippet
 node scripts/generate-llms.js  # regenerate public/llms*.txt
 
 npm run check:consistency    # shared helpers must carry the `// @shared` marker

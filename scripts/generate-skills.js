@@ -151,7 +151,8 @@ async function buildScript(src, dst, relPath) {
   let code
   try {
     const result = await minify(source, {
-      compress: { drop_console: true, pure_getters: true, passes: 2 },
+      // expression: keep the IIFE's return value; agents read it from evaluate_script
+      compress: { drop_console: true, pure_getters: true, passes: 2, expression: true },
       mangle: true,
       format: { comments: false },
     })

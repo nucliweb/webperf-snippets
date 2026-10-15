@@ -80,6 +80,9 @@ jobs:
       - name: Check generated skills are up to date
         run: npm run generate-skills:check
 
+      - name: Run skill script tests
+        run: npm run test:skills
+
       - name: Run CI helper tests
         run: npm run test:ci
 
