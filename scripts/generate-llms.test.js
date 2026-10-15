@@ -16,3 +16,11 @@ test('llms.txt lists the guides before the snippets', () => {
   assert.match(txt, new RegExp(`- \\[Which snippet should I use\\?\\]\\(${BASE}/which-snippet\\.md\\)`))
   assert.ok(txt.indexOf('## Guides') < txt.indexOf('## Core Web Vitals'))
 })
+
+test('llms.txt and llms-full.txt give the version of the collection', () => {
+  const { generateLlmsFullTxt } = require('./generate-llms')
+  const { version } = require('../package.json')
+  const entries = buildSnippetEntries()
+  assert.match(generateLlmsTxt(entries, buildGuideEntries()), new RegExp(`^> Version: ${version.replaceAll('.', '\\.')}$`, 'm'))
+  assert.match(generateLlmsFullTxt(entries), new RegExp(`^Version: ${version.replaceAll('.', '\\.')}$`, 'm'))
+})
