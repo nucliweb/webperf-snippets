@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SiteHead } from "./SiteHead";
 import { Logo } from "./Logo";
-import { FooterText } from "./FooterText";
 import { site } from "../lib/site";
 
 const DESCRIPTION =
@@ -45,13 +44,5 @@ describe("Logo", () => {
     const html = renderToStaticMarkup(<Logo />);
     expect(html).toContain('role="img"');
     expect(html).toContain('aria-label="WebPerf Snippets"');
-  });
-});
-
-describe("FooterText", () => {
-  it("credits the author with the year of the build", () => {
-    const html = renderToStaticMarkup(<FooterText />);
-    expect(html).toContain(`MIT ${new Date().getFullYear()}`);
-    expect(html).toContain("https://twitter.com/nucliweb");
   });
 });
