@@ -10,6 +10,7 @@ const PAGES_DIR = path.join(ROOT, 'content')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
 const PUBLIC_DIR = path.join(ROOT, 'public')
 const BASE_URL = 'https://webperf-snippets.net'
+const { version: VERSION } = require('../package.json')
 
 const CATEGORIES = ['CoreWebVitals', 'Loading', 'Interaction', 'Media', 'Resources', 'DevTools-Overrides']
 
@@ -95,6 +96,7 @@ function generateLlmsTxt(entries, guides = []) {
     '',
     `> A curated collection of JavaScript snippets for web performance measurement in browser consoles and Chrome DevTools.`,
     `> Source: ${BASE_URL}`,
+    `> Version: ${VERSION}`,
     `> Each link points to the Markdown version of a page; the HTML page is at the same URL without .md.`,
     '',
     '---',
@@ -132,6 +134,7 @@ function generateLlmsFullTxt(entries) {
     'A curated collection of JavaScript snippets for web performance measurement.',
     'Each snippet runs in the browser console or Chrome DevTools.',
     `Source: ${BASE_URL}`,
+    `Version: ${VERSION}`,
     '',
     '---',
     '',
