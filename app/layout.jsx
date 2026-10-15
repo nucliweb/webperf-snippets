@@ -1,4 +1,4 @@
-import { Layout, Navbar } from "nextra-theme-docs";
+import { Footer, Layout, Navbar } from "nextra-theme-docs";
 import { Head } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
 import "nextra-theme-docs/style.css";
@@ -22,7 +22,11 @@ export default async function RootLayout({ children }) {
       <body>
         <Layout
           navbar={<Navbar logo={<Logo />} projectLink={site.repository} />}
-          footer={<FooterText />}
+          footer={
+            <Footer>
+              <FooterText />
+            </Footer>
+          }
           pageMap={await getPageMap()}
           docsRepositoryBase={site.repository}
           copyPageButton={false}
