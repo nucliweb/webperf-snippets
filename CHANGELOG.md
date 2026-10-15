@@ -10,6 +10,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.1] — 2026-10-16
+
+### Fixed
+- The scripts of the skills return their result object again, which those of 2.0.0 did not. The minifier dropped the final `return { script, status, ... }` of 53 of the 56 scripts, so `evaluate_script` gave the agent `undefined`. `npm run test:skills` checks that every built script keeps the result objects of its source.
+
+### Changed
+- The footer gives the version, the license and the author, and links GitHub, the npm package, the changelog and `llms.txt`. `llms.txt` and `llms-full.txt` give the version in their header.
+
+---
+
 ## [2.0.0] — 2026-10-15
 
 A major version: several snippets return different fields or values (listed under Changed), so code or agents that read their results need to review them, and the site lives at a new domain.
@@ -58,7 +68,6 @@ A major version: several snippets return different fields or values (listed unde
 - `LCP-Image-Entropy`, `LCP-Subparts`, `LCP-Trail` and `LCP-Video-Candidate` return `status: "unsupported"` in a browser without LCP entries, instead of an empty result.
 - `First-And-Third-Party-Script-Timings` reports the DNS, connection, request and response phases of a cross-origin script without `Timing-Allow-Origin` as `null`, instead of numbers computed against zero.
 - The demo animations start their clock on the first frame, so the progress does not stay at zero inside an iframe.
-- The scripts of the skills return their result object again. The minifier dropped the final `return { script, status, ... }` of 53 of the 56 scripts, so `evaluate_script` gave the agent `undefined`. `npm run test:skills` checks that every built script keeps the result objects of its source.
 
 ### Security
 - The site runs on Next.js 16, which resolves the `next` and `postcss` advisories reported by `npm audit`. `dev` and `build` use webpack (`--webpack`) for the `?raw` snippet imports.
@@ -166,7 +175,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.3.0...v2.0.0
 [1.3.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.1.0...v1.2.0
