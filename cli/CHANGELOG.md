@@ -10,6 +10,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
+## [1.0.0] — 2026-10-15
+
+### Changed
+- The command line options, the workflows, the exit codes and the shape of the JSON report are stable: a change that breaks them comes in a new major version. The results of each snippet follow the contract of `snippets/SCHEMA.md`.
+
+---
+
 ## [0.5.0] — 2026-10-15
 
 ### Changed
@@ -107,7 +114,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.2.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.0.0...HEAD
+[1.0.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.5.0...cli-v1.0.0
+[0.5.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.4.1...cli-v0.5.0
+[0.4.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.4.0...cli-v0.4.1
+[0.4.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.3.0...cli-v0.4.0
+[0.3.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.2.0...cli-v0.3.0
 [0.2.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.1.1...cli-v0.2.0
 [0.1.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.1.0...cli-v0.1.1
 [0.1.0]: https://github.com/nucliweb/webperf-snippets/releases/tag/cli-v0.1.0

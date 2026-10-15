@@ -8,7 +8,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.0.0] — 2026-10-15
+
+A major version: several snippets return different fields or values (listed under Changed), so code or agents that read their results need to review them, and the site lives at a new domain.
+
 ### Changed
+- The site is served at https://webperf-snippets.net, and so are its metadata, the Markdown pages, `llms.txt`, the agent prompts, the extension, the CLI and the snippet headers. The previous domain redirects to it with a 308.
+- The home page leads with the paths for AI agents (the CLI, the Copy prompt and the skills) and keeps DevTools as the path for the browser.
+- Each page has its own description and its own Open Graph and Twitter tags, read from its MDX, instead of those of the home page.
 - The site runs on Nextra 4 and the Next.js App Router with React 19. The pages live in `content/`, the navigation of each directory in `_meta.js`, and the layout in `app/layout.jsx`.
 - Search uses Pagefind, indexed at build time over the 61 pages, code included.
 - The sitemap and `robots.txt` come from `app/sitemap.js` and `app/robots.js` instead of `next-sitemap`, with the same 61 URLs.
@@ -20,9 +29,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `Cache-Strategy-Analysis` reports uncompressed text and duplicate requests, which need no headers, as anti-patterns on any origin, says how much of the page it could analyze (`details.headerCoveragePercent`), and leaves the cache efficiency score `null` when no header was readable.
 - `Resource-Hints-Validation` lists each unused hint in `items`, and a preload for a viewport that does not match is no longer counted as unused.
 - `Image-Element-Audit` audits the image the browser reports as the LCP element, and none when the LCP is text, a CSS background or a video.
+- `TTFB-Sub-Parts`, `CSS-Media-Queries-Analysis`, `Webfont-Usage-Analyzer`, `LCP-Video-Candidate`, `LCP-Image-Entropy`, `SVG-Embedded-Bitmap-Analysis`, `Video-Element-Audit` and `Prefetch-Resource-Validation` change their results, `LCP`, `LCP-Subparts` and `LCP-Trail` give the LCP element a selector that matches only that element, and the snippets that read Resource Timing leave out the requests other snippets make. The details are under 0.5.0 in [`cli/CHANGELOG.md`](cli/CHANGELOG.md).
 
 ### Added
-- A "Copy prompt" bar above each snippet, with a sentence that says what it is for, also presented on the home page and the CLI page. It copies a prompt that asks an AI agent to run that snippet with the pinned `webperf-snippets` CLI and report the result, instead of rewriting the snippet or estimating it. Tracking snippets include an interaction script, `Back-Forward-Cache` says that the result is partial, and the Fetch-XHR-Timeline overrides, the Long-Animation-Frames helpers and `Network-Bandwidth-Connection-Quality` have no button.
+- A "Copy prompt" bar above each snippet, with a sentence that says what it is for, also presented on the home page and the CLI page. It copies a prompt that asks an AI agent to run that snippet with the pinned `webperf-snippets` CLI and report the result, instead of rewriting the snippet or estimating it. The prompt lists the snippets the page links, to name the next one to run. Tracking snippets include an interaction script, `Back-Forward-Cache` says that the result is partial, and the Fetch-XHR-Timeline overrides, the Long-Animation-Frames helpers and `Network-Bandwidth-Connection-Quality` have no button.
 - Seven snippets: `Compression-Audit`, `Server-Timing-Early-Hints`, `Speculation-Rules-Inspector`, `Webfont-Usage-Analyzer`, `Oversized-Images`, `DOM-Size-and-Depth` and `Third-Party-Impact-by-Domain`, which ranks third parties by render-blocking, main-thread time in long animation frames and transfer size. The collection now has 56 snippets.
 - Twelve interactive demos, 17 in total: TTFB sub-parts, LCP sub-parts, layout shifts and CLS, the INP phases, long animation frames, back/forward cache blockers, scroll frame times, input latency by event type, `fetchpriority` and the order of a load, LCP candidates, what `content-visibility: auto` skips, and the ranking of third parties. They share a look, keyboard and screen reader support, and reduced motion handling, documented in `public/demos/README.md`.
 - A "Which snippet should I use?" guide, linked from the home page and from the TTFB sections.
@@ -32,9 +42,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `snippets/SCHEMA.md`, the return-value contract of every snippet, enforced by an end-to-end test.
 - `corsLimitedAnalysis` in the result of the snippets whose analysis is partial because cross-origin data is hidden.
 - `OWN_DOMAINS` at the top of the first-party snippets (`First-And-Third-Party-Script-Info`, `First-And-Third-Party-Script-Timings`, `Script-Loading`, `TTFB-Resources`, `Cache-Strategy-Analysis` and `Fonts-Preloaded-Loaded-and-used-above-the-fold`) to count a site's own CDN on another root domain as first party.
-- The CLI reaches version 0.5.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `audit`, `loading` and `interaction` workflows, CrUX field data, `--storage-state` for pages behind a login, `--report-to` and decision-tree follow-ups for LCP and CLS.
+- The CLI reaches version 1.0.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `audit`, `loading` and `interaction` workflows, CrUX field data, `--storage-state` for pages behind a login, `--report-to` and decision-tree follow-ups for LCP and CLS.
 - GitHub Action at `.github/actions/webperf-snippets` that runs the CLI with LCP and CLS budgets and writes the report to the job summary.
 - A `skip-e2e` label that skips the build and the end-to-end tests on documentation-only pull requests.
+- A Markdown version of every page at its path with `.md` (`/CoreWebVitals/LCP.md`), declared with `<link rel="alternate" type="text/markdown">`. `llms.txt` links each page to it and lists the guides.
+- A `SoftwareSourceCode` JSON-LD for each snippet of a page, with its language, runtime, license and source file.
+- WebMCP tools registered on `document.modelContext`, with `navigator.modelContext` as the fallback for earlier Chromium versions. Their registry is generated from the content and covers every snippet, and `get_snippet_prompt` returns the prompt to run a snippet on any URL with the CLI.
+- A Chrome DevTools extension, in beta at version 0.1.1: a panel that runs the snippets on the inspected page, an audit with the steps of the CLI `audit` workflow that compares the result with the previous audit of the page, and a page on the site to download it. A tag `extension-v*` publishes its zip as a prerelease.
+- Google Analytics events when a snippet or its prompt is copied (`copy_snippet`, `copy_prompt`) and when the extension is downloaded (`download_extension`).
+- `npm run eval:prompts`: an agent runs the Copy prompt on local pages and is graded from its transcript. A workflow runs it on demand and on the pull requests that change the prompt.
 - `npm run check:built-snippets` fails after a build when a page shows a snippet different from its source file. CI runs it.
 
 ### Fixed
@@ -44,7 +60,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The demo animations start their clock on the first frame, so the progress does not stay at zero inside an iframe.
 
 ### Security
-- The site runs on Next.js 16, which resolves the `next` and `postcss` advisories reported by `npm audit`. `dev` and `build` use webpack (`--webpack`) for the `?raw` snippet imports, and React stays on 18.
+- The site runs on Next.js 16, which resolves the `next` and `postcss` advisories reported by `npm audit`. `dev` and `build` use webpack (`--webpack`) for the `?raw` snippet imports.
 - Nextra 4 and the removal of `next-sitemap` clear the critical advisory and most of the high ones. `npm audit --omit=dev` still reports 7 (6 high, 1 moderate) in the dependencies of Nextra itself (`fast-glob`, `micromatch`, `braces`, `@xmldom/xmldom`), none critical.
 
 ---
@@ -149,7 +165,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.3.0...v2.0.0
 [1.3.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.0.0...v1.1.0
