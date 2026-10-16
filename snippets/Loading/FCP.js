@@ -22,6 +22,17 @@
 
   const ms = (val) => `${Math.round(val)}ms`;
 
+  // @shared supportsRenderBlockingStatus
+  // renderBlockingStatus (Resource Timing) is Chromium-only (Chrome 107+). Without it, which
+  // resources block rendering is unknown: a snippet reports that, not "none".
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
+  // @end-shared supportsRenderBlockingStatus
+
+  // Without it, the time after TTFB is not split into render-blocking load and render delay
+  const renderBlockingSupported = supportsRenderBlockingStatus();
+
   new PerformanceObserver((list) => {
     const fcpEntry = list.getEntriesByName("first-contentful-paint")[0];
     if (!fcpEntry) return;
@@ -54,6 +65,16 @@
     console.log("");
     console.log("%cPhase Breakdown:", "font-weight: bold;");
     console.log(`   TTFB:                  ${ms(ttfb)}`);
+    if (!renderBlockingSupported) {
+      console.log(`   Render-blocking load and render delay: ${ms(Math.max(0, fcpTime - ttfb))}`);
+      console.log("");
+      console.log(
+        "%cℹ️ renderBlockingStatus is not supported in this browser (Chrome 107+), so render-blocking resources cannot be identified",
+        "color: #3b82f6;"
+      );
+      console.groupEnd();
+      return;
+    }
     if (blockingResources.length > 0) {
       console.log(
         `   Render-blocking load:  ${ms(Math.max(0, lastBlockingEnd - ttfb))}`
@@ -103,18 +124,23 @@
   const ratingSync = valueToRating(fcpTimeSync);
 
   // Phases, measured from activation like the value: TTFB, then the wait for the last
-  // render-blocking resource, then the rest until the paint
+  // render-blocking resource, then the rest until the paint. Without renderBlockingStatus the
+  // two phases after TTFB are null, not 0 and the whole rest.
   const ttfbSync = Math.max(0, (navEntrySync?.responseStart ?? 0) - activationStartSync);
-  const blockingSync = performance
-    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
-    .filter((r) => r.renderBlockingStatus === "blocking");
+  const blockingSync = renderBlockingSupported
+    ? performance
+        .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
+        .filter((r) => r.renderBlockingStatus === "blocking")
+    : [];
   const lastBlockingEndSync = Math.max(
     ttfbSync,
     ...blockingSync.map((r) => r.responseEnd - activationStartSync)
   );
   const ttfbMs = Math.round(ttfbSync);
-  const renderBlockingLoadMs = Math.round(lastBlockingEndSync - ttfbSync);
-  const renderDelayMs = Math.max(0, Math.round(fcpTimeSync) - ttfbMs - renderBlockingLoadMs);
+  const renderBlockingLoadMs = renderBlockingSupported ? Math.round(lastBlockingEndSync - ttfbSync) : null;
+  const renderDelayMs = renderBlockingSupported
+    ? Math.max(0, Math.round(fcpTimeSync) - ttfbMs - renderBlockingLoadMs)
+    : null;
 
   return {
     script: "FCP",
@@ -128,7 +154,8 @@
       ttfbMs,
       renderBlockingLoadMs,
       renderDelayMs,
-      blockingResourceCount: blockingSync.length,
+      blockingResourceCount: renderBlockingSupported ? blockingSync.length : null,
+      renderBlockingSupported,
     },
     // Render-blocking resources, the last to finish first (at most 50)
     items: [...blockingSync]

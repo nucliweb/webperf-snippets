@@ -2,6 +2,22 @@
 // https://webperf-snippets.net
 
 (() => {
+  // Firefox and Safari have no Long Animation Frames: an empty list there is not a pass.
+  // The summary function answers the same, for an agent that calls it later.
+  if (!PerformanceObserver.supportedEntryTypes?.includes("long-animation-frame")) {
+    const unsupported = {
+      script: "Long-Animation-Frames",
+      status: "unsupported",
+      error: "long-animation-frame entries not supported in this browser (Chrome 123+)",
+    };
+    window.getLoAFSummary = () => unsupported;
+    console.log(
+      "%c⚠️ Long Animation Frames are not supported in this browser (Chrome 123+, Edge 123+)",
+      "color: #f59e0b; font-weight: bold;"
+    );
+    return unsupported;
+  }
+
   const formatMs = (ms) => `${Math.round(ms)}ms`;
 
   // Rating based on blocking duration
@@ -185,7 +201,10 @@
   });
 
   loafObserver.observe({ type: "long-animation-frame", buffered: true });
-  eventObserver.observe({ type: "event", buffered: true, durationThreshold: 16 });
+  // Events only add context to the frames, so the frames are tracked without them
+  if (PerformanceObserver.supportedEntryTypes.includes("event")) {
+    eventObserver.observe({ type: "event", buffered: true, durationThreshold: 16 });
+  }
 
   // Summary function
   window.getLoAFSummary = () => {

@@ -17,6 +17,10 @@
       color: "#FF4E42"
     }
   };
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
+  const renderBlockingSupported = supportsRenderBlockingStatus();
   new PerformanceObserver(list => {
     const fcpEntry = list.getEntriesByName("first-contentful-paint")[0];
     if (!fcpEntry) return;
@@ -29,6 +33,9 @@
     const resources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
     const blockingResources = resources.filter(r => r.renderBlockingStatus === "blocking");
     const lastBlockingEnd = blockingResources.length ? Math.max(...blockingResources.map(r => r.responseEnd)) - activationStart : ttfb;
+    if (!renderBlockingSupported) {
+      return;
+    }
     if (blockingResources.length > 0) void 0;
     if (blockingResources.length > 0) {
       Math.max(0, lastBlockingEnd - ttfb);
@@ -52,11 +59,11 @@
   const fcpTimeSync = Math.max(0, fcpEntrySync.startTime - activationStartSync);
   const ratingSync = valueToRating(fcpTimeSync);
   const ttfbSync = Math.max(0, (navEntrySync?.responseStart ?? 0) - activationStartSync);
-  const blockingSync = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.renderBlockingStatus === "blocking");
+  const blockingSync = renderBlockingSupported ? performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.renderBlockingStatus === "blocking") : [];
   const lastBlockingEndSync = Math.max(ttfbSync, ...blockingSync.map(r => r.responseEnd - activationStartSync));
   const ttfbMs = Math.round(ttfbSync);
-  const renderBlockingLoadMs = Math.round(lastBlockingEndSync - ttfbSync);
-  const renderDelayMs = Math.max(0, Math.round(fcpTimeSync) - ttfbMs - renderBlockingLoadMs);
+  const renderBlockingLoadMs = renderBlockingSupported ? Math.round(lastBlockingEndSync - ttfbSync) : null;
+  const renderDelayMs = renderBlockingSupported ? Math.max(0, Math.round(fcpTimeSync) - ttfbMs - renderBlockingLoadMs) : null;
   return {
     script: "FCP",
     status: "ok",
@@ -72,7 +79,8 @@
       ttfbMs: ttfbMs,
       renderBlockingLoadMs: renderBlockingLoadMs,
       renderDelayMs: renderDelayMs,
-      blockingResourceCount: blockingSync.length
+      blockingResourceCount: renderBlockingSupported ? blockingSync.length : null,
+      renderBlockingSupported: renderBlockingSupported
     },
     items: [ ...blockingSync ].sort((a, b) => b.responseEnd - a.responseEnd).slice(0, 50).map(r => ({
       url: r.name.split("/").pop().split("?")[0] || r.name,

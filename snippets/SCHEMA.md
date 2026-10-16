@@ -135,7 +135,9 @@ Entry types that `getEntriesByType()` does return can be read synchronously: `na
 })();
 ```
 
-Always check `PerformanceObserver.supportedEntryTypes` first. On browsers without the entry type a script must return `status: "unsupported"`, not a value that looks like a passing result.
+Always check `PerformanceObserver.supportedEntryTypes` first. On browsers without the entry type a script must return `status: "unsupported"`, not a value that looks like a passing result. A tracking script also defines its `getDataFn`, which returns the same `unsupported` object.
+
+When only part of the result depends on an API, the script still runs: it sets a `details.<name>Supported` flag to `false` and reports the fields that depend on the API as `null`, never as `0` or `false`. `loafSupported` (Long Animation Frames) and `renderBlockingSupported` (`renderBlockingStatus` in Resource Timing, Chromium only) follow this rule.
 
 The repository enforces this with an ESLint rule (`no-restricted-syntax` in `eslint.config.mjs`) that rejects `getEntriesByType()` for the observer-only types.
 
@@ -537,7 +539,7 @@ Synchronous. `count` is the number of uncompressed text resources; `items` holds
 
 #### Third-Party-Impact-by-Domain
 
-Synchronous. `count` is the number of third-party root domains; `items` holds the 50 to look at first (render-blocking, then the most main-thread time, then the largest transfer), while `details` totals every domain. `loafMs` is the script time attributed to the domain in `long-animation-frame` entries (sum of `scripts[].duration` by `sourceURL`), or `null` for every item when `details.loafSupported` is `false`. `details.longFrames` counts the long animation frames on the page and `details.unattributedLoafMs` is the time in them that no third-party script accounts for (first-party scripts, scripts under the 5 ms that the API lists, and style, layout and rendering work); both are `null` when `loafSupported` is `false`. A cross-origin request without `Timing-Allow-Origin` reports zero for every size, so it is counted in `sizeUnknownCount` (per domain and in `details`), left out of the byte totals, and `corsLimitedAnalysis` is `true`.
+Synchronous. `count` is the number of third-party root domains; `items` holds the 50 to look at first (render-blocking, then the most main-thread time, then the largest transfer), while `details` totals every domain. `loafMs` is the script time attributed to the domain in `long-animation-frame` entries (sum of `scripts[].duration` by `sourceURL`), or `null` for every item when `details.loafSupported` is `false`. `details.longFrames` counts the long animation frames on the page and `details.unattributedLoafMs` is the time in them that no third-party script accounts for (first-party scripts, scripts under the 5 ms that the API lists, and style, layout and rendering work); both are `null` when `loafSupported` is `false`. `details.renderBlockingSupported` is `false` in browsers without `renderBlockingStatus` (only Chromium has it); then `renderBlocking` is `null` for every item, `details.blockingDomains` is `null` and an `info` issue says so. A cross-origin request without `Timing-Allow-Origin` reports zero for every size, so it is counted in `sizeUnknownCount` (per domain and in `details`), left out of the byte totals, and `corsLimitedAnalysis` is `true`.
 
 ```json
 {
@@ -553,6 +555,7 @@ Synchronous. `count` is the number of third-party root domains; `items` holds th
     "unattributedLoafMs": 74,
     "firstPartyRequests": 1,
     "blockingDomains": 1,
+    "renderBlockingSupported": true,
     "loafSupported": true,
     "sizeUnknownCount": 1
   },
@@ -563,6 +566,37 @@ Synchronous. `count` is the number of third-party root domains; `items` holds th
   "issues": [
     { "severity": "warning", "message": "1 third-party domain(s) serve render-blocking resources (tagmanager.example); load them async or defer, or self-host them" },
     { "severity": "info", "message": "1 third-party request(s) without Timing-Allow-Origin report zero sizes, so the transfer size is a lower bound" }
+  ]
+}
+```
+
+#### First-And-Third-Party-Script-Info
+
+Synchronous. A script is a resource with `initiatorType` `script`, or one whose URL matches a `<script src>`, `<link rel="preload" as="script">` or `<link rel="modulepreload">` in the document (a preloaded script has `initiatorType` `link` or `other`). Each URL counts once; when the browser fetches it twice, the entry of the `<script>` is kept. `items` holds the 50 scripts to look at first (render-blocking, then third-party, then the largest). `details.renderBlockingSupported` is `false` in browsers without `renderBlockingStatus` (only Chromium has it); then `renderBlocking` is `null` for every item, `details.thirdPartyBlockingCount` is `null` and an `info` issue says so.
+
+```json
+{
+  "script": "First-And-Third-Party-Script-Info",
+  "status": "ok",
+  "count": 3,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "firstPartyCount": 1,
+    "thirdPartyCount": 2,
+    "thirdPartyPercent": 67,
+    "firstPartySizeBytes": 48000,
+    "thirdPartySizeBytes": 0,
+    "thirdPartyBlockingCount": 1,
+    "thirdPartyHostCount": 2,
+    "sizeUnknownCount": 2,
+    "renderBlockingSupported": true
+  },
+  "items": [
+    { "shortName": "tag.js", "host": "tags.example", "firstParty": false, "transferBytes": 0, "sizeKnown": false, "durationMs": 120, "renderBlocking": true }
+  ],
+  "issues": [
+    { "severity": "info", "message": "2 script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound" },
+    { "severity": "error", "message": "1 render-blocking third-party script(s)" }
   ]
 }
 ```
@@ -643,7 +677,7 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 #### FCP
 
-`value` is measured from `activationStart` on prerendered pages. `details` splits it into three phases that add up to `value`: TTFB, the wait for the last render-blocking resource, and the rest until the paint. `items` lists the render-blocking resources, the last to finish first (at most 50).
+`value` is measured from `activationStart` on prerendered pages. `details` splits it into three phases that add up to `value`: TTFB, the wait for the last render-blocking resource, and the rest until the paint. `items` lists the render-blocking resources, the last to finish first (at most 50). `details.renderBlockingSupported` is `false` in browsers without `renderBlockingStatus` (only Chromium has it): which resources block rendering is unknown, so `renderBlockingLoadMs`, `renderDelayMs` and `blockingResourceCount` are `null`, `items` is empty, and `value` and `ttfbMs` are still measured.
 
 ```json
 {
@@ -654,7 +688,7 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
   "unit": "ms",
   "rating": "good",
   "thresholds": { "good": 1800, "needsImprovement": 3000 },
-  "details": { "ttfbMs": 180, "renderBlockingLoadMs": 620, "renderDelayMs": 440, "blockingResourceCount": 2 },
+  "details": { "ttfbMs": 180, "renderBlockingLoadMs": 620, "renderDelayMs": 440, "blockingResourceCount": 2, "renderBlockingSupported": true },
   "items": [{ "url": "app.css", "type": "CSS", "durationMs": 310 }]
 }
 ```
@@ -910,7 +944,7 @@ Immediately returns the buffered CLS (the largest session window), plus a summar
 
 #### Long-Animation-Frames
 
-Returns buffered LoAF data immediately. Ongoing tracking continues. `items` holds the 20 frames with the most blocking time, in the same shape at start and in `getLoAFSummary()`, each with its 10 slowest scripts.
+Returns buffered LoAF data immediately. Ongoing tracking continues. `items` holds the 20 frames with the most blocking time, in the same shape at start and in `getLoAFSummary()`, each with its 10 slowest scripts. In browsers without `long-animation-frame` entries (Firefox, Safari) the script and `getLoAFSummary()` return `{ "script": "Long-Animation-Frames", "status": "unsupported", "error": "..." }`, not a count of 0.
 
 ```json
 {

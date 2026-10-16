@@ -2,6 +2,9 @@
   function isOwnRequest(entry) {
     return entry.name.endsWith("#webperf-snippets");
   }
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
   const OWN_DOMAINS = [];
   function getRootDomain(hostname) {
     const host = hostname.replace(/\.$/, "");
@@ -29,7 +32,15 @@
     const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
     return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
-  const scripts = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.initiatorType === "script").map(r => {
+  const renderBlockingSupported = supportsRenderBlockingStatus();
+  const documentScriptUrls = new Set(Array.from(document.querySelectorAll('script[src], link[rel~="preload" i][as="script" i], link[rel~="modulepreload" i]'), el => el.localName === "link" ? el.href : el.src));
+  const isScript = r => r.initiatorType === "script" || documentScriptUrls.has(r.name);
+  const scriptEntries = new Map;
+  performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(isScript).forEach(r => {
+    const seen = scriptEntries.get(r.name);
+    if (!seen || seen.initiatorType !== "script" && r.initiatorType === "script") scriptEntries.set(r.name, r);
+  });
+  const scripts = [ ...scriptEntries.values() ].map(r => {
     const url = new URL(r.name);
     const firstParty = isFirstParty(url.hostname);
     return {
@@ -42,7 +53,7 @@
       sizeKnown: r.transferSize > 0 || r.encodedBodySize > 0 || r.decodedBodySize > 0,
       startTime: r.startTime,
       responseEnd: r.responseEnd,
-      renderBlocking: r.renderBlockingStatus === "blocking"
+      renderBlocking: renderBlockingSupported ? r.renderBlockingStatus === "blocking" : null
     };
   });
   const firstParty = scripts.filter(s => s.firstParty);
@@ -51,7 +62,7 @@
     count: list.length,
     totalSize: list.reduce((sum, s) => sum + s.transferSize, 0),
     totalDuration: list.reduce((sum, s) => sum + s.duration, 0),
-    blocking: list.filter(s => s.renderBlocking).length,
+    blocking: renderBlockingSupported ? list.filter(s => s.renderBlocking).length : null,
     hosts: [ ...new Set(list.map(s => s.host)) ]
   });
   const firstMetrics = calcMetrics(firstParty);
@@ -64,7 +75,7 @@
       Script: s.shortName,
       Size: formatBytes(s.transferSize),
       Duration: s.duration.toFixed(0) + "ms",
-      Blocking: s.renderBlocking ? "⚠️ Yes" : "No",
+      Blocking: s.renderBlocking === null ? "n/a" : s.renderBlocking ? "⚠️ Yes" : "No",
       Host: s.host
     }));
   }
@@ -88,7 +99,7 @@
       Host: s.host,
       Size: formatBytes(s.transferSize),
       Duration: s.duration.toFixed(0) + "ms",
-      Blocking: s.renderBlocking ? "⚠️ Yes" : "No"
+      Blocking: s.renderBlocking === null ? "n/a" : s.renderBlocking ? "⚠️ Yes" : "No"
     }));
   }
   if (thirdParty.length > 0) {
@@ -98,6 +109,8 @@
     }
     if (thirdMetrics.totalSize > 100 * 1024) {
     }
+  }
+  if (!renderBlockingSupported && totalScripts > 0) {
   }
   logOwnDomainsHint(thirdParty.length);
   const MAX_ITEMS = 50;
@@ -115,7 +128,8 @@
       thirdPartySizeBytes: thirdMetrics.totalSize,
       thirdPartyBlockingCount: thirdMetrics.blocking,
       thirdPartyHostCount: thirdMetrics.hosts.length,
-      sizeUnknownCount: scripts.filter(s => !s.sizeKnown).length
+      sizeUnknownCount: scripts.filter(s => !s.sizeKnown).length,
+      renderBlockingSupported: renderBlockingSupported
     },
     items: rankedScripts.slice(0, MAX_ITEMS).map(s => ({
       shortName: s.shortName,
@@ -129,6 +143,9 @@
     issues: [ ...scripts.some(s => !s.sizeKnown) ? [ {
       severity: "info",
       message: `${scripts.filter(s => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound`
+    } ] : [], ...!renderBlockingSupported && totalScripts > 0 ? [ {
+      severity: "info",
+      message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which scripts block rendering is unknown; run the snippet in Chrome or Edge to check"
     } ] : [], ...thirdMetrics.blocking > 0 ? [ {
       severity: "error",
       message: `${thirdMetrics.blocking} render-blocking third-party script(s)`

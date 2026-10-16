@@ -1,4 +1,13 @@
 (() => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("long-animation-frame")) {
+    const unsupported = {
+      script: "Long-Animation-Frames",
+      status: "unsupported",
+      error: "long-animation-frame entries not supported in this browser (Chrome 123+)"
+    };
+    window.getLoAFSummary = () => unsupported;
+    return unsupported;
+  }
   const formatMs = ms => `${Math.round(ms)}ms`;
   const valueToRating = blockingDuration => blockingDuration === 0 ? "good" : blockingDuration <= 100 ? "needs-improvement" : "poor";
   const RATING_COLORS = {
@@ -99,7 +108,7 @@
     type: "long-animation-frame",
     buffered: true
   });
-  eventObserver.observe({
+  if (PerformanceObserver.supportedEntryTypes.includes("event")) eventObserver.observe({
     type: "event",
     buffered: true,
     durationThreshold: 16

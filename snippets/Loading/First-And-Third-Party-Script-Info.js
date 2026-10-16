@@ -10,6 +10,14 @@
   }
   // @end-shared isOwnRequest
 
+  // @shared supportsRenderBlockingStatus
+  // renderBlockingStatus (Resource Timing) is Chromium-only (Chrome 107+). Without it, which
+  // resources block rendering is unknown: a snippet reports that, not "none".
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
+  // @end-shared supportsRenderBlockingStatus
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -60,10 +68,32 @@
   }
   // @end-shared formatBytes
 
-  // Gather script data
-  const scripts = performance
+  // Without it, renderBlocking is null for every script instead of false
+  const renderBlockingSupported = supportsRenderBlockingStatus();
+
+  // A script fetched through <link rel="preload" as="script"> or <link rel="modulepreload"> has
+  // initiatorType "link" or "other", not "script", so its URL is matched against the document
+  const documentScriptUrls = new Set(
+    Array.from(
+      document.querySelectorAll('script[src], link[rel~="preload" i][as="script" i], link[rel~="modulepreload" i]'),
+      (el) => (el.localName === "link" ? el.href : el.src)
+    )
+  );
+  const isScript = (r) => r.initiatorType === "script" || documentScriptUrls.has(r.name);
+
+  // One entry per URL: a script preloaded in one mode and loaded in another is fetched twice, and
+  // the entry of the <script> is the one that tells whether it blocks rendering
+  const scriptEntries = new Map();
+  performance
     .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
-    .filter((r) => r.initiatorType === "script")
+    .filter(isScript)
+    .forEach((r) => {
+      const seen = scriptEntries.get(r.name);
+      if (!seen || (seen.initiatorType !== "script" && r.initiatorType === "script")) scriptEntries.set(r.name, r);
+    });
+
+  // Gather script data
+  const scripts = [...scriptEntries.values()]
     .map((r) => {
       const url = new URL(r.name);
       const firstParty = isFirstParty(url.hostname);
@@ -79,7 +109,7 @@
         sizeKnown: r.transferSize > 0 || r.encodedBodySize > 0 || r.decodedBodySize > 0,
         startTime: r.startTime,
         responseEnd: r.responseEnd,
-        renderBlocking: r.renderBlockingStatus === "blocking",
+        renderBlocking: renderBlockingSupported ? r.renderBlockingStatus === "blocking" : null,
       };
     });
 
@@ -91,7 +121,7 @@
     count: list.length,
     totalSize: list.reduce((sum, s) => sum + s.transferSize, 0),
     totalDuration: list.reduce((sum, s) => sum + s.duration, 0),
-    blocking: list.filter((s) => s.renderBlocking).length,
+    blocking: renderBlockingSupported ? list.filter((s) => s.renderBlocking).length : null,
     hosts: [...new Set(list.map((s) => s.host))],
   });
 
@@ -129,7 +159,7 @@
     console.log("No first-party scripts found.");
   } else {
     console.log(`   Total size: ${formatBytes(firstMetrics.totalSize)}`);
-    console.log(`   Render-blocking: ${firstMetrics.blocking}`);
+    console.log(`   Render-blocking: ${firstMetrics.blocking ?? "n/a"}`);
     console.log("");
 
     const firstTable = firstParty
@@ -138,7 +168,7 @@
         Script: s.shortName,
         Size: formatBytes(s.transferSize),
         Duration: s.duration.toFixed(0) + "ms",
-        Blocking: s.renderBlocking ? "⚠️ Yes" : "No",
+        Blocking: s.renderBlocking === null ? "n/a" : s.renderBlocking ? "⚠️ Yes" : "No",
         Host: s.host,
       }));
     console.table(firstTable);
@@ -156,7 +186,7 @@
     console.log("%c✅ No third-party scripts found!", "color: #22c55e; font-weight: bold;");
   } else {
     console.log(`   Total size: ${formatBytes(thirdMetrics.totalSize)}`);
-    console.log(`   Render-blocking: ${thirdMetrics.blocking}`);
+    console.log(`   Render-blocking: ${thirdMetrics.blocking ?? "n/a"}`);
     console.log(`   Unique hosts: ${thirdMetrics.hosts.length}`);
     console.log("");
 
@@ -187,7 +217,7 @@
         Host: s.host,
         Size: formatBytes(s.transferSize),
         Duration: s.duration.toFixed(0) + "ms",
-        Blocking: s.renderBlocking ? "⚠️ Yes" : "No",
+        Blocking: s.renderBlocking === null ? "n/a" : s.renderBlocking ? "⚠️ Yes" : "No",
       }));
     console.table(thirdTable);
   }
@@ -247,6 +277,11 @@
     console.groupEnd();
   }
 
+  if (!renderBlockingSupported && totalScripts > 0) {
+    console.log("");
+    console.log("%cℹ️ renderBlockingStatus is not supported; render-blocking status is unavailable (Chrome 107+)", "color: #3b82f6;");
+  }
+
   logOwnDomainsHint(thirdParty.length);
   console.groupEnd();
 
@@ -272,6 +307,7 @@
       thirdPartyBlockingCount: thirdMetrics.blocking,
       thirdPartyHostCount: thirdMetrics.hosts.length,
       sizeUnknownCount: scripts.filter((s) => !s.sizeKnown).length,
+      renderBlockingSupported,
     },
     items: rankedScripts.slice(0, MAX_ITEMS).map((s) => ({
       shortName: s.shortName,
@@ -285,6 +321,9 @@
     issues: [
       ...(scripts.some((s) => !s.sizeKnown)
         ? [{ severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound` }]
+        : []),
+      ...(!renderBlockingSupported && totalScripts > 0
+        ? [{ severity: "info", message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which scripts block rendering is unknown; run the snippet in Chrome or Edge to check" }]
         : []),
       ...(thirdMetrics.blocking > 0
         ? [

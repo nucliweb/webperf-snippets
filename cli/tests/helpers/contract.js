@@ -204,6 +204,21 @@ const SMALL_PAGES = (other) => ({
     "",
     `<h1>images</h1><img src="${other}/nocors.png" width="10" height="10" alt="">`
   ),
+  // Scripts fetched in different ways. The third party is the other server under a host name
+  // (localhost), so that it does not share the page's IP: a parser-blocking script, a script
+  // preloaded and then loaded async (one fetch, initiatorType "link"), and a preload no script uses
+  // yet. First party: a module behind a modulepreload, and a script preloaded with crossorigin and
+  // loaded without it, which the browser fetches twice. The stylesheet preload is not a script.
+  "/script-sources": page(
+    `<script src="${other.replace("127.0.0.1", "localhost")}/blocking.js"></script>` +
+      `<link rel="preload" href="${other.replace("127.0.0.1", "localhost")}/analytics.js" as="script">` +
+      `<link rel="preload" href="${other.replace("127.0.0.1", "localhost")}/later.js" as="script">` +
+      '<link rel="modulepreload" href="/module.js">' +
+      '<link rel="preload" href="/twice.js" as="script" crossorigin>' +
+      '<link rel="preload" href="/style.css" as="style">',
+    `<h1>scripts</h1><script src="${other.replace("127.0.0.1", "localhost")}/analytics.js" async></script>` +
+      '<script type="module" src="/module.js"></script><script src="/twice.js"></script>'
+  ),
   "/astro": page(
     "",
     '<astro-island component-url="/Counter.js" client="load" props="{&quot;n&quot;:[0,1]}"></astro-island><astro-island component-url="/Menu.js" client="idle" props="{}"></astro-island>'

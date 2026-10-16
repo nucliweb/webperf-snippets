@@ -2,6 +2,9 @@
   function isOwnRequest(entry) {
     return entry.name.endsWith("#webperf-snippets");
   }
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
   const MAX_ITEMS = 50;
   const LOAF_WARNING_MS = 250;
   const MAX_LISTED_DOMAINS = 5;
@@ -36,6 +39,7 @@
       return null;
     }
   };
+  const renderBlockingSupported = supportsRenderBlockingStatus();
   const domains = new Map;
   const domainEntry = root => {
     if (!domains.has(root)) domains.set(root, {
@@ -43,7 +47,7 @@
       requests: 0,
       transferBytes: 0,
       sizeUnknownCount: 0,
-      renderBlocking: false,
+      renderBlocking: renderBlockingSupported ? false : null,
       loafMs: null,
       loafScripts: 0
     });
@@ -72,7 +76,7 @@
       d.sizeUnknownCount++;
       sizeUnknownCount++;
     }
-    if (entry.renderBlockingStatus === "blocking" && (entry.initiatorType === "script" || entry.initiatorType === "link")) d.renderBlocking = true;
+    if (renderBlockingSupported && entry.renderBlockingStatus === "blocking" && (entry.initiatorType === "script" || entry.initiatorType === "link")) d.renderBlocking = true;
   });
   const loafSupported = !!PerformanceObserver.supportedEntryTypes?.includes("long-animation-frame");
   let thirdPartyLoafMs = null;
@@ -123,6 +127,10 @@
       message: `${d.domain} scripts take ${d.loafMs} ms of main-thread time in long animation frames (over ${LOAF_WARNING_MS} ms); defer, delay or remove them`
     });
   });
+  if (!renderBlockingSupported && all.length > 0) issues.push({
+    severity: "info",
+    message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which third-party domains block rendering is unknown; run the snippet in Chrome or Edge to check"
+  });
   if (loafUnattributed) issues.push({
     severity: "info",
     message: `${longFrames} long animation frame(s) took ${longFramesMs} ms, but no third-party script was attributed in them (Long Animation Frames only list scripts over 5 ms), so 0 ms per domain does not rule out third-party cost`
@@ -132,6 +140,7 @@
     message: `${sizeUnknownCount} third-party request(s) without Timing-Allow-Origin report zero sizes, so the transfer size is a lower bound`
   });
   if (all.length > 0) void 0; else void 0;
+  if (!renderBlockingSupported) void 0;
   if (!loafSupported) void 0;
   if (loafUnattributed) void 0;
   if (corsLimitedAnalysis) void 0;
@@ -148,7 +157,8 @@
       longFrames: longFrames,
       unattributedLoafMs: unattributedLoafMs,
       firstPartyRequests: firstPartyRequests,
-      blockingDomains: blocking.length,
+      blockingDomains: renderBlockingSupported ? blocking.length : null,
+      renderBlockingSupported: renderBlockingSupported,
       loafSupported: loafSupported,
       sizeUnknownCount: sizeUnknownCount
     },
