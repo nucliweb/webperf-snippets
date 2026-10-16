@@ -25,6 +25,7 @@
     "test:diagrams": "vitest run components/diagrams",
     "test:components": "vitest run components lib/page-metadata.test.js lib/analytics.test.js lib/webmcp.test.js",
     "generate-icons": "node scripts/generate-icons.mjs",
+    "generate-demo-heights": "node scripts/generate-demo-heights.mjs",
     "generate-skills": "node scripts/generate-skills.js",
     "generate-skills:check": "node scripts/generate-skills.js && git diff --exit-code -- skills dist .claude/skills",
     "test:skills": "node --test scripts/skill-scripts.test.js scripts/skill-guidance.test.js",

@@ -451,18 +451,16 @@ document.getElementById('btnReset').addEventListener('click', reset);
 render();
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
-function applyTheme(t) {
-  document.documentElement.setAttribute('data-theme', t || 'dark');
+function applyTheme() {
+  // The site stores "light", "dark" or "system"; anything but light or dark follows the OS
+  let stored = null;
+  try { stored = localStorage.getItem("theme"); } catch {}
+  const os = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", stored === "light" || stored === "dark" ? stored : os);
 }
-(function initTheme() {
-  const stored = localStorage.getItem('theme');
-  if (stored) { applyTheme(stored); return; }
-  applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-})();
-window.addEventListener('storage', e => { if (e.key === 'theme') applyTheme(e.newValue); });
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-  if (!localStorage.getItem('theme')) applyTheme(e.matches ? 'dark' : 'light');
-});
+applyTheme();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 
 // ─── Height notification ───────────────────────────────────────────────────────
 function notifyHeight() {

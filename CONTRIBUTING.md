@@ -182,7 +182,7 @@ import { Demo } from '../../components/Demo'
 />
 ```
 
-A demo has no external scripts, styles, fonts or requests. It reports its height to the page, follows the theme of the site, respects reduced motion, and works with a keyboard and a screen reader. The full contract, the shared components (legend, tabs, frame, controls, explanation box) and the icons are in [`public/demos/README.md`](public/demos/README.md); copy an existing demo instead of restyling one. `npm run test:demos` checks the contract and runs in CI.
+A demo has no external scripts, styles, fonts or requests. It reports its height to the page, follows the theme of the site, respects reduced motion, and works with a keyboard and a screen reader. The full contract, the shared components (legend, tabs, frame, controls, explanation box) and the icons are in [`public/demos/README.md`](public/demos/README.md); copy an existing demo instead of restyling one. After adding a demo or changing its layout, run `npm run generate-demo-heights`, so the page reserves the height of the demo before it loads. `npm run test:demos` checks the contract, fails when a demo has no reserved height, and runs in CI.
 
 Demos and pages draw icons instead of emojis, and `npm run check:emoji` fails when an emoji slips into rendered text. An emoji in an MDX page is fine: the site swaps it for an icon when the page renders.
 

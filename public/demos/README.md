@@ -2,7 +2,9 @@
 
 Self-contained HTML files embedded in the docs through the `<Demo />` component
 (`components/Demo.jsx`). Each file is a single page with no external dependencies:
-all CSS and JS are inline, so it works offline and inside a sandboxed iframe.
+all CSS and JS are inline, so it works offline and inside the iframe of the
+component. The iframe has no `sandbox` attribute and the demo is served from the
+same origin as the docs, which is what lets it read the theme of the site.
 
 A demo is worth building only for a **temporal or stateful** phenomenon, something
 the reader benefits from watching move (the parser pausing on a script, request
@@ -26,30 +28,41 @@ function notifyHeight() {
 new ResizeObserver(notifyHeight).observe(document.body);
 ```
 
-Post `demoHeight`. (A custom key can be passed to the component via the
-`heightKey` prop, but there is no reason to; standardize on `demoHeight`.)
+Before the demo loads, the component reserves its height from
+`components/demo-heights.json`, so the page does not shift when the first
+`demoHeight` arrives. The map holds the height each demo reports in a narrow
+column (`mobile`, the 343 px column of a 375 px viewport) and in a wide one
+(`desktop`, the 672 px column of a 1280 px viewport), and the component uses it as
+the minimum height of the iframe. Regenerate it after adding a demo or changing
+its layout; `npm run test:demos` fails when a demo has no entry:
+
+```bash
+npm run generate-demo-heights
+```
 
 ### 2. Sync the theme
 
-The demo shares the same origin as the docs, so it reads the theme Nextra writes
-to `localStorage.theme` and reacts to changes through the `storage` event. Style
-both themes: dark by default under `:root`, light under `[data-theme="light"]`.
+The demo shares the same origin as the docs, so it reads the theme the site
+(next-themes) writes to `localStorage.theme` and reacts to changes through the
+`storage` event. The value is `light`, `dark` or `system`; anything other than
+`light` or `dark`, a missing value included, follows the OS through
+`prefers-color-scheme`, also when the OS changes it. Style both themes: dark by
+default under `:root`, light under `[data-theme="light"]`.
+
+Copy the block as it is; `npm run test:demos` checks that every demo has the same
+one and that it follows `system`.
 
 ```js
-function applyTheme(t) {
-  document.documentElement.setAttribute("data-theme", t || "dark");
+function applyTheme() {
+  // The site stores "light", "dark" or "system"; anything but light or dark follows the OS
+  let stored = null;
+  try { stored = localStorage.getItem("theme"); } catch {}
+  const os = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", stored === "light" || stored === "dark" ? stored : os);
 }
-(function initTheme() {
-  const stored = localStorage.getItem("theme");
-  if (stored) return applyTheme(stored);
-  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-})();
-addEventListener("storage", (e) => {
-  if (e.key === "theme") applyTheme(e.newValue);
-});
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
-});
+applyTheme();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 ```
 
 ### 3. Be self-contained
@@ -172,16 +185,16 @@ Copy this block into the demo's `<style>`, before the reduced motion rule. Keep 
   // ...demo logic...
 
   // Theme
-  function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
-  (function initTheme() {
-    const stored = localStorage.getItem("theme");
-    if (stored) return applyTheme(stored);
-    applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  })();
-  addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-    if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
-  });
+  function applyTheme() {
+    // The site stores "light", "dark" or "system"; anything but light or dark follows the OS
+    let stored = null;
+    try { stored = localStorage.getItem("theme"); } catch {}
+    const os = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", stored === "light" || stored === "dark" ? stored : os);
+  }
+  applyTheme();
+  addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 
   // Height
   function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
@@ -203,5 +216,9 @@ import { Demo } from "../../components/Demo";
 />
 ```
 
-Keep the mermaid diagram that documents the internal mechanism or decision tree;
-the demo complements it, it does not replace mechanism documentation.
+Then run `npm run generate-demo-heights` so the embed reserves the height of the
+new demo.
+
+Keep the diagram (an SVG component from `components/diagrams`) that documents the
+internal mechanism or decision tree; the demo complements it, it does not replace
+mechanism documentation.

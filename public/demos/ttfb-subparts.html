@@ -466,16 +466,16 @@ $("play").addEventListener("click", play);
 selectScenario(SCENARIOS[0]);
 
 /* Theme */
-function applyTheme(t) { document.documentElement.setAttribute("data-theme", t || "dark"); }
-(function initTheme() {
-  const stored = localStorage.getItem("theme");
-  if (stored) return applyTheme(stored);
-  applyTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-})();
-addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(e.newValue); });
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-  if (!localStorage.getItem("theme")) applyTheme(e.matches ? "dark" : "light");
-});
+function applyTheme() {
+  // The site stores "light", "dark" or "system"; anything but light or dark follows the OS
+  let stored = null;
+  try { stored = localStorage.getItem("theme"); } catch {}
+  const os = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", stored === "light" || stored === "dark" ? stored : os);
+}
+applyTheme();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 
 /* Height */
 function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
