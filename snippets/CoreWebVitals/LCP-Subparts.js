@@ -233,7 +233,9 @@
 
     console.log("");
     console.log("%c📊 Measures added to Performance timeline", "color: #666;");
-    console.log("   Open DevTools → Performance → reload to see waterfall");
+    console.log(
+      '   Read them with performance.getEntriesByType("measure"), or run the snippet during a DevTools Performance recording to see them in the Timings track'
+    );
 
     console.groupEnd();
   });

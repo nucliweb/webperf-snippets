@@ -37,10 +37,9 @@ Quick check for [Largest Contentful Paint](https://web.dev/articles/lcp), a Core
 - Elements with `background-image` (CSS)
 - Block-level text elements (`<p>`, `<h1>`, etc.)
 
-### LCP updates until
-- User interacts (click, scroll, keypress)
-- A larger element renders
-- Page load completes
+### When LCP stops updating
+
+The browser reports a new LCP candidate each time a larger element renders, also after the `load` event. It stops reporting new candidates as soon as the user interacts with the page (a tap, scroll, or keypress), so the LCP is the last candidate reported before that first interaction.
 
 ### Common causes of slow LCP
 

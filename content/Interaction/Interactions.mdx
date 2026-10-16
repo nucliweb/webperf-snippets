@@ -105,8 +105,8 @@ Call `getInteractionSummary()` in the console to see:
 | Metric | Description |
 |--------|-------------|
 | Total interactions | Number of tracked interactions |
-| Worst | Longest interaction duration |
-| P75 (INP) | 75th percentile - this is your INP score |
+| Worst (approximates INP) | Longest interaction duration. The INP of a page view is its longest interaction, ignoring one for every 50 interactions, so with fewer than 50 interactions it is this value |
+| P75 | 75th percentile of the interactions of this page view. It is not the INP: field tools report the 75th percentile of the INP across many page views |
 | Average | Mean duration across all interactions |
 | By rating | Count of good/needs-improvement/poor |
 

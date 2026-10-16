@@ -149,11 +149,11 @@
     console.log("%cStatistics:", "font-weight: bold;");
     console.log(`   Total interactions: ${allInteractions.length}`);
     console.log(
-      `   Worst: %c${formatMs(worst)} (${worstRating})`,
+      `   Worst (approximates INP): %c${formatMs(worst)} (${worstRating})`,
       `color: ${RATING_COLORS[worstRating]};`
     );
     console.log(
-      `   P75 (INP): %c${formatMs(p75)} (${p75Rating})`,
+      `   P75: %c${formatMs(p75)} (${p75Rating})`,
       `color: ${RATING_COLORS[p75Rating]};`
     );
     console.log(`   Average: ${formatMs(avg)}`);

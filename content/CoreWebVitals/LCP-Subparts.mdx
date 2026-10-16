@@ -75,10 +75,10 @@ Shows time distribution across the four phases:
 
 ### Performance timeline
 
-The snippet adds measures to the Performance API. To see them:
-1. Open DevTools → Performance tab
-2. Reload the page
-3. Look for "Time to First Byte", "Resource Load Delay", etc. in the timeline
+The snippet adds one User Timing measure per sub-part ("Time to First Byte", "Resource Load Delay", etc.) when it runs. A reload discards them, so read them in the same page view:
+
+- In the console, with `performance.getEntriesByType("measure")`
+- In DevTools → Performance: start a recording, run the snippet, and stop the recording. The measures appear in the Timings track, at the time of each sub-part
 
 ### Optimization checklist
 

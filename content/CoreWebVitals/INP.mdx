@@ -205,36 +205,28 @@ setInterval(() => {
 
 ### Integration with RUM
 
-Example integration with popular RUM tools:
+`getINP()` returns the current INP of the page view as a result object (`status`, `value`, `rating`), so while debugging its value can be sent to an analytics endpoint from the console:
 
 ```js copy
-// Google Analytics 4
-window.getINP = () => {
-  const result = calculateINP();
-  gtag('event', 'web_vitals', {
-    metric_name: 'INP',
-    value: Math.round(result.value),
-    rating: valueToRating(result.value),
-  });
-  return result;
-};
+// Run the INP snippet first, interact with the page, then run this
+const result = getINP();
 
-// DataDog RUM
-window.getINP = () => {
-  const result = calculateINP();
-  window.DD_RUM.addTiming('inp', result.value);
-  return result;
-};
+if (result.status === "ok") {
+  navigator.sendBeacon(
+    "/analytics",
+    JSON.stringify({ metric: result.metric, value: result.value, rating: result.rating })
+  );
+}
+```
 
-// New Relic
-window.getINP = () => {
-  const result = calculateINP();
-  window.newrelic.addPageAction('webVitals', {
-    metric: 'INP',
-    value: result.value,
-  });
-  return result;
-};
+For field data from every page view, use the [web-vitals](https://github.com/GoogleChrome/web-vitals) library in the code of the page. `onINP` reports the value when the page is hidden, and again after a restore from the back/forward cache:
+
+```js copy
+import { onINP } from "web-vitals";
+
+onINP(({ name, value, rating, id }) => {
+  navigator.sendBeacon("/analytics", JSON.stringify({ name, value, rating, id }));
+});
 ```
 
 ### Further reading
