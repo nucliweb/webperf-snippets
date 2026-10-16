@@ -59,15 +59,15 @@ Options:
   -h, --help            Show this help
 
 Examples:
-  npx webperf-snippets https://web.dev
-  npx webperf-snippets https://web.dev --workflow audit
-  npx webperf-snippets https://web.dev --json
-  npx webperf-snippets https://web.dev --snippet LCP-Subparts
-  npx webperf-snippets https://web.dev --snippet render-blocking
-  npx webperf-snippets https://web.dev --snippet fonts
-  npx webperf-snippets https://web.dev --snippet Compression-Audit
-  npx webperf-snippets https://web.dev --budget-lcp 2500
-  npx webperf-snippets https://web.dev --snippet INP --interact-script interactions.json
+  npx webperf-snippets https://example.com
+  npx webperf-snippets https://example.com --workflow audit
+  npx webperf-snippets https://example.com --json
+  npx webperf-snippets https://example.com --snippet LCP-Subparts
+  npx webperf-snippets https://example.com --snippet render-blocking
+  npx webperf-snippets https://example.com --snippet fonts
+  npx webperf-snippets https://example.com --snippet Compression-Audit
+  npx webperf-snippets https://example.com --budget-lcp 2500
+  npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
 `;
 

@@ -48,9 +48,9 @@ The skills include decision trees that automatically trigger deeper analysis whe
 Run the same curated snippets headlessly via Playwright. Diagnose LCP regressions in CI, gate pull requests on real performance budgets, and automate the audits you already run by hand. The `--json` output is what an agent or a script reads.
 
 ```bash copy
-npx webperf-snippets https://web.dev --json
-npx webperf-snippets https://web.dev --workflow audit
-npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
+npx webperf-snippets https://example.com --json
+npx webperf-snippets https://example.com --workflow audit
+npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 ```
 
 | Workflow          | What it runs                                                         |

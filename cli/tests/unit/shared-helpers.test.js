@@ -55,14 +55,14 @@ describe("isFirstParty", () => {
     expect(isFirstParty("other.co.uk")).toBe(false);
   });
   it("counts the domains listed in OWN_DOMAINS as first party, as domains or URLs in any case", () => {
-    const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "www.bbc.co.uk", ["bbci.co.uk", "https://Static.Example.com/assets/"]);
-    expect(isFirstParty("ichef.bbci.co.uk")).toBe(true);
-    expect(isFirstParty("cdn.example.com")).toBe(true);
+    const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "www.example.com", ["example.net", "https://Static.Example.org/assets/"]);
+    expect(isFirstParty("img.example.net")).toBe(true);
+    expect(isFirstParty("cdn.example.org")).toBe(true);
     expect(isFirstParty("ads.other.co.uk")).toBe(false);
   });
   it("keeps the root domain of the page first party when OWN_DOMAINS lists other domains", () => {
-    const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "www.bbc.co.uk", ["bbci.co.uk"]);
-    expect(isFirstParty("static.bbc.co.uk")).toBe(true);
+    const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "www.example.com", ["example.net"]);
+    expect(isFirstParty("static.example.com")).toBe(true);
   });
   it("does not treat two different IPs as the same party", () => {
     const { isFirstParty } = load(["getRootDomain", "isFirstParty"], "10.0.0.1");

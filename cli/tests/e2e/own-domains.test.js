@@ -5,7 +5,7 @@ import { loadSnippet } from "../../src/load-snippet.js";
 
 // The page lives on www.app.localhost. cdn.app.localhost shares its root domain (first party),
 // other.localhost does not. Listing other.localhost in OWN_DOMAINS makes it first party, the way
-// a site's own CDN on another root domain (bbc.co.uk and bbci.co.uk) has to be declared.
+// a site's own CDN on another root domain (example.com and example.net) has to be declared.
 let browser;
 let servers = [];
 let pageUrl;

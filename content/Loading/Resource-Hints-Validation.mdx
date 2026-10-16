@@ -111,10 +111,10 @@ Shows the overall state of resource hints:
 <link rel="preload" href="/hero-desktop.webp" as="image" media="(min-width: 769px)" />
 
 <!-- Preconnect to critical CDN -->
-<link rel="preconnect" href="https://cdn.web.dev" />
+<link rel="preconnect" href="https://cdn.example.com" />
 
 <!-- DNS-prefetch for analytics -->
-<link rel="dns-prefetch" href="https://analytics.web.dev" />
+<link rel="dns-prefetch" href="https://analytics.example.org" />
 ```
 
 ### Bad: Unused hints
@@ -124,7 +124,7 @@ Shows the overall state of resource hints:
 <link rel="preload" href="/admin-panel.js" as="script" />
 
 <!-- Preconnect to domain never accessed -->
-<link rel="preconnect" href="https://unused-cdn.web.dev" />
+<link rel="preconnect" href="https://unused-cdn.example.com" />
 ```
 
 ### Browser support

@@ -3,7 +3,7 @@ import { reportHuman } from "../../src/reporters/human.js";
 import { reportMarkdown } from "../../src/reporters/markdown.js";
 
 const base = {
-  url: "https://web.dev",
+  url: "https://example.com",
   navMs: 850,
   results: [
     { id: "LCP", status: "ok", metric: "LCP", value: 2100, unit: "ms", rating: "good" },

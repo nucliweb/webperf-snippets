@@ -139,7 +139,7 @@ Header inspection (`Cache-Control`, `Expires`, CDN headers) requires issuing `HE
 
 ### Cross-origin resources
 
-Resources served from a different origin (different scheme, host, or port) than the current page are blocked by CORS unless the server sends `Access-Control-Allow-Origin`. This includes subdomains, `api.web.dev` is cross-origin from `www.web.dev`.
+Resources served from a different origin (different scheme, host, or port) than the current page are blocked by CORS unless the server sends `Access-Control-Allow-Origin`. This includes subdomains, `api.example.com` is cross-origin from `www.example.com`.
 
 Those resources appear as **"CORS-restricted"** in the output.
 
@@ -168,7 +168,7 @@ Timing-Allow-Origin: *
 ```
 
 <Callout type="info">
-  Resources are first party when they share the page's root domain. A site's own CDN on a different root domain, such as `bbci.co.uk` for `bbc.co.uk`, is reported as a third party, because the comparison uses root domains only. To count those domains as first party, list them in the `OWN_DOMAINS` constant at the top of the snippet, for example `const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];`. Entries can be domains or URLs. While the list is empty and the page has third-party resources, the snippet prints a reminder in the console.
+  Resources are first party when they share the page's root domain. A site's own CDN on a different root domain, such as `example.net` for `example.com`, is reported as a third party, because the comparison uses root domains only. To count those domains as first party, list them in the `OWN_DOMAINS` constant at the top of the snippet, for example `const OWN_DOMAINS = ["example.net"];`. Entries can be domains or URLs. While the list is empty and the page has third-party resources, the snippet prints a reminder in the console.
 </Callout>
 
 ## Browser support

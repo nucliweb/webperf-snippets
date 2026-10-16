@@ -81,10 +81,10 @@ The snippet automatically detects first-party scripts by comparing root domains:
 
 | Page Domain          | Script Host            | Detected As |
 | -------------------- | ---------------------- | ----------- |
-| `web.dev`            | `web.dev`              | First-party |
-| `web.dev`            | `cdn.web.dev`          | First-party |
-| `web.dev`            | `assets.web.dev`       | First-party |
-| `web.dev`            | `google-analytics.com` | Third-party |
+| `example.com`        | `example.com`          | First-party |
+| `example.com`        | `cdn.example.com`      | First-party |
+| `example.com`        | `assets.example.com`   | First-party |
+| `example.com`        | `analytics.example.org` | Third-party |
 | `shop.example.co.uk` | `cdn.example.co.uk`    | First-party |
 | `www.example.ac.uk`  | `static.example.ac.uk` | First-party |
 | `10.0.0.1`           | `172.16.0.1`           | Third-party |
@@ -92,7 +92,7 @@ The snippet automatically detects first-party scripts by comparing root domains:
 An IP address is compared as a whole, so two different addresses are never the same party. Script-Loading, Cache-Strategy-Analysis, TTFB-Resources, First-And-Third-Party-Script-Timings and the font preload check apply the same rule.
 
 <Callout type="info">
-  Scripts are first party when they share the page's root domain. A site's own CDN on a different root domain, such as `bbci.co.uk` for `bbc.co.uk`, is reported as a third party, because the comparison uses root domains only. To count those domains as first party, list them in the `OWN_DOMAINS` constant at the top of the snippet, for example `const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];`. Entries can be domains or URLs. While the list is empty and the page has third-party resources, the snippet prints a reminder in the console.
+  Scripts are first party when they share the page's root domain. A site's own CDN on a different root domain, such as `example.net` for `example.com`, is reported as a third party, because the comparison uses root domains only. To count those domains as first party, list them in the `OWN_DOMAINS` constant at the top of the snippet, for example `const OWN_DOMAINS = ["example.net"];`. Entries can be domains or URLs. While the list is empty and the page has third-party resources, the snippet prints a reminder in the console.
 </Callout>
 
 ### Common third-party script categories

@@ -49,23 +49,23 @@ npx webperf-snippets <url> [options]
 Run the default Core Web Vitals workflow (LCP + CLS, plus LCP-Subparts when LCP exceeds 2.5s):
 
 ```bash copy
-npx webperf-snippets https://web.dev
+npx webperf-snippets https://example.com
 ```
 
 JSON output (for piping into `jq` or CI scripts):
 
 ```bash copy
-npx webperf-snippets https://web.dev --json
+npx webperf-snippets https://example.com --json
 ```
 
 Run a single snippet by alias or by its own name, in any case. Every snippet of the collection runs this way, with or without its category:
 
 ```bash copy
-npx webperf-snippets https://web.dev --snippet LCP-Subparts
-npx webperf-snippets https://web.dev --snippet render-blocking
-npx webperf-snippets https://web.dev --snippet fonts
-npx webperf-snippets https://web.dev --snippet Compression-Audit
-npx webperf-snippets https://web.dev --snippet Interaction/DOM-Size-and-Depth
+npx webperf-snippets https://example.com --snippet LCP-Subparts
+npx webperf-snippets https://example.com --snippet render-blocking
+npx webperf-snippets https://example.com --snippet fonts
+npx webperf-snippets https://example.com --snippet Compression-Audit
+npx webperf-snippets https://example.com --snippet Interaction/DOM-Size-and-Depth
 ```
 
 An unknown name exits with code `2` and lists the closest snippets.
@@ -98,8 +98,8 @@ Script the interactions of a page and measure them with `--interact-script`. The
 ```
 
 ```bash copy
-npx webperf-snippets https://web.dev --snippet INP --interact-script interactions.json
-npx webperf-snippets https://web.dev --snippet Interaction/Interactions --interact-script interactions.json
+npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
+npx webperf-snippets https://example.com --snippet Interaction/Interactions --interact-script interactions.json
 ```
 
 The snippets of the Interaction category, such as `Interactions`, `Input-Latency-Breakdown`, `LongTask` or `Forced-Synchronous-Layout`, record what happens while the page is used. With a script, the CLI installs them before the first step, runs the steps, and then reads their data, so the result holds what the steps caused. The other snippets run after the steps.
@@ -109,7 +109,7 @@ The CLI waits for the browser to report the timing of the last interaction befor
 Compare the measured values with CrUX field data (what real users experience at the 75th percentile):
 
 ```bash copy
-CRUX_API_KEY=your-key npx webperf-snippets https://web.dev
+CRUX_API_KEY=your-key npx webperf-snippets https://example.com
 ```
 
 ```
@@ -177,13 +177,13 @@ For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the na
 Gate CI on performance budgets:
 
 ```bash copy
-npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
+npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 ```
 
 Run the structural audit workflow:
 
 ```bash copy
-npx webperf-snippets https://web.dev --workflow audit
+npx webperf-snippets https://example.com --workflow audit
 ```
 
 The audit runs these checks on one page load. Only an issue of severity `error` makes the command exit with code `1`; warnings and notes appear in the report without changing the exit code.
@@ -218,7 +218,7 @@ The steps that make requests of their own run last, so those requests do not cha
 Run the loading workflow, which measures timing on a real page load:
 
 ```bash copy
-npx webperf-snippets https://web.dev --workflow loading
+npx webperf-snippets https://example.com --workflow loading
 ```
 
 It runs these steps on one page load. As in the audit, only an issue of severity `error` makes the command exit with code `1`.
@@ -242,8 +242,8 @@ The step that makes requests of its own (`cache-strategy` reads cache headers wi
 Run the interaction workflow, which measures what happens while the page is used:
 
 ```bash copy
-npx webperf-snippets https://web.dev --workflow interaction
-npx webperf-snippets https://web.dev --workflow interaction --interact-script interactions.json
+npx webperf-snippets https://example.com --workflow interaction
+npx webperf-snippets https://example.com --workflow interaction --interact-script interactions.json
 ```
 
 It installs the Interaction snippets, runs the interactions, and then reads them. Without `--interact-script` it scrolls the page, because clicks and typing belong to each site; with the script it runs the steps of the file instead. As in the other workflows, only an issue of severity `error` makes the command exit with code `1`.
@@ -263,14 +263,14 @@ It installs the Interaction snippets, runs the interactions, and then reads them
 Simulate a mobile viewport (default) or switch to desktop:
 
 ```bash copy
-npx webperf-snippets https://web.dev --viewport mobile
-npx webperf-snippets https://web.dev --viewport desktop
+npx webperf-snippets https://example.com --viewport mobile
+npx webperf-snippets https://example.com --viewport desktop
 ```
 
 Show all items, including passing checks:
 
 ```bash copy
-npx webperf-snippets https://web.dev --verbose
+npx webperf-snippets https://example.com --verbose
 ```
 
 ### Options
@@ -332,7 +332,7 @@ GitHub Actions example, fail the PR if LCP exceeds 2.5s:
 - run: |
     npm install --no-save webperf-snippets playwright
     npx playwright install --with-deps chromium
-    npx webperf-snippets https://staging.web.dev --budget-lcp 2500 --budget-cls 0.1
+    npx webperf-snippets https://staging.example.com --budget-lcp 2500 --budget-cls 0.1
 ```
 
 ### GitHub Action

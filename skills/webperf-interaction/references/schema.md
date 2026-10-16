@@ -202,7 +202,7 @@ A script wrapped in `void (async () => {...})()` discards its return value. Neve
   "details": {
     "element": "img.hero",
     "elementType": "Image",
-    "url": "https://web.dev/hero.jpg",
+    "url": "https://example.com/hero.jpg",
     "sizePixels": 756000
   }
 }
@@ -387,7 +387,7 @@ The phases describe the whole interaction, not one of its events. A tap fires `p
   "thresholds": { "good": 2500, "needsImprovement": 4000 },
   "details": {
     "isVideo": true,
-    "posterUrl": "https://web.dev/hero.avif",
+    "posterUrl": "https://example.com/hero.avif",
     "posterFormat": "avif",
     "posterPreloaded": true,
     "fetchpriorityOnPreload": "high",
@@ -463,7 +463,7 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
   "items": [
     {
       "type": "link",
-      "url": "https://web.dev/style.css",
+      "url": "https://example.com/style.css",
       "shortName": "style.css",
       "responseEndMs": 450,
       "durationMs": 200,
@@ -492,7 +492,7 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
   },
   "items": [
     {
-      "url": "https://web.dev/app.js",
+      "url": "https://example.com/app.js",
       "shortName": "app.js",
       "strategy": "blocking",
       "location": "head",
@@ -532,7 +532,7 @@ Synchronous. `count` is the number of uncompressed text resources; `items` holds
   },
   "items": [
     {
-      "url": "https://web.dev/app.css",
+      "url": "https://example.com/app.css",
       "shortName": "app.css",
       "type": "css",
       "encoding": "none",
@@ -639,8 +639,8 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
   },
   "items": [
     {
-      "scope": "https://web.dev/",
-      "scriptURL": "https://web.dev/sw.js",
+      "scope": "https://example.com/",
+      "scriptURL": "https://example.com/sw.js",
       "state": "active",
       "hasWaiting": false,
       "hasInstalling": false,

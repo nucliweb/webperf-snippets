@@ -4,7 +4,7 @@ import { reportHuman } from "../../src/reporters/human.js";
 import { reportMarkdown } from "../../src/reporters/markdown.js";
 
 const samplePayload = {
-  url: "https://web.dev",
+  url: "https://example.com",
   navMs: 850,
   results: [
     { id: "LCP", status: "ok", metric: "LCP", value: 1200, unit: "ms", rating: "good" },
@@ -21,7 +21,7 @@ describe("reportJson", () => {
 
   it("includes url, navMs, and results", () => {
     const parsed = JSON.parse(reportJson(samplePayload));
-    expect(parsed.url).toBe("https://web.dev");
+    expect(parsed.url).toBe("https://example.com");
     expect(parsed.navMs).toBe(850);
     expect(parsed.results).toHaveLength(2);
   });
@@ -42,7 +42,7 @@ describe("reportJson", () => {
 describe("reportHuman", () => {
   it("includes the URL in the output", () => {
     const output = reportHuman(samplePayload);
-    expect(output).toContain("https://web.dev");
+    expect(output).toContain("https://example.com");
   });
 
   it("includes metric IDs", () => {
@@ -68,7 +68,7 @@ describe("reportHuman", () => {
 
   it("renders fonts snippet result with counts and issues", () => {
     const payload = {
-      url: "https://web.dev",
+      url: "https://example.com",
       navMs: 500,
       results: [
         {
@@ -91,7 +91,7 @@ describe("reportHuman", () => {
 
   it("renders fonts snippet result with no issues as optimized", () => {
     const payload = {
-      url: "https://web.dev",
+      url: "https://example.com",
       navMs: 500,
       results: [
         {
@@ -112,7 +112,7 @@ describe("reportHuman", () => {
 
   it("renders audit result with no issues as passing", () => {
     const payload = {
-      url: "https://web.dev",
+      url: "https://example.com",
       navMs: 500,
       results: [
         {
@@ -134,7 +134,7 @@ describe("reportHuman", () => {
 
   it("renders audit result with error issues showing the message", () => {
     const payload = {
-      url: "https://web.dev",
+      url: "https://example.com",
       navMs: 500,
       results: [
         {
@@ -155,7 +155,7 @@ describe("reportHuman", () => {
 
   it("renders audit result with warning issues", () => {
     const payload = {
-      url: "https://web.dev",
+      url: "https://example.com",
       navMs: 500,
       results: [
         {
@@ -178,7 +178,7 @@ describe("reportHuman", () => {
 describe("reportMarkdown", () => {
   it("includes the URL as an h2 heading", () => {
     const output = reportMarkdown(samplePayload);
-    expect(output).toContain("## WebPerf Results — https://web.dev");
+    expect(output).toContain("## WebPerf Results — https://example.com");
   });
 
   it("includes navMs in the header", () => {
@@ -228,7 +228,7 @@ describe("reportMarkdown", () => {
 
   it("renders audit results with Check/Status/Issues columns", () => {
     const payload = {
-      url: "https://web.dev",
+      url: "https://example.com",
       navMs: 500,
       results: [
         {
@@ -249,7 +249,7 @@ describe("reportMarkdown", () => {
 
   it("renders audit errors with 🔴 fail", () => {
     const payload = {
-      url: "https://web.dev",
+      url: "https://example.com",
       navMs: 500,
       results: [
         {
@@ -285,7 +285,7 @@ describe("reportMarkdown", () => {
 
   it("renders follow-up results in a separate section with the reason", () => {
     const payload = {
-      url: "https://web.dev",
+      url: "https://example.com",
       navMs: 500,
       results: [
         { id: "LCP", status: "ok", metric: "LCP", value: 2600, unit: "ms", rating: "poor" },
@@ -340,7 +340,7 @@ describe("a skipped result", () => {
 
 describe("the human report for the Interaction snippets", () => {
   const strip = (text) => text.replace(/\x1b\[[0-9;]*m/g, "");
-  const payload = (results) => ({ url: "https://web.dev", navMs: 100, results, pageErrors: [] });
+  const payload = (results) => ({ url: "https://example.com", navMs: 100, results, pageErrors: [] });
 
   it("summarizes a result that has a count and details but no value and no issues", () => {
     const output = strip(

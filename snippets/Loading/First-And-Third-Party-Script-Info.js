@@ -19,7 +19,8 @@
   // @end-shared supportsRenderBlockingStatus
 
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // Auto-detect first-party: same root domain (handles subdomains)
@@ -251,7 +252,7 @@
       console.log("   • Each host requires DNS lookup + connection");
       console.log("   • Use <link rel='preconnect'> for critical hosts");
       console.log(
-        '%c   <link rel="preconnect" href="https://web.dev">',
+        '%c   <link rel="preconnect" href="https://example.com">',
         "font-family: monospace; color: #22c55e;",
       );
     }
