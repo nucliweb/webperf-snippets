@@ -98,10 +98,15 @@
     const isModule = script.type === "module";
     const isAsync = script.async;
     const isDefer = script.defer;
+    // A nomodule script is the fallback for browsers without ES modules. A browser that has the
+    // noModule property supports modules, so it never fetches or runs the script: it blocks nothing.
+    const isNoModule = script.noModule === true && !isModule;
 
     // Determine loading strategy
     let strategy = "blocking";
-    if (isModule && isAsync) {
+    if (isNoModule) {
+      strategy = "nomodule";
+    } else if (isModule && isAsync) {
       strategy = "async module";
     } else if (isModule) {
       strategy = "module";
@@ -125,7 +130,8 @@
       isAsync,
       isDefer,
       size: timing.size || 0,
-      sizeKnown: !!timing.sizeKnown,
+      // A nomodule script is never fetched, so its size is known: nothing was downloaded
+      sizeKnown: !!timing.sizeKnown || (isNoModule && !resourceTiming.has(src)),
       duration: timing.duration || 0,
       startTime: timing.startTime || 0,
       element: script,
@@ -138,6 +144,7 @@
   const asyncScripts = scripts.filter((s) => s.strategy === "async" || s.strategy === "async module");
   const deferScripts = scripts.filter((s) => s.strategy === "defer");
   const moduleScripts = scripts.filter((s) => s.strategy === "module");
+  const noModuleScripts = scripts.filter((s) => s.strategy === "nomodule");
   const thirdPartyBlocking = blocking.filter((s) => !s.firstParty);
 
   // Calculate totals
@@ -172,6 +179,9 @@
   console.log(`   ⚡ Async: ${asyncScripts.length}`);
   console.log(`   📋 Defer: ${deferScripts.length}`);
   console.log(`   📦 Module: ${moduleScripts.length}`);
+  if (noModuleScripts.length > 0) {
+    console.log(`   ⏭️ nomodule (not fetched by this browser): ${noModuleScripts.length}`);
+  }
   console.log("");
   console.log(`   Rating: %c${rating}`, `color: ${ratingColor}; font-weight: bold;`);
 
@@ -361,6 +371,7 @@
         async: asyncScripts.length,
         defer: deferScripts.length,
         module: moduleScripts.length,
+        nomodule: noModuleScripts.length,
       },
       byParty: {
         firstParty: firstPartyScripts.length,

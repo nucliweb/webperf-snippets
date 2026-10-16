@@ -14,6 +14,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 - INP, Interactions and Input-Latency-Breakdown measure the phases over the whole interaction, not over one of its events. A slow click handler was reported as `pointerup`, with 0 ms of processing and the presentation as the bottleneck; it is reported as `click`, with the processing as the bottleneck. An interaction whose entries arrive in separate observer callbacks counts once.
 - Interactions and Input-Latency-Breakdown return `unsupported` in browsers without Event Timing.
+- Script-Loading lists a `nomodule` script with the strategy `nomodule`, never as blocking: browsers with modules never fetch it.
+- Inline-Script-Info-and-Size classifies framework data payloads (JSON types, hydration ids such as `__NEXT_DATA__`, `self.__next_f.push(...)`) before looking for patterns, and counts analytics only from a call or definition such as `gtag(...)` or `dataLayer.push(...)`. A data payload that contained the word "gtag" was labelled analytics. Adds `isDataPayload` and `details.dataPayloadCount`.
+- LCP-Image-Entropy divides by the displayed area of the image, capped at its natural area, as Chrome does. It divided by the natural area, so a large image shown small was flagged as low entropy while Chrome took it as the LCP. Adds `displayedWidth` and `displayedHeight`.
 
 ---
 

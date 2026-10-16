@@ -65,6 +65,7 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 - **Async**: Downloads in parallel, executes when ready
 - **Defer**: Downloads in parallel, executes after parsing
 - **Module**: ES module (deferred by default)
+- **nomodule**: Fallback for browsers without ES modules, such as the polyfills script that frameworks inject. Browsers that support modules never download or run it, so it is not counted as blocking
 
 ### Details table
 

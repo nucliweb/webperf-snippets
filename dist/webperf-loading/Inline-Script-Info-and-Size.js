@@ -7,6 +7,11 @@
     return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
   const formatKB = bytes => (bytes / 1024).toFixed(2);
+  const DATA_IDS = [ "__NEXT_DATA__", "__NUXT_DATA__", "__remixContext" ];
+  const DATA_PUSH = /^\s*\(?\s*(?:self|window|globalThis)\.(__\w+)\s*(?:=\s*(?:self|window|globalThis)\.\1\s*\|\|\s*\[\s*\]\s*\)\s*)?\.push\s*\(/;
+  const DATA_ASSIGN = /^\s*(?:self|window|globalThis)\.(?:__NUXT__|__remixContext|___\w+|__\w*(?:STATE|DATA)\w*)\s*=/;
+  const isDataPayloadScript = (script, type, content) => type.includes("json") || DATA_IDS.includes(script.id) || DATA_PUSH.test(content) || DATA_ASSIGN.test(content);
+  const ANALYTICS = /\b(?:gtag|fbq)\s*\(|\b(?:_gaq|dataLayer)\.push\s*\(|['"]gtm\.(?:start|js)['"]|\banalytics\.(?:load|page|track|identify)\s*\(/;
   const scriptTags = Array.from(document.querySelectorAll("script:not([src])")).filter(s => s.innerHTML.trim().length > 0);
   if (scriptTags.length === 0) {
     return {
@@ -26,9 +31,10 @@
     if (type === "module") category = "module"; else if (type === "application/ld+json") category = "json-ld"; else if (type.includes("template") || type === "text/html") category = "template"; else if (type !== "text/javascript" && type !== "") category = "other";
     const isParserBlocking = category === "classic" && !script.hasAttribute("async") && !script.hasAttribute("defer");
     const preview = content.replace(/\s+/g, " ").trim().slice(0, 80);
-    const hasGlobalVars = /^(var|let|const|window\.)/.test(content.trim());
-    const isConfig = /config|settings|options|__/i.test(content.slice(0, 200));
-    const isAnalytics = /gtag|analytics|gtm|fbq|_gaq/i.test(content);
+    const isDataPayload = isDataPayloadScript(script, type, content);
+    const hasGlobalVars = !isDataPayload && /^(var|let|const|window\.)/.test(content.trim());
+    const isConfig = !isDataPayload && /config|settings|options|__/i.test(content.slice(0, 200));
+    const isAnalytics = !isDataPayload && ANALYTICS.test(content);
     return {
       index: index + 1,
       element: script,
@@ -41,6 +47,7 @@
       hasGlobalVars: hasGlobalVars,
       isConfig: isConfig,
       isAnalytics: isAnalytics,
+      isDataPayload: isDataPayload,
       preview: preview + (content.length > 80 ? "..." : ""),
       content: content
     };
@@ -82,7 +89,7 @@
       Type: s.category,
       Size: formatBytes(s.size),
       "Parser-Blocking": s.isParserBlocking ? "⚠️ Yes" : "No",
-      Pattern: s.isAnalytics ? "Analytics" : s.isConfig ? "Config" : s.hasGlobalVars ? "Globals" : "-",
+      Pattern: s.isDataPayload ? "Data" : s.isAnalytics ? "Analytics" : s.isConfig ? "Config" : s.hasGlobalVars ? "Globals" : "-",
       Preview: s.preview
     }));
     executableScripts.sort((a, b) => b.size - a.size).forEach(s => {
@@ -151,7 +158,8 @@
       otherCount: otherScripts.length,
       totalSizeBytes: totalSize,
       parserBlockingCount: parserBlockingScripts.length,
-      parserBlockingInHeadCount: parserBlockingInHead.length
+      parserBlockingInHeadCount: parserBlockingInHead.length,
+      dataPayloadCount: scripts.filter(s => s.isDataPayload).length
     },
     items: rankedScripts.slice(0, MAX_ITEMS).map(s => ({
       index: s.index,
@@ -160,7 +168,8 @@
       inHead: s.inHead,
       isParserBlocking: s.isParserBlocking,
       isAnalytics: s.isAnalytics,
-      isConfig: s.isConfig
+      isConfig: s.isConfig,
+      isDataPayload: s.isDataPayload
     })),
     issues: issues.map(i => ({
       severity: i.type === "blocking" ? "error" : "warning",
