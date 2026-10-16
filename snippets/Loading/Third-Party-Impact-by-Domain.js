@@ -11,6 +11,14 @@
   }
   // @end-shared isOwnRequest
 
+  // @shared supportsRenderBlockingStatus
+  // renderBlockingStatus (Resource Timing) is Chromium-only (Chrome 107+). Without it, which
+  // resources block rendering is unknown: a snippet reports that, not "none".
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
+  // @end-shared supportsRenderBlockingStatus
+
   const MAX_ITEMS = 50;
   const LOAF_WARNING_MS = 250; // Script time in long animation frames above which one domain is a problem
   const MAX_LISTED_DOMAINS = 5;
@@ -80,10 +88,13 @@
     }
   };
 
+  // Without it, renderBlocking is null for every domain instead of false
+  const renderBlockingSupported = supportsRenderBlockingStatus();
+
   const domains = new Map();
   const domainEntry = (root) => {
     if (!domains.has(root)) {
-      domains.set(root, { domain: root, requests: 0, transferBytes: 0, sizeUnknownCount: 0, renderBlocking: false, loafMs: null, loafScripts: 0 });
+      domains.set(root, { domain: root, requests: 0, transferBytes: 0, sizeUnknownCount: 0, renderBlocking: renderBlockingSupported ? false : null, loafMs: null, loafScripts: 0 });
     }
     return domains.get(root);
   };
@@ -115,7 +126,7 @@
       sizeUnknownCount++;
     }
 
-    if (entry.renderBlockingStatus === "blocking" && (entry.initiatorType === "script" || entry.initiatorType === "link")) {
+    if (renderBlockingSupported && entry.renderBlockingStatus === "blocking" && (entry.initiatorType === "script" || entry.initiatorType === "link")) {
       d.renderBlocking = true;
     }
   });
@@ -185,6 +196,12 @@
       message: `${d.domain} scripts take ${d.loafMs} ms of main-thread time in long animation frames (over ${LOAF_WARNING_MS} ms); defer, delay or remove them`,
     });
   });
+  if (!renderBlockingSupported && all.length > 0) {
+    issues.push({
+      severity: "info",
+      message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which third-party domains block rendering is unknown; run the snippet in Chrome or Edge to check",
+    });
+  }
   if (loafUnattributed) {
     issues.push({
       severity: "info",
@@ -208,12 +225,15 @@
         Domain: d.domain,
         Requests: d.requests,
         Size: sizeLabel(d.transferBytes, d.sizeUnknownCount, d.requests),
-        "Render-blocking": d.renderBlocking ? "yes" : "no",
+        "Render-blocking": d.renderBlocking === null ? "n/a" : d.renderBlocking ? "yes" : "no",
         "Main thread": d.loafMs === null ? "n/a" : d.loafMs + " ms",
       }))
     );
   } else {
     console.log("%c✅ No third-party requests found", "color: #22c55e;");
+  }
+  if (!renderBlockingSupported) {
+    console.log("%cℹ️ renderBlockingStatus is not supported; render-blocking status is unavailable (Chrome 107+)", "color: #3b82f6;");
   }
   if (!loafSupported) {
     console.log("%cℹ️ Long Animation Frames are not supported; main-thread time is unavailable (Chrome 123+)", "color: #3b82f6;");
@@ -242,7 +262,8 @@
       longFrames,
       unattributedLoafMs,
       firstPartyRequests,
-      blockingDomains: blocking.length,
+      blockingDomains: renderBlockingSupported ? blocking.length : null,
+      renderBlockingSupported,
       loafSupported,
       sizeUnknownCount,
     },

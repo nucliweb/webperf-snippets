@@ -40,7 +40,7 @@ Each entry in `items` describes one domain:
 | `requests` | Requests to the domain |
 | `transferBytes` | Transfer size of the requests whose size is readable (`encodedBodySize` when `transferSize` is 0) |
 | `sizeUnknownCount` | Requests whose size is hidden |
-| `renderBlocking` | `true` when a script or stylesheet from the domain has `renderBlockingStatus` of `blocking` |
+| `renderBlocking` | `true` when a script or stylesheet from the domain has `renderBlockingStatus` of `blocking`, or `null` when the browser does not report it |
 | `loafMs` | Script time, in ms, attributed to the domain in long animation frames, or `null` when the browser does not support them |
 | `loafScripts` | Script executions attributed to the domain in long animation frames |
 
@@ -55,7 +55,8 @@ Each entry in `items` describes one domain:
 | `details.longFrames` | Long animation frames on the page, or `null` when the browser does not support them |
 | `details.unattributedLoafMs` | Time in long animation frames that no third-party script accounts for, or `null` when unsupported |
 | `details.firstPartyRequests` | First-party resource requests, for comparison |
-| `details.blockingDomains` | Domains with a render-blocking request |
+| `details.blockingDomains` | Domains with a render-blocking request, or `null` when the browser does not report render-blocking status |
+| `details.renderBlockingSupported` | `false` when the browser has no `renderBlockingStatus` in Resource Timing |
 | `details.loafSupported` | `false` when the browser has no Long Animation Frames API |
 | `details.sizeUnknownCount` | Third-party requests whose size is hidden |
 
@@ -65,6 +66,7 @@ Each entry in `items` describes one domain:
 |----------|------|
 | `warning` | One or more third-party domains serve render-blocking resources |
 | `warning` | A domain's scripts take more than 250 ms of main-thread time in long animation frames |
+| `info` | The browser does not report render-blocking status, so render-blocking domains are unknown |
 | `info` | Long animation frames exist but no third-party script was attributed in them |
 | `info` | Some sizes are hidden because of a missing `Timing-Allow-Origin` header |
 

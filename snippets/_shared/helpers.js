@@ -118,3 +118,11 @@ function uniqueSelector(el) {
   return parts.join(" > ");
 }
 // @end-shared uniqueSelector
+
+// @shared supportsRenderBlockingStatus
+// renderBlockingStatus (Resource Timing) is Chromium-only (Chrome 107+). Without it, which
+// resources block rendering is unknown: a snippet reports that, not "none".
+function supportsRenderBlockingStatus() {
+  return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+}
+// @end-shared supportsRenderBlockingStatus

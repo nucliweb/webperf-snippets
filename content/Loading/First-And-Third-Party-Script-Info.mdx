@@ -67,6 +67,14 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
 | Duration | Total time to load          |
 | Blocking | Whether it blocks rendering |
 
+### Which requests count as scripts
+
+A script is a Resource Timing entry with an `initiatorType` of `script`, or a request whose URL matches a `<script src>`, a `<link rel="preload" as="script">` or a `<link rel="modulepreload">` in the document. A preloaded script is fetched by the `<link>`, so its entry has an `initiatorType` of `link` or `other`, not `script`. Each URL counts once: when the browser fetches a script twice, for example because the preload and the `<script>` use different `crossorigin` modes, the entry of the `<script>` is the one kept.
+
+<Callout type="warning">
+  The render-blocking status comes from `renderBlockingStatus`, which only Chromium browsers report (Chrome 107+, Edge 107+). Elsewhere `details.renderBlockingSupported` is `false`, `renderBlocking` and `details.thirdPartyBlockingCount` are `null`, and the snippet adds an `info` note instead of reporting that no script blocks rendering.
+</Callout>
+
 ### How first-party detection works
 
 The snippet automatically detects first-party scripts by comparing root domains:

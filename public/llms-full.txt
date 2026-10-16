@@ -4763,6 +4763,17 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
 
   const ms = (val) => `${Math.round(val)}ms`;
 
+  // @shared supportsRenderBlockingStatus
+  // renderBlockingStatus (Resource Timing) is Chromium-only (Chrome 107+). Without it, which
+  // resources block rendering is unknown: a snippet reports that, not "none".
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
+  // @end-shared supportsRenderBlockingStatus
+
+  // Without it, the time after TTFB is not split into render-blocking load and render delay
+  const renderBlockingSupported = supportsRenderBlockingStatus();
+
   new PerformanceObserver((list) => {
     const fcpEntry = list.getEntriesByName("first-contentful-paint")[0];
     if (!fcpEntry) return;
@@ -4795,6 +4806,16 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
     console.log("");
     console.log("%cPhase Breakdown:", "font-weight: bold;");
     console.log(`   TTFB:                  ${ms(ttfb)}`);
+    if (!renderBlockingSupported) {
+      console.log(`   Render-blocking load and render delay: ${ms(Math.max(0, fcpTime - ttfb))}`);
+      console.log("");
+      console.log(
+        "%cℹ️ renderBlockingStatus is not supported in this browser (Chrome 107+), so render-blocking resources cannot be identified",
+        "color: #3b82f6;"
+      );
+      console.groupEnd();
+      return;
+    }
     if (blockingResources.length > 0) {
       console.log(
         `   Render-blocking load:  ${ms(Math.max(0, lastBlockingEnd - ttfb))}`
@@ -4844,18 +4865,23 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
   const ratingSync = valueToRating(fcpTimeSync);
 
   // Phases, measured from activation like the value: TTFB, then the wait for the last
-  // render-blocking resource, then the rest until the paint
+  // render-blocking resource, then the rest until the paint. Without renderBlockingStatus the
+  // two phases after TTFB are null, not 0 and the whole rest.
   const ttfbSync = Math.max(0, (navEntrySync?.responseStart ?? 0) - activationStartSync);
-  const blockingSync = performance
-    .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
-    .filter((r) => r.renderBlockingStatus === "blocking");
+  const blockingSync = renderBlockingSupported
+    ? performance
+        .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
+        .filter((r) => r.renderBlockingStatus === "blocking")
+    : [];
   const lastBlockingEndSync = Math.max(
     ttfbSync,
     ...blockingSync.map((r) => r.responseEnd - activationStartSync)
   );
   const ttfbMs = Math.round(ttfbSync);
-  const renderBlockingLoadMs = Math.round(lastBlockingEndSync - ttfbSync);
-  const renderDelayMs = Math.max(0, Math.round(fcpTimeSync) - ttfbMs - renderBlockingLoadMs);
+  const renderBlockingLoadMs = renderBlockingSupported ? Math.round(lastBlockingEndSync - ttfbSync) : null;
+  const renderDelayMs = renderBlockingSupported
+    ? Math.max(0, Math.round(fcpTimeSync) - ttfbMs - renderBlockingLoadMs)
+    : null;
 
   return {
     script: "FCP",
@@ -4869,7 +4895,8 @@ Quick check for First Contentful Paint, the metric that marks when the browser r
       ttfbMs,
       renderBlockingLoadMs,
       renderDelayMs,
-      blockingResourceCount: blockingSync.length,
+      blockingResourceCount: renderBlockingSupported ? blockingSync.length : null,
+      renderBlockingSupported,
     },
     // Render-blocking resources, the last to finish first (at most 50)
     items: [...blockingSync]
@@ -5848,6 +5875,14 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
   }
   // @end-shared isOwnRequest
 
+  // @shared supportsRenderBlockingStatus
+  // renderBlockingStatus (Resource Timing) is Chromium-only (Chrome 107+). Without it, which
+  // resources block rendering is unknown: a snippet reports that, not "none".
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
+  // @end-shared supportsRenderBlockingStatus
+
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
   // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
   const OWN_DOMAINS = [];
@@ -5898,10 +5933,32 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
   }
   // @end-shared formatBytes
 
-  // Gather script data
-  const scripts = performance
+  // Without it, renderBlocking is null for every script instead of false
+  const renderBlockingSupported = supportsRenderBlockingStatus();
+
+  // A script fetched through <link rel="preload" as="script"> or <link rel="modulepreload"> has
+  // initiatorType "link" or "other", not "script", so its URL is matched against the document
+  const documentScriptUrls = new Set(
+    Array.from(
+      document.querySelectorAll('script[src], link[rel~="preload" i][as="script" i], link[rel~="modulepreload" i]'),
+      (el) => (el.localName === "link" ? el.href : el.src)
+    )
+  );
+  const isScript = (r) => r.initiatorType === "script" || documentScriptUrls.has(r.name);
+
+  // One entry per URL: a script preloaded in one mode and loaded in another is fetched twice, and
+  // the entry of the <script> is the one that tells whether it blocks rendering
+  const scriptEntries = new Map();
+  performance
     .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
-    .filter((r) => r.initiatorType === "script")
+    .filter(isScript)
+    .forEach((r) => {
+      const seen = scriptEntries.get(r.name);
+      if (!seen || (seen.initiatorType !== "script" && r.initiatorType === "script")) scriptEntries.set(r.name, r);
+    });
+
+  // Gather script data
+  const scripts = [...scriptEntries.values()]
     .map((r) => {
       const url = new URL(r.name);
       const firstParty = isFirstParty(url.hostname);
@@ -5917,7 +5974,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
         sizeKnown: r.transferSize > 0 || r.encodedBodySize > 0 || r.decodedBodySize > 0,
         startTime: r.startTime,
         responseEnd: r.responseEnd,
-        renderBlocking: r.renderBlockingStatus === "blocking",
+        renderBlocking: renderBlockingSupported ? r.renderBlockingStatus === "blocking" : null,
       };
     });
 
@@ -5929,7 +5986,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
     count: list.length,
     totalSize: list.reduce((sum, s) => sum + s.transferSize, 0),
     totalDuration: list.reduce((sum, s) => sum + s.duration, 0),
-    blocking: list.filter((s) => s.renderBlocking).length,
+    blocking: renderBlockingSupported ? list.filter((s) => s.renderBlocking).length : null,
     hosts: [...new Set(list.map((s) => s.host))],
   });
 
@@ -5967,7 +6024,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
     console.log("No first-party scripts found.");
   } else {
     console.log(`   Total size: ${formatBytes(firstMetrics.totalSize)}`);
-    console.log(`   Render-blocking: ${firstMetrics.blocking}`);
+    console.log(`   Render-blocking: ${firstMetrics.blocking ?? "n/a"}`);
     console.log("");
 
     const firstTable = firstParty
@@ -5976,7 +6033,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
         Script: s.shortName,
         Size: formatBytes(s.transferSize),
         Duration: s.duration.toFixed(0) + "ms",
-        Blocking: s.renderBlocking ? "⚠️ Yes" : "No",
+        Blocking: s.renderBlocking === null ? "n/a" : s.renderBlocking ? "⚠️ Yes" : "No",
         Host: s.host,
       }));
     console.table(firstTable);
@@ -5994,7 +6051,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
     console.log("%c✅ No third-party scripts found!", "color: #22c55e; font-weight: bold;");
   } else {
     console.log(`   Total size: ${formatBytes(thirdMetrics.totalSize)}`);
-    console.log(`   Render-blocking: ${thirdMetrics.blocking}`);
+    console.log(`   Render-blocking: ${thirdMetrics.blocking ?? "n/a"}`);
     console.log(`   Unique hosts: ${thirdMetrics.hosts.length}`);
     console.log("");
 
@@ -6025,7 +6082,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
         Host: s.host,
         Size: formatBytes(s.transferSize),
         Duration: s.duration.toFixed(0) + "ms",
-        Blocking: s.renderBlocking ? "⚠️ Yes" : "No",
+        Blocking: s.renderBlocking === null ? "n/a" : s.renderBlocking ? "⚠️ Yes" : "No",
       }));
     console.table(thirdTable);
   }
@@ -6085,6 +6142,11 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
     console.groupEnd();
   }
 
+  if (!renderBlockingSupported && totalScripts > 0) {
+    console.log("");
+    console.log("%cℹ️ renderBlockingStatus is not supported; render-blocking status is unavailable (Chrome 107+)", "color: #3b82f6;");
+  }
+
   logOwnDomainsHint(thirdParty.length);
   console.groupEnd();
 
@@ -6110,6 +6172,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
       thirdPartyBlockingCount: thirdMetrics.blocking,
       thirdPartyHostCount: thirdMetrics.hosts.length,
       sizeUnknownCount: scripts.filter((s) => !s.sizeKnown).length,
+      renderBlockingSupported,
     },
     items: rankedScripts.slice(0, MAX_ITEMS).map((s) => ({
       shortName: s.shortName,
@@ -6123,6 +6186,9 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
     issues: [
       ...(scripts.some((s) => !s.sizeKnown)
         ? [{ severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound` }]
+        : []),
+      ...(!renderBlockingSupported && totalScripts > 0
+        ? [{ severity: "info", message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which scripts block rendering is unknown; run the snippet in Chrome or Edge to check" }]
         : []),
       ...(thirdMetrics.blocking > 0
         ? [
@@ -11598,6 +11664,14 @@ Groups every third-party request by root domain and reports, per domain, the req
   }
   // @end-shared isOwnRequest
 
+  // @shared supportsRenderBlockingStatus
+  // renderBlockingStatus (Resource Timing) is Chromium-only (Chrome 107+). Without it, which
+  // resources block rendering is unknown: a snippet reports that, not "none".
+  function supportsRenderBlockingStatus() {
+    return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
+  }
+  // @end-shared supportsRenderBlockingStatus
+
   const MAX_ITEMS = 50;
   const LOAF_WARNING_MS = 250; // Script time in long animation frames above which one domain is a problem
   const MAX_LISTED_DOMAINS = 5;
@@ -11667,10 +11741,13 @@ Groups every third-party request by root domain and reports, per domain, the req
     }
   };
 
+  // Without it, renderBlocking is null for every domain instead of false
+  const renderBlockingSupported = supportsRenderBlockingStatus();
+
   const domains = new Map();
   const domainEntry = (root) => {
     if (!domains.has(root)) {
-      domains.set(root, { domain: root, requests: 0, transferBytes: 0, sizeUnknownCount: 0, renderBlocking: false, loafMs: null, loafScripts: 0 });
+      domains.set(root, { domain: root, requests: 0, transferBytes: 0, sizeUnknownCount: 0, renderBlocking: renderBlockingSupported ? false : null, loafMs: null, loafScripts: 0 });
     }
     return domains.get(root);
   };
@@ -11702,7 +11779,7 @@ Groups every third-party request by root domain and reports, per domain, the req
       sizeUnknownCount++;
     }
 
-    if (entry.renderBlockingStatus === "blocking" && (entry.initiatorType === "script" || entry.initiatorType === "link")) {
+    if (renderBlockingSupported && entry.renderBlockingStatus === "blocking" && (entry.initiatorType === "script" || entry.initiatorType === "link")) {
       d.renderBlocking = true;
     }
   });
@@ -11772,6 +11849,12 @@ Groups every third-party request by root domain and reports, per domain, the req
       message: `${d.domain} scripts take ${d.loafMs} ms of main-thread time in long animation frames (over ${LOAF_WARNING_MS} ms); defer, delay or remove them`,
     });
   });
+  if (!renderBlockingSupported && all.length > 0) {
+    issues.push({
+      severity: "info",
+      message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which third-party domains block rendering is unknown; run the snippet in Chrome or Edge to check",
+    });
+  }
   if (loafUnattributed) {
     issues.push({
       severity: "info",
@@ -11795,12 +11878,15 @@ Groups every third-party request by root domain and reports, per domain, the req
         Domain: d.domain,
         Requests: d.requests,
         Size: sizeLabel(d.transferBytes, d.sizeUnknownCount, d.requests),
-        "Render-blocking": d.renderBlocking ? "yes" : "no",
+        "Render-blocking": d.renderBlocking === null ? "n/a" : d.renderBlocking ? "yes" : "no",
         "Main thread": d.loafMs === null ? "n/a" : d.loafMs + " ms",
       }))
     );
   } else {
     console.log("%c✅ No third-party requests found", "color: #22c55e;");
+  }
+  if (!renderBlockingSupported) {
+    console.log("%cℹ️ renderBlockingStatus is not supported; render-blocking status is unavailable (Chrome 107+)", "color: #3b82f6;");
   }
   if (!loafSupported) {
     console.log("%cℹ️ Long Animation Frames are not supported; main-thread time is unavailable (Chrome 123+)", "color: #3b82f6;");
@@ -11829,7 +11915,8 @@ Groups every third-party request by root domain and reports, per domain, the req
       longFrames,
       unattributedLoafMs,
       firstPartyRequests,
-      blockingDomains: blocking.length,
+      blockingDomains: renderBlockingSupported ? blocking.length : null,
+      renderBlockingSupported,
       loafSupported,
       sizeUnknownCount,
     },
@@ -14556,6 +14643,22 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
 // https://webperf-snippets.net
 
 (() => {
+  // Firefox and Safari have no Long Animation Frames: an empty list there is not a pass.
+  // The summary function answers the same, for an agent that calls it later.
+  if (!PerformanceObserver.supportedEntryTypes?.includes("long-animation-frame")) {
+    const unsupported = {
+      script: "Long-Animation-Frames",
+      status: "unsupported",
+      error: "long-animation-frame entries not supported in this browser (Chrome 123+)",
+    };
+    window.getLoAFSummary = () => unsupported;
+    console.log(
+      "%c⚠️ Long Animation Frames are not supported in this browser (Chrome 123+, Edge 123+)",
+      "color: #f59e0b; font-weight: bold;"
+    );
+    return unsupported;
+  }
+
   const formatMs = (ms) => `${Math.round(ms)}ms`;
 
   // Rating based on blocking duration
@@ -14739,7 +14842,10 @@ Tracks Long Animation Frames to identify JavaScript and rendering work that bloc
   });
 
   loafObserver.observe({ type: "long-animation-frame", buffered: true });
-  eventObserver.observe({ type: "event", buffered: true, durationThreshold: 16 });
+  // Events only add context to the frames, so the frames are tracked without them
+  if (PerformanceObserver.supportedEntryTypes.includes("event")) {
+    eventObserver.observe({ type: "event", buffered: true, durationThreshold: 16 });
+  }
 
   // Summary function
   window.getLoAFSummary = () => {
