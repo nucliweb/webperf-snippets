@@ -20,6 +20,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Check the version of the tag
+        run: node scripts/check-tag-version.js "$GITHUB_REF_NAME"
+
       - name: Install dependencies
         run: npm ci
 
