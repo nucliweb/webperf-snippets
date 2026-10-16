@@ -35,44 +35,44 @@ npx webperf-snippets <url> [options]
 Run the default Core Web Vitals workflow (LCP + CLS, plus LCP-Subparts if LCP > 2.5s):
 
 ```bash
-npx webperf-snippets https://web.dev
+npx webperf-snippets https://example.com
 ```
 
 Loading audit (11 steps: TTFB, FCP, render-blocking, scripts, resource timings, third-party impact, fonts, cache; the list is in the [CLI page](https://webperf-snippets.net/CLI)):
 
 ```bash
-npx webperf-snippets https://web.dev --workflow loading
+npx webperf-snippets https://example.com --workflow loading
 ```
 
 Structural checks for CI (22 checks: render-blocking, compression, fonts, images, hints, DOM size and more; the list is in the [CLI page](https://webperf-snippets.net/CLI)):
 
 ```bash
-npx webperf-snippets https://web.dev --workflow audit
+npx webperf-snippets https://example.com --workflow audit
 ```
 
 Markdown output for PR comments:
 
 ```bash
-npx webperf-snippets https://web.dev --markdown
+npx webperf-snippets https://example.com --markdown
 ```
 
 JSON output (for piping into `jq` or CI):
 
 ```bash
-npx webperf-snippets https://web.dev --json
+npx webperf-snippets https://example.com --json
 ```
 
 Single snippet:
 
 ```bash
-npx webperf-snippets https://web.dev --snippet LCP-Subparts
+npx webperf-snippets https://example.com --snippet LCP-Subparts
 ```
 
 Synthetic INP measurement with an interaction script:
 
 ```bash
-npx webperf-snippets https://web.dev --snippet INP --interact-script interactions.json
-npx webperf-snippets https://web.dev --snippet Interaction/Interactions --interact-script interactions.json
+npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
+npx webperf-snippets https://example.com --snippet Interaction/Interactions --interact-script interactions.json
 ```
 
 The Interaction snippets (`Interactions`, `Input-Latency-Breakdown`, `LongTask`, `Forced-Synchronous-Layout`...) are installed before the first step and read after the last one, so their result holds what the steps caused.
@@ -82,7 +82,7 @@ The CLI waits for the browser to report the timing of the last interaction befor
 Interaction audit (long tasks, long animation frames, scroll, layout shifts, forced layouts, interaction latency). It scrolls the page, or runs your `--interact-script`; the steps that need a click are skipped when the script has none:
 
 ```bash
-npx webperf-snippets https://web.dev --workflow interaction
+npx webperf-snippets https://example.com --workflow interaction
 ```
 
 Pages behind a login, with a Playwright storage state (cookies and localStorage):
@@ -100,7 +100,7 @@ The file holds live session cookies. Keep it out of version control (add it to `
 Compare the measured values with CrUX field data (what real users experience at the 75th percentile):
 
 ```bash
-CRUX_API_KEY=your-key npx webperf-snippets https://web.dev
+CRUX_API_KEY=your-key npx webperf-snippets https://example.com
 ```
 
 ```
@@ -147,7 +147,7 @@ For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the na
 CI gating:
 
 ```bash
-npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
+npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 ```
 
 ### Options
@@ -212,7 +212,7 @@ GitHub Actions, fail the PR if LCP exceeds 2.5s:
 - run: |
     npm install --no-save webperf-snippets playwright
     npx playwright install --with-deps chromium
-    npx webperf-snippets https://staging.web.dev --budget-lcp 2500 --budget-cls 0.1
+    npx webperf-snippets https://staging.example.com --budget-lcp 2500 --budget-cls 0.1
 ```
 
 ### GitHub Action

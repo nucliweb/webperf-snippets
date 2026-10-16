@@ -147,7 +147,7 @@ Skills are compatible with [Chrome DevTools MCP](https://github.com/ChromeDevToo
 The repository includes a headless CLI (`cli/`) that runs WebPerf Snippets via Playwright — useful for CI pipelines and performance budgeting without copy-pasting into DevTools.
 
 ```bash
-npx webperf-snippets https://web.dev --budget-lcp 2500 --budget-cls 0.1
+npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 ```
 
 A composite GitHub Action (`nucliweb/webperf-snippets/.github/actions/webperf-snippets`) wraps the CLI for CI, with budgets and a markdown output ready to post as a pull request comment. See [`cli/README.md`](./cli/README.md) for installation, usage, and CI integration. The CLI is published to npm as [`webperf-snippets`](https://www.npmjs.com/package/webperf-snippets) via a tag-based release workflow — pushing a `cli-v*` tag triggers the publish pipeline.

@@ -284,8 +284,8 @@ A common scenario where this anti-pattern appears is with third-party consent ma
 
 ```html
 <!-- ❌ Anti-pattern: Preload + async without mitigation -->
-<link rel="preload" href="https://cdn.web.dev/consent.js" as="script" />
-<script async src="https://cdn.web.dev/consent.js"></script>
+<link rel="preload" href="https://cdn.example.com/consent.js" as="script" />
+<script async src="https://cdn.example.com/consent.js"></script>
 ```
 
 ##### Why developers do this
@@ -326,7 +326,7 @@ Some developers consider using `fetchpriority="high"` instead:
 
 ```html
 <!-- ⚠️ Still problematic -->
-<script async src="https://cdn.web.dev/consent.js" fetchpriority="high"></script>
+<script async src="https://cdn.example.com/consent.js" fetchpriority="high"></script>
 ```
 
 ##### Why this doesn't solve the problem
@@ -362,8 +362,8 @@ If you truly need early discovery but don't want priority escalation:
 
 ```html
 <!-- ✅ Early discovery + low priority -->
-<link rel="preload" href="https://cdn.web.dev/consent.js" as="script" fetchpriority="low" />
-<script async src="https://cdn.web.dev/consent.js" fetchpriority="low"></script>
+<link rel="preload" href="https://cdn.example.com/consent.js" as="script" fetchpriority="low" />
+<script async src="https://cdn.example.com/consent.js" fetchpriority="low"></script>
 ```
 
 ##### How this works
@@ -402,7 +402,7 @@ If the script tag is already in `<head>`, preload may not be necessary:
 ```html
 <!-- ✅ Simple and effective if script is in <head> -->
 <head>
-  <script async src="https://cdn.web.dev/consent.js"></script>
+  <script async src="https://cdn.example.com/consent.js"></script>
   <!-- Other head content -->
 </head>
 ```

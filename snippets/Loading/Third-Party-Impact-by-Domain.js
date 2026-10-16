@@ -24,7 +24,8 @@
   const MAX_LISTED_DOMAINS = 5;
 
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // @shared formatBytes

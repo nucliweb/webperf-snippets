@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Changed
+- The examples of `--help` and of the README run the CLI on `https://example.com`, a domain reserved for documentation, instead of a real site.
+
 ---
 
 ## [1.0.0] — 2026-10-15

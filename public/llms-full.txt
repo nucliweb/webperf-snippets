@@ -2465,7 +2465,8 @@ Audits HTTP caching strategies across all page resources, identifying resources 
   // @end-shared isOwnRequest
 
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // --- Helpers ---
@@ -5979,7 +5980,8 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
   // @end-shared supportsRenderBlockingStatus
 
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // Auto-detect first-party: same root domain (handles subdomains)
@@ -6211,7 +6213,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
       console.log("   • Each host requires DNS lookup + connection");
       console.log("   • Use <link rel='preconnect'> for critical hosts");
       console.log(
-        '%c   <link rel="preconnect" href="https://web.dev">',
+        '%c   <link rel="preconnect" href="https://example.com">',
         "font-family: monospace; color: #22c55e;",
       );
     }
@@ -6335,7 +6337,8 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
   // @end-shared isOwnRequest
 
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // Auto-detect first-party by root domain
@@ -6673,7 +6676,8 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
 
 (() => {
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // Helper to extract font filename from URL
@@ -10312,7 +10316,8 @@ Analyzes all scripts on the page, showing their loading strategy and identifying
   // @end-shared isOwnRequest
 
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // @shared formatBytes
@@ -11589,7 +11594,8 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
   // @end-shared isOwnRequest
 
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // Waiting time for the first byte of a resource: responseStart is measured from the
@@ -11803,7 +11809,8 @@ Groups every third-party request by root domain and reports, per domain, the req
   const MAX_LISTED_DOMAINS = 5;
 
   // Domains that belong to the site but differ from the page's root domain, such as its own CDN.
-  // They count as first party. Example: const OWN_DOMAINS = ["bbci.co.uk", "bbc.co.uk"];
+  // They count as first party. Example, for a page on example.com whose CDN is example.net:
+  // const OWN_DOMAINS = ["example.net"];
   const OWN_DOMAINS = [];
 
   // @shared formatBytes
