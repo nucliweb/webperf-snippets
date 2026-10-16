@@ -16,7 +16,7 @@
     "test:e2e": "vitest run tests/e2e"
   },
   "devDependencies": {
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.4"
   },
   "engines": {
     "node": ">=20.12.0"
