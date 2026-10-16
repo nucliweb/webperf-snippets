@@ -3,7 +3,7 @@ description = "Web performance measurement and debugging toolkit. Use when the u
 prompt = """
 # WebPerf Snippets Toolkit
 
-A collection of 56 JavaScript snippets for measuring and debugging web performance in Chrome DevTools. Each snippet runs in the browser console and outputs structured, color-coded results.
+A collection of 56 JavaScript snippets for measuring and debugging web performance in Chrome DevTools. Each snippet runs in the page and returns a structured result object.
 
 ## Quick Reference
 
@@ -18,11 +18,12 @@ A collection of 56 JavaScript snippets for measuring and debugging web performan
 ## Workflow
 
 1. Identify the relevant skill based on the user's question (see Quick Reference above)
-2. Load the skill's skill.md to see available snippets and thresholds
+2. Load the skill's SKILL.md to see available snippets and thresholds
 3. Execute with Chrome DevTools MCP:
    - `mcp__chrome-devtools__navigate_page` → navigate to target URL
-   - `mcp__chrome-devtools__evaluate_script` → run the snippet
-   - `mcp__chrome-devtools__get_console_message` → read results
+   - `mcp__chrome-devtools__evaluate_script` → run the snippet and read the returned object, which is the result (the scripts have no console output)
+   - `status: "tracking"` → call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions
+   - Without Chrome DevTools MCP, run the snippet with the CLI: `npx webperf-snippets <url> --snippet <Name> --json`
 4. Interpret results using the thresholds defined in the skill
 5. Provide actionable recommendations based on findings
 """

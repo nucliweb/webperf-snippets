@@ -4,12 +4,11 @@ All scripts in the skills directory must return a structured JSON object as the 
 
 ## Why this matters
 
-`evaluate_script` captures **both** the console output **and** the return value of the evaluated expression. Console output (with `%c` CSS styling, emojis, tables) is meant for humans reading DevTools. The return value is meant for agents.
+The console output of a snippet (with `%c` CSS styling, emojis, tables) is meant for humans reading DevTools. The return value is meant for agents. The scripts in the skills are built without console calls, so the return value of `evaluate_script` is the only output an agent gets.
 
 ```
 // Agent workflow
-result = evaluate_script(scriptCode)  // return value → structured JSON for agent
-get_console_message()                  // console output → human debugging only
+result = evaluate_script(scriptCode)  // return value → structured JSON for the agent
 ```
 
 ---
@@ -1148,7 +1147,7 @@ Same shape as Image-Element-Audit but for video elements.
 ### Reading results
 
 ```
-// Prefer return value over console output
+// Read the return value: the skill scripts have no console output
 result = evaluate_script(scriptCode)
 if result.status == "ok" → use result.value, result.rating, result.details, result.items
 if result.status == "tracking" → call evaluate_script(`${result.getDataFn}()`) after user interaction

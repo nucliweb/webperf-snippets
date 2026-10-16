@@ -5,7 +5,8 @@
  * This script:
  * 1. Generates skills using generate-skills.js
  * 2. Copies them to .claude/skills/ for local project use
- * 3. Updates .claude/settings.json with skill paths
+ *
+ * Claude Code discovers skills in .claude/skills/<name>/SKILL.md, so no setting registers them.
  *
  * Run: npm run install-skills
  */
@@ -17,7 +18,6 @@ const { execSync } = require('child_process')
 const ROOT = path.join(__dirname, '..')
 const SKILLS_SRC = path.join(ROOT, 'skills')
 const CLAUDE_SKILLS_DEST = path.join(ROOT, '.claude', 'skills')
-const SETTINGS_FILE = path.join(ROOT, '.claude', 'settings.json')
 
 function main() {
   console.log('📦 Installing WebPerf Skills locally...\n')
@@ -55,14 +55,6 @@ function main() {
     copyDir(src, dest)
     console.log(`   ✓ ${skillDir}`)
   }
-
-  // Step 4: Update settings.json
-  console.log('\n4️⃣  Updating .claude/settings.json...')
-  const settings = {
-    skills: skillDirs.map((name) => ({ path: `./skills/${name}` }))
-  }
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n')
-  console.log(`   ✓ Registered ${skillDirs.length} skills`)
 
   console.log('\n✅ Skills installed successfully!')
   console.log('\nAvailable skills:')
