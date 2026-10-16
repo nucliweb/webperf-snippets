@@ -138,7 +138,7 @@ Debug slow LCP
 Why is my TTFB so high?
 ```
 
-Skills are compatible with [Chrome DevTools MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/chrome-devtools) for automated browser-based performance auditing.
+Skills are compatible with [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) for automated browser-based performance auditing.
 
 **Supported agents**: Claude Code, Cursor, OpenCode, Gemini CLI, VS Code extensions, and [many more](https://agentskills.io/).
 

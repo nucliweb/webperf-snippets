@@ -5,7 +5,7 @@ import { Logo } from "./Logo";
 import { site } from "../lib/site";
 
 const DESCRIPTION =
-  "A curated list of snippets to get Web Performance metrics to use in the browser console or as snippets on Chrome DevTools";
+  "Tested JavaScript snippets that measure and debug web performance. Your AI agent runs them for you, or you run them yourself in DevTools.";
 
 const metas = (html) =>
   [...html.matchAll(/<meta ([^>]*?)\/?>/g)].map(([, attrs]) =>

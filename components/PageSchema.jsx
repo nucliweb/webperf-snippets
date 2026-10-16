@@ -6,14 +6,10 @@ import { site } from "../lib/site";
 const BASE_URL = "https://webperf-snippets.net";
 const AUTHOR = { "@type": "Person", name: site.author.name, url: site.author.url };
 
-const CATEGORY_LABELS = {
-  CoreWebVitals: "Core Web Vitals",
-  Loading: "Loading",
-  Interaction: "Interaction",
-  Media: "Media",
-  Resources: "Resources",
-};
+const SNIPPET_CATEGORIES = new Set(["CoreWebVitals", "Loading", "Interaction", "Media", "Resources"]);
 
+// Home and the page. The categories have no page of their own (/Loading is a 404), so the breadcrumb
+// leaves them out instead of linking to a URL that does not exist.
 function buildBreadcrumbs(segments, title) {
   const items = [
     {
@@ -23,15 +19,6 @@ function buildBreadcrumbs(segments, title) {
       item: BASE_URL,
     },
   ];
-
-  if (segments[0] && CATEGORY_LABELS[segments[0]]) {
-    items.push({
-      "@type": "ListItem",
-      position: 2,
-      name: CATEGORY_LABELS[segments[0]],
-      item: `${BASE_URL}/${segments[0]}`,
-    });
-  }
 
   if (segments[1]) {
     items.push({
@@ -81,7 +68,7 @@ export function buildPageSchemas(pathname, page) {
     });
   }
 
-  const isSnippetPage = segments.length === 2 && CATEGORY_LABELS[segments[0]];
+  const isSnippetPage = segments.length === 2 && SNIPPET_CATEGORIES.has(segments[0]);
   if (isSnippetPage) {
     schemas.push({
       "@context": "https://schema.org",
