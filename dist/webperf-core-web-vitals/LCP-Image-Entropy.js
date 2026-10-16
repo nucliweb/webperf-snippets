@@ -14,6 +14,23 @@
     return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
   const LCP_THRESHOLD = 0.05;
+  function displayedSize(img) {
+    const rect = img.getBoundingClientRect();
+    const style = getComputedStyle(img);
+    const px = prop => parseFloat(style[prop]) || 0;
+    return {
+      width: Math.max(0, rect.width - px("borderLeftWidth") - px("borderRightWidth") - px("paddingLeft") - px("paddingRight")),
+      height: Math.max(0, rect.height - px("borderTopWidth") - px("borderBottomWidth") - px("paddingTop") - px("paddingBottom"))
+    };
+  }
+  function bitsPerPixel(img, fileSize) {
+    const displayed = displayedSize(img);
+    const pixels = Math.min(displayed.width * displayed.height, img.naturalWidth * img.naturalHeight);
+    return {
+      displayed: displayed,
+      bpp: pixels > 0 ? fileSize * 8 / pixels : 0
+    };
+  }
   let lcpElement = null;
   let lcpUrl = null;
   const lcpObserver = new PerformanceObserver(list => {
@@ -37,8 +54,7 @@
       const src = img.currentSrc || img.src;
       const resource = performance.getEntriesByName(src)[0];
       const fileSize = resource?.encodedBodySize || 0;
-      const pixels = img.naturalWidth * img.naturalHeight;
-      const bpp = pixels > 0 ? fileSize * 8 / pixels : 0;
+      const {displayed: displayed, bpp: bpp} = bitsPerPixel(img, fileSize);
       const isLowEntropy = bpp > 0 && bpp < LCP_THRESHOLD;
       const isLCP = lcpElement === img || lcpUrl === src;
       return {
@@ -47,6 +63,8 @@
         shortSrc: src.split("/").pop()?.split("?")[0] || src,
         width: img.naturalWidth,
         height: img.naturalHeight,
+        displayedWidth: Math.round(displayed.width),
+        displayedHeight: Math.round(displayed.height),
         fileSize: fileSize,
         bpp: bpp,
         isLowEntropy: isLowEntropy,
@@ -66,6 +84,7 @@
     images.sort((a, b) => b.bpp - a.bpp).map(img => ({
       Image: img.shortSrc.length > 30 ? "..." + img.shortSrc.slice(-27) : img.shortSrc,
       Dimensions: `${img.width}×${img.height}`,
+      Displayed: `${img.displayedWidth}×${img.displayedHeight}`,
       Size: formatBytes(img.fileSize),
       BPP: img.bpp.toFixed(4),
       Entropy: img.isLowEntropy ? "🔴 Low" : "🟢 Normal",
@@ -105,14 +124,15 @@
     const src = img.currentSrc || img.src;
     const resource = performance.getEntriesByName(src)[0];
     const fileSize = resource?.encodedBodySize || 0;
-    const pixels = img.naturalWidth * img.naturalHeight;
-    const bpp = pixels > 0 ? fileSize * 8 / pixels : 0;
+    const {displayed: displayed, bpp: bpp} = bitsPerPixel(img, fileSize);
     const isLowEntropy = bpp > 0 && bpp < LCP_THRESHOLD;
     const isLCP = lcpElementSync === img || lcpUrlSync === src;
     return {
       url: src.split("/").pop()?.split("?")[0] || src,
       width: img.naturalWidth,
       height: img.naturalHeight,
+      displayedWidth: Math.round(displayed.width),
+      displayedHeight: Math.round(displayed.height),
       fileSizeBytes: fileSize,
       bpp: Math.round(bpp * 10000) / 10000,
       isLowEntropy: isLowEntropy,

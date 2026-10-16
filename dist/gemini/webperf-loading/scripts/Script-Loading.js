@@ -55,8 +55,9 @@
     const isModule = script.type === "module";
     const isAsync = script.async;
     const isDefer = script.defer;
+    const isNoModule = script.noModule === true && !isModule;
     let strategy = "blocking";
-    if (isModule && isAsync) strategy = "async module"; else if (isModule) strategy = "module"; else if (isAsync) strategy = "async"; else if (isDefer) strategy = "defer";
+    if (isNoModule) strategy = "nomodule"; else if (isModule && isAsync) strategy = "async module"; else if (isModule) strategy = "module"; else if (isAsync) strategy = "async"; else if (isDefer) strategy = "defer";
     const isBlocking = strategy === "blocking";
     const firstParty = isFirstPartyUrl(src);
     return {
@@ -70,7 +71,7 @@
       isAsync: isAsync,
       isDefer: isDefer,
       size: timing.size || 0,
-      sizeKnown: !!timing.sizeKnown,
+      sizeKnown: !!timing.sizeKnown || isNoModule && !resourceTiming.has(src),
       duration: timing.duration || 0,
       startTime: timing.startTime || 0,
       element: script
@@ -81,6 +82,7 @@
   const asyncScripts = scripts.filter(s => s.strategy === "async" || s.strategy === "async module");
   const deferScripts = scripts.filter(s => s.strategy === "defer");
   const moduleScripts = scripts.filter(s => s.strategy === "module");
+  const noModuleScripts = scripts.filter(s => s.strategy === "nomodule");
   const thirdPartyBlocking = blocking.filter(s => !s.firstParty);
   const totalSize = scripts.reduce((sum, s) => sum + s.size, 0);
   blocking.reduce((sum, s) => sum + s.size, 0);
@@ -95,6 +97,7 @@
     rating = "Needs Optimization";
     ratingColor = "#ef4444";
   }
+  if (noModuleScripts.length > 0) void 0;
   if (scripts.length > 0) {
     scripts.sort((a, b) => {
       if (a.isBlocking !== b.isBlocking) return a.isBlocking ? -1 : 1;
@@ -191,7 +194,8 @@
         blocking: blocking.length,
         async: asyncScripts.length,
         defer: deferScripts.length,
-        module: moduleScripts.length
+        module: moduleScripts.length,
+        nomodule: noModuleScripts.length
       },
       byParty: {
         firstParty: firstPartyScripts.length,

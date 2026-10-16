@@ -62,8 +62,10 @@ Analyzes all inline `<script>` tags on the page, measuring their size and identi
 | Type | classic, module |
 | Size | Byte size |
 | Parser-Blocking | Blocks HTML parsing if Yes |
-| Pattern | Detected pattern (Analytics, Config, Globals) |
+| Pattern | Detected pattern (Data, Analytics, Config, Globals) |
 | Preview | First 80 characters |
+
+Framework data is classified first: JSON scripts, the hydration data ids (`__NEXT_DATA__`, `__NUXT_DATA__`) and scripts that only push data into a framework global or assign its state, such as `self.__next_f.push(...)` or `window.__NUXT__ = ...`. That data can carry any text, including the source of an analytics script, so it is never labelled analytics or config. A script counts as analytics when it defines or calls the tag function or pushes into its queue (`gtag(...)`, `dataLayer.push(...)`), not when the word only appears in a key or a URL. To measure the size of the hydration data, run [SSR hydration data analysis](/Loading/SSR-Hydration-Data-Analysis).
 
 ### JSON-LD section
 - Structured data scripts for SEO

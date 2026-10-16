@@ -18,6 +18,26 @@
 
   const LCP_THRESHOLD = 0.05; // Chrome's threshold for low-entropy
 
+  // Chrome divides the encoded size by the area the image is displayed at, in CSS pixels (not
+  // device pixels), and an upscaled image by its natural area instead, so stretching an image never
+  // lowers its bits per pixel. Chrome uses the part inside the viewport; this uses the whole box.
+  // https://w3c.github.io/largest-contentful-paint/ (steps 8.9 to 8.13) and Chromium's
+  // LargestContentfulPaintCalculator::ComputeEffectiveVisualSize
+  function displayedSize(img) {
+    const rect = img.getBoundingClientRect();
+    const style = getComputedStyle(img);
+    const px = (prop) => parseFloat(style[prop]) || 0;
+    return {
+      width: Math.max(0, rect.width - px("borderLeftWidth") - px("borderRightWidth") - px("paddingLeft") - px("paddingRight")),
+      height: Math.max(0, rect.height - px("borderTopWidth") - px("borderBottomWidth") - px("paddingTop") - px("paddingBottom")),
+    };
+  }
+  function bitsPerPixel(img, fileSize) {
+    const displayed = displayedSize(img);
+    const pixels = Math.min(displayed.width * displayed.height, img.naturalWidth * img.naturalHeight);
+    return { displayed, bpp: pixels > 0 ? (fileSize * 8) / pixels : 0 };
+  }
+
   // Get current LCP element
   let lcpElement = null;
   let lcpUrl = null;
@@ -47,8 +67,7 @@
         const src = img.currentSrc || img.src;
         const resource = performance.getEntriesByName(src)[0];
         const fileSize = resource?.encodedBodySize || 0;
-        const pixels = img.naturalWidth * img.naturalHeight;
-        const bpp = pixels > 0 ? (fileSize * 8) / pixels : 0;
+        const { displayed, bpp } = bitsPerPixel(img, fileSize);
 
         const isLowEntropy = bpp > 0 && bpp < LCP_THRESHOLD;
         const isLCP = lcpElement === img || lcpUrl === src;
@@ -59,6 +78,8 @@
           shortSrc: src.split("/").pop()?.split("?")[0] || src,
           width: img.naturalWidth,
           height: img.naturalHeight,
+          displayedWidth: Math.round(displayed.width),
+          displayedHeight: Math.round(displayed.height),
           fileSize,
           bpp,
           isLowEntropy,
@@ -105,6 +126,7 @@
       .map((img) => ({
         Image: img.shortSrc.length > 30 ? "..." + img.shortSrc.slice(-27) : img.shortSrc,
         Dimensions: `${img.width}×${img.height}`,
+        Displayed: `${img.displayedWidth}×${img.displayedHeight}`,
         Size: formatBytes(img.fileSize),
         BPP: img.bpp.toFixed(4),
         Entropy: img.isLowEntropy ? "🔴 Low" : "🟢 Normal",
@@ -166,14 +188,15 @@
       const src = img.currentSrc || img.src;
       const resource = performance.getEntriesByName(src)[0];
       const fileSize = resource?.encodedBodySize || 0;
-      const pixels = img.naturalWidth * img.naturalHeight;
-      const bpp = pixels > 0 ? (fileSize * 8) / pixels : 0;
+      const { displayed, bpp } = bitsPerPixel(img, fileSize);
       const isLowEntropy = bpp > 0 && bpp < LCP_THRESHOLD;
       const isLCP = lcpElementSync === img || lcpUrlSync === src;
       return {
         url: src.split("/").pop()?.split("?")[0] || src,
         width: img.naturalWidth,
         height: img.naturalHeight,
+        displayedWidth: Math.round(displayed.width),
+        displayedHeight: Math.round(displayed.height),
         fileSizeBytes: fileSize,
         bpp: Math.round(bpp * 10000) / 10000,
         isLowEntropy,

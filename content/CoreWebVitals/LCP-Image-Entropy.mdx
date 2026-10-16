@@ -20,9 +20,11 @@ Based on [Stoyan Stefanov's BPP check](https://www.phpied.com/quick-bpp-image-en
 BPP measures image complexity/entropy:
 
 ```
-BPP = (file size in bits) / (width × height)
-    = (encodedBodySize × 8) / (width × height)
+BPP = (file size in bits) / (displayed width × displayed height)
+    = (encodedBodySize × 8) / (displayed width × displayed height)
 ```
+
+Chrome measures the bits per pixel over the area the image is displayed at, in CSS pixels, not over its natural size. When an image is upscaled, Chrome divides by its natural area instead, so stretching a small image never makes it low entropy. A large image shown small gets more bits per displayed pixel than per natural pixel. The snippet applies the same rule ([LCP specification](https://w3c.github.io/largest-contentful-paint/), steps 8.9 to 8.13). Chrome counts only the part of the image inside the viewport, while the snippet uses the whole displayed box, so for an image that is partly out of view the snippet's value is lower than Chrome's.
 
 ### LCP eligibility threshold
 
@@ -46,9 +48,10 @@ BPP = (file size in bits) / (width × height)
 | Column | Description |
 |--------|-------------|
 | Image | Filename |
-| Dimensions | Width × Height in pixels |
+| Dimensions | Natural width × height in pixels |
+| Displayed | Rendered width × height in CSS pixels |
 | Size | Encoded file size |
-| BPP | Bits per pixel (entropy measure) |
+| BPP | Bits per displayed pixel (entropy measure) |
 | Entropy | 🔴 Low (< 0.05) or 🟢 Normal |
 | LCP Eligible | Whether Chrome considers it for LCP |
 | Is LCP | `👈` marks the current LCP element |
@@ -61,8 +64,7 @@ Entropy applies to the LCP only when it is an `<img>` whose file size the snippe
 - Solid color images
 - Simple gradients
 - Loading placeholders (blur-up, LQIP)
-- Very small images scaled up
-- Highly compressed images with little detail
+- Highly compressed images with little detail, displayed at a large size
 
 ### Common issues
 

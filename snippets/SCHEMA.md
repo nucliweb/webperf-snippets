@@ -339,7 +339,7 @@ The phases describe the whole interaction, not one of its events. A tap fires `p
 
 #### LCP-Image-Entropy
 
-`items` holds the 50 most relevant images: the LCP image first, then the low-entropy ones, then the lowest bits per pixel. `count` and `details` cover every image.
+`items` holds the 50 most relevant images: the LCP image first, then the low-entropy ones, then the lowest bits per pixel. `count` and `details` cover every image. `bpp` follows Chrome's rule: the encoded size in bits over the displayed area in CSS pixels (`displayedWidth` × `displayedHeight`), or over the natural area (`width` × `height`) when the image is upscaled. An image that is not rendered has no displayed area and is left out.
 
 ```json
 {
@@ -361,6 +361,8 @@ The phases describe the whole interaction, not one of its events. A tap fires `p
       "url": "hero.jpg",
       "width": 1200,
       "height": 630,
+      "displayedWidth": 1200,
+      "displayedHeight": 630,
       "fileSizeBytes": 156000,
       "bpp": 1.65,
       "isLowEntropy": false,
@@ -473,7 +475,7 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
 
 #### Script-Loading
 
-`items` holds the 50 scripts to look at first: render-blocking, then third-party, then the largest. `count` and `details` cover every script. `corsLimitedAnalysis` is `true` when `details.sizeUnknownCount` is above zero, so `details.totalSizeBytes` is a lower bound.
+`items` holds the 50 scripts to look at first: render-blocking, then third-party, then the largest. `count` and `details` cover every script. `corsLimitedAnalysis` is `true` when `details.sizeUnknownCount` is above zero, so `details.totalSizeBytes` is a lower bound. A classic script with `nomodule` has the strategy `nomodule` and is never blocking: a browser that supports modules does not fetch it, so its size is known (0 bytes).
 
 ```json
 {
@@ -484,7 +486,7 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
   "details": {
     "totalSizeBytes": 245000,
     "sizeUnknownCount": 0,
-    "byStrategy": { "blocking": 2, "async": 4, "defer": 1, "module": 1 },
+    "byStrategy": { "blocking": 2, "async": 4, "defer": 1, "module": 1, "nomodule": 0 },
     "byParty": { "firstParty": 5, "thirdParty": 3 },
     "thirdPartyBlockingCount": 1
   },
