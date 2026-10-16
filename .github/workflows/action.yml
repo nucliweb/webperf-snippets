@@ -11,6 +11,11 @@ on:
     paths:
       - ".github/actions/**"
       - ".github/workflows/action.yml"
+  # The Action installs the latest CLI on npm and the latest Playwright, which change without a
+  # change here, so it also runs every week (alongside .github/workflows/weekly.yml)
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 jobs:
   smoke:

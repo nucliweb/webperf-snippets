@@ -1,0 +1,71 @@
+name: Weekly checks
+
+# What breaks without a change in this repository: links to other sites that move or disappear, and
+# tests that fail only now and then. The Action workflow also runs every week, against the latest
+# CLI on npm and the latest Playwright, which is what the users of the Action get.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+  # A change to the checks runs them, so the pull request shows they work
+  pull_request:
+    paths:
+      - 'lychee.toml'
+      - '.github/workflows/weekly.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Root-relative links of the pages (/Loading/TTFB) are checked against the live site
+      - name: Check the links of the pages
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --no-progress --base-url https://webperf-snippets.net 'content/**/*.mdx'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Check the links of the repository docs
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --no-progress README.md CONTRIBUTING.md SKILLS.md 'docs/**/*.md' cli/README.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  # The CLI E2E tests five times in parallel: a test that fails in one of them is intermittent
+  e2e-repeat:
+    name: E2E run ${{ matrix.run }}
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2, 3, 4, 5]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: cli
+
+      - name: Run E2E tests
+        run: npm run test:e2e --prefix cli
