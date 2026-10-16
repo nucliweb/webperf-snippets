@@ -122,6 +122,16 @@ const SMALL_PAGES = (other) => ({
     "",
     Array.from({ length: 3 }, (_, i) => `<script src="${other.replace("127.0.0.1", "localhost")}/h${i}.js"></script>`).join("")
   ),
+  // A click handler that runs for 250 ms, and a fast one of 30 ms (Event Timing reports only
+  // the events that take 16 ms or more)
+  "/slow-click": page(
+    "",
+    '<button id="slow" style="width:200px;height:60px">slow</button><button id="fast" style="width:200px;height:60px">fast</button>' +
+      "<script>" +
+      'document.getElementById("slow").addEventListener("click", function slowClick() { const t = performance.now(); while (performance.now() - t < 250) {} document.body.style.background = "#eee"; });' +
+      'document.getElementById("fast").addEventListener("click", function fastClick() { const t = performance.now(); while (performance.now() - t < 30) {} document.body.style.color = "#111"; });' +
+      "</script>"
+  ),
   // The LCP element is a heading (text) while a small image is also in the viewport
   "/lcp-text": page("", '<h1 style="font-size:90px;margin:0">A large heading is the largest paint</h1><img src="/hero.png" width="40" height="30" alt="small">'),
   // The LCP element is the image
@@ -387,8 +397,17 @@ export async function startContractServers() {
   };
 }
 
-// Runs a snippet on a page, drives some interaction, calls its getter when it tracks,
-// and returns the set of contract violations found.
+// The functions a snippet exposes on window to read its data later: getters such as getINP()
+// and getINPDetails(), checkBfcache() and analyzeContentVisibilityOpportunities(). Other window
+// functions (stopFSLDetector(), the fetch wrapper) do not return results.
+export function exposedGetters(source) {
+  const names = [...source.matchAll(/window\.(\w+)\s*=(?!=)/g)].map((m) => m[1]);
+  return [...new Set(names)].filter((n) => /^(get|check|analyze)[A-Z]/.test(n));
+}
+
+// Runs a snippet on a page, drives some interaction, calls its getDataFn when it tracks and
+// every other getter it exposes, and returns the set of contract violations found. A violation
+// of the getDataFn is prefixed with "getter:", one of another getter with its name.
 export async function observeSnippet(browser, base, name, pageName) {
   const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
   try {
@@ -408,6 +427,16 @@ export async function observeSnippet(browser, base, name, pageName) {
     const found = checkResult(name, first);
     const result = first.json ? JSON.parse(first.json) : null;
 
+    let interacted = false;
+    const interact = async () => {
+      if (interacted || pageName === "empty") return;
+      interacted = true;
+      await page.click("#go");
+      await page.keyboard.press("Tab");
+      await page.mouse.wheel(0, 900);
+      await page.waitForTimeout(400);
+    };
+
     if (result?.status === "tracking") {
       if (typeof result.getDataFn !== "string" || result.getDataFn === "") {
         found.add("tracking-without-getter");
@@ -419,16 +448,19 @@ export async function observeSnippet(browser, base, name, pageName) {
         );
         if (!exists) found.add("tracking-without-getter");
         else {
-          if (pageName !== "empty") {
-            await page.click("#go");
-            await page.keyboard.press("Tab");
-            await page.mouse.wheel(0, 900);
-            await page.waitForTimeout(400);
-          }
+          await interact();
           const second = await run(`window.${result.getDataFn}()`);
           for (const v of checkResult(name, second, "getter:")) found.add(v);
         }
       }
+    }
+
+    // A snippet that returned unsupported or failed early may not define its getters
+    const getters = exposedGetters(source).filter((fn) => fn !== result?.getDataFn);
+    for (const fn of getters) {
+      if (!(await page.evaluate((fn) => typeof window[fn] === "function", fn))) continue;
+      await interact();
+      for (const v of checkResult(name, await run(`window.${fn}()`), `${fn}:`)) found.add(v);
     }
     return found;
   } finally {

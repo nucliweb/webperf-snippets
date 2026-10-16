@@ -173,6 +173,10 @@ Different interaction types have different performance profiles:
 | `keydown` | 32-100ms | Debounce text input, defer validation |
 | `pointerup` | 16-50ms | Usually fast unless triggering complex actions |
 
+One interaction fires several events: a tap fires `pointerdown`, `pointerup` and `click`, and a key press fires `keydown` and `keyup`. The snippet measures them together, so the phases cover the whole interaction, and names it after the event whose handler ran longest, or after the `click` or `keydown` when no handler stands out. A slow click handler shows up as `click` with a long processing time, not as a `pointerup` with a long presentation delay.
+
+`getINPDetails()` returns the 15 slowest interactions as plain data, with the target element as a CSS selector, and the total in `count`.
+
 ### Browser support
 
 ### Troubleshooting

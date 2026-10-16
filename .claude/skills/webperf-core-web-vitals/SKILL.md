@@ -70,7 +70,7 @@ When layout shifts are detected or the user asks "debug CLS" or "layout shift is
 
 When interactions feel slow or the user asks "debug INP" or "slow interactions":
 
-1. **INP.js** - Measure overall INP value; call `getINP()` after interactions, `getINPDetails()` for full list
+1. **INP.js** - Measure overall INP value; call `getINP()` after interactions, `getINPDetails()` for the 15 slowest interactions
 2. **Interactions.js** _(pending — available in webperf-interaction skill)_
 3. **Input-Latency-Breakdown.js** _(pending — available in webperf-interaction skill)_
 4. **Long-Animation-Frames.js** _(pending — available in webperf-interaction skill)_
@@ -170,7 +170,7 @@ Use this decision tree to automatically run follow-up snippets based on results:
   3. **webperf-interaction:Long-Animation-Frames.js** (blocking frames)
   4. **webperf-interaction:Long-Animation-Frames-Script-Attribution.js** (culprit scripts)
 - **If specific interaction type is slow (e.g., keyboard)** → Focus analysis on that interaction type
-- **After INP data is collected** → call `getINPDetails()` for the full sorted interaction list (useful for identifying patterns across multiple slow interactions)
+- **After INP data is collected** → call `getINPDetails()` for the 15 slowest interactions, slowest first (useful for identifying patterns across multiple slow interactions)
 
 ### Error Recovery
 

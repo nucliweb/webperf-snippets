@@ -6,7 +6,7 @@
       error: "event entries not supported in this browser"
     };
   }
-  const interactions = [];
+  let interactions = [];
   let inpValue = 0;
   let inpEntry = null;
   const valueToRating = ms => ms <= 200 ? "good" : ms <= 500 ? "needs-improvement" : "poor";
@@ -24,6 +24,88 @@
       color: "#FF4E42"
     }
   };
+  function createInteractionTracker() {
+    const byId = new Map;
+    const processing = e => e.processingEnd - e.processingStart;
+    const measure = (id, entries) => {
+      const longest = entries.reduce((a, b) => b.duration > a.duration ? b : a);
+      const paint = longest.startTime + longest.duration;
+      const frame = entries.filter(e => Math.abs(e.startTime + e.duration - paint) <= 8);
+      const startTime = Math.min(...frame.map(e => e.startTime));
+      const processingStart = Math.min(...frame.map(e => e.processingStart));
+      const processingEnd = Math.max(...frame.map(e => e.processingEnd));
+      const busiest = frame.reduce((a, b) => processing(b) > processing(a) ? b : a);
+      const primary = frame.find(e => e.name === "click" || e.name === "keydown");
+      const reported = primary && processing(busiest) - processing(primary) < 1 ? primary : busiest;
+      return {
+        interactionId: id,
+        name: reported.name,
+        target: reported.target ?? frame.find(e => e.target)?.target ?? null,
+        startTime: startTime,
+        duration: longest.duration,
+        phases: {
+          inputDelay: processingStart - startTime,
+          processingTime: processingEnd - processingStart,
+          presentationDelay: Math.max(0, startTime + longest.duration - processingEnd)
+        }
+      };
+    };
+    return {
+      add(entries) {
+        const changed = new Set;
+        for (const e of entries) {
+          if (!e.interactionId) continue;
+          const record = byId.get(e.interactionId) ?? {
+            entries: []
+          };
+          record.entries.push({
+            name: e.name,
+            target: e.target,
+            startTime: e.startTime,
+            duration: e.duration,
+            processingStart: e.processingStart,
+            processingEnd: e.processingEnd
+          });
+          byId.set(e.interactionId, record);
+          changed.add(e.interactionId);
+        }
+        return [ ...changed ].map(id => {
+          const record = byId.get(id);
+          record.summary = measure(id, record.entries);
+          return record.summary;
+        });
+      },
+      list() {
+        return [ ...byId.values() ].map(record => record.summary);
+      }
+    };
+  }
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = selector => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map(c => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [ node ];
+      if (siblings.filter(s => s.matches(part)).length > 1) part += `:nth-of-type(${siblings.filter(s => s.localName === tag).indexOf(node) + 1})`;
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
   const calculateINP = () => {
     if (interactions.length === 0) return {
       value: 0,
@@ -47,46 +129,18 @@
     }
     return `${entry.name} → ${selector}`;
   };
-  const getPhaseBreakdown = entry => {
-    const phases = {
-      inputDelay: 0,
-      processingTime: 0,
-      presentationDelay: 0
-    };
-    if (entry.processingStart && entry.processingEnd) {
-      phases.inputDelay = entry.processingStart - entry.startTime;
-      phases.processingTime = entry.processingEnd - entry.processingStart;
-      phases.presentationDelay = Math.max(0, entry.duration - phases.inputDelay - phases.processingTime);
-    }
-    return phases;
+  const tracker = createInteractionTracker();
+  const addEntries = entries => {
+    tracker.add(entries);
+    interactions = tracker.list().map(i => ({
+      ...i,
+      formattedName: getInteractionName(i)
+    }));
+    const result = calculateINP();
+    inpValue = result.value;
+    inpEntry = result.entry;
   };
-  const observer = new PerformanceObserver(list => {
-    for (const entry of list.getEntries()) {
-      if (!entry.interactionId) continue;
-      const existing = interactions.find(i => i.interactionId === entry.interactionId);
-      if (!existing || entry.duration > existing.duration) {
-        if (existing) {
-          const idx = interactions.indexOf(existing);
-          interactions.splice(idx, 1);
-        }
-        interactions.push({
-          name: entry.name,
-          duration: entry.duration,
-          startTime: entry.startTime,
-          interactionId: entry.interactionId,
-          target: entry.target,
-          processingStart: entry.processingStart,
-          processingEnd: entry.processingEnd,
-          formattedName: getInteractionName(entry),
-          phases: getPhaseBreakdown(entry),
-          entry: entry
-        });
-      }
-      const result = calculateINP();
-      inpValue = result.value;
-      inpEntry = result.entry;
-    }
-  });
+  const observer = new PerformanceObserver(list => addEntries(list.getEntries()));
   observer.observe({
     type: "event",
     buffered: true,
@@ -194,7 +248,13 @@
   };
   window.getINPDetails = () => {
     if (interactions.length === 0) {
-      return [];
+      return {
+        script: "INP",
+        status: "error",
+        error: "No interactions recorded yet. Interact with the page and call getINPDetails() again.",
+        count: 0,
+        items: []
+      };
     }
     const sorted = [ ...interactions ].sort((a, b) => b.duration - a.duration);
     const maxToShow = Math.min(sorted.length, 15);
@@ -223,14 +283,27 @@
       if (hasPhases) void 0;
     });
     if (sorted.length > maxToShow) void 0;
-    return sorted;
+    return {
+      script: "INP",
+      status: "ok",
+      count: sorted.length,
+      items: sorted.slice(0, maxToShow).map(i => ({
+        formattedName: i.formattedName,
+        eventType: i.name,
+        target: i.target ? uniqueSelector(i.target) : null,
+        duration: Math.round(i.duration),
+        startTime: Math.round(i.startTime),
+        phases: {
+          inputDelay: Math.round(i.phases.inputDelay),
+          processingTime: Math.round(i.phases.processingTime),
+          presentationDelay: Math.round(i.phases.presentationDelay)
+        }
+      }))
+    };
   };
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      observer.takeRecords();
-      const result = calculateINP();
-      inpValue = result.value;
-      inpEntry = result.entry;
+      addEntries(observer.takeRecords());
       logINP();
     }
   });

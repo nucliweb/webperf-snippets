@@ -98,6 +98,8 @@ Each interaction logs:
 - Visual bar showing time distribution
 - Optimization hints for slow interactions
 
+The events of one interaction (`pointerdown`, `pointerup` and `click` for a tap) count as one interaction, also when the browser reports them at different times, and the event type is the one whose handler ran longest, or the `click` or `keydown` when no handler stands out. When more events of an interaction arrive after it was logged, it is logged again as updated.
+
 ### Summary function
 
 Call `getInteractionSummary()` in the console to see:

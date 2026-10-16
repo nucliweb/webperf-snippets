@@ -89,6 +89,109 @@ describe("formatBytes", () => {
   it("never prints undefined for sub-byte values", () => expect(formatBytes(0.4)).toBe("0.4 B"));
 });
 
+describe("createInteractionTracker", () => {
+  // Event Timing entries as Chrome reports a tap whose click handler runs for 250 ms: the
+  // three events share the interactionId and end in the same frame, and their durations are
+  // rounded to 8 ms. Only the click entry has the processing.
+  const entry = (name, startTime, processingStart, processingEnd, duration, interactionId = 7) => ({
+    name,
+    startTime,
+    processingStart,
+    processingEnd,
+    duration,
+    interactionId,
+    target: null,
+  });
+  const slowTap = () => [
+    entry("pointerdown", 100, 101, 101.5, 264),
+    entry("pointerup", 102, 102.1, 102.3, 264),
+    entry("click", 102, 102.4, 352.4, 264),
+  ];
+  const tracker = () => load(["createInteractionTracker"]).createInteractionTracker();
+
+  it("measures the phases over all the entries of the interaction", () => {
+    const t = tracker();
+    t.add(slowTap());
+    const [interaction] = t.list();
+    expect(interaction.interactionId).toBe(7);
+    expect(interaction.duration).toBe(264);
+    expect(interaction.startTime).toBe(100);
+    expect(interaction.phases.inputDelay).toBeCloseTo(1, 5);
+    expect(interaction.phases.processingTime).toBeCloseTo(251.4, 5);
+    expect(interaction.phases.presentationDelay).toBeCloseTo(11.6, 5);
+  });
+
+  it("reports the event whose handler did the work", () => {
+    const t = tracker();
+    t.add(slowTap());
+    expect(t.list()[0].name).toBe("click");
+  });
+
+  it("reports the click when no handler does significant work", () => {
+    const t = tracker();
+    t.add([
+      entry("pointerdown", 100, 101, 101.2, 24),
+      entry("pointerup", 102, 102.1, 102.6, 24),
+      entry("click", 102, 102.7, 103, 24),
+    ]);
+    expect(t.list()[0].name).toBe("click");
+  });
+
+  it("reports pointerdown when its handler is the slow one", () => {
+    const t = tracker();
+    t.add([
+      entry("pointerdown", 100, 101, 301, 216),
+      entry("pointerup", 102, 301.2, 301.4, 216),
+      entry("click", 102, 301.5, 301.8, 216),
+    ]);
+    expect(t.list()[0].name).toBe("pointerdown");
+  });
+
+  it("counts an interaction once when its entries arrive in separate callbacks", () => {
+    const t = tracker();
+    const [down, up, click] = slowTap();
+    t.add([down]);
+    const updated = t.add([up, click]);
+    expect(t.list()).toHaveLength(1);
+    expect(updated.map((i) => i.interactionId)).toEqual([7]);
+    expect(t.list()[0].name).toBe("click");
+    expect(t.list()[0].phases.processingTime).toBeCloseTo(251.4, 5);
+  });
+
+  it("leaves out the entries painted in another frame, such as a key held down", () => {
+    const t = tracker();
+    t.add([entry("keydown", 0, 1, 2, 16, 9), entry("keyup", 500, 501, 790, 304, 9)]);
+    const [interaction] = t.list();
+    expect(interaction.name).toBe("keyup");
+    expect(interaction.duration).toBe(304);
+    expect(interaction.startTime).toBe(500);
+    expect(interaction.phases.inputDelay).toBeCloseTo(1, 5);
+    expect(interaction.phases.processingTime).toBeCloseTo(289, 5);
+    expect(interaction.phases.presentationDelay).toBeCloseTo(14, 5);
+  });
+
+  it("never reports a negative presentation delay and has no floor", () => {
+    const t = tracker();
+    t.add([entry("click", 0, 10, 150, 104, 3), entry("click", 300, 300.5, 301, 0, 4)]);
+    const [late, instant] = t.list();
+    expect(late.phases.presentationDelay).toBe(0);
+    expect(instant.phases.presentationDelay).toBe(0);
+  });
+
+  it("ignores entries without an interactionId", () => {
+    const t = tracker();
+    expect(t.add([entry("mousemove", 0, 1, 2, 16, 0)])).toEqual([]);
+    expect(t.list()).toEqual([]);
+  });
+
+  it("keeps the target of the reported entry, or of any entry that has one", () => {
+    const t = tracker();
+    const [down, up, click] = slowTap();
+    t.add([{ ...down, target: "button" }, up, click]);
+    expect(t.list()[0].target).toBe("button");
+  });
+});
+
 describe("verifySharedHelpers", () => {
   const canonical = readFileSync(CANONICAL_PATH, "utf8");
   const fmt = extractBlocks(canonical).blocks.formatBytes;

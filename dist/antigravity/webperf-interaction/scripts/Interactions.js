@@ -1,4 +1,11 @@
 (() => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("event")) {
+    return {
+      script: "Interactions",
+      status: "unsupported",
+      error: "event entries not supported in this browser"
+    };
+  }
   const formatMs = ms => `${Math.round(ms)}ms`;
   const valueToRating = score => score <= 200 ? "good" : score <= 500 ? "needs-improvement" : "poor";
   const RATING_COLORS = {
@@ -11,29 +18,74 @@
     "needs-improvement": "🟡",
     poor: "🔴"
   };
-  const allInteractions = [];
+  function createInteractionTracker() {
+    const byId = new Map;
+    const processing = e => e.processingEnd - e.processingStart;
+    const measure = (id, entries) => {
+      const longest = entries.reduce((a, b) => b.duration > a.duration ? b : a);
+      const paint = longest.startTime + longest.duration;
+      const frame = entries.filter(e => Math.abs(e.startTime + e.duration - paint) <= 8);
+      const startTime = Math.min(...frame.map(e => e.startTime));
+      const processingStart = Math.min(...frame.map(e => e.processingStart));
+      const processingEnd = Math.max(...frame.map(e => e.processingEnd));
+      const busiest = frame.reduce((a, b) => processing(b) > processing(a) ? b : a);
+      const primary = frame.find(e => e.name === "click" || e.name === "keydown");
+      const reported = primary && processing(busiest) - processing(primary) < 1 ? primary : busiest;
+      return {
+        interactionId: id,
+        name: reported.name,
+        target: reported.target ?? frame.find(e => e.target)?.target ?? null,
+        startTime: startTime,
+        duration: longest.duration,
+        phases: {
+          inputDelay: processingStart - startTime,
+          processingTime: processingEnd - processingStart,
+          presentationDelay: Math.max(0, startTime + longest.duration - processingEnd)
+        }
+      };
+    };
+    return {
+      add(entries) {
+        const changed = new Set;
+        for (const e of entries) {
+          if (!e.interactionId) continue;
+          const record = byId.get(e.interactionId) ?? {
+            entries: []
+          };
+          record.entries.push({
+            name: e.name,
+            target: e.target,
+            startTime: e.startTime,
+            duration: e.duration,
+            processingStart: e.processingStart,
+            processingEnd: e.processingEnd
+          });
+          byId.set(e.interactionId, record);
+          changed.add(e.interactionId);
+        }
+        return [ ...changed ].map(id => {
+          const record = byId.get(id);
+          record.summary = measure(id, record.entries);
+          return record.summary;
+        });
+      },
+      list() {
+        return [ ...byId.values() ].map(record => record.summary);
+      }
+    };
+  }
+  const tracker = createInteractionTracker();
+  const logged = new Set;
   const observer = new PerformanceObserver(list => {
-    const interactions = {};
-    for (const entry of list.getEntries().filter(entry => entry.interactionId)) {
-      interactions[entry.interactionId] = interactions[entry.interactionId] || [];
-      interactions[entry.interactionId].push(entry);
-    }
-    for (const interaction of Object.values(interactions)) {
-      const entry = interaction.reduce((prev, curr) => prev.duration >= curr.duration ? prev : curr);
-      const value = entry.duration;
+    for (const interaction of tracker.add(list.getEntries())) {
+      const value = interaction.duration;
       const rating = valueToRating(value);
       RATING_ICONS[rating];
       RATING_COLORS[rating];
-      allInteractions.push({
-        duration: value,
-        rating: rating,
-        target: entry.target,
-        type: entry.name
-      });
-      const inputDelay = entry.processingStart - entry.startTime;
-      const processingTime = entry.processingEnd - entry.processingStart;
-      const presentationDelay = Math.max(4, entry.startTime + entry.duration - entry.processingEnd);
-      const total = inputDelay + processingTime + presentationDelay;
+      logged.has(interaction.interactionId);
+      logged.add(interaction.interactionId);
+      const {inputDelay: inputDelay, processingTime: processingTime, presentationDelay: presentationDelay} = interaction.phases;
+      const total = inputDelay + processingTime + presentationDelay || 1;
       const subParts = [ {
         name: "Input Delay",
         value: inputDelay
@@ -72,6 +124,12 @@
     buffered: true
   });
   window.getInteractionSummary = () => {
+    const allInteractions = tracker.list().map(i => ({
+      duration: i.duration,
+      rating: valueToRating(i.duration),
+      target: i.target,
+      type: i.name
+    }));
     if (allInteractions.length === 0) {
       return {
         script: "Interactions",
