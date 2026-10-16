@@ -10,6 +10,7 @@ import snippet from "../../snippets/Loading/Back-Forward-Cache.js?raw";
 import { Snippet } from "../../components/Snippet";
 import { Flow, Sequence } from '../../components/diagrams'
 import { Demo } from '../../components/Demo'
+import { Callout } from '../../components/Callout'
 
 # Back/forward cache (bfcache)
 
@@ -69,7 +70,7 @@ bfcache is one of the most impactful performance optimizations available - it ca
 ### Common blocking reasons
 
 <Flow
-  title="Flow from leaving a page to the bfcache check: an eligible page is stored and restored instantly on back navigation, while a blocked page is discarded for one of six common reasons (unload handlers, no-store, open connections, service worker fetch handler, unfinished requests, embedded pages) and fully reloaded"
+  title="Flow from leaving a page to the bfcache check: an eligible page is stored and restored instantly on back navigation, while a blocked page is discarded for one of five common reasons (unload handlers, no-store, open connections, unfinished requests, embedded pages) and fully reloaded"
   nodes={[
     { id: "Start", label: "Navigate away from page" },
     { id: "Check", label: "bfcache Eligibility Check", shape: "decision" },
@@ -78,7 +79,7 @@ bfcache is one of the most impactful performance optimizations available - it ca
     {
       id: "Reasons",
       label: "Common reasons",
-      sub: "unload/beforeunload handlers\nCache-Control: no-store\nOpen connections (WebSocket, WebRTC)\nService Worker with fetch handler\nUnfinished network requests\nEmbedded pages with issues",
+      sub: "unload handlers\nCache-Control: no-store\nOpen connections (WebSocket, WebRTC)\nUnfinished network requests\nEmbedded pages with issues",
     },
     { id: "Navigate", label: "User navigates back" },
     { id: "Restore", label: "Instant restore", tone: "good" },
@@ -141,12 +142,13 @@ Page A → Page B → [Back] → Page A (full reload, 1-3s)
 | Blocker                        | Why it blocks               | Solution                                     |
 | ------------------------------ | --------------------------- | -------------------------------------------- |
 | **unload event**               | Can't be reliably replayed  | Use `pagehide` or `visibilitychange`         |
-| **beforeunload**               | Prevents navigation caching | Remove or use `pagehide` for cleanup         |
 | **Cache-Control: no-store**    | Tells browser not to cache  | Change to `no-cache` or `private`            |
 | **Open IndexedDB transaction** | State can't be serialized   | Close transactions on `pagehide`             |
 | **WebSocket connection**       | Can't be suspended          | Close on `pagehide`, reconnect on `pageshow` |
 | **Ongoing fetch/XHR**          | Incomplete network state    | Abort on `pagehide`                          |
 | **BroadcastChannel**           | Can't be suspended          | Close on `pagehide`                          |
+
+<Callout type="info">A `beforeunload` listener does not make a page ineligible for bfcache in modern browsers, but the event is unreliable. Add the listener only while the page has unsaved changes, and remove it once they are saved.</Callout>
 
 ### What the snippet detects
 
@@ -163,17 +165,13 @@ When none of these apply, the result is `no-blockers-detected`. That is not a gu
 
 ### Fixing common issues
 
-#### Issue 1: unload/beforeunload handlers
+#### Issue 1: unload handlers
 
 ##### Bad
 
 ```javascript
 window.addEventListener("unload", () => {
   saveData(); // Blocks bfcache
-});
-
-window.addEventListener("beforeunload", () => {
-  return "Are you sure?"; // Blocks bfcache
 });
 ```
 
@@ -215,14 +213,14 @@ Keep `no-store` only for responses that contain sensitive data, and use `private
 ##### Bad
 
 ```javascript
-const ws = new WebSocket("wss://web.dev");
+const ws = new WebSocket("wss://example.com/socket");
 // Connection stays open, blocks bfcache
 ```
 
 ##### Good
 
 ```javascript
-const ws = new WebSocket("wss://web.dev");
+let ws = new WebSocket("wss://example.com/socket");
 
 window.addEventListener("pagehide", () => {
   ws.close(); // Close on navigation
@@ -231,7 +229,7 @@ window.addEventListener("pagehide", () => {
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) {
     // Reconnect after bfcache restore
-    ws = new WebSocket("wss://web.dev");
+    ws = new WebSocket("wss://example.com/socket");
   }
 });
 ```
@@ -424,11 +422,7 @@ The `details.notRestoredReasons` property of the returned object carries the sam
 
 ### Real-world impact
 
-### Case studies
-
-- **Wikipedia**: 40% faster back navigations with bfcache
-- **E-commerce sites**: 50% reduction in bounce rate from back button
-- **News sites**: 60% of back navigations became instant
+According to Chrome usage data, [1 in 10 navigations on desktop and 1 in 5 on mobile are either back or forward](https://web.dev/articles/bfcache). Each of them can be an instant restore when the page is eligible for bfcache; otherwise it is a full load.
 
 ### Measuring impact
 
