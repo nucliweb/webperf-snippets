@@ -83,9 +83,17 @@ pre code {
   display: flex;
   gap: 0.25rem;
   margin: 0.6875rem;
+  opacity: 0;
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-backdrop-filter, backdrop-filter;
   transition-duration: 0.15s;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Shown on hover, on keyboard focus, and while it says the code was copied */
+.wp-snippet:hover .wp-snippet-actions,
+.wp-snippet-actions:focus-within,
+.wp-snippet-actions:has([data-copied]) {
+  opacity: 1;
 }
 
 .wp-snippet-copy {

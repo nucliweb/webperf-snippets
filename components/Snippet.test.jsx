@@ -32,4 +32,24 @@ describe("Snippet", () => {
     const html = renderToStaticMarkup(<Snippet code={CODE} prompt={PROMPT} />);
     expect(html).toMatch(/aria-label="Copy code"/);
   });
+
+  it("highlights the code in the HTML it renders, so the browser runs no highlighter", () => {
+    const html = renderToStaticMarkup(<Snippet code={CODE} />);
+    expect(html).toMatch(/<code[^>]*class="hljs"[^>]*>.*<span class="hljs-string">&#x27;Demo&#x27;<\/span>/);
+  });
+
+  // The Copy code button copies the text of the rendered code, so that text has to be the source as is
+  it("renders code whose text is the source, characters that need escaping included", () => {
+    const source = 'if (a < b && c > d) console.log("<script>", `${a}`);\n';
+    const html = renderToStaticMarkup(<Snippet code={source} />);
+    const inner = html.match(/<code[^>]*>([\s\S]*?)<\/code>/)[1];
+    const text = inner
+      .replace(/<[^>]+>/g, "")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#x27;/g, "'")
+      .replace(/&amp;/g, "&");
+    expect(text).toBe(source);
+  });
 });
