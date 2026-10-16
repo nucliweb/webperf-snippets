@@ -1,14 +1,22 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { listSnippets, launch, startContractServers, observeSnippet } from "../helpers/contract.js";
+import { listSnippets, launch, startContractServers, observeSnippet, exposedGetters } from "../helpers/contract.js";
+import { loadSnippet } from "../../src/load-snippet.js";
 
-// Contract every snippet must keep (see snippets/SCHEMA.md): the value it returns, and the
-// value its getDataFn returns when it tracks, must be a JSON-serializable object with a valid
+// Contract every snippet must keep (see snippets/SCHEMA.md): the value it returns, the value
+// its getDataFn returns when it tracks, and the value of every other getter it exposes on
+// window (getINPDetails(), checkBfcache()...) must be a JSON-serializable object with a valid
 // `script` and `status`, numbers as numbers, homogeneous items capped at 50, under 50 KB, and
 // no spaced em-dash in any returned text.
 //
 // KNOWN_VIOLATIONS lists what is still broken, per snippet. It can only shrink: a listed
 // violation that no longer happens fails the test, so the entry has to be removed.
-const KNOWN_VIOLATIONS = {};
+const KNOWN_VIOLATIONS = {
+  // analyzeContentVisibilityOpportunities() returns its own shape, without script and status
+  "Loading/Content-Visibility": [
+    "analyzeContentVisibilityOpportunities:missing-script",
+    "analyzeContentVisibilityOpportunities:invalid-status",
+  ],
+};
 
 let browser;
 let servers;
@@ -21,6 +29,16 @@ beforeAll(async () => {
 afterAll(async () => {
   await browser.close();
   await servers.close();
+});
+
+describe("exposedGetters", () => {
+  it("finds the getters the snippets expose on window", () => {
+    const getters = Object.fromEntries(listSnippets().map((name) => [name, exposedGetters(loadSnippet(name))]));
+    expect(getters["CoreWebVitals/INP"]).toEqual(["getINP", "getINPDetails"]);
+    expect(getters["CoreWebVitals/CLS"]).toEqual(["getCLS"]);
+    expect(getters["Interaction/Forced-Synchronous-Layout"]).toEqual(["getFSLSummary"]);
+    expect(getters["Loading/Back-Forward-Cache"]).toEqual(["checkBfcache"]);
+  });
 });
 
 describe("snippet return contract", () => {

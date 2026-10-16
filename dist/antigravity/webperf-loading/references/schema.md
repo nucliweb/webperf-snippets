@@ -262,17 +262,26 @@ Returns buffered CLS immediately and keeps tracking. Always call `getCLS()` afte
 
 If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "getINP"` — retry after user interaction.
 
-`getINPDetails()` returns the full sorted interaction list (array of up to 15 entries). Use when `getINP()` shows poor INP and you need to identify patterns across multiple slow interactions:
+The phases describe the whole interaction, not one of its events. A tap fires `pointerdown`, `pointerup` and `click`, and a key press `keydown` and `keyup`, with one `interactionId`. INP, Interactions and Input-Latency-Breakdown group the entries by `interactionId`, also when they arrive in separate observer callbacks, and measure the interaction over its entries painted in the frame of the longest one: `inputDelay` runs from the first `startTime` to the first `processingStart`, `processingTime` to the last `processingEnd`, and `presentationDelay` from there to the paint (`startTime + duration`, never below zero). The interaction is reported under the event whose handler ran longest, or under the `click` or `keydown` when no handler took a millisecond more than theirs; `worstEvent`, the Interactions `type` and the Input-Latency-Breakdown event type follow that rule.
+
+`getINPDetails()` returns the 15 slowest interactions, slowest first, with the total in `count`. `target` is a CSS selector built like `details.element` of LCP, or `null` when the browser reports no target. Use it when `getINP()` shows poor INP and you need to identify patterns across multiple slow interactions. With no interactions yet it returns `status: "error"`, `count: 0` and no items.
 
 ```json
-[
-  {
-    "formattedName": "click → button.submit",
-    "duration": 450,
-    "startTime": 1200,
-    "phases": { "inputDelay": 120, "processingTime": 280, "presentationDelay": 50 }
-  }
-]
+{
+  "script": "INP",
+  "status": "ok",
+  "count": 23,
+  "items": [
+    {
+      "formattedName": "click → button.submit",
+      "eventType": "click",
+      "target": "#checkout > button.submit",
+      "duration": 450,
+      "startTime": 1200,
+      "phases": { "inputDelay": 120, "processingTime": 280, "presentationDelay": 50 }
+    }
+  ]
+}
 ```
 
 #### LCP-Subparts
@@ -1228,4 +1237,4 @@ data = evaluate_script("getINP()")
 11. **Hidden cross-origin data is reported, not guessed** — a resource whose timing or size is hidden (no `Timing-Allow-Origin`) reports zeros for every size and timing. Count it (`sizeKnown: false`, `corsRestrictedCount`) instead of treating the zero as a measurement.
 12. **Partial analysis is flagged** — when hidden cross-origin data leaves part of the set unanalyzed, set the top-level `corsLimitedAnalysis: true` and report how many resources were skipped in `details` (`sizeUnknownCount`, `corsRestrictedCount`). Set it to `false` when every resource was analyzed.
 
-The rules are checked by `cli/tests/e2e/snippet-contract.test.js`, which runs every script, and every `getDataFn`, on an empty page, a seeded page and a heavy page.
+The rules are checked by `cli/tests/e2e/snippet-contract.test.js`, which runs every script, its `getDataFn` and every other getter it exposes on `window` (such as `getINPDetails()` and `checkBfcache()`), on an empty page, a seeded page and a heavy page.

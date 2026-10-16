@@ -47,6 +47,8 @@ Each event type prints a single line with its P75 values across all three phases
 
 All values are **P75**, the same percentile INP uses, so they reflect typical behavior rather than outliers.
 
+Each interaction counts once, under one event type: a tap fires `pointerdown`, `pointerup` and `click`, and its phases cover the three events. It is grouped under the event whose handler ran longest, or under `click` or `keydown` when no handler stands out, so a slow click handler appears as `click` with processing as the bottleneck.
+
 ### See the grouping
 
 Add interactions of three event types and watch how the P75 of each phase builds up per type, and why a single slow outlier does not change the picture:

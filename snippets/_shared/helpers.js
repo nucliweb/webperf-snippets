@@ -85,6 +85,70 @@ function isOwnRequest(entry) {
 }
 // @end-shared isOwnRequest
 
+// @shared createInteractionTracker
+// Groups Event Timing entries by interactionId across observer callbacks, since the entries of one
+// interaction (pointerdown, pointerup, click; keydown, keyup) can arrive in separate batches. Each
+// interaction is measured over its entries painted in the frame of its longest one: Chrome rounds
+// durations to 8 ms, and an event painted in an earlier frame, such as the keydown of a key held
+// down, has its own timing. It is reported under the event whose handler ran longest, or under the
+// click or keydown when no handler took a millisecond more than theirs.
+function createInteractionTracker() {
+  const byId = new Map();
+  const processing = (e) => e.processingEnd - e.processingStart;
+  const measure = (id, entries) => {
+    const longest = entries.reduce((a, b) => (b.duration > a.duration ? b : a));
+    const paint = longest.startTime + longest.duration;
+    const frame = entries.filter((e) => Math.abs(e.startTime + e.duration - paint) <= 8);
+    const startTime = Math.min(...frame.map((e) => e.startTime));
+    const processingStart = Math.min(...frame.map((e) => e.processingStart));
+    const processingEnd = Math.max(...frame.map((e) => e.processingEnd));
+    const busiest = frame.reduce((a, b) => (processing(b) > processing(a) ? b : a));
+    const primary = frame.find((e) => e.name === "click" || e.name === "keydown");
+    const reported = primary && processing(busiest) - processing(primary) < 1 ? primary : busiest;
+    return {
+      interactionId: id,
+      name: reported.name,
+      target: reported.target ?? frame.find((e) => e.target)?.target ?? null,
+      startTime,
+      duration: longest.duration,
+      phases: {
+        inputDelay: processingStart - startTime,
+        processingTime: processingEnd - processingStart,
+        presentationDelay: Math.max(0, startTime + longest.duration - processingEnd),
+      },
+    };
+  };
+  return {
+    // Adds the entries of one observer callback and returns the interactions they changed
+    add(entries) {
+      const changed = new Set();
+      for (const e of entries) {
+        if (!e.interactionId) continue;
+        const record = byId.get(e.interactionId) ?? { entries: [] };
+        record.entries.push({
+          name: e.name,
+          target: e.target,
+          startTime: e.startTime,
+          duration: e.duration,
+          processingStart: e.processingStart,
+          processingEnd: e.processingEnd,
+        });
+        byId.set(e.interactionId, record);
+        changed.add(e.interactionId);
+      }
+      return [...changed].map((id) => {
+        const record = byId.get(id);
+        record.summary = measure(id, record.entries);
+        return record.summary;
+      });
+    },
+    list() {
+      return [...byId.values()].map((record) => record.summary);
+    },
+  };
+}
+// @end-shared createInteractionTracker
+
 // @shared uniqueSelector
 // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
 // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a

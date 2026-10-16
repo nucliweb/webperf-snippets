@@ -8,6 +8,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- `getINPDetails()` of INP returns a result object, `{ script, status, count, items }`, like the other functions the snippets expose, instead of an array. `items` holds the 15 slowest interactions as plain data, with the target as a CSS selector instead of the DOM element. Code or agents that read the array need to read `items`.
+
+### Fixed
+- INP, Interactions and Input-Latency-Breakdown measure the phases over the whole interaction, not over one of its events. A slow click handler was reported as `pointerup`, with 0 ms of processing and the presentation as the bottleneck; it is reported as `click`, with the processing as the bottleneck. An interaction whose entries arrive in separate observer callbacks counts once.
+- Interactions and Input-Latency-Breakdown return `unsupported` in browsers without Event Timing.
+
 ---
 
 ## [2.0.1] — 2026-10-16

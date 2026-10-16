@@ -2,6 +2,11 @@
 // https://webperf-snippets.net
 
 (() => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("event")) {
+    console.warn("⚠️ event entries are not supported in this browser.");
+    return { script: "Interactions", status: "unsupported", error: "event entries not supported in this browser" };
+  }
+
   const formatMs = (ms) => `${Math.round(ms)}ms`;
 
   // INP thresholds
@@ -20,45 +25,86 @@
     poor: "🔴",
   };
 
-  // Track all interactions for summary
-  const allInteractions = [];
+  // @shared createInteractionTracker
+  // Groups Event Timing entries by interactionId across observer callbacks, since the entries of one
+  // interaction (pointerdown, pointerup, click; keydown, keyup) can arrive in separate batches. Each
+  // interaction is measured over its entries painted in the frame of its longest one: Chrome rounds
+  // durations to 8 ms, and an event painted in an earlier frame, such as the keydown of a key held
+  // down, has its own timing. It is reported under the event whose handler ran longest, or under the
+  // click or keydown when no handler took a millisecond more than theirs.
+  function createInteractionTracker() {
+    const byId = new Map();
+    const processing = (e) => e.processingEnd - e.processingStart;
+    const measure = (id, entries) => {
+      const longest = entries.reduce((a, b) => (b.duration > a.duration ? b : a));
+      const paint = longest.startTime + longest.duration;
+      const frame = entries.filter((e) => Math.abs(e.startTime + e.duration - paint) <= 8);
+      const startTime = Math.min(...frame.map((e) => e.startTime));
+      const processingStart = Math.min(...frame.map((e) => e.processingStart));
+      const processingEnd = Math.max(...frame.map((e) => e.processingEnd));
+      const busiest = frame.reduce((a, b) => (processing(b) > processing(a) ? b : a));
+      const primary = frame.find((e) => e.name === "click" || e.name === "keydown");
+      const reported = primary && processing(busiest) - processing(primary) < 1 ? primary : busiest;
+      return {
+        interactionId: id,
+        name: reported.name,
+        target: reported.target ?? frame.find((e) => e.target)?.target ?? null,
+        startTime,
+        duration: longest.duration,
+        phases: {
+          inputDelay: processingStart - startTime,
+          processingTime: processingEnd - processingStart,
+          presentationDelay: Math.max(0, startTime + longest.duration - processingEnd),
+        },
+      };
+    };
+    return {
+      // Adds the entries of one observer callback and returns the interactions they changed
+      add(entries) {
+        const changed = new Set();
+        for (const e of entries) {
+          if (!e.interactionId) continue;
+          const record = byId.get(e.interactionId) ?? { entries: [] };
+          record.entries.push({
+            name: e.name,
+            target: e.target,
+            startTime: e.startTime,
+            duration: e.duration,
+            processingStart: e.processingStart,
+            processingEnd: e.processingEnd,
+          });
+          byId.set(e.interactionId, record);
+          changed.add(e.interactionId);
+        }
+        return [...changed].map((id) => {
+          const record = byId.get(id);
+          record.summary = measure(id, record.entries);
+          return record.summary;
+        });
+      },
+      list() {
+        return [...byId.values()].map((record) => record.summary);
+      },
+    };
+  }
+  // @end-shared createInteractionTracker
+
+  // One record per interaction for the summary, even when its entries arrive in separate callbacks
+  const tracker = createInteractionTracker();
+  const logged = new Set();
 
   const observer = new PerformanceObserver((list) => {
-    const interactions = {};
-
-    for (const entry of list
-      .getEntries()
-      .filter((entry) => entry.interactionId)) {
-      interactions[entry.interactionId] = interactions[entry.interactionId] || [];
-      interactions[entry.interactionId].push(entry);
-    }
-
-    for (const interaction of Object.values(interactions)) {
-      const entry = interaction.reduce((prev, curr) =>
-        prev.duration >= curr.duration ? prev : curr
-      );
-
-      const value = entry.duration;
+    for (const interaction of tracker.add(list.getEntries())) {
+      const value = interaction.duration;
       const rating = valueToRating(value);
       const icon = RATING_ICONS[rating];
       const color = RATING_COLORS[rating];
+      const updated = logged.has(interaction.interactionId);
+      logged.add(interaction.interactionId);
 
-      // Store for summary
-      allInteractions.push({
-        duration: value,
-        rating,
-        target: entry.target,
-        type: entry.name,
-      });
-
-      // Calculate sub-parts
-      const inputDelay = entry.processingStart - entry.startTime;
-      const processingTime = entry.processingEnd - entry.processingStart;
-      const presentationDelay = Math.max(
-        4,
-        entry.startTime + entry.duration - entry.processingEnd
-      );
-      const total = inputDelay + processingTime + presentationDelay;
+      // Sub-parts of the whole interaction
+      const { inputDelay, processingTime, presentationDelay } = interaction.phases;
+      const total = inputDelay + processingTime + presentationDelay || 1;
 
       // Find longest sub-part
       const subParts = [
@@ -69,13 +115,13 @@
       const longest = subParts.reduce((a, b) => (a.value > b.value ? a : b));
 
       console.groupCollapsed(
-        `%c${icon} Interaction: ${formatMs(value)} (${rating})`,
+        `%c${icon} Interaction${updated ? " (updated)" : ""}: ${formatMs(value)} (${rating})`,
         `font-weight: bold; color: ${color};`
       );
 
       // Target info
-      console.log("%cTarget:", "font-weight: bold;", entry.target);
-      console.log(`   Event type: ${entry.name}`);
+      console.log("%cTarget:", "font-weight: bold;", interaction.target);
+      console.log(`   Event type: ${interaction.name}`);
 
       // Sub-parts breakdown
       console.log("");
@@ -129,6 +175,12 @@
 
   // Summary function
   window.getInteractionSummary = () => {
+    const allInteractions = tracker.list().map((i) => ({
+      duration: i.duration,
+      rating: valueToRating(i.duration),
+      target: i.target,
+      type: i.name,
+    }));
     if (allInteractions.length === 0) {
       console.log("%c📊 No interactions recorded yet.", "font-weight: bold;");
       console.log("   Interact with the page (click, type, etc.) and call this again.");

@@ -2,6 +2,11 @@
 // https://webperf-snippets.net
 
 (() => {
+  if (!PerformanceObserver.supportedEntryTypes?.includes("event")) {
+    console.warn("⚠️ event entries are not supported in this browser.");
+    return { script: "Input-Latency-Breakdown", status: "unsupported", error: "event entries not supported in this browser" };
+  }
+
   const formatMs = (ms) => `${Math.round(ms)}ms`;
 
   const valueToRating = (score) =>
@@ -19,34 +24,81 @@
     poor: "🔴",
   };
 
-  // Interactions grouped by event type
-  const byEventType = {};
+  // @shared createInteractionTracker
+  // Groups Event Timing entries by interactionId across observer callbacks, since the entries of one
+  // interaction (pointerdown, pointerup, click; keydown, keyup) can arrive in separate batches. Each
+  // interaction is measured over its entries painted in the frame of its longest one: Chrome rounds
+  // durations to 8 ms, and an event painted in an earlier frame, such as the keydown of a key held
+  // down, has its own timing. It is reported under the event whose handler ran longest, or under the
+  // click or keydown when no handler took a millisecond more than theirs.
+  function createInteractionTracker() {
+    const byId = new Map();
+    const processing = (e) => e.processingEnd - e.processingStart;
+    const measure = (id, entries) => {
+      const longest = entries.reduce((a, b) => (b.duration > a.duration ? b : a));
+      const paint = longest.startTime + longest.duration;
+      const frame = entries.filter((e) => Math.abs(e.startTime + e.duration - paint) <= 8);
+      const startTime = Math.min(...frame.map((e) => e.startTime));
+      const processingStart = Math.min(...frame.map((e) => e.processingStart));
+      const processingEnd = Math.max(...frame.map((e) => e.processingEnd));
+      const busiest = frame.reduce((a, b) => (processing(b) > processing(a) ? b : a));
+      const primary = frame.find((e) => e.name === "click" || e.name === "keydown");
+      const reported = primary && processing(busiest) - processing(primary) < 1 ? primary : busiest;
+      return {
+        interactionId: id,
+        name: reported.name,
+        target: reported.target ?? frame.find((e) => e.target)?.target ?? null,
+        startTime,
+        duration: longest.duration,
+        phases: {
+          inputDelay: processingStart - startTime,
+          processingTime: processingEnd - processingStart,
+          presentationDelay: Math.max(0, startTime + longest.duration - processingEnd),
+        },
+      };
+    };
+    return {
+      // Adds the entries of one observer callback and returns the interactions they changed
+      add(entries) {
+        const changed = new Set();
+        for (const e of entries) {
+          if (!e.interactionId) continue;
+          const record = byId.get(e.interactionId) ?? { entries: [] };
+          record.entries.push({
+            name: e.name,
+            target: e.target,
+            startTime: e.startTime,
+            duration: e.duration,
+            processingStart: e.processingStart,
+            processingEnd: e.processingEnd,
+          });
+          byId.set(e.interactionId, record);
+          changed.add(e.interactionId);
+        }
+        return [...changed].map((id) => {
+          const record = byId.get(id);
+          record.summary = measure(id, record.entries);
+          return record.summary;
+        });
+      },
+      list() {
+        return [...byId.values()].map((record) => record.summary);
+      },
+    };
+  }
+  // @end-shared createInteractionTracker
 
-  const observer = new PerformanceObserver((list) => {
-    // Group entries by interactionId; keep the longest entry per interaction
-    const interactions = {};
+  // One record per interaction, even when its entries arrive in separate callbacks
+  const tracker = createInteractionTracker();
+  const observer = new PerformanceObserver((list) => tracker.add(list.getEntries()));
+  observer.observe({ type: "event", durationThreshold: 0, buffered: true });
 
-    for (const entry of list.getEntries().filter((e) => e.interactionId)) {
-      interactions[entry.interactionId] =
-        interactions[entry.interactionId] || [];
-      interactions[entry.interactionId].push(entry);
-    }
-
-    for (const group of Object.values(interactions)) {
-      const entry = group.reduce((prev, curr) =>
-        prev.duration >= curr.duration ? prev : curr
-      );
-
-      const eventType = entry.name; // "click", "keydown", "pointerdown", etc.
-      const inputDelay = entry.processingStart - entry.startTime;
-      const processingTime = entry.processingEnd - entry.processingStart;
-      const presentationDelay = Math.max(
-        4,
-        entry.startTime + entry.duration - entry.processingEnd
-      );
-
-      if (!byEventType[eventType]) {
-        byEventType[eventType] = {
+  // Interactions grouped by event type: "click", "keydown", "pointerdown", etc.
+  const groupByEventType = () => {
+    const byEventType = {};
+    for (const { name, duration, phases } of tracker.list()) {
+      if (!byEventType[name]) {
+        byEventType[name] = {
           count: 0,
           durations: [],
           inputDelays: [],
@@ -54,17 +106,15 @@
           presentationDelays: [],
         };
       }
-
-      const bucket = byEventType[eventType];
+      const bucket = byEventType[name];
       bucket.count++;
-      bucket.durations.push(entry.duration);
-      bucket.inputDelays.push(inputDelay);
-      bucket.processingTimes.push(processingTime);
-      bucket.presentationDelays.push(presentationDelay);
+      bucket.durations.push(duration);
+      bucket.inputDelays.push(phases.inputDelay);
+      bucket.processingTimes.push(phases.processingTime);
+      bucket.presentationDelays.push(phases.presentationDelay);
     }
-  });
-
-  observer.observe({ type: "event", durationThreshold: 0, buffered: true });
+    return byEventType;
+  };
 
   const p75 = (arr) => {
     const sorted = [...arr].sort((a, b) => a - b);
@@ -74,6 +124,7 @@
   };
 
   window.getInputLatencyBreakdown = () => {
+    const byEventType = groupByEventType();
     const types = Object.keys(byEventType);
 
     if (types.length === 0) {
@@ -101,7 +152,7 @@
       const p75InputDelay = p75(b.inputDelays);
       const p75Processing = p75(b.processingTimes);
       const p75Presentation = p75(b.presentationDelays);
-      const p75Sum = p75InputDelay + p75Processing + p75Presentation;
+      const p75Sum = p75InputDelay + p75Processing + p75Presentation || 1;
 
       const phases = [
         { name: "Input Delay", value: p75InputDelay },
