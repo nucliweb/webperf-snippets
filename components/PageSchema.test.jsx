@@ -21,13 +21,9 @@ describe("buildPageSchemas", () => {
     expect(buildPageSchemas("/CLI", TTFB)).toEqual([]);
   });
 
-  it("describes a category page with a breadcrumb and no article", () => {
-    const schemas = buildPageSchemas("/Loading", { title: "Loading", description: "", snippets: [] });
-    expect(types(schemas)).toEqual(["BreadcrumbList"]);
-    expect(schemas[0].itemListElement.map((i) => [i.position, i.name, i.item])).toEqual([
-      [1, "Home", BASE],
-      [2, "Loading", `${BASE}/Loading`],
-    ]);
+  // The categories have no page of their own, so the breadcrumb does not link to them
+  it("adds nothing to a category path, which has no page", () => {
+    expect(buildPageSchemas("/Loading", { title: "Loading", description: "", snippets: [] })).toEqual([]);
   });
 
   it("describes a snippet page with a breadcrumb, an article and the source code of each snippet", () => {
@@ -35,8 +31,7 @@ describe("buildPageSchemas", () => {
     expect(types(schemas)).toEqual(["BreadcrumbList", "Article", "SoftwareSourceCode", "SoftwareSourceCode"]);
     expect(schemas[0].itemListElement.map((i) => [i.position, i.name, i.item])).toEqual([
       [1, "Home", BASE],
-      [2, "Loading", `${BASE}/Loading`],
-      [3, "Time to first byte (TTFB)", `${BASE}/Loading/TTFB`],
+      [2, "Time to first byte (TTFB)", `${BASE}/Loading/TTFB`],
     ]);
   });
 
@@ -67,11 +62,6 @@ describe("buildPageSchemas", () => {
     });
     expect(subParts.name).toBe("TTFB Sub Parts");
     expect(subParts.url).toMatch(/snippets\/Loading\/TTFB-Sub-Parts\.js$/);
-  });
-
-  it("uses the human label of the category", () => {
-    const schemas = buildPageSchemas("/CoreWebVitals/LCP-Subparts", { title: "LCP subparts", description: "d", snippets: [] });
-    expect(schemas[0].itemListElement[1].name).toBe("Core Web Vitals");
   });
 
   it("ignores a trailing slash", () => {

@@ -26,11 +26,16 @@ export async function generateMetadata(props) {
   const info = infoOf(params.mdxPath);
   if (!info) return metadata;
   const markdown = markdownUrlOfRoute(params.mdxPath);
+  const page = pageMetadata({ url: urlOf(params.mdxPath), title: info.title, description: info.description });
   return {
     ...metadata,
-    ...pageMetadata({ url: urlOf(params.mdxPath), title: info.title, description: info.description }),
+    ...page,
     // <link rel="alternate" type="text/markdown"> to the Markdown version of the page, for agents
-    alternates: { ...metadata.alternates, types: { ...metadata.alternates?.types, "text/markdown": markdown } },
+    alternates: {
+      ...metadata.alternates,
+      ...page.alternates,
+      types: { ...metadata.alternates?.types, "text/markdown": markdown },
+    },
   };
 }
 

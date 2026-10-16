@@ -24,3 +24,11 @@ test('llms.txt and llms-full.txt give the version of the collection', () => {
   assert.match(generateLlmsTxt(entries, buildGuideEntries()), new RegExp(`^> Version: ${version.replaceAll('.', '\\.')}$`, 'm'))
   assert.match(generateLlmsFullTxt(entries), new RegExp(`^Version: ${version.replaceAll('.', '\\.')}$`, 'm'))
 })
+
+test('llms.txt and llms-full.txt describe the collection with the description of the site', () => {
+  const { generateLlmsFullTxt } = require('./generate-llms')
+  const { site } = require('../lib/site.js')
+  const entries = buildSnippetEntries()
+  assert.ok(generateLlmsTxt(entries, buildGuideEntries()).includes(`> ${site.description}\n`))
+  assert.ok(generateLlmsFullTxt(entries).includes(`\n${site.description}\n`))
+})

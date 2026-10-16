@@ -4,6 +4,7 @@ const fs = require('fs')
 const path = require('path')
 const { readMeta } = require('./read-meta')
 const { extractTitle, extractDescription } = require('../lib/page-info')
+const { site } = require('../lib/site.js')
 
 const ROOT = path.join(__dirname, '..')
 const PAGES_DIR = path.join(ROOT, 'content')
@@ -94,7 +95,7 @@ function generateLlmsTxt(entries, guides = []) {
   const lines = [
     '# WebPerf Snippets',
     '',
-    `> A curated collection of JavaScript snippets for web performance measurement in browser consoles and Chrome DevTools.`,
+    `> ${site.description}`,
     `> Source: ${BASE_URL}`,
     `> Version: ${VERSION}`,
     `> Each link points to the Markdown version of a page; the HTML page is at the same URL without .md.`,
@@ -131,8 +132,7 @@ function generateLlmsFullTxt(entries) {
   const lines = [
     '# WebPerf Snippets — Full Reference',
     '',
-    'A curated collection of JavaScript snippets for web performance measurement.',
-    'Each snippet runs in the browser console or Chrome DevTools.',
+    site.description,
     `Source: ${BASE_URL}`,
     `Version: ${VERSION}`,
     '',
