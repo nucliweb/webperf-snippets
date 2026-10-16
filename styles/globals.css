@@ -188,8 +188,27 @@ pre code {
   opacity: 0.5;
 }
 
+/* The figure is the container, so the reserved height follows the width of the column */
 .wp-demo {
   margin: 1.5rem 0 0;
+  container-type: inline-size;
+}
+
+/* Demo reserves the height measured for each demo (components/demo-heights.json) as
+   a minimum, so the page does not shift when the demo reports its height. The narrow
+   value is measured in a 343px column and the wide one in a 672px column. */
+.wp-demo iframe {
+  display: block;
+  width: 100%;
+  min-height: var(--wp-demo-h-mobile, 400px);
+  border: none;
+  border-radius: 0.75rem;
+}
+
+@container (min-width: 672px) {
+  .wp-demo iframe {
+    min-height: var(--wp-demo-h-desktop, 400px);
+  }
 }
 
 .wp-footer {

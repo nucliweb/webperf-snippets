@@ -1,0 +1,70 @@
+{
+  "bfcache-blockers.html": {
+    "mobile": 911,
+    "desktop": 601
+  },
+  "cls-shifts.html": {
+    "mobile": 647,
+    "desktop": 530
+  },
+  "content-visibility-render.html": {
+    "mobile": 1214,
+    "desktop": 741
+  },
+  "fetchpriority-waterfall.html": {
+    "mobile": 1000,
+    "desktop": 653
+  },
+  "inp-phases.html": {
+    "mobile": 968,
+    "desktop": 660
+  },
+  "input-latency-by-event.html": {
+    "mobile": 1417,
+    "desktop": 1088
+  },
+  "lcp-candidates.html": {
+    "mobile": 1015,
+    "desktop": 790
+  },
+  "lcp-subparts.html": {
+    "mobile": 951,
+    "desktop": 700
+  },
+  "long-animation-frames.html": {
+    "mobile": 1002,
+    "desktop": 734
+  },
+  "network-waterfall.html": {
+    "mobile": 1069,
+    "desktop": 653
+  },
+  "raf-pipeline.html": {
+    "mobile": 537,
+    "desktop": 417
+  },
+  "render-blocking-timeline.html": {
+    "mobile": 652,
+    "desktop": 431
+  },
+  "script-loading-timeline.html": {
+    "mobile": 689,
+    "desktop": 431
+  },
+  "scroll-frames.html": {
+    "mobile": 1204,
+    "desktop": 912
+  },
+  "third-party-ranking.html": {
+    "mobile": 1680,
+    "desktop": 976
+  },
+  "ttfb-subparts.html": {
+    "mobile": 1136,
+    "desktop": 708
+  },
+  "yield-pipeline.html": {
+    "mobile": 536,
+    "desktop": 417
+  }
+}
