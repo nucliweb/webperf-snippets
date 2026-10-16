@@ -137,9 +137,7 @@ async function main() {
 
   console.log('\nInstalled skills:')
   installedSkills.forEach((name) => console.log(`  - ${name}`))
-  console.log(
-    '\nAdd them to your .claude/settings.json under "skills" to use in Claude Code.'
-  )
+  console.log('\nClaude Code discovers skills in ~/.claude/skills/ automatically, in every project.')
 }
 
 function copyDir(src, dest) {

@@ -56,16 +56,7 @@ function main() {
   }
 
   console.log('\n✅ Skills installed globally to ~/.claude/skills!')
-  console.log('\n📝 To use these skills in Claude Code, ensure they are registered in')
-  console.log('   your project\'s .claude/settings.json:')
-  console.log('\n   {')
-  console.log('     "skills": [')
-  skillDirs.forEach((name, idx) => {
-    const comma = idx < skillDirs.length - 1 ? ',' : ''
-    console.log(`       { "path": "~/.claude/skills/${name}" }${comma}`)
-  })
-  console.log('     ]')
-  console.log('   }')
+  console.log('\nClaude Code discovers skills in ~/.claude/skills/ automatically, in every project.')
   console.log('\nAvailable skills:')
   skillDirs.forEach((name) => console.log(`   - ${name}`))
 }

@@ -106,6 +106,19 @@ const CATEGORIES = {
   },
 }
 
+// How an agent runs a script and reads its result. The build drops every console call
+// (drop_console in buildScript and buildReadableScript), so the IIFE return value is the
+// only output: the guidance must never point agents to the console.
+const RUNNING_SCRIPTS_LINES = [
+  '## Running a script',
+  '',
+  '1. Run the script with `mcp__chrome-devtools__evaluate_script` and read the object it returns. The scripts have no console output, so the returned object is the result: `script`, `status` and the metric data (`value`, `rating`, `details`, `items`, `issues`), as described in `references/schema.md`.',
+  '2. When `status` is `"tracking"`, the script keeps observing the page. After the interactions, call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call, for example `getINP()`, and read the object it returns.',
+  '3. When `status` is `"error"` or `"unsupported"`, read `error`: the page may not have loaded yet, or the browser lacks the API.',
+  '',
+  'Without Chrome DevTools MCP, run the same snippet with the [webperf-snippets CLI](https://webperf-snippets.net/CLI), which loads the page in headless Chromium and prints the same result objects: `npx webperf-snippets <url> --snippet <Name> --json`, where `<Name>` is the script name without `.js`. It needs Playwright and Chromium (`npm install --save-dev webperf-snippets playwright`, then `npx playwright install chromium`), and tracking snippets take `--interact-script <file>` to drive the interactions.',
+]
+
 // Strips leading header comment lines (// Title\n// URL\n) before the IIFE
 function stripHeaderComments(source) {
   return source.replace(/^(\/\/[^\n]*\n)+\n*/, '')
@@ -403,10 +416,9 @@ async function generateCategorySkill(category, catConfig) {
   const bodyLines = []
   bodyLines.push(`# WebPerf: ${catConfig.name}`)
   bodyLines.push('')
-  bodyLines.push(
-    'JavaScript snippets for measuring web performance in Chrome DevTools. ' +
-    'Execute with `mcp__chrome-devtools__evaluate_script`, capture output with `mcp__chrome-devtools__get_console_message`.'
-  )
+  bodyLines.push('JavaScript snippets for measuring web performance in Chrome DevTools.')
+  bodyLines.push('')
+  bodyLines.push(...RUNNING_SCRIPTS_LINES)
   bodyLines.push('')
   bodyLines.push('## Scripts')
   bodyLines.push('')
@@ -489,7 +501,7 @@ function generateMetaSkill() {
   bodyLines.push('')
   bodyLines.push(
     `A collection of ${totalSnippets} JavaScript snippets for measuring and debugging web performance in Chrome DevTools. ` +
-    'Each snippet runs in the browser console and outputs structured, color-coded results.'
+    'Each snippet runs in the page and returns a structured result object.'
   )
   bodyLines.push('')
   bodyLines.push('## Quick Reference')
@@ -505,11 +517,12 @@ function generateMetaSkill() {
   bodyLines.push('## Workflow')
   bodyLines.push('')
   bodyLines.push("1. Identify the relevant skill based on the user's question (see Quick Reference above)")
-  bodyLines.push("2. Load the skill's skill.md to see available snippets and thresholds")
+  bodyLines.push("2. Load the skill's SKILL.md to see available snippets and thresholds")
   bodyLines.push('3. Execute with Chrome DevTools MCP:')
   bodyLines.push('   - `mcp__chrome-devtools__navigate_page` → navigate to target URL')
-  bodyLines.push('   - `mcp__chrome-devtools__evaluate_script` → run the snippet')
-  bodyLines.push('   - `mcp__chrome-devtools__get_console_message` → read results')
+  bodyLines.push('   - `mcp__chrome-devtools__evaluate_script` → run the snippet and read the returned object, which is the result (the scripts have no console output)')
+  bodyLines.push('   - `status: "tracking"` → call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions')
+  bodyLines.push('   - Without Chrome DevTools MCP, run the snippet with the CLI: `npx webperf-snippets <url> --snippet <Name> --json`')
   bodyLines.push('4. Interpret results using the thresholds defined in the skill')
   bodyLines.push('5. Provide actionable recommendations based on findings')
   bodyLines.push('')

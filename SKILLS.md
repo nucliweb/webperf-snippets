@@ -47,7 +47,7 @@ cd webperf-snippets
 npm run install-skills
 ```
 
-Skills will be registered in `.claude/settings.json` and available only in this project.
+Claude Code discovers skills in `.claude/skills/<name>/SKILL.md` automatically, so they are available only in this project.
 
 ### Option 3: Global Installation (For Contributors)
 
@@ -59,20 +59,7 @@ cd webperf-snippets
 npm run install-global
 ```
 
-After installation, register skills in your project's `.claude/settings.json`:
-
-```json
-{
-  "skills": [
-    { "path": "~/.claude/skills/webperf" },
-    { "path": "~/.claude/skills/webperf-core-web-vitals" },
-    { "path": "~/.claude/skills/webperf-loading" },
-    { "path": "~/.claude/skills/webperf-interaction" },
-    { "path": "~/.claude/skills/webperf-media" },
-    { "path": "~/.claude/skills/webperf-resources" }
-  ]
-}
-```
+Claude Code discovers skills in `~/.claude/skills/<name>/SKILL.md` automatically, so they are available in every project. No setting registers them: see [where skills live](https://code.claude.com/docs/en/skills) in the Claude Code documentation.
 
 ## Usage
 
@@ -224,10 +211,12 @@ Analyze network and connection quality.
 These skills are designed to work with the Chrome DevTools Model Context Protocol:
 
 1. **Navigate**: `mcp__chrome-devtools__navigate_page` → go to target URL
-2. **Execute**: `mcp__chrome-devtools__evaluate_script` → run snippet code
-3. **Capture**: `mcp__chrome-devtools__get_console_message` → read results
+2. **Execute**: `mcp__chrome-devtools__evaluate_script` → run snippet code and read the returned object, which is the result (the skill scripts have no console output; see `references/schema.md`)
+3. **Collect**: for `status: "tracking"`, call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions
 4. **Interpret**: Use thresholds from SKILL.md to analyze results
 5. **Recommend**: Provide actionable optimization suggestions
+
+Without Chrome DevTools MCP, the [CLI](https://webperf-snippets.net/CLI) runs the same snippet in headless Chromium and prints the same result objects: `npx webperf-snippets <url> --snippet <Name> --json`.
 
 ## Development
 

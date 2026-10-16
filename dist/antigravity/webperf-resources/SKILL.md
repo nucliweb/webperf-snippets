@@ -19,7 +19,15 @@ metadata:
 
 # WebPerf: Resources & Network
 
-JavaScript snippets for measuring web performance in Chrome DevTools. Execute with `mcp__chrome-devtools__evaluate_script`, capture output with `mcp__chrome-devtools__get_console_message`.
+JavaScript snippets for measuring web performance in Chrome DevTools.
+
+## Running a script
+
+1. Run the script with `mcp__chrome-devtools__evaluate_script` and read the object it returns. The scripts have no console output, so the returned object is the result: `script`, `status` and the metric data (`value`, `rating`, `details`, `items`, `issues`), as described in `references/schema.md`.
+2. When `status` is `"tracking"`, the script keeps observing the page. After the interactions, call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call, for example `getINP()`, and read the object it returns.
+3. When `status` is `"error"` or `"unsupported"`, read `error`: the page may not have loaded yet, or the browser lacks the API.
+
+Without Chrome DevTools MCP, run the same snippet with the [webperf-snippets CLI](https://webperf-snippets.net/CLI), which loads the page in headless Chromium and prints the same result objects: `npx webperf-snippets <url> --snippet <Name> --json`, where `<Name>` is the script name without `.js`. It needs Playwright and Chromium (`npm install --save-dev webperf-snippets playwright`, then `npx playwright install chromium`), and tracking snippets take `--interact-script <file>` to drive the interactions.
 
 ## Scripts
 
