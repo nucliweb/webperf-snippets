@@ -24,12 +24,7 @@ jobs:
           node-version: '22'
 
       - name: Check the version of the tag
-        run: |
-          manifest=$(node -p "require('./extension/manifest.json').version")
-          if [ "${GITHUB_REF_NAME#extension-v}" != "$manifest" ]; then
-            echo "::error::The tag $GITHUB_REF_NAME does not match the version $manifest of extension/manifest.json"
-            exit 1
-          fi
+        run: node scripts/check-tag-version.js "$GITHUB_REF_NAME"
 
       - name: Install dependencies
         run: npm ci
