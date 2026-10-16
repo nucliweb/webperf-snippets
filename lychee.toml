@@ -1,0 +1,39 @@
+# External links of the documentation, checked every week by .github/workflows/weekly.yml.
+# Run it locally with:
+#   lychee --config lychee.toml --base-url https://webperf-snippets.net 'content/**/*.mdx'
+#   lychee --config lychee.toml README.md CONTRIBUTING.md SKILLS.md 'docs/**/*.md' cli/README.md
+
+max_concurrency = 8
+timeout = 20
+max_retries = 2
+user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0 Safari/537.36"
+
+# 429 means rate limited, not missing
+accept = ["200..=299", "429"]
+
+# Anchors too: a link to a section that no longer exists is broken. The pages of the site
+# (content/) run with --base-url https://webperf-snippets.net, so their root-relative links
+# (/Loading/TTFB) are checked against the live site; the Markdown files of the repository link
+# to files relative to them, which lychee checks on disk.
+include_fragments = "full"
+
+exclude = [
+  # Local servers and fictitious domains of the examples
+  '^https?://(localhost|127\.0\.0\.1)',
+  '^https?://([a-z0-9-]+\.)*example(\.com|\.org)?([/:]|$)',
+  # Sites that answer automated requests with 403 or 999 although the page exists
+  '^https://(www\.)?npmjs\.com/',
+  '^https://(www\.)?linkedin\.com/',
+  '^https://(www\.)?w3\.org/',
+  '^https://claude\.ai/',
+  '^https://(www\.)?(x|twitter)\.com/',
+  # Redirects to the cookie consent of Google in Europe, which ends in a status lychee rejects
+  '^https://chromewebstore\.google\.com/',
+  # Cloudinary ids that LazyVideoPlayer turns into URLs, read as root-relative links
+  '^https://webperf-snippets\.net/webperf-snippets/',
+  # Hash routes of a single-page app, not anchors
+  '^https://star-history\.com/',
+  # Badges and images generated on request
+  '^https://img\.shields\.io/',
+  '^https://res\.cloudinary\.com/',
+]
