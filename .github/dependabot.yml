@@ -1,0 +1,34 @@
+version: 2
+
+updates:
+  # The root package.json and the cli workspace share the lockfile at the root
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    # Minor and patch updates in one pull request a week; each major update in its own
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Pinned with overrides in package.json: Nextra 4.6.1 fails in <Layout> with zod 4.4.3 or later
+      # (CLAUDE.md). Review it when Nextra is upgraded.
+      - dependency-name: zod
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - "*"
