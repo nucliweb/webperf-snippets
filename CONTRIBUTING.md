@@ -103,10 +103,8 @@ Explain what the output means. Use `###` subsections for structure, never bold t
 Conventions:
 
 - `browserSupport` lists the [MDN browser-compat-data](https://github.com/mdn/browser-compat-data) keys of the APIs the snippet needs to run. The build draws a badge under the title and a table under the `### Browser support` heading from them; leave the section empty. It fails when a key does not exist or the heading is missing. An optional `browserSupportReported` lists the features the snippet only audits (for example, `html.elements.img.fetchpriority`), which get a table of their own and no badge.
-- Headings use sentence case (`# My new snippet`, `### Further reading`).
 - The `<Snippet>` component takes the code through the `code` prop; it renders its own copy button.
-- Each Further reading link ends with `| source`.
-- Use the `Callout` component for tips and warnings (`import { Callout } from '../../components/Callout'`; types `info`, `warning`, `default`), not bold text or plain `>` blockquotes. Reserve `>` for real quotations. It wraps the Nextra callout and draws the site icons instead of emojis.
+- The page follows the rules of [Writing documentation pages](#writing-documentation-pages).
 
 Use the `copy` prop in code blocks to enable easy copying to DevTools:
 
@@ -174,6 +172,73 @@ Describe the change under `## [Unreleased]` in `CHANGELOG.md`, in the `Added`, `
 ## Renaming a snippet or a page
 
 A renamed page keeps its old URL working with a permanent redirect in `redirects()` of `next.config.mjs`. Rename the snippet file, the MDX page and the `_meta.js` entry together, update the links to the page (`grep -rn "Old-Name" content snippets`), and keep the old name as an alias in `cli/src/snippet-names.js` so scripts that use it still run.
+
+## Writing documentation pages
+
+These rules apply to every page under `content/`. Review a new or changed page against them before opening the pull request.
+
+### Page types
+
+- A snippet page documents one or more snippets and follows the template of [step 3](#3-create-the-mdx-documentation-page).
+- A guide page (`CLI.mdx`, `extension.mdx`, `which-snippet.mdx`) has free structure and `type: guide` in its frontmatter; a tool page such as `visualizer.mdx` has `type: tool`. `npm run check:consistency` fails when a page imports no snippet and has neither type. The heading, link and tone rules below apply to them too.
+
+### Structure of a snippet page
+
+| Section | Notes |
+| --- | --- |
+| `browserSupport` frontmatter | The APIs the snippet needs to run; `browserSupportReported` for what it only audits |
+| Import block | The snippet with `?raw` and the `Snippet` component |
+| `# Title` | Sentence case |
+| Intro paragraph | One or two sentences, directly under the title, with no `### Overview` heading |
+| `### Snippet` | Contains `<Snippet code={snippet} />` |
+| `### Understanding the results` | Or `### Understanding <concept>` when that is clearer |
+| `### Browser support` | Only the heading, right before Further reading and at the same level (`##` on a page that uses `##` sections); the build fills it |
+| `### Further reading` | Links in the format below |
+
+A table, a `Callout`, a diagram or a `Demo` can go between the intro and `### Snippet`, and other sections (common patterns, related snippets) between Understanding the results and Browser support.
+
+### Headings
+
+- Sentence case everywhere: `# Largest contentful paint`, `### Understanding the results`.
+- Never bold text as a heading (`**Results:**` on its own line, or a bold line that opens a section): use a `###` heading. Bold is for emphasis inside a sentence.
+
+### Links
+
+Each Further reading link is `- [Title](url) | source`. Internal links use the path of the page, without `.mdx`:
+
+```
+- [Largest Contentful Paint](https://web.dev/articles/lcp) | web.dev
+- [LCP subparts](/CoreWebVitals/LCP-Subparts) | Detailed phase breakdown
+```
+
+Examples, commands and test data use the domains reserved for documentation (`example.com`, `example.net`, `example.org`) or `localhost`, never real sites. `scripts/example-domains.test.js` fails when a real site appears as an example.
+
+### Callouts
+
+Use the `Callout` component for tips, warnings and notes, not bold text or plain `>` blockquotes; keep `>` for real quotations. Import it once per page, after the frontmatter: `import { Callout } from '../../components/Callout'`, the wrapper of this site, which draws its icons, not the one of `nextra/components`. Types: `info` for tips, related links and recommendations, `warning` for warnings, browser support and CORS caveats, `default` for notes.
+
+### Code examples
+
+Before and after examples mark each version with an `❌` or `✅` comment:
+
+```html
+<!-- ❌ Render-blocking -->
+<script src="app.js"></script>
+
+<!-- ✅ Non-blocking -->
+<script src="app.js" defer></script>
+```
+
+Emojis in an MDX page are fine: the site replaces them with icons when the page renders.
+
+### Tone
+
+Pages are reference material, not a tutorial:
+
+- No first person and no conversational asides ("Now let's see…", "As you can see…").
+- State what the snippet returns and what it means, without adjectives such as "powerful" or "comprehensive".
+- Timeless language: describe what a feature does, as if it always existed ("Supports", "Reports"), never "now supports" or "we've added". Versions appear only for things that are versioned, such as a browser release.
+- No em-dash with spaces as a comma: use a comma, a semicolon, a colon or a new sentence.
 
 ## Diagrams
 
