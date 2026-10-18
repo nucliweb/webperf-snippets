@@ -204,6 +204,20 @@ The results of a run can add steps on the same page load: LCP over 2.5 s adds `L
 | `1`  | Budget violation, a snippet errored, or a step of the workflow reported an `error` issue. |
 | `2`  | Usage error (missing URL, unknown workflow).  |
 
+## MCP server
+
+`webperf-snippets mcp` starts a [Model Context Protocol](https://modelcontextprotocol.io) server over stdio, so an AI agent can call the snippets by name instead of reading their source. Add it to a client that launches local servers, for example Claude Code:
+
+```bash
+claude mcp add webperf -- npx -y webperf-snippets mcp
+```
+
+| Tool            | What it does                                                                 |
+| --------------- | ---------------------------------------------------------------------------- |
+| `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |
+
+The server answers clients of both eras of the protocol: the 2026-07-28 revision and the earlier ones that open with `initialize`. [ADR 0002](../docs/adr/0002-mcp-server-as-cli-subcommand.md) explains why it is a subcommand and uses stdio.
+
 ## CI example
 
 GitHub Actions, fail the PR if LCP exceeds 2.5s:

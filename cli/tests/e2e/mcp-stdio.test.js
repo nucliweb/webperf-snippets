@@ -1,0 +1,39 @@
+import { describe, it, expect, afterEach } from "vitest";
+import { fileURLToPath } from "node:url";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+
+// `webperf-snippets mcp` started as a real process, the way a client such as Claude Code starts it:
+// the client spawns the command and speaks JSON-RPC through its standard input and output. The server
+// answers both eras of the protocol: the modern one (2026-07-28, server/discover) and the legacy one
+// (the initialize handshake of the 2025 revisions).
+const BIN = fileURLToPath(new URL("../../src/bin.js", import.meta.url));
+
+let client;
+
+async function connect(options) {
+  client = new Client({ name: "test", version: "1.0.0" }, options);
+  await client.connect(new StdioClientTransport({ command: process.execPath, args: [BIN, "mcp"] }));
+  return client;
+}
+
+afterEach(async () => {
+  await client?.close();
+  client = undefined;
+});
+
+describe("webperf-snippets mcp", () => {
+  it("serves a client of the modern era", async () => {
+    await connect({ versionNegotiation: { mode: { pin: "2026-07-28" } } });
+    expect(client.getProtocolEra()).toBe("modern");
+    const result = await client.callTool({ name: "list_snippets", arguments: { category: "Resources" } });
+    expect(result.structuredContent.snippets.map((s) => s.name)).toEqual(["Resources/Network-Bandwidth-Connection-Quality"]);
+  }, 30000);
+
+  it("serves a client of the legacy era", async () => {
+    await connect();
+    expect(client.getProtocolEra()).toBe("legacy");
+    const { tools } = await client.listTools();
+    expect(tools.map((t) => t.name)).toContain("list_snippets");
+  }, 30000);
+});
