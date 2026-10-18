@@ -1,0 +1,5 @@
+{
+  "interactions": [
+    { "action": "click", "selector": "#interaction-button" }
+  ]
+}

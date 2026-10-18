@@ -5,6 +5,7 @@ browserSupport:
 ---
 
 import snippet from '../../snippets/CoreWebVitals/CLS.js?raw'
+import examples from '../../skills/webperf-core-web-vitals/references/examples.json'
 import { Snippet } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
 import { Callout } from '../../components/Callout'
@@ -32,7 +33,7 @@ Unexpected layout shifts are frustrating and can cause users to click the wrong 
 
 ### Snippet
 
-<Snippet code={snippet} />
+<Snippet code={snippet} example={examples.examples.CLS} />
 
 ### Understanding CLS
 

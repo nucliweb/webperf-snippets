@@ -1,0 +1,170 @@
+{
+  "fixture": "cli/tests/fixtures/core-web-vitals.html",
+  "viewport": "desktop",
+  "waitMs": 1000,
+  "examples": {
+    "CLS": {
+      "script": "CLS",
+      "status": "ok",
+      "metric": "CLS",
+      "value": 0,
+      "unit": "score",
+      "rating": "good",
+      "thresholds": {
+        "good": 0.1,
+        "needsImprovement": 0.25
+      },
+      "message": "CLS tracking active. Call getCLS() for updated value after page interactions.",
+      "getDataFn": "getCLS"
+    },
+    "INP": {
+      "script": "INP",
+      "status": "ok",
+      "metric": "INP",
+      "value": 16,
+      "unit": "ms",
+      "rating": "good",
+      "thresholds": {
+        "good": 200,
+        "needsImprovement": 500
+      },
+      "details": {
+        "totalInteractions": 1,
+        "worstEvent": "click → button#interaction-button",
+        "phases": {
+          "inputDelay": 1,
+          "processingTime": 1,
+          "presentationDelay": 15
+        }
+      }
+    },
+    "LCP": {
+      "script": "LCP",
+      "status": "ok",
+      "metric": "LCP",
+      "value": 84,
+      "unit": "ms",
+      "rating": "good",
+      "thresholds": {
+        "good": 2500,
+        "needsImprovement": 4000
+      },
+      "details": {
+        "element": "#main-heading",
+        "elementType": "Text block",
+        "url": null,
+        "sizePixels": 24624
+      }
+    },
+    "LCP-Image-Entropy": {
+      "script": "LCP-Image-Entropy",
+      "status": "ok",
+      "count": 1,
+      "details": {
+        "totalImages": 1,
+        "lowEntropyCount": 0,
+        "lcpElement": "h1",
+        "lcpImageEligible": null,
+        "lcpImage": null
+      },
+      "items": [
+        {
+          "url": "hero.png",
+          "width": 100,
+          "height": 100,
+          "displayedWidth": 320,
+          "displayedHeight": 320,
+          "fileSizeBytes": 30173,
+          "bpp": 24.1384,
+          "isLowEntropy": false,
+          "lcpEligible": true,
+          "isLCP": false
+        }
+      ],
+      "issues": [
+        {
+          "severity": "info",
+          "message": "The LCP element is <h1>, text and not an image, so its entropy does not apply. Run the LCP snippet to measure it."
+        }
+      ]
+    },
+    "LCP-Subparts": {
+      "script": "LCP-Subparts",
+      "status": "ok",
+      "metric": "LCP",
+      "value": 84,
+      "unit": "ms",
+      "rating": "good",
+      "thresholds": {
+        "good": 2500,
+        "needsImprovement": 4000
+      },
+      "details": {
+        "element": "#main-heading",
+        "url": null,
+        "subParts": {
+          "ttfb": {
+            "value": 6,
+            "percent": 7,
+            "overTarget": false
+          },
+          "resourceLoadDelay": {
+            "value": 0,
+            "percent": 0,
+            "overTarget": false
+          },
+          "resourceLoadTime": {
+            "value": 0,
+            "percent": 0,
+            "overTarget": false
+          },
+          "elementRenderDelay": {
+            "value": 78,
+            "percent": 93,
+            "overTarget": true
+          }
+        },
+        "slowestPhase": "elementRenderDelay"
+      }
+    },
+    "LCP-Trail": {
+      "script": "LCP-Trail",
+      "status": "ok",
+      "metric": "LCP",
+      "value": 108,
+      "unit": "ms",
+      "rating": "good",
+      "thresholds": {
+        "good": 2500,
+        "needsImprovement": 4000
+      },
+      "details": {
+        "candidateCount": 1,
+        "finalElement": "#main-heading",
+        "candidates": [
+          {
+            "index": 1,
+            "selector": "#main-heading",
+            "time": 108,
+            "elementType": "Text block"
+          }
+        ]
+      }
+    },
+    "LCP-Video-Candidate": {
+      "script": "LCP-Video-Candidate",
+      "status": "ok",
+      "details": {
+        "isVideo": false,
+        "lcpElement": "h1",
+        "lcpUrl": null
+      },
+      "issues": [
+        {
+          "severity": "info",
+          "message": "The LCP element is <h1>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases."
+        }
+      ]
+    }
+  }
+}

@@ -377,6 +377,11 @@ async function generateCategorySkill(category, catConfig) {
   fs.mkdirSync(refsDir, { recursive: true })
   fs.mkdirSync(distDir, { recursive: true })
 
+  const examplesPath = path.join(refsDir, 'examples.json')
+  const examples = category === 'CoreWebVitals' && fs.existsSync(examplesPath)
+    ? JSON.parse(fs.readFileSync(examplesPath, 'utf-8')).examples
+    : null
+
   for (const snippetFile of snippetFiles) {
     const src = path.join(SNIPPETS_DIR, category, snippetFile)
     await buildScript(src, path.join(scriptsDir, snippetFile), `snippets/${category}/${snippetFile}`)
@@ -386,6 +391,10 @@ async function generateCategorySkill(category, catConfig) {
 
   // Write references/snippets.md (L3 — loaded on demand)
   const snippetLines = []
+  if (examples) {
+    snippetLines.push('## Captured return values', '')
+    snippetLines.push('Each object below is a real result captured by running the snippet against `cli/tests/fixtures/core-web-vitals.html` with the recorded interaction steps for INP.', '')
+  }
   for (const meta of metas) {
     snippetLines.push(`---`)
     snippetLines.push(`## ${meta.title}`)
@@ -400,6 +409,14 @@ async function generateCategorySkill(category, catConfig) {
       snippetLines.push('**Thresholds:**')
       snippetLines.push('')
       snippetLines.push(meta.thresholds)
+    }
+    if (examples?.[meta.basename]) {
+      snippetLines.push('')
+      snippetLines.push('**Captured return value:**')
+      snippetLines.push('')
+      snippetLines.push('```json')
+      snippetLines.push(JSON.stringify(examples[meta.basename], null, 2))
+      snippetLines.push('```')
     }
   }
   fs.writeFileSync(path.join(refsDir, 'snippets.md'), snippetLines.join('\n') + '\n')
@@ -440,6 +457,7 @@ async function generateCategorySkill(category, catConfig) {
   bodyLines.push('')
   bodyLines.push('- `references/snippets.md` — Descriptions and thresholds for each script')
   bodyLines.push('- `references/schema.md` — Return value schema for interpreting script output')
+  if (examples) bodyLines.push('- `references/examples.json` — Captured return values used in the snippet pages')
 
   // Claude Code SKILL.md
   const frontmatterLines = [
@@ -479,6 +497,9 @@ async function generateCategorySkill(category, catConfig) {
   fs.copyFileSync(path.join(refsDir, 'snippets.md'), path.join(antigravityRefsDir, 'snippets.md'))
   if (fs.existsSync(path.join(refsDir, 'schema.md'))) {
     fs.copyFileSync(path.join(refsDir, 'schema.md'), path.join(antigravityRefsDir, 'schema.md'))
+  }
+  if (fs.existsSync(examplesPath)) {
+    fs.copyFileSync(examplesPath, path.join(antigravityRefsDir, 'examples.json'))
   }
   fs.writeFileSync(path.join(antigravityDir, 'SKILL.md'), buildAntigravitySkillContent(catConfig, bodyLines))
   console.log(`  written: dist/antigravity/${catConfig.skill}/ (${snippetFiles.length} scripts + references + SKILL.md)`)

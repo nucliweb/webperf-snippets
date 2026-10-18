@@ -248,3 +248,4 @@ When multiple CWV metrics are poor, prioritize investigation:
 
 - `references/snippets.md` — Descriptions and thresholds for each script
 - `references/schema.md` — Return value schema for interpreting script output
+- `references/examples.json` — Captured return values used in the snippet pages

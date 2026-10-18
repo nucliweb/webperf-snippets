@@ -28,6 +28,19 @@ describe("Snippet", () => {
     expect(html).not.toMatch(/Copy prompt/);
   });
 
+  it("renders a captured return object below the snippet when one is provided", () => {
+    const example = { script: "Demo", status: "ok", value: 42 };
+    const html = renderToStaticMarkup(<Snippet code={CODE} example={example} />);
+    expect(html).toContain('<section class="wp-snippet-example" aria-label="Returned object example">');
+    expect(html).toContain("<h3>Returned object</h3>");
+    expect(html).toContain('&quot;value&quot;: 42');
+  });
+
+  it("does not render an example section when no captured object is provided", () => {
+    const html = renderToStaticMarkup(<Snippet code={CODE} />);
+    expect(html).not.toContain("Returned object");
+  });
+
   it("keeps the Copy code button", () => {
     const html = renderToStaticMarkup(<Snippet code={CODE} prompt={PROMPT} />);
     expect(html).toMatch(/aria-label="Copy code"/);
