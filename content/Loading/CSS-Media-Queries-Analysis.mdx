@@ -61,38 +61,38 @@ The snippet considers a media query "bigger than the breakpoint" when:
 
 Understanding how much CSS is dedicated to larger viewports helps identify optimization opportunities:
 
-### 1. split CSS by media query
+### 1. Split CSS by media query
 
 - Separate mobile and desktop CSS into different files
 - Load desktop CSS with a media query: `<link media="(min-width: 768px)" href="desktop.css">`
 - Reduces initial CSS parse time on mobile devices
 - Reduces style recalculation work (browser doesn't need to process desktop styles)
 
-### 2. inline critical above-the-fold CSS
+### 2. Inline critical above-the-fold CSS
 
 - Move critical mobile CSS inline in `<style>` tags
 - Defer non-critical and desktop CSS loading
 - Improves First Contentful Paint (FCP) and Largest Contentful Paint (LCP) on mobile
 
-### 3. use CSS-in-JS or CSS modules
+### 3. Use CSS-in-JS or CSS modules
 
 - Modern bundlers can split CSS by route/component
 - Only load CSS when needed (code splitting)
 - Reduces unused CSS on initial load
 
-### 4. consider mobile-first approach
+### 4. Consider mobile-first approach
 
 - Write base styles for mobile without media queries
 - Use `min-width` media queries for progressive enhancement
 - Reduces CSS overhead on mobile devices
 
-### 5. audit and remove unused desktop CSS
+### 5. Audit and remove unused desktop CSS
 
 - If desktop media queries contain excessive classes/properties
 - Use tools like PurgeCSS or UnCSS to remove unused selectors
 - Reduces overall CSS bundle size
 
-### 6. measure the impact
+### 6. Measure the impact
 
 - `details.bytes` shows how many bytes of CSS narrower screens get without using them
 - Compare this against your total CSS size to understand the optimization opportunity
