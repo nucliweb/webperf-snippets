@@ -216,10 +216,18 @@ claude mcp add webperf -- npx -y webperf-snippets mcp
 | --------------- | ---------------------------------------------------------------------------- |
 | `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |
 | `run_snippet`   | Opens a URL in a headless Chromium, runs one snippet and returns the object it returns. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport` and `waitMs`. The snippets that record interactions run on a page opened with `open_page`. |
+| `run_workflow`  | Runs a workflow of the CLI (`core-web-vitals`, `audit`, `loading`, `interaction`) and the follow-ups of its decision tree. Takes `url`, `workflow`, and optional `viewport` and `waitMs`. |
+| `get_crux`      | Returns the CrUX p75 of LCP, CLS and INP for a URL, or its origin. Takes `url` and an optional `formFactor` (`phone`, `desktop`, `tablet`). Needs `CRUX_API_KEY` in the environment of the server. |
 | `open_page`     | Opens a URL in a page that stays open between calls and installs tracking snippets (`track`, such as `INP`). Returns a `sessionId`. |
 | `interact`      | Runs steps on an open page: `click`, `type`, `hover`, `scroll` or `wait`. |
 | `read_results`  | Returns what the tracking snippets of an open page have recorded. |
 | `close_page`    | Closes an open page. |
+
+The CrUX key goes in the configuration of the client, never in a tool argument:
+
+```bash
+claude mcp add webperf -e CRUX_API_KEY=<key> -- npx -y webperf-snippets mcp
+```
 
 At most three pages are open at a time, a page closes after 10 minutes without use, and every page and Chromium close when the client disconnects.
 
