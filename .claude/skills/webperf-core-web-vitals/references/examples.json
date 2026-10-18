@@ -32,7 +32,7 @@
         "totalInteractions": 1,
         "worstEvent": "click → button#interaction-button",
         "phases": {
-          "inputDelay": 1,
+          "inputDelay": 0,
           "processingTime": 1,
           "presentationDelay": 15
         }
@@ -42,7 +42,7 @@
       "script": "LCP",
       "status": "ok",
       "metric": "LCP",
-      "value": 84,
+      "value": 72,
       "unit": "ms",
       "rating": "good",
       "thresholds": {
@@ -92,7 +92,7 @@
       "script": "LCP-Subparts",
       "status": "ok",
       "metric": "LCP",
-      "value": 84,
+      "value": 72,
       "unit": "ms",
       "rating": "good",
       "thresholds": {
@@ -104,8 +104,8 @@
         "url": null,
         "subParts": {
           "ttfb": {
-            "value": 6,
-            "percent": 7,
+            "value": 7,
+            "percent": 10,
             "overTarget": false
           },
           "resourceLoadDelay": {
@@ -119,8 +119,8 @@
             "overTarget": false
           },
           "elementRenderDelay": {
-            "value": 78,
-            "percent": 93,
+            "value": 65,
+            "percent": 90,
             "overTarget": true
           }
         },
@@ -131,7 +131,7 @@
       "script": "LCP-Trail",
       "status": "ok",
       "metric": "LCP",
-      "value": 108,
+      "value": 72,
       "unit": "ms",
       "rating": "good",
       "thresholds": {
@@ -145,7 +145,7 @@
           {
             "index": 1,
             "selector": "#main-heading",
-            "time": 108,
+            "time": 72,
             "elementType": "Text block"
           }
         ]

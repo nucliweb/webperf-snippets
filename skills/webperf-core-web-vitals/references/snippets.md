@@ -68,7 +68,7 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
     "totalInteractions": 1,
     "worstEvent": "click → button#interaction-button",
     "phases": {
-      "inputDelay": 1,
+      "inputDelay": 0,
       "processingTime": 1,
       "presentationDelay": 15
     }
@@ -139,7 +139,7 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
   "script": "LCP-Subparts",
   "status": "ok",
   "metric": "LCP",
-  "value": 84,
+  "value": 72,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
@@ -151,8 +151,8 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     "url": null,
     "subParts": {
       "ttfb": {
-        "value": 6,
-        "percent": 7,
+        "value": 7,
+        "percent": 10,
         "overTarget": false
       },
       "resourceLoadDelay": {
@@ -166,8 +166,8 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
         "overTarget": false
       },
       "elementRenderDelay": {
-        "value": 78,
-        "percent": 93,
+        "value": 65,
+        "percent": 90,
         "overTarget": true
       }
     },
@@ -189,7 +189,7 @@ Tracks every LCP candidate element during page load and highlights each one with
   "script": "LCP-Trail",
   "status": "ok",
   "metric": "LCP",
-  "value": 108,
+  "value": 72,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
@@ -203,7 +203,7 @@ Tracks every LCP candidate element during page load and highlights each one with
       {
         "index": 1,
         "selector": "#main-heading",
-        "time": 108,
+        "time": 72,
         "elementType": "Text block"
       }
     ]
@@ -258,7 +258,7 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
   "script": "LCP",
   "status": "ok",
   "metric": "LCP",
-  "value": 84,
+  "value": 72,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
