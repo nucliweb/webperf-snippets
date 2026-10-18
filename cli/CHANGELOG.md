@@ -11,6 +11,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ### Changed
 - The examples of `--help` and of the README run the CLI on `https://example.com`, a domain reserved for documentation, instead of a real site.
 
+### Fixed
+- After an interaction script with a click or a key press, the tracking snippets (INP, Interactions, Input-Latency-Breakdown) report the interactions on a loaded machine too. The browser can deliver their timing later than the frames the runner waited for, and the result was "No interactions recorded yet". The runner reads a snippet that has no data yet again, every 100 ms, for up to 2 seconds.
+
 ---
 
 ## [1.0.0] — 2026-10-15

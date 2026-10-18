@@ -103,28 +103,59 @@ describe("a click whose handler runs for 250 ms", () => {
   }, 45000);
 });
 
-describe("fast clicks", () => {
-  it("stay small and good in the three snippets", async () => {
-    const { inp, interactions, breakdown } = await withPage(async (page) => {
-      await page.waitForTimeout(300);
-      await runAll(page);
-      for (let i = 0; i < 3; i++) await page.click("#fast");
-      await page.waitForFunction(() => window.getInteractionSummary().count >= 3, null, { timeout: 15000, polling: 100 });
-      await page.waitForTimeout(300);
-      return readAll(page);
+// Records every Event Timing entry of the page, as the reference the snippets are compared with
+const RECORD_EVENTS = () => {
+  window.__events = [];
+  new PerformanceObserver((list) => {
+    for (const e of list.getEntries()) if (e.interactionId) window.__events.push({ id: e.interactionId, duration: e.duration });
+  }).observe({ type: "event", durationThreshold: 16, buffered: true });
+};
+// The next frame after a click on #fast blocks for 250 ms: the click is presented late, as on a loaded
+// CI machine, while its handler stays fast
+const PRESENT_LATE = () => {
+  document.addEventListener("click", (e) => {
+    if (e.target.id !== "fast") return;
+    requestAnimationFrame(() => {
+      const t = performance.now();
+      while (performance.now() - t < 250) {}
     });
+  });
+};
+const rating = (ms) => (ms <= 200 ? "good" : ms <= 500 ? "needs-improvement" : "poor");
+
+// The duration of a fast click depends on how fast the machine presents the next frame, so the test
+// compares the snippets with the entries of the page and checks what makes the click fast: its handler.
+describe.each([
+  ["a machine that presents on time", RECORD_EVENTS],
+  ["a machine that presents late", `(${RECORD_EVENTS})(); (${PRESENT_LATE})();`],
+])("fast clicks on %s", (_, init) => {
+  it("are measured as the browser reports them, with a small processing time", async () => {
+    const { inp, interactions, breakdown, worst } = await withPage(
+      async (page) => {
+        await page.waitForTimeout(300);
+        await runAll(page);
+        for (let i = 0; i < 3; i++) await page.click("#fast");
+        await page.waitForFunction(() => window.getInteractionSummary().count >= 3, null, { timeout: 15000, polling: 100 });
+        await page.waitForTimeout(300);
+        const worst = await page.evaluate(() => Math.max(...window.__events.map((e) => e.duration)));
+        return { ...(await readAll(page)), worst };
+      },
+      { init }
+    );
     expect(inp.status).toBe("ok");
-    expect(inp.rating).toBe("good");
+    expect(inp.value).toBe(worst);
+    expect(inp.rating).toBe(rating(worst));
     expect(inp.details.totalInteractions).toBe(3);
     expect(inp.details.worstEvent).toMatch(/^click /);
+    expect(inp.details.phases.processingTime).toBeLessThan(100);
     expect(interactions.status).toBe("ok");
     expect(interactions.count).toBe(3);
-    expect(interactions.details.worstMs).toBeLessThan(100);
+    expect(interactions.details.worstMs).toBe(worst);
     expect(interactions.items.every((i) => i.type === "click")).toBe(true);
     expect(breakdown.status).toBe("ok");
     expect(breakdown.items.map((i) => i.type)).toEqual(["click"]);
-    expect(breakdown.items[0].p75Ms).toBeLessThan(100);
-    expect(breakdown.issues).toEqual([]);
+    expect(breakdown.items[0].processingMs).toBeLessThan(100);
+    expect(breakdown.issues.map((i) => i.message).join("\n")).not.toMatch(/Bottleneck: Processing/);
   }, 45000);
 });
 

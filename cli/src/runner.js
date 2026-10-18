@@ -12,6 +12,12 @@ export const VIEWPORT_PRESETS = {
 
 const DEFAULT_NAV_TIMEOUT = 30000;
 
+// On a loaded machine the browser can deliver the timing of a click later than the frames `settle`
+// waits for. After a click or a key press, a tracking snippet that has no data yet is read again,
+// every POLL_MS, until it has some or LATE_ENTRIES_MS have passed.
+const LATE_ENTRIES_MS = 2000;
+const POLL_MS = 100;
+
 // Snippets are IIFEs. Playwright evaluates a string as an expression, so we
 // trim trailing semicolons to keep the IIFE call as a single expression and
 // recover its return value in Node.
@@ -56,17 +62,24 @@ async function evaluateAroundInteractions(page, items, interactions) {
     page,
     items.filter((item) => !tracking.includes(item))
   );
+  const hasInput = loadInteractionSteps(interactions).some(isInputStep);
   const collected = [];
-  for (const result of installed) collected.push(await collectTrackingData(page, result));
+  for (const result of installed) collected.push(await collectTrackingData(page, result, hasInput));
 
   const byId = new Map([...collected, ...others].map((r) => [r.id, r]));
   return items.map((item) => byId.get(item.id));
 }
 
-async function collectTrackingData(page, result) {
+async function collectTrackingData(page, result, hasInput) {
   if (result.status !== "tracking" || !result.getDataFn) return result;
   try {
-    const data = await page.evaluate(`(async () => await ${result.getDataFn}())()`);
+    const read = () => page.evaluate(`(async () => await ${result.getDataFn}())()`);
+    let data = await read();
+    const deadline = Date.now() + LATE_ENTRIES_MS;
+    while (hasInput && data?.status === "error" && Date.now() < deadline) {
+      await page.waitForTimeout(POLL_MS);
+      data = await read();
+    }
     if (data && typeof data === "object") return { id: result.id, ...data };
     return { id: result.id, status: "error", error: `${result.getDataFn}() did not return an object` };
   } catch (err) {

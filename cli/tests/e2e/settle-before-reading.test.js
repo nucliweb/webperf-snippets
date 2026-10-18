@@ -16,6 +16,28 @@ const PAGE = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>t</title><
   });
 </script></body></html>`;
 
+// The same page on a machine where the browser delivers Event Timing entries late: every observer
+// callback arrives 400 ms after the entries, longer than the frames the runner waits for.
+const LATE_PAGE = PAGE.replace(
+  "<script>",
+  `<script>
+  const NativeObserver = window.PerformanceObserver;
+  window.PerformanceObserver = class extends NativeObserver {
+    constructor(callback) {
+      super((list, observer) => {
+        const entries = list.getEntries();
+        const late = {
+          getEntries: () => entries,
+          getEntriesByType: (type) => entries.filter((e) => e.entryType === type),
+          getEntriesByName: (name) => entries.filter((e) => e.name === name),
+        };
+        setTimeout(() => callback(late, observer), 400);
+      });
+    }
+  };
+`
+);
+
 let server;
 let url;
 let browser;
@@ -24,7 +46,8 @@ beforeAll(async () => {
   await new Promise((resolve) => {
     server = createServer((req, res) => {
       res.writeHead(200, { "Content-Type": "text/html" });
-      res.end(req.url === "/other" ? "<!DOCTYPE html><title>other</title><p>other</p>" : PAGE);
+      if (req.url === "/other") res.end("<!DOCTYPE html><title>other</title><p>other</p>");
+      else res.end(req.url === "/late" ? LATE_PAGE : PAGE);
     });
     server.listen(0, "127.0.0.1", () => {
       url = `http://127.0.0.1:${server.address().port}`;
@@ -40,7 +63,8 @@ afterAll(async () => {
 });
 
 const item = (id, path) => ({ id, path, source: loadSnippet(path) });
-const run = (items, interactions) => runSnippets({ url, items, interactions, waitMs: 300, viewport: VIEWPORT_PRESETS.desktop });
+const run = (items, interactions, path = "/") =>
+  runSnippets({ url: url + path, items, interactions, waitMs: 300, viewport: VIEWPORT_PRESETS.desktop });
 
 const ENDS_ON_CLICK = [{ action: "click", selector: "#work" }];
 
@@ -63,6 +87,18 @@ describe("a script that ends on a click", () => {
     const { results } = await run([item("INP", "CoreWebVitals/INP")], ENDS_ON_CLICK);
     expect(results[0].status).toBe("ok");
     expect(results[0].value).toBeGreaterThan(0);
+  }, 60000);
+
+  it("records that click when the browser delivers its timing late", async () => {
+    const { results } = await run(
+      [item("interactions", "Interaction/Interactions"), item("latency", "Interaction/Input-Latency-Breakdown"), item("INP", "CoreWebVitals/INP")],
+      ENDS_ON_CLICK,
+      "/late"
+    );
+    for (const r of results) {
+      expect(r.status, `${r.id}: ${r.error}`).toBe("ok");
+    }
+    expect(results.find((r) => r.id === "INP").value).toBeGreaterThan(0);
   }, 60000);
 
   it("still returns a result when the click navigates away", async () => {
