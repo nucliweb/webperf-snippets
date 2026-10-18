@@ -223,6 +223,16 @@ claude mcp add webperf -- npx -y webperf-snippets mcp
 | `read_results`  | Returns what the tracking snippets of an open page have recorded. |
 | `close_page`    | Closes an open page. |
 
+The server also offers resources, documents a client can attach to the context:
+
+| Resource                         | What it has                                                              |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `webperf://schema`               | The contract every snippet result follows: base shape, statuses, how to read a result. |
+| `webperf://schema/{snippet}`     | The fields one snippet returns, with an example.                         |
+| `webperf://workflows/{category}` | The workflows and the decision tree of a category.                       |
+
+And prompts, templates that chain the tools (in Claude Code, `/mcp__webperf__audit_lcp`): `audit_lcp`, `debug_inp` and `audit_page`, each with a `url` argument.
+
 The CrUX key goes in the configuration of the client, never in a tool argument:
 
 ```bash
