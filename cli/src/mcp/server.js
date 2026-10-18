@@ -11,6 +11,7 @@ import { RULES } from "../decision-tree.js";
 import { fetchCrux } from "../crux.js";
 import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
+import { registerResources } from "./documents.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
 const STAGES = 3;
@@ -90,6 +91,7 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
   const sessions = createSessions({ launchBrowser, maxPages, idleMs });
   // The client left (end of stdin, or a closed transport): close the pages and Chromium
   server.server.onclose = () => sessions.closeAll();
+  registerResources(server);
 
   // Runs a session tool, and turns the errors the model can act on into tool errors
   const withSession = (handler) => async (args, ctx) => {
