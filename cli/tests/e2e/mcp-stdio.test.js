@@ -1,7 +1,8 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
+import { startContractServers } from "../helpers/contract.js";
 
 // `webperf-snippets mcp` started as a real process, the way a client such as Claude Code starts it:
 // the client spawns the command and speaks JSON-RPC through its standard input and output. The server
@@ -10,6 +11,15 @@ import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 const BIN = fileURLToPath(new URL("../../src/bin.js", import.meta.url));
 
 let client;
+let servers;
+
+beforeAll(async () => {
+  servers = await startContractServers();
+}, 30000);
+
+afterAll(async () => {
+  await servers.close();
+});
 
 async function connect(options) {
   client = new Client({ name: "test", version: "1.0.0" }, options);
@@ -29,6 +39,12 @@ describe("webperf-snippets mcp", () => {
     const result = await client.callTool({ name: "list_snippets", arguments: { category: "Resources" } });
     expect(result.structuredContent.snippets.map((s) => s.name)).toEqual(["Resources/Network-Bandwidth-Connection-Quality"]);
   }, 30000);
+
+  it("runs a snippet for a client of the modern era", async () => {
+    await connect({ versionNegotiation: { mode: { pin: "2026-07-28" } } });
+    const result = await client.callTool({ name: "run_snippet", arguments: { url: `${servers.base}/lcp-image`, snippet: "LCP", waitMs: 0 } });
+    expect(result.structuredContent.result).toMatchObject({ script: "LCP", status: "ok" });
+  }, 60000);
 
   it("serves a client of the legacy era", async () => {
     await connect();
