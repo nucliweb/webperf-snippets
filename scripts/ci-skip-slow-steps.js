@@ -1,34 +1,32 @@
 // Decides whether CI may skip its slow steps (build, Chromium, e2e tests).
 //
-// A person opts in by putting the `skip-e2e` label on a pull request. The label
-// is honored only when every changed file is documentation; any other file,
-// including one the rules do not know, counts as code and the label is ignored,
-// so a label that is forgotten on a pull request that later changes code cannot
-// skip the tests. A push to main always runs everything, and so does any case
-// where the changed files cannot be listed.
+// A pull request skips them when every changed file is documentation. Any other
+// file, including one the rules do not know, counts as code and everything runs,
+// so a later push that touches code runs the tests again. No .md file feeds the
+// build or the e2e tests; SCHEMA.md and the WORKFLOWS.md files feed the skills,
+// which `generate-skills:check` checks on every run. A push to main always runs
+// everything, and so does any case where the changed files cannot be listed.
 
 const fs = require('node:fs')
 
-const LABEL = 'skip-e2e'
 const PAGE_SIZE = 100
 
 const DOCUMENTATION = [/\.md$/, /^docs\//, /^LICENSE$/]
 const isDocumentation = (file) => DOCUMENTATION.some((pattern) => pattern.test(file))
 
-function decide({ eventName, labels, changedFiles }) {
+function decide({ eventName, changedFiles }) {
   if (eventName !== 'pull_request') return { skip: false, reason: 'not a pull request, so everything runs' }
-  if (!labels.includes(LABEL)) return { skip: false, reason: `no ${LABEL} label, so everything runs` }
   if (changedFiles.length === 0) {
-    return { skip: false, reason: `${LABEL} label ignored: could not list the changed files` }
+    return { skip: false, reason: 'could not list the changed files, so everything runs' }
   }
 
   const code = changedFiles.filter((file) => !isDocumentation(file))
   if (code.length > 0) {
     const shown = code.slice(0, 3).join(', ')
     const more = code.length > 3 ? ` and ${code.length - 3} more` : ''
-    return { skip: false, reason: `${LABEL} label ignored: the pull request changes ${shown}${more}` }
+    return { skip: false, reason: `the pull request changes ${shown}${more}, so everything runs` }
   }
-  return { skip: true, reason: `${LABEL} label: only documentation changed, so the build and the e2e tests are skipped` }
+  return { skip: true, reason: 'only documentation changed, so the build and the e2e tests are skipped' }
 }
 
 async function listChangedFiles({ repository, number, token, fetchJson }) {
@@ -55,11 +53,9 @@ async function fetchJsonFromGitHub(url, token) {
 
 async function main({ env = process.env, fetchJson = fetchJsonFromGitHub } = {}) {
   const eventName = env.EVENT_NAME
-  const labels = JSON.parse(env.LABELS || '[]')
 
   let changedFiles = []
-  // The API is only needed when the label is there to be checked.
-  if (eventName === 'pull_request' && labels.includes(LABEL)) {
+  if (eventName === 'pull_request') {
     try {
       changedFiles = await listChangedFiles({
         repository: env.REPOSITORY,
@@ -72,16 +68,16 @@ async function main({ env = process.env, fetchJson = fetchJsonFromGitHub } = {})
     }
   }
 
-  const { skip, reason } = decide({ eventName, labels, changedFiles })
+  const { skip, reason } = decide({ eventName, changedFiles })
   console.log(reason)
   if (env.GITHUB_OUTPUT) fs.appendFileSync(env.GITHUB_OUTPUT, `skip=${skip}\n`)
-  // The label is a person's decision: always leave a trace of what it did.
-  if (env.GITHUB_STEP_SUMMARY && labels.includes(LABEL)) {
+  // Say in the job summary of every pull request whether the slow steps ran, and why.
+  if (env.GITHUB_STEP_SUMMARY && eventName === 'pull_request') {
     fs.appendFileSync(env.GITHUB_STEP_SUMMARY, `${reason}\n`)
   }
 }
 
-module.exports = { LABEL, decide, listChangedFiles, main }
+module.exports = { decide, listChangedFiles, main }
 
 if (require.main === module) {
   main().catch((error) => {

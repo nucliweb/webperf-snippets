@@ -2,15 +2,12 @@ name: CI
 
 on:
   pull_request:
-    # labeled and unlabeled re-run the checks when the skip-e2e label changes
-    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches:
       - main
 
-# A new run for the same pull request cancels the one in progress, so adding the
-# label after the pull request is open replaces the full run that was started.
-# A push to main is never cancelled.
+# A new push to a pull request cancels the run in progress for its previous
+# commit. A push to main is never cancelled.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -39,7 +36,6 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPOSITORY: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
-          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
         run: node scripts/ci-skip-slow-steps.js
 
       - name: Install dependencies

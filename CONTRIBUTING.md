@@ -359,11 +359,9 @@ See `snippets/Loading/WORKFLOWS.md` for a complete reference. The skills read th
 
 ## Skipping the slow CI steps
 
-CI takes about five minutes, most of it the build, the Chromium install and the e2e tests. A pull request that only changes documentation can skip those three steps by carrying the `skip-e2e` label. Lint, the consistency, emoji and generated-skills checks, and the unit tests still run.
+CI takes about five minutes, most of it the build, the Chromium install and the e2e tests. A pull request that only changes documentation skips those three steps on its own, with no label or setting. Lint, the consistency, emoji and generated-skills checks, and the unit tests still run.
 
-- Put the label on when you open the pull request (`gh pr create --label skip-e2e`) or add it later; adding it re-runs CI and cancels the run in progress.
-- The label is honored only when every changed file is documentation: `*.md`, `docs/**` and `LICENSE`. If the pull request changes anything else, including pages (`.mdx`), snippets, tests, scripts, workflows or `package.json`, the label is ignored and everything runs. A later push that touches code therefore cannot skip the tests by accident.
-- The job summary says what the label did, or why it was ignored.
-- A push to `main` always runs every step.
-- Only people with write access can add a label, so it cannot be used from a fork.
-
+- Documentation means `*.md`, `docs/**` and `LICENSE`. If the pull request changes anything else, including pages (`.mdx`), snippets, tests, scripts, workflows or `package.json`, everything runs. A later push that touches code runs the tests again.
+- No `.md` file feeds the build or the e2e tests. `snippets/SCHEMA.md` and the `WORKFLOWS.md` files feed the skills, and the generated-skills check runs on every pull request.
+- The job summary of each pull request says whether the slow steps ran, and why.
+- A push to `main` always runs every step, and so does a pull request whose changed files cannot be listed.
