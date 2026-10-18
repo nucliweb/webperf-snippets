@@ -109,7 +109,7 @@ The script uses the **Performance Resource Timing API** to get accurate file siz
 
 When the script identifies non-lazy-loaded images:
 
-### 1. add native lazy loading
+### 1. Add native lazy loading
 
 For modern browsers, simply add the `loading` attribute:
 
@@ -117,7 +117,7 @@ For modern browsers, simply add the `loading` attribute:
 <img src="image.jpg" alt="Description" loading="lazy" />
 ```
 
-### 2. prioritize by impact
+### 2. Prioritize by impact
 
 Focus on images with:
 
@@ -125,7 +125,7 @@ Focus on images with:
 - **Lowest position on page** (least likely to be seen immediately)
 - **High resolution** (more CPU-intensive to decode)
 
-### 3. measure performance impact
+### 3. Measure performance impact
 
 Before and after implementing lazy loading:
 
