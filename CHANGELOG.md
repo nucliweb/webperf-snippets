@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- CI skips the build and the end-to-end tests on its own when a pull request only changes documentation, instead of waiting for the `skip-e2e` label. Opening a pull request with the label fired two runs and cancelled one, which showed as a failed check.
 - Examples, CLI commands, the `OWN_DOMAINS` hint of the snippets and the test data use the domains reserved for documentation (`example.com`, `example.net`, `example.org`) instead of real sites. `scripts/example-domains.test.js`, in `npm run test:site`, fails when a real site comes back as an example.
 - `getINPDetails()` of INP returns a result object, `{ script, status, count, items }`, like the other functions the snippets expose, instead of an array. `items` holds the 15 slowest interactions as plain data, with the target as a CSS selector instead of the DOM element. Code or agents that read the array need to read `items`.
 
