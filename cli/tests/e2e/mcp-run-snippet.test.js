@@ -54,6 +54,13 @@ describe("run_snippet", () => {
     expect(result.structuredContent.result.script).toBe("Find-render-blocking-resources");
   }, 60000);
 
+  it("reports the progress of the run when the client asks for it", async () => {
+    const updates = [];
+    await run({ url: `${servers.base}/lcp-image`, snippet: "LCP" }, { onprogress: (u) => updates.push(u) });
+    expect(updates.map((u) => u.progress)).toEqual([1, 2, 3]);
+    expect(updates.every((u) => u.total === 3 && u.message)).toBe(true);
+  }, 60000);
+
   it("keeps a snippet that reports an error or no support as a result, not as a failure of the tool", async () => {
     // A page without images: the snippet runs and says there is nothing to audit
     const result = await run({ url: `${servers.base}/lcp-text`, snippet: "LCP-Video-Candidate" });

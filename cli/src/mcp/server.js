@@ -7,6 +7,7 @@ import { isTrackingSnippet } from "../tracking.js";
 import { runSnippets, VIEWPORT_PRESETS } from "../runner.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
+const STAGES = 3;
 
 const SnippetInfo = z.object({
   name: z.string().describe("Category/Name, the name other tools take"),
@@ -90,7 +91,7 @@ export function createServer() {
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, snippet, viewport, waitMs }) => {
+    async ({ url, snippet, viewport, waitMs }, ctx) => {
       let path;
       try {
         path = resolveSnippetName(snippet);
@@ -102,8 +103,15 @@ export function createServer() {
         return toolError(`${path} records interactions: it needs a script of interactions (clicks, key presses) on the page, which run_snippet does not run.`);
       }
 
+      // A client that wants progress sends a token with the call; the stages of the run go to it
+      const progressToken = ctx.mcpReq._meta?.progressToken;
+      const onProgress = (progress, message) =>
+        progressToken === undefined
+          ? undefined
+          : ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken, progress, total: STAGES, message } });
+
       try {
-        const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport] });
+        const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress });
         const { id, ...result } = run.results[0];
         return toolResult({ url, snippet: id, viewport, navMs: run.navMs, pageErrors: run.pageErrors, result });
       } catch (err) {
