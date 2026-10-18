@@ -13,12 +13,24 @@
 git clone https://github.com/nucliweb/webperf-snippets.git
 cd webperf-snippets
 npm install
-npx next dev
+npm run dev
 ```
+
+The site runs on http://localhost:3000. Use `npm run dev` rather than `npx next dev`: the script runs Next.js with webpack, which loads the remark and rehype plugins of `lib/` (browser support, icons). The dev server does not pick up changes in `lib/`, so restart it after editing a plugin.
 
 ## Adding a new snippet
 
-### 1. Create the JavaScript file
+### 1. Write the test first
+
+Every snippet starts with a failing test. `cli/tests/e2e/snippet-contract.test.js` runs every snippet and checks the shape of its result, so a new snippet is covered by it as soon as the file exists. What the contract cannot know is whether the result is right: write an e2e test in `cli/tests/e2e/<name>.test.js` that serves a page from `cli/tests/fixtures/` where you know the answer, runs the snippet in Chromium and checks the returned object. `cli/tests/e2e/dom-size.test.js` is a short example, and `cli/tests/helpers/contract.js` has the helpers to start the servers and run a snippet.
+
+```bash
+npm run test:e2e --prefix cli -- dom-size
+```
+
+Run it before writing the snippet and see it fail, then write the minimal snippet that passes it.
+
+### 2. Create the JavaScript file
 
 Add the snippet to the appropriate category under `snippets/`:
 
@@ -55,11 +67,17 @@ The full contract is in [`snippets/SCHEMA.md`](snippets/SCHEMA.md), which is als
 
 A snippet runs pasted into the console, so it cannot import a helper. The helpers several snippets share (`getRootDomain`, `isFirstParty`, `logOwnDomainsHint`, `formatBytes`) live in [`snippets/_shared/helpers.js`](snippets/_shared/helpers.js). Copy the block between the `// @shared <name>` and `// @end-shared <name>` markers into the snippet, markers included. `npm run check:consistency` fails when a copy differs from the canonical block, or when a snippet defines one of these helpers without the markers. A snippet that carries `isFirstParty` also declares `const OWN_DOMAINS = [];` at the top, which the helper reads, and calls `logOwnDomainsHint(thirdPartyCount)` once at the end of its console output.
 
-### 2. Create the MDX documentation page
+### 3. Create the MDX documentation page
 
 Add a corresponding `.mdx` file in `content/<Category>/My-New-Snippet.mdx`:
 
 ```mdx
+---
+browserSupport:
+  - api.PerformanceObserver
+  - api.PerformanceResourceTiming
+---
+
 import snippet from '../../snippets/<Category>/My-New-Snippet.js?raw'
 import { Snippet } from '../../components/Snippet'
 
@@ -75,6 +93,8 @@ Brief description of what it measures and why it matters, in one or two sentence
 
 Explain what the output means. Use `###` subsections for structure, never bold text as a header.
 
+### Browser support
+
 ### Further reading
 
 - [Relevant web.dev article](https://web.dev/...) | web.dev
@@ -82,6 +102,7 @@ Explain what the output means. Use `###` subsections for structure, never bold t
 
 Conventions:
 
+- `browserSupport` lists the [MDN browser-compat-data](https://github.com/mdn/browser-compat-data) keys of the APIs the snippet needs to run. The build draws a badge under the title and a table under the `### Browser support` heading from them; leave the section empty. It fails when a key does not exist or the heading is missing. An optional `browserSupportReported` lists the features the snippet only audits (for example, `html.elements.img.fetchpriority`), which get a table of their own and no badge.
 - Headings use sentence case (`# My new snippet`, `### Further reading`).
 - The `<Snippet>` component takes the code through the `code` prop; it renders its own copy button.
 - Each Further reading link ends with `| source`.
@@ -95,7 +116,7 @@ Use the `copy` prop in code blocks to enable easy copying to DevTools:
 ```
 ````
 
-### 3. Register the page in navigation
+### 4. Register the page in navigation
 
 Add an entry to `content/<Category>/_meta.js`, which exports a literal object:
 
@@ -109,22 +130,50 @@ export default {
 
 Preserve the existing order and group related snippets together.
 
-### 4. Regenerate Agent Skills
+### 5. Document the result and what to run next
+
+People, agents and the CLI read the same sources to know what a snippet returns and what comes after it:
+
+- `snippets/SCHEMA.md`: add a `#### My-New-Snippet` entry under its category, with an example of the object it returns. It is the contract the agents read, copied into every skill.
+- `snippets/<Category>/WORKFLOWS.md`: add an `### After My-New-Snippet.js` section to the decision tree, and the snippet to the workflows where it belongs (see [Improving workflows and decision trees](#improving-workflows-and-decision-trees)).
+- `content/which-snippet.mdx`: add a row for the symptom the snippet answers.
+
+### 6. Make it available to the CLI and Copy prompt
+
+Every snippet runs in the CLI by its name (`--snippet My-New-Snippet` or `--snippet Loading/My-New-Snippet`). A short alias, for the snippets people run most, goes in `SNIPPET_ALIASES` of `cli/src/snippet-names.js`.
+
+Every snippet page gets a Copy prompt button. If the CLI cannot run the snippet in a meaningful way (it is pasted into DevTools by hand, or it reads something a headless browser does not have), add it to `EXCLUDED` in `lib/snippet-prompt.mjs`. A tracking snippet that only records something after a click or a key press goes in `NEEDS_INPUT` of the same file.
+
+### 7. Regenerate the generated files
 
 ```bash
 npm run generate-skills
+node scripts/generate-llms.js
+npm run test:skills
 ```
 
-This reads all snippets and their MDX documentation and rebuilds the skills in `/skills/` and `/.claude/skills/`.
+`generate-skills` reads all snippets and their MDX documentation and rebuilds the skills in `skills/`, `dist/` and `.claude/skills/`. `generate-llms.js` rebuilds `public/llms.txt` and `public/llms-full.txt`. `test:skills` checks that every built script keeps the result objects of its source. Commit the regenerated files with the snippet.
 
-> Never edit generated files directly. Always modify source files in `/snippets/` and regenerate.
+Never edit the generated files by hand: change the sources in `snippets/` and regenerate.
 
-### 5. Validate
+### 8. Validate
 
 ```bash
 npm run lint
+npm run test:e2e --prefix cli
 npm run build
+npm run check:built-snippets
 ```
+
+`check:built-snippets` runs after the build and fails when a page shows different code from the source. Then open the page with `npm run dev`, run the snippet from it in the DevTools console of a page where you know the answer, and check that the result is the one the test expects.
+
+### 9. Add a CHANGELOG entry
+
+Describe the change under `## [Unreleased]` in `CHANGELOG.md`, in the `Added`, `Changed` or `Fixed` section, from the point of view of someone who runs the snippet.
+
+## Renaming a snippet or a page
+
+A renamed page keeps its old URL working with a permanent redirect in `redirects()` of `next.config.mjs`. Rename the snippet file, the MDX page and the `_meta.js` entry together, update the links to the page (`grep -rn "Old-Name" content snippets`), and keep the old name as an alias in `cli/src/snippet-names.js` so scripts that use it still run.
 
 ## Diagrams
 
@@ -188,12 +237,14 @@ Demos and pages draw icons instead of emojis, and `npm run check:emoji` fails wh
 
 ## Improving workflows and decision trees
 
-Skills include intelligent workflows that chain snippets automatically. To add or improve them, edit the `WORKFLOWS.md` file in the relevant category:
+Skills include workflows that chain snippets. To add or improve them, edit the `WORKFLOWS.md` file in the relevant category:
 
 ```
-snippets/Loading/WORKFLOWS.md
 snippets/CoreWebVitals/WORKFLOWS.md
+snippets/Loading/WORKFLOWS.md
 snippets/Interaction/WORKFLOWS.md
+snippets/Media/WORKFLOWS.md
+snippets/Resources/WORKFLOWS.md
 ```
 
 Structure:
@@ -216,23 +267,29 @@ When the user asks about [scenario]:
 - **If metric is good** → Run **Snippet3.js**
 ```
 
-See `snippets/Loading/WORKFLOWS.md` for a complete reference.
+See `snippets/Loading/WORKFLOWS.md` for a complete reference. The skills read these files when they are generated, so run `npm run generate-skills` after editing one.
 
 ## PR checklist
 
-- [ ] Snippet file added under `snippets/<Category>/`
-- [ ] MDX documentation page created under `content/<Category>/`
+- [ ] An e2e test in `cli/tests/e2e/` that failed before the change and passes after it
+- [ ] Snippet file added under `snippets/<Category>/`, returning an object that follows `snippets/SCHEMA.md`
+- [ ] MDX documentation page created under `content/<Category>/`, with `browserSupport` and a `### Browser support` section
 - [ ] Entry added to `content/<Category>/_meta.js`
-- [ ] `npm run generate-skills` run and output committed
-- [ ] `npm run lint` passes with no errors
-- [ ] `npm run build` succeeds
+- [ ] Entry in `snippets/SCHEMA.md`, an `After My-New-Snippet.js` section in `WORKFLOWS.md` and a row in `content/which-snippet.mdx`
+- [ ] If the CLI cannot run it: the snippet is in `EXCLUDED` of `lib/snippet-prompt.mjs`
+- [ ] `npm run generate-skills` and `node scripts/generate-llms.js` run, `npm run test:skills` passes, and the output is committed
+- [ ] `npm run lint` and `npm run test:e2e --prefix cli` pass
+- [ ] `npm run build` succeeds and `npm run check:built-snippets` passes
+- [ ] The snippet run from its page, in the DevTools console, gives the result the test expects
+- [ ] Entry under `## [Unreleased]` in `CHANGELOG.md`
+- [ ] If a page was renamed: a redirect in `next.config.mjs`
 - [ ] If the page has a diagram or a demo: it follows the sections above, and `npm run test:demos` and `npm run check:emoji` pass
 
 ## Code style
 
 - File names: kebab-case (`My-New-Snippet.js`)
 - English for all code, variable names, and comments
-- No external dependencies in snippets — they run in browser consoles
+- No external dependencies in snippets: they run in browser consoles
 - `console.log` is fine; snippets are diagnostic tools
 
 ## Skipping the slow CI steps
