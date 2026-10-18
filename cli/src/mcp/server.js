@@ -5,7 +5,9 @@ import { cliVersion } from "../report-to.js";
 import { CATEGORIES, aliasesOf, listSnippets, resolveSnippetName } from "../snippet-names.js";
 import { loadSnippet } from "../load-snippet.js";
 import { isTrackingSnippet } from "../tracking.js";
-import { runSnippets, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
+import { runSnippets, runMeasurement, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
+import { WORKFLOWS } from "../workflows/index.js";
+import { RULES } from "../decision-tree.js";
 import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
 
@@ -55,6 +57,15 @@ const toolResult = (data) => ({ structuredContent: data, content: [{ type: "text
 const toolError = (text) => ({ isError: true, content: [{ type: "text", text }] });
 
 const firstLine = (message) => message.split("\n")[0];
+
+// A client that wants progress sends a token with the call; the stages of a run go to it
+function progressFor(ctx) {
+  const progressToken = ctx.mcpReq._meta?.progressToken;
+  return (progress, message) =>
+    progressToken === undefined
+      ? undefined
+      : ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken, progress, total: STAGES, message } });
+}
 
 function describeSnippet(name) {
   const source = loadSnippet(name);
@@ -139,17 +150,58 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
         return toolError(`${path} records interactions: open the page with open_page and this snippet in track, use it with interact, and read it with read_results.`);
       }
 
-      // A client that wants progress sends a token with the call; the stages of the run go to it
-      const progressToken = ctx.mcpReq._meta?.progressToken;
-      const onProgress = (progress, message) =>
-        progressToken === undefined
-          ? undefined
-          : ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken, progress, total: STAGES, message } });
-
       try {
-        const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress });
+        const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress: progressFor(ctx) });
         const { id, ...result } = run.results[0];
         return toolResult({ url, snippet: id, viewport, navMs: run.navMs, pageErrors: run.pageErrors, result });
+      } catch (err) {
+        if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
+        return toolError(`The run failed: ${firstLine(err.message)}`);
+      }
+    }
+  );
+
+  server.registerTool(
+    "run_workflow",
+    {
+      title: "Run a workflow",
+      description:
+        "Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page.",
+      inputSchema: z.object({
+        url: HttpUrl,
+        workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
+        viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
+        waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the workflow, in ms"),
+      }),
+      outputSchema: z.object({
+        url: z.string(),
+        workflow: z.string(),
+        viewport: z.enum(VIEWPORTS),
+        navMs: z.number(),
+        pageErrors: z.array(z.string()),
+        results: z
+          .array(z.looseObject({ id: z.string(), status: z.string() }).meta({ additionalProperties: true }))
+          .describe("One object per step, in order, then the follow-ups, each with the reason it was added"),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ url, workflow, viewport, waitMs }, ctx) => {
+      try {
+        const run = await runMeasurement({
+          url,
+          workflow: WORKFLOWS[workflow],
+          rules: RULES,
+          waitMs,
+          viewport: VIEWPORT_PRESETS[viewport],
+          onProgress: progressFor(ctx),
+        });
+        // The runner explains a skipped step with the flag of the CLI; here the tools are what the model has
+        const results = run.results.map((r) =>
+          r.status === "skipped"
+            ? { ...r, reason: "This step measures clicks and key presses: open the page with open_page and this snippet in track, use it with interact, and read it with read_results." }
+            : r
+        );
+        return toolResult({ url, workflow, viewport, navMs: run.navMs, pageErrors: run.pageErrors, results });
       } catch (err) {
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
         return toolError(`The run failed: ${firstLine(err.message)}`);
