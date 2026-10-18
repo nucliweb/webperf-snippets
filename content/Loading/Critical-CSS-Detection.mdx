@@ -10,6 +10,7 @@ browserSupportReported:
 import snippet from '../../snippets/Loading/Critical-CSS-Detection.js?raw'
 import { Snippet } from '../../components/Snippet'
 import { Sequence } from '../../components/diagrams'
+import { Callout } from '../../components/Callout'
 
 # Critical CSS detection
 
@@ -68,7 +69,9 @@ Everything that fits within those 14 KB arrives in a **single round-trip**. Anyt
 
 This is why the web performance community targets **HTML + critical CSS + critical JS under 14 KB** for the fastest possible First Contentful Paint, it means the browser can render above-the-fold content after just one network round-trip.
 
-> The 14 KB figure is a practical approximation. IPv6 connections use a slightly smaller MSS (~1,440 bytes), and Path MTU Discovery can vary this further. But 14 KB is the widely adopted reference value in web performance.
+<Callout type="info">
+The 14 KB figure is a practical approximation. IPv6 connections use a slightly smaller MSS (~1,440 bytes), and Path MTU Discovery can vary this further. But 14 KB is the widely adopted reference value in web performance.
+</Callout>
 
 ### Snippet
 

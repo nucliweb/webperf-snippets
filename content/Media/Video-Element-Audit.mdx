@@ -10,6 +10,7 @@ browserSupportReported:
 
 import snippet from '../../snippets/Media/Video-Element-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from '../../components/Callout'
 
 # Video element audit
 
@@ -40,7 +41,9 @@ Every video on a page falls into one of three roles, each with its own optimal c
 </video>
 ```
 
-> `muted` is required for `autoplay` to work in browsers. `playsinline` prevents iOS Safari from switching to fullscreen. Offering AV1 → VP9 → MP4 fallback ensures the best available codec is used, reducing file size by up to 50 % compared to H.264.
+<Callout type="warning">
+`muted` is required for `autoplay` to work in browsers. `playsinline` prevents iOS Safari from switching to fullscreen. Offering AV1 → VP9 → MP4 fallback ensures the best available codec is used, reducing file size by up to 50 % compared to H.264.
+</Callout>
 
 **User-controlled video**, on-demand content the user initiates:
 
@@ -51,7 +54,9 @@ Every video on a page falls into one of three roles, each with its own optimal c
 </video>
 ```
 
-> `preload="metadata"` loads only the video duration and dimensions, enough to render the player UI, without downloading the full file. `poster` provides a visible thumbnail while the video is paused.
+<Callout type="info">
+`preload="metadata"` loads only the video duration and dimensions, enough to render the player UI, without downloading the full file. `poster` provides a visible thumbnail while the video is paused.
+</Callout>
 
 **Below-the-fold video**, content outside the initial viewport:
 
@@ -62,7 +67,9 @@ Every video on a page falls into one of three roles, each with its own optimal c
 </video>
 ```
 
-> `preload="none"` prevents the browser from fetching any video data until the user scrolls to it or presses play. Combined with `poster`, the element still renders a visible thumbnail with no wasted bandwidth.
+<Callout type="info">
+`preload="none"` prevents the browser from fetching any video data until the user scrolls to it or presses play. Combined with `poster`, the element still renders a visible thumbnail with no wasted bandwidth.
+</Callout>
 
 ### Snippet
 

@@ -7,6 +7,7 @@ browserSupport:
 
 import snippet from '../../snippets/CoreWebVitals/LCP-Video-Candidate.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from '../../components/Callout'
 
 # LCP video candidate
 
@@ -54,7 +55,9 @@ A `<link rel="preload">` in `<head>` shortcuts this chain, allowing the browser 
 </video>
 ```
 
-> The `poster` URL in the `<link>` and the `<video>` must be identical, including query strings, so the browser can match them and avoid a duplicate fetch.
+<Callout type="warning">
+The `poster` URL in the `<link>` and the `<video>` must be identical, including query strings, so the browser can match them and avoid a duplicate fetch.
+</Callout>
 
 ### Snippet
 

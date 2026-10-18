@@ -1,6 +1,7 @@
 import injectSnippet from '../../snippets/DevTools-Overrides/Fetch-XHR-Timeline-inject.js?raw'
 import readSnippet from '../../snippets/DevTools-Overrides/Fetch-XHR-Timeline-read.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from '../../components/Callout'
 
 # Fetch & XHR timeline
 
@@ -15,7 +16,9 @@ Console snippets can only see requests that have already completed and are visib
 - Unnecessary authentication checks on pages where the user is known to be unauthenticated
 - The full request inventory of a page, including calls invisible to the Network panel timing data
 
-> This snippet requires [DevTools Overrides](/DevTools-Overrides). Read [What are DevTools Overrides?](/DevTools-Overrides) for setup instructions.
+<Callout type="warning">
+This snippet requires [DevTools Overrides](/DevTools-Overrides). Read [What are DevTools Overrides?](/DevTools-Overrides) for setup instructions.
+</Callout>
 
 ---
 

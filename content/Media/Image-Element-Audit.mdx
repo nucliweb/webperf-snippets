@@ -9,6 +9,7 @@ browserSupportReported:
 
 import snippet from '../../snippets/Media/Image-Element-Audit.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from '../../components/Callout'
 
 # Image element audit
 
@@ -38,7 +39,9 @@ Every image on a page falls into one of three roles, each with its own optimal c
 <img src="hero.avif" fetchpriority="high" decoding="sync" width="1200" height="630" alt="..." />
 ```
 
-> A `<link rel="preload">` in the `<head>` allows the browser to discover and start fetching the LCP image before the parser reaches the `<img>` tag, which is especially important when the image is inside a `<picture>`, a CSS background, or injected by JavaScript. Pair it with `fetchpriority="high"` to boost it above other preloaded resources.
+<Callout type="info">
+A `<link rel="preload">` in the `<head>` allows the browser to discover and start fetching the LCP image before the parser reaches the `<img>` tag, which is especially important when the image is inside a `<picture>`, a CSS background, or injected by JavaScript. Pair it with `fetchpriority="high"` to boost it above other preloaded resources.
+</Callout>
 
 **Above-the-fold image**, visible on load but not the LCP element:
 
@@ -60,7 +63,9 @@ Every image on a page falls into one of three roles, each with its own optimal c
 />
 ```
 
-> `fetchpriority="low"` on below-the-fold images is optional, the browser already deprioritises off-viewport resources. It is most useful for images that are technically inside the viewport area but not visible, such as inactive carousel slides.
+<Callout type="info">
+`fetchpriority="low"` on below-the-fold images is optional, the browser already deprioritises off-viewport resources. It is most useful for images that are technically inside the viewport area but not visible, such as inactive carousel slides.
+</Callout>
 
 For maximum format coverage, wrap images in a `<picture>` element:
 
@@ -73,7 +78,9 @@ For maximum format coverage, wrap images in a `<picture>` element:
 </picture>
 ```
 
-> The browser uses the first format it supports. Ordering from most to least optimised (JXL → AVIF → WebP → JPEG) ensures the best available format is served. CDN image services such as Cloudinary handle this automatically via the HTTP `Accept` header, so no `<source>` elements are needed.
+<Callout type="info">
+The browser uses the first format it supports. Ordering from most to least optimised (JXL → AVIF → WebP → JPEG) ensures the best available format is served. CDN image services such as Cloudinary handle this automatically via the HTTP `Accept` header, so no `<source>` elements are needed.
+</Callout>
 
 ### Snippet
 
