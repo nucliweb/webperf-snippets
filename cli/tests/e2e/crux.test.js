@@ -122,6 +122,8 @@ describe("fetchCrux", () => {
     const result = await call();
     expect(result.unavailable).toMatch(/not in the CrUX dataset/);
     expect(result.metrics).toBeUndefined();
+    // Missing data is an answer, not a failure of the request
+    expect(result.failed).toBeUndefined();
   });
 
   it("reports unavailable without exposing the key on an API error", async () => {
@@ -131,12 +133,14 @@ describe("fetchCrux", () => {
     };
     const result = await call();
     expect(result.unavailable).toContain("429");
+    expect(result.failed).toBe(true);
     expect(JSON.stringify(result)).not.toContain("secret-key");
   });
 
   it("reports unavailable when the endpoint is unreachable", async () => {
     const result = await call({ endpoint: "http://127.0.0.1:1/v1/records:queryRecord" });
     expect(result.unavailable).toBeTruthy();
+    expect(result.failed).toBe(true);
     expect(JSON.stringify(result)).not.toContain("secret-key");
   });
 });

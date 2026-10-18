@@ -40,7 +40,9 @@ async function query({ endpoint, apiKey, body, timeoutMs }) {
 }
 
 // Never throws, and no message it returns contains the key (it travels in the
-// query string, so the request URL is never logged or put in an error).
+// query string, so the request URL is never logged or put in an error). A page
+// with no field data is an answer ({ unavailable }); an API error or no answer is
+// a failure ({ unavailable, failed: true }).
 export async function fetchCrux({
   url,
   apiKey,
@@ -56,13 +58,13 @@ export async function fetchCrux({
       answer = await query({ endpoint, apiKey, body: { origin: new URL(url).origin, formFactor }, timeoutMs });
     }
     if (answer.notFound) return { unavailable: "not in the CrUX dataset" };
-    if (answer.status) return { unavailable: `the CrUX API answered ${answer.status}` };
+    if (answer.status) return { unavailable: `the CrUX API answered ${answer.status}`, failed: true };
     const metrics = parseMetrics(answer.record);
     if (Object.keys(metrics).length === 0) return { unavailable: "no Core Web Vitals in the CrUX record" };
     return { scope, formFactor, metrics };
   } catch (err) {
     const reason = err.name === "TimeoutError" ? `no answer within ${timeoutMs}ms` : (err.cause?.code ?? "request failed");
-    return { unavailable: reason };
+    return { unavailable: reason, failed: true };
   }
 }
 
