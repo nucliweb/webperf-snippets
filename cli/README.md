@@ -308,9 +308,9 @@ The `NPM_TOKEN` secret must be set in the repository settings with publish acces
 ## How it works
 
 1. Launches headless chromium via Playwright.
-2. Pre-registers `PerformanceObserver`s for LCP and layout-shift before navigation (Chrome doesn't expose these via `getEntriesByType` without a buffered observer, so the runner shims it).
-3. Navigates, waits for the page to settle.
-4. Evaluates each snippet's IIFE in the page context, capturing the returned object.
+2. Navigates to the URL, waits for the `load` event and then for `--wait` milliseconds (3000 by default), so late entries reach the page.
+3. Evaluates each snippet's IIFE in the page context, capturing the returned object. The snippets read the entries Chrome only exposes to observers (LCP, layout shifts, long tasks, event timing) with a buffered `PerformanceObserver`, so they see the entries recorded before they ran.
+4. With an interaction script, installs the tracking snippets first, runs the interactions, lets the page settle and then reads the tracking data and runs the other snippets.
 5. Applies the workflow's decision tree to enqueue follow-up snippets.
 6. Renders results (human or JSON) and exits with an appropriate code.
 
