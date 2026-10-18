@@ -8,6 +8,7 @@ import { isTrackingSnippet } from "../tracking.js";
 import { runSnippets, runMeasurement, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
 import { WORKFLOWS } from "../workflows/index.js";
 import { RULES } from "../decision-tree.js";
+import { fetchCrux } from "../crux.js";
 import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
 
@@ -67,6 +68,10 @@ function progressFor(ctx) {
       : ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken, progress, total: STAGES, message } });
 }
 
+const CRUX_FORM_FACTORS = { phone: "PHONE", desktop: "DESKTOP", tablet: "TABLET" };
+const CRUX_SETUP =
+  "get_crux needs a CrUX API key in the CRUX_API_KEY environment variable of the MCP server. Set it in the configuration of the client, for example: claude mcp add webperf -e CRUX_API_KEY=<key> -- npx -y webperf-snippets mcp. A key is free in the Google Cloud console (Chrome UX Report API).";
+
 function describeSnippet(name) {
   const source = loadSnippet(name);
   return {
@@ -80,7 +85,7 @@ function describeSnippet(name) {
 
 // The MCP server of the CLI: the same snippets and runner, offered as tools an agent calls by name.
 // serveStdio creates one instance per connection, so the pages it keeps open belong to that client.
-export function createServer({ launchBrowser = () => chromium.launch(), maxPages, idleMs } = {}) {
+export function createServer({ launchBrowser = () => chromium.launch(), maxPages, idleMs, env = process.env } = {}) {
   const server = new McpServer({ name: "webperf-snippets", version: cliVersion });
   const sessions = createSessions({ launchBrowser, maxPages, idleMs });
   // The client left (end of stdin, or a closed transport): close the pages and Chromium
@@ -206,6 +211,43 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
         return toolError(`The run failed: ${firstLine(err.message)}`);
       }
+    }
+  );
+
+  server.registerTool(
+    "get_crux",
+    {
+      title: "Get CrUX field data",
+      description:
+        "Returns the p75 of LCP, CLS and INP that real Chrome users had on a URL over the last 28 days, from the Chrome UX Report, with their rating. Falls back to the origin when the URL has no data of its own. Compare it with the lab values of run_snippet: field data is what users get.",
+      inputSchema: z.object({
+        url: HttpUrl,
+        formFactor: z.enum(Object.keys(CRUX_FORM_FACTORS)).default("phone").describe("The devices the data describes"),
+      }),
+      outputSchema: z.object({
+        url: z.string(),
+        formFactor: z.string(),
+        scope: z.enum(["url", "origin"]).optional().describe("Whether the data is for the URL or for its whole origin"),
+        metrics: z
+          .record(z.string(), z.object({ p75: z.number(), rating: z.string(), unit: z.string() }))
+          .optional()
+          .describe("By metric name: LCP, CLS, INP"),
+        unavailable: z.string().optional().describe("Why there is no field data, such as a page with too little traffic"),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ url, formFactor }) => {
+      const apiKey = env.CRUX_API_KEY;
+      if (!apiKey) return toolError(CRUX_SETUP);
+      const crux = await fetchCrux({
+        url,
+        apiKey,
+        formFactor: CRUX_FORM_FACTORS[formFactor],
+        ...(env.WEBPERF_CRUX_ENDPOINT ? { endpoint: env.WEBPERF_CRUX_ENDPOINT } : {}),
+      });
+      if (crux.failed) return toolError(`Could not read the CrUX data: ${crux.unavailable}.`);
+      if (crux.unavailable) return toolResult({ url, formFactor, unavailable: crux.unavailable });
+      return toolResult({ url, formFactor, scope: crux.scope, metrics: crux.metrics });
     }
   );
 

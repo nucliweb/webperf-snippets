@@ -4,9 +4,26 @@ import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { createServer } from "../../src/mcp/server.js";
 import { startContractServers } from "../helpers/contract.js";
 
-// run_workflow runs the workflows of the CLI with their decision tree.
+// run_workflow runs the workflows of the CLI with their decision tree; get_crux reads field data from
+// a fake CrUX API on localhost, so no key or network is needed.
+const KEY = "secret-key-for-tests";
+
+// What the CrUX API returns: LCP and INP p75 as numbers, CLS p75 as a string
+const RECORD = {
+  record: {
+    metrics: {
+      largest_contentful_paint: { percentiles: { p75: 2800 } },
+      cumulative_layout_shift: { percentiles: { p75: "0.08" } },
+      interaction_to_next_paint: { percentiles: { p75: 220 } },
+    },
+  },
+};
+
 let servers;
 let late;
+let crux;
+let cruxRequests;
+let cruxAnswer;
 let client;
 
 const listen = (handler) =>
@@ -23,11 +40,20 @@ beforeAll(async () => {
     res.writeHead(200, { "Content-Type": "text/html" });
     res.end('<!DOCTYPE html><title>late</title><p>.</p><script>setTimeout(() => { document.body.innerHTML = \'<h1 style="font-size:80px">A late heading</h1>\'; }, 2700);</script>');
   });
+  crux = await listen((req, res) => {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      cruxRequests.push({ url: req.url, body: JSON.parse(body) });
+      cruxAnswer(res);
+    });
+  });
 }, 30000);
 
 afterAll(async () => {
   await servers.close();
   await new Promise((resolve) => late.close(resolve));
+  await new Promise((resolve) => crux.close(resolve));
 });
 
 afterEach(async () => {
@@ -35,9 +61,10 @@ afterEach(async () => {
   client = undefined;
 });
 
-async function connect() {
+async function connect(env = {}) {
+  cruxRequests = [];
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  await createServer().connect(serverTransport);
+  await createServer({ env: { WEBPERF_CRUX_ENDPOINT: `${base(crux)}/v1/records:queryRecord`, ...env } }).connect(serverTransport);
   client = new Client({ name: "test", version: "1.0.0" });
   await client.connect(clientTransport);
 }
@@ -84,4 +111,52 @@ describe("run_workflow", () => {
     expect(result.isError).toBe(true);
     expect(text(result)).toMatch(/Could not load/);
   }, 60000);
+});
+
+describe("get_crux", () => {
+  it("returns the p75 of the field data for the form factor asked", async () => {
+    await connect({ CRUX_API_KEY: KEY });
+    cruxAnswer = (res) => res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(RECORD));
+    const result = await call("get_crux", { url: "https://example.com/", formFactor: "desktop" });
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toMatchObject({ url: "https://example.com/", formFactor: "desktop", scope: "url" });
+    expect(result.structuredContent.metrics.LCP).toEqual({ p75: 2800, rating: "needs-improvement", unit: "ms" });
+    expect(cruxRequests[0].body).toEqual({ url: "https://example.com/", formFactor: "DESKTOP" });
+  });
+
+  it("reads the key from the environment of the server, never from the arguments, and never returns it", async () => {
+    await connect({ CRUX_API_KEY: KEY });
+    cruxAnswer = (res) => res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(RECORD));
+    const { tools } = await client.listTools();
+    expect(Object.keys(tools.find((t) => t.name === "get_crux").inputSchema.properties)).not.toContain("key");
+    const result = await call("get_crux", { url: "https://example.com/" });
+    expect(cruxRequests[0].url).toContain(KEY);
+    expect(JSON.stringify(result)).not.toContain(KEY);
+  });
+
+  it("keeps a page without field data as a result, not as a failure", async () => {
+    await connect({ CRUX_API_KEY: KEY });
+    cruxAnswer = (res) => res.writeHead(404, { "Content-Type": "application/json" }).end("{}");
+    const result = await call("get_crux", { url: "https://example.com/new-page" });
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent.unavailable).toMatch(/not in the CrUX dataset/);
+  });
+
+  it("answers an API error with a tool error that does not contain the key", async () => {
+    await connect({ CRUX_API_KEY: KEY });
+    cruxAnswer = (res) => res.writeHead(403).end("forbidden");
+    const result = await call("get_crux", { url: "https://example.com/" });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toMatch(/403/);
+    expect(JSON.stringify(result)).not.toContain(KEY);
+  });
+
+  it("explains how to set the key when the server has none", async () => {
+    await connect({ CRUX_API_KEY: undefined });
+    const result = await call("get_crux", { url: "https://example.com/" });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toMatch(/CRUX_API_KEY/);
+    expect(text(result)).toMatch(/claude mcp add .*-e CRUX_API_KEY/);
+    expect(cruxRequests).toHaveLength(0);
+  });
 });
