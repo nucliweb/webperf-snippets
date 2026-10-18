@@ -1,0 +1,64 @@
+name: A snippet gives a wrong result
+description: A snippet returns a value, a status or an issue that does not match what the page does.
+title: "[Wrong result]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for checking a result. A wrong value leads people and agents to the wrong fix, so these reports matter.
+
+        Do not paste private URLs, tokens or personal data: the issue is public.
+  - type: input
+    id: snippet
+    attributes:
+      label: Snippet
+      description: The name of the snippet, as on its page or in `--snippet`.
+      placeholder: LCP-Subparts
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: How did you run it?
+      options:
+        - Pasted in the DevTools console
+        - CLI
+        - DevTools extension
+        - Agent Skills
+        - GitHub Action
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Result
+      description: The object the snippet returned (the `--json` output of the CLI, Copy JSON in the extension, or the value in the console). Remove any URL you do not want to share.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong, and what you expected
+      description: The field that is wrong and the value you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: How you know
+      description: What shows the right value, such as the Performance panel of DevTools, a trace, CrUX or another snippet.
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Page to reproduce it
+      description: A public page you own, or a minimal HTML page that shows the problem. A small reproduction becomes the test of the fix.
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: In chrome://version, or the Chromium of the CLI.
+      placeholder: Chrome 141, macOS
+    validations:
+      required: true

@@ -1,0 +1,39 @@
+name: Request a new snippet
+description: A web performance question that no snippet answers yet.
+title: "[New snippet]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening it, check [Which snippet should I use?](https://webperf-snippets.net/which-snippet): an existing snippet may already answer the question.
+  - type: textarea
+    id: question
+    attributes:
+      label: What question would it answer?
+      description: The symptom or the decision it helps with, from the point of view of someone auditing a page.
+      placeholder: Which third-party scripts delay the LCP image?
+    validations:
+      required: true
+  - type: textarea
+    id: apis
+    attributes:
+      label: How it could measure it
+      description: The APIs or the DOM it would read, such as a PerformanceObserver entry type, Resource Timing fields or elements.
+  - type: textarea
+    id: result
+    attributes:
+      label: Result it would return
+      description: The fields you would expect, following the contract of [SCHEMA.md](https://github.com/nucliweb/webperf-snippets/blob/main/snippets/SCHEMA.md).
+      render: json
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: How you answer it today
+      description: Other snippets, DevTools panels or tools you use for it, and what they miss.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I would like to write this snippet, following [CONTRIBUTING.md](https://github.com/nucliweb/webperf-snippets/blob/main/CONTRIBUTING.md).
