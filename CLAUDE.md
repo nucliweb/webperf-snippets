@@ -90,7 +90,7 @@ CI (`.github/workflows/ci.yml`) runs lint, build, all the checks above except `e
 
 Emojis in MDX are replaced by icons at render time (rehype plugin); the MDX source keeps the emoji.
 
-Writing rules for pages are in the `webperf-docs-reviewer` skill: sentence-case headings, no bold as headers, timeless language.
+Writing rules for pages are in "Writing documentation pages" of `CONTRIBUTING.md`: page template, sentence-case headings, no bold as headers, link format, callouts, timeless language.
 
 ## Diagrams and demos
 
