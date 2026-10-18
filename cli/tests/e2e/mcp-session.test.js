@@ -44,17 +44,45 @@ const open = (args, options) => call("open_page", { waitMs: 0, ...args }, option
 const text = (result) => result.content[0].text;
 
 describe("the session tools", () => {
-  it("are listed", async () => {
+  it("are listed, and only interact changes the page", async () => {
     await connect();
     const { tools } = await client.listTools();
     const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
-    for (const name of ["open_page", "close_page"]) expect(byName[name], name).toBeDefined();
+    for (const name of ["open_page", "interact", "read_results", "close_page"]) expect(byName[name], name).toBeDefined();
+    expect(byName.interact.annotations).toMatchObject({ readOnlyHint: false, openWorldHint: true });
+    expect(byName.read_results.annotations).toMatchObject({ readOnlyHint: true });
     expect(byName.close_page.annotations).toMatchObject({ idempotentHint: true });
     expect(byName.open_page.inputSchema.required).toEqual(expect.arrayContaining(["url", "track"]));
   });
 });
 
 describe("a page that stays open", () => {
+  it("records a click with INP and Interactions, and reads them after it", async () => {
+    await connect();
+    const opened = await open({ url: `${servers.base}/slow-click`, track: ["INP", "Interactions"] });
+    expect(opened.isError).toBeFalsy();
+    const { sessionId } = opened.structuredContent;
+    expect(opened.structuredContent.tracking.map((t) => t.snippet)).toEqual(["CoreWebVitals/INP", "Interaction/Interactions"]);
+
+    const interacted = await call("interact", { sessionId, steps: [{ action: "click", selector: "#slow" }] });
+    expect(interacted.isError).toBeFalsy();
+    expect(interacted.structuredContent.steps).toBe(1);
+
+    const read = await call("read_results", { sessionId });
+    const [inp, interactions] = read.structuredContent.results;
+    expect(inp).toMatchObject({ script: "INP", status: "ok" });
+    expect(inp.value).toBeGreaterThanOrEqual(240);
+    expect(interactions).toMatchObject({ script: "Interactions", status: "ok", count: 1 });
+  }, 60000);
+
+  it("keeps a snippet with nothing recorded yet as a result", async () => {
+    await connect();
+    const { sessionId } = (await open({ url: `${servers.base}/slow-click`, track: ["Interactions"] })).structuredContent;
+    const read = await call("read_results", { sessionId });
+    expect(read.isError).toBeFalsy();
+    expect(read.structuredContent.results[0]).toMatchObject({ script: "Interactions", status: "error" });
+  }, 60000);
+
   it("only installs tracking snippets, and points to run_snippet for the others", async () => {
     await connect();
     const result = await open({ url: `${servers.base}/slow-click`, track: ["LCP"] });
@@ -62,13 +90,19 @@ describe("a page that stays open", () => {
     expect(text(result)).toMatch(/run_snippet/);
   });
 
-  it("closes a page, and closing it again is not an error", async () => {
+  it("answers an id it does not know with a tool error that points to open_page", async () => {
+    await connect();
+    const result = await call("interact", { sessionId: "nope", steps: [{ action: "click", selector: "#slow" }] });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toMatch(/open_page/);
+  });
+
+  it("closes a page, after which its id is unknown, and closing it again is not an error", async () => {
     await connect();
     const { sessionId } = (await open({ url: `${servers.base}/slow-click`, track: ["INP"] })).structuredContent;
-    expect((await call("close_page", { sessionId })).structuredContent.closed).toBe(true);
-    const again = await call("close_page", { sessionId });
-    expect(again.isError).toBeFalsy();
-    expect(again.structuredContent.closed).toBe(false);
+    expect((await call("close_page", { sessionId })).isError).toBeFalsy();
+    expect((await call("close_page", { sessionId })).isError).toBeFalsy();
+    expect((await call("read_results", { sessionId })).isError).toBe(true);
   }, 60000);
 });
 
@@ -84,6 +118,14 @@ describe("the limits", () => {
     expect((await open({ url: `${servers.base}/slow-click`, track: ["INP"] })).isError).toBeFalsy();
   }, 90000);
 
+  it("closes a page left unused, and says so", async () => {
+    await connect({ idleMs: 300 });
+    const { sessionId } = (await open({ url: `${servers.base}/slow-click`, track: ["INP"] })).structuredContent;
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const result = await call("read_results", { sessionId });
+    expect(result.isError).toBe(true);
+    expect(text(result)).toMatch(/closed after/i);
+  }, 60000);
 });
 
 describe("cleaning up", () => {

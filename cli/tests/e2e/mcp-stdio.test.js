@@ -46,6 +46,16 @@ describe("webperf-snippets mcp", () => {
     expect(result.structuredContent.result).toMatchObject({ script: "LCP", status: "ok" });
   }, 60000);
 
+  it("keeps a page open across calls for a client of the modern era", async () => {
+    await connect({ versionNegotiation: { mode: { pin: "2026-07-28" } } });
+    const call = (name, args) => client.callTool({ name, arguments: args });
+    const opened = await call("open_page", { url: `${servers.base}/slow-click`, track: ["INP"], waitMs: 0 });
+    const { sessionId } = opened.structuredContent;
+    await call("interact", { sessionId, steps: [{ action: "click", selector: "#slow" }] });
+    const read = await call("read_results", { sessionId });
+    expect(read.structuredContent.results[0]).toMatchObject({ script: "INP", status: "ok" });
+  }, 60000);
+
   it("serves a client of the legacy era", async () => {
     await connect();
     expect(client.getProtocolEra()).toBe("legacy");

@@ -5,7 +5,8 @@ import { cliVersion } from "../report-to.js";
 import { CATEGORIES, aliasesOf, listSnippets, resolveSnippetName } from "../snippet-names.js";
 import { loadSnippet } from "../load-snippet.js";
 import { isTrackingSnippet } from "../tracking.js";
-import { runSnippets, evaluateItems, VIEWPORT_PRESETS } from "../runner.js";
+import { runSnippets, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
+import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
@@ -25,6 +26,14 @@ const SnippetResult = z
   .describe("The object the snippet returns");
 
 const SessionId = z.string().describe("The id open_page returned");
+
+const Step = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("click"), selector: z.string() }),
+  z.object({ action: z.literal("hover"), selector: z.string() }),
+  z.object({ action: z.literal("type"), selector: z.string(), text: z.string() }),
+  z.object({ action: z.literal("scroll"), y: z.number().int().optional().describe("Pixels down, 300 by default") }),
+  z.object({ action: z.literal("wait"), ms: z.number().int().min(0).max(10000) }),
+]);
 
 const SnippetInfo = z.object({
   name: z.string().describe("Category/Name, the name other tools take"),
@@ -101,7 +110,7 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
     {
       title: "Run a snippet",
       description:
-        "Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) need a script of interactions and are not run here.",
+        "Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead.",
       inputSchema: z.object({
         url: HttpUrl,
         snippet: z.string().describe("The snippet: its name (LCP-Subparts), an alias (render-blocking) or Category/Name"),
@@ -127,7 +136,7 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
       }
       const source = loadSnippet(path);
       if (isTrackingSnippet(path, source)) {
-        return toolError(`${path} records interactions: it needs a script of interactions (clicks, key presses) on the page, which run_snippet does not run.`);
+        return toolError(`${path} records interactions: open the page with open_page and this snippet in track, use it with interact, and read it with read_results.`);
       }
 
       // A client that wants progress sends a token with the call; the stages of the run go to it
@@ -153,7 +162,7 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
     {
       title: "Open a page",
       description:
-        "Opens the URL in a headless Chromium that stays open between calls, and installs the snippets that record interactions (INP, Interactions, Input-Latency-Breakdown, and the other tracking snippets in list_snippets). Returns a sessionId for the other page tools and close_page. At most 3 pages are open at a time, and a page closes after 10 minutes without use.",
+        "Opens the URL in a headless Chromium that stays open between calls, and installs the snippets that record interactions (INP, Interactions, Input-Latency-Breakdown, and the other tracking snippets in list_snippets). Returns a sessionId for interact, read_results and close_page. At most 3 pages are open at a time, and a page closes after 10 minutes without use.",
       inputSchema: z.object({
         url: HttpUrl,
         track: z.array(z.string()).min(1).describe("The tracking snippets to install, by name, alias or Category/Name"),
@@ -200,6 +209,54 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
         return toolError(`Opening the page failed: ${firstLine(err.message)}`);
       }
+    })
+  );
+
+  server.registerTool(
+    "interact",
+    {
+      title: "Interact with an open page",
+      description:
+        "Runs steps on a page opened with open_page, as a person would: click, type, hover, scroll or wait. A click or a key press is what the tracking snippets record. A step whose element does not appear within 5 seconds stops the run.",
+      inputSchema: z.object({
+        sessionId: SessionId,
+        steps: z.array(Step).min(1).max(50),
+      }),
+      outputSchema: z.object({ sessionId: z.string(), steps: z.number().describe("Steps run"), url: z.string().describe("The URL after the steps") }),
+      // A click can submit a form or change data on the site, so this tool is not read-only
+      annotations: { readOnlyHint: false, openWorldHint: true },
+    },
+    withSession(async ({ sessionId, steps }) => {
+      const session = sessions.get(sessionId);
+      try {
+        await runInteractions(session.page, steps);
+      } catch (err) {
+        return toolError(`A step failed: ${firstLine(err.message)}`);
+      }
+      session.hadInput ||= steps.some(isInputStep);
+      await settle(session.page);
+      return toolResult({ sessionId, steps: steps.length, url: session.page.url() });
+    })
+  );
+
+  server.registerTool(
+    "read_results",
+    {
+      title: "Read the tracking snippets",
+      description:
+        "Returns what the tracking snippets installed by open_page have recorded on the page so far, as the objects they return. A snippet with nothing recorded yet answers with status error, which is a result, not a failure.",
+      inputSchema: z.object({ sessionId: SessionId }),
+      outputSchema: z.object({ sessionId: z.string(), pageErrors: z.array(z.string()), results: z.array(SnippetResult) }),
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    withSession(async ({ sessionId }) => {
+      const session = sessions.get(sessionId);
+      const results = [];
+      for (const installed of session.tracking) {
+        const { id, ...result } = await collectTrackingData(session.page, installed, session.hadInput);
+        results.push(result);
+      }
+      return toolResult({ sessionId, pageErrors: session.pageErrors, results });
     })
   );
 
