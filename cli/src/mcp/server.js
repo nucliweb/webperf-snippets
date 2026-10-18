@@ -87,7 +87,12 @@ export function createServer() {
         viewport: z.enum(VIEWPORTS),
         navMs: z.number().describe("From the start of the navigation to the end of the wait"),
         pageErrors: z.array(z.string()).describe("Uncaught errors of the page during the run"),
-        result: z.looseObject({ script: z.string(), status: z.string() }).describe("The object the snippet returns"),
+        // Free-form beyond script and status: each snippet has its own fields (snippets/SCHEMA.md). zod
+        // writes that as `additionalProperties: {}`; `true` says the same in a way every client reads.
+        result: z
+          .looseObject({ script: z.string(), status: z.string() })
+          .meta({ additionalProperties: true })
+          .describe("The object the snippet returns"),
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
