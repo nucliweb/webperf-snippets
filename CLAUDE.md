@@ -22,7 +22,7 @@ content/                MDX pages, file-system routing, one _meta.js per directo
 app/                    Root layout, the [[...mdxPath]] page that renders the MDX, sitemap and robots
 mdx-components.js       MDX components of the theme, with the external link label
   CoreWebVitals/ Loading/ Interaction/ Media/ Resources/ DevTools-Overrides/
-  index.mdx, which-snippet.mdx, CLI.mdx, visualizer.mdx, case-studies/
+  index.mdx, which-snippet.mdx, CLI.mdx, visualizer.mdx
 snippets/               The snippet sources (*.js), same categories as content/
   SCHEMA.md             Return-value contract every snippet must follow
   _shared/              Helpers marked with `// @shared`
