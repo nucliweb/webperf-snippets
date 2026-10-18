@@ -24,8 +24,13 @@ const WORKFLOWS = {
 
 
 const USAGE = `webperf-snippets <url> [options]
+webperf-snippets mcp
 
 Run curated WebPerf Snippets headlessly via Playwright.
+
+Commands:
+  mcp                   Start the MCP server over stdio, for AI agents
+                        (claude mcp add webperf -- npx -y webperf-snippets mcp)
 
 Options:
   --workflow <name>     Workflow to run (default: core-web-vitals)
@@ -104,6 +109,13 @@ function checkBudgets(results, values) {
 }
 
 async function main() {
+  // The MCP server only loads its SDK when it is asked for
+  if (process.argv[2] === "mcp") {
+    const { startStdioServer } = await import("./mcp/stdio.js");
+    await startStdioServer();
+    return;
+  }
+
   let parsed;
   try {
     parsed = parseArgs({

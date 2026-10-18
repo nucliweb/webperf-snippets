@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { SNIPPET_DIRS } from "./load-snippet.js";
 
 // The categories whose snippets run headlessly. DevTools-Overrides pairs are pasted by hand.
-const CATEGORIES = ["CoreWebVitals", "Loading", "Interaction", "Media", "Resources"];
+export const CATEGORIES = ["CoreWebVitals", "Loading", "Interaction", "Media", "Resources"];
 
 // Short names for the snippets people run most. Any snippet also answers to its own name.
 const SNIPPET_ALIASES = {
@@ -41,6 +41,15 @@ const SNIPPET_ALIASES = {
     "Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport",
 };
 let cache = null;
+
+// The short names of a snippet, such as "render-blocking" for Loading/Find-render-blocking-resources.
+// Its own name always works too, so it is not listed.
+export function aliasesOf(path) {
+  const own = path.split("/")[1];
+  return Object.entries(SNIPPET_ALIASES)
+    .filter(([alias, target]) => target === path && alias !== own)
+    .map(([alias]) => alias);
+}
 
 // Every runnable snippet as "Category/Name", read from the bundled copy or the workspace.
 export function listSnippets() {

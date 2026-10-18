@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `webperf-snippets mcp` starts an MCP server over stdio, for AI agents, with a `list_snippets` tool that lists the snippets with their category, title, aliases and whether they track interactions. It answers clients of the 2026-07-28 revision of the protocol and of the earlier ones. The `@modelcontextprotocol/server` SDK is a new dependency, loaded only by this command.
+
 ### Changed
 - The examples of `--help` and of the README run the CLI on `https://example.com`, a domain reserved for documentation, instead of a real site.
 

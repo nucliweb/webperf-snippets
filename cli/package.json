@@ -15,7 +15,11 @@
     "test:unit": "vitest run tests/unit",
     "test:e2e": "vitest run tests/e2e"
   },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.3.1"
+  },
   "devDependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
     "vitest": "^5.0.4"
   },
   "engines": {
