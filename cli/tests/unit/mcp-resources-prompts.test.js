@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { createServer } from "../../src/mcp/server.js";
 
-// Resources are documents the client attaches to the context. They run no browser, so a client in
-// memory is enough.
+// Resources are documents the client attaches to the context; prompts are templates the user picks.
+// Neither runs a browser, so a client in memory is enough.
 let client;
 
 beforeEach(async () => {
@@ -67,5 +67,38 @@ describe("resources", () => {
   it("do not answer for a snippet or a category they do not have", async () => {
     await expect(client.readResource({ uri: "webperf://schema/Back-Forward-Cache" })).rejects.toThrow();
     await expect(client.readResource({ uri: "webperf://workflows/Fonts" })).rejects.toThrow();
+  });
+});
+
+describe("prompts", () => {
+  it("are listed with their arguments", async () => {
+    expect(client.getServerCapabilities()).toHaveProperty("prompts");
+    const { prompts } = await client.listPrompts();
+    const byName = Object.fromEntries(prompts.map((p) => [p.name, p]));
+    expect(Object.keys(byName).sort()).toEqual(["audit_lcp", "audit_page", "debug_inp"]);
+    for (const prompt of prompts) {
+      expect(prompt.arguments.find((a) => a.name === "url")).toMatchObject({ required: true });
+    }
+  });
+
+  it("audit_lcp asks for the workflow, the field data and the sub-parts, with their schemas", async () => {
+    const { messages } = await client.getPrompt({ name: "audit_lcp", arguments: { url: "https://example.com/" } });
+    const text = messages.map((m) => m.content.text ?? m.content.resource?.text).join("\n");
+    expect(text).toMatch(/https:\/\/example\.com\//);
+    expect(text).toMatch(/run_workflow/);
+    expect(text).toMatch(/get_crux/);
+    const embedded = messages.filter((m) => m.content.type === "resource").map((m) => m.content.resource.uri);
+    expect(embedded).toEqual(["webperf://schema/LCP", "webperf://schema/LCP-Subparts"]);
+  });
+
+  it("debug_inp asks to open the page, interact and read the tracking snippets", async () => {
+    const { messages } = await client.getPrompt({ name: "debug_inp", arguments: { url: "https://example.com/", selector: "#buy" } });
+    const text = messages.map((m) => m.content.text ?? "").join("\n");
+    for (const tool of ["open_page", "interact", "read_results", "close_page"]) expect(text).toContain(tool);
+    expect(text).toContain("#buy");
+  });
+
+  it("refuse to start without a URL", async () => {
+    await expect(client.getPrompt({ name: "audit_page", arguments: {} })).rejects.toThrow();
   });
 });
