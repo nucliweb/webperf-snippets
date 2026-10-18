@@ -97,7 +97,10 @@ export async function runSnippets({
   interactScript,
   interactions = interactScript,
   storageState,
+  // Called at each of the three stages of a run, for callers that report progress (the MCP server)
+  onProgress = () => {},
 }) {
+  await onProgress(1, "Opening Chromium");
   const browser = await chromium.launch({ headless });
   try {
     const context = await browser.newContext({ viewport, storageState });
@@ -108,7 +111,9 @@ export async function runSnippets({
     await page.goto(url, { waitUntil: "load", timeout: navTimeout });
     if (waitMs > 0) await page.waitForTimeout(waitMs);
     const navMs = Date.now() - navStart;
+    await onProgress(2, "Page loaded, running the snippets");
     const results = await evaluateAroundInteractions(page, items, interactions);
+    await onProgress(3, "Snippets evaluated");
     return { url, navMs, results, pageErrors };
   } finally {
     await browser.close();

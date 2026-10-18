@@ -215,6 +215,7 @@ claude mcp add webperf -- npx -y webperf-snippets mcp
 | Tool            | What it does                                                                 |
 | --------------- | ---------------------------------------------------------------------------- |
 | `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |
+| `run_snippet`   | Opens a URL in a headless Chromium, runs one snippet and returns the object it returns. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport` and `waitMs`. The snippets that record interactions are not run here. |
 
 The server answers clients of both eras of the protocol: the 2026-07-28 revision and the earlier ones that open with `initialize`. [ADR 0002](../docs/adr/0002-mcp-server-as-cli-subcommand.md) explains why it is a subcommand and uses stdio.
 
