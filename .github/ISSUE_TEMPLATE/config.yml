@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/nucliweb/webperf-snippets/security/advisories/new
+    about: Report it privately, not in a public issue.
+  - name: Documentation
+    url: https://webperf-snippets.net
+    about: Every snippet, the CLI, the skills and the extension.

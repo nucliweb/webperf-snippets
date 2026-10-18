@@ -1,0 +1,60 @@
+name: Bug
+description: Something fails or does not work as documented, in a snippet, the CLI, the skills, the GitHub Action or the website.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a snippet runs but gives a wrong value, use the "A snippet gives a wrong result" form. For the DevTools extension, use the "Extension beta feedback" form.
+
+        Do not paste private URLs, tokens or personal data: the issue is public.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - A snippet in the DevTools console
+        - CLI
+        - Agent Skills
+        - GitHub Action
+        - Website (webperf-snippets.net)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: snippet
+    attributes:
+      label: Snippet, command or page
+      placeholder: npx webperf-snippets https://example.com --workflow audit
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, and what you saw, including any error message.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use a page you own, a minimal HTML page or `example.com`.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: For the CLI, `meta.cli_version` in the `--json` output; for the skills, the date you installed them.
+      placeholder: 1.0.0
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, Node.js and operating system
+      placeholder: Chrome 141, Node.js 22, macOS
+    validations:
+      required: true
