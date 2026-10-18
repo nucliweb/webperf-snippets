@@ -4,23 +4,13 @@ import { parseArgs } from "node:util";
 import { loadSnippet } from "./load-snippet.js";
 import { resolveSnippetName } from "./snippet-names.js";
 import { runSnippets, runMeasurement, VIEWPORT_PRESETS } from "./runner.js";
-import { cwvWorkflow } from "./workflows/cwv.js";
-import { auditWorkflow } from "./workflows/audit.js";
-import { loadingWorkflow } from "./workflows/loading.js";
-import { interactionWorkflow } from "./workflows/interaction.js";
+import { WORKFLOWS } from "./workflows/index.js";
 import { RULES } from "./decision-tree.js";
 import { reportHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMarkdown } from "./reporters/markdown.js";
 import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
 import { fetchCrux, formFactorFor } from "./crux.js";
-
-const WORKFLOWS = {
-  "core-web-vitals": cwvWorkflow,
-  audit: auditWorkflow,
-  loading: loadingWorkflow,
-  interaction: interactionWorkflow,
-};
 
 
 const USAGE = `webperf-snippets <url> [options]

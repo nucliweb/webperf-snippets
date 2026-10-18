@@ -5,7 +5,10 @@ import { cliVersion } from "../report-to.js";
 import { CATEGORIES, aliasesOf, listSnippets, resolveSnippetName } from "../snippet-names.js";
 import { loadSnippet } from "../load-snippet.js";
 import { isTrackingSnippet } from "../tracking.js";
-import { runSnippets, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
+import { runSnippets, runMeasurement, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
+import { WORKFLOWS } from "../workflows/index.js";
+import { RULES } from "../decision-tree.js";
+import { fetchCrux } from "../crux.js";
 import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
 
@@ -56,6 +59,19 @@ const toolError = (text) => ({ isError: true, content: [{ type: "text", text }] 
 
 const firstLine = (message) => message.split("\n")[0];
 
+// A client that wants progress sends a token with the call; the stages of a run go to it
+function progressFor(ctx) {
+  const progressToken = ctx.mcpReq._meta?.progressToken;
+  return (progress, message) =>
+    progressToken === undefined
+      ? undefined
+      : ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken, progress, total: STAGES, message } });
+}
+
+const CRUX_FORM_FACTORS = { phone: "PHONE", desktop: "DESKTOP", tablet: "TABLET" };
+const CRUX_SETUP =
+  "get_crux needs a CrUX API key in the CRUX_API_KEY environment variable of the MCP server. Set it in the configuration of the client, for example: claude mcp add webperf -e CRUX_API_KEY=<key> -- npx -y webperf-snippets mcp. A key is free in the Google Cloud console (Chrome UX Report API).";
+
 function describeSnippet(name) {
   const source = loadSnippet(name);
   return {
@@ -69,7 +85,7 @@ function describeSnippet(name) {
 
 // The MCP server of the CLI: the same snippets and runner, offered as tools an agent calls by name.
 // serveStdio creates one instance per connection, so the pages it keeps open belong to that client.
-export function createServer({ launchBrowser = () => chromium.launch(), maxPages, idleMs } = {}) {
+export function createServer({ launchBrowser = () => chromium.launch(), maxPages, idleMs, env = process.env } = {}) {
   const server = new McpServer({ name: "webperf-snippets", version: cliVersion });
   const sessions = createSessions({ launchBrowser, maxPages, idleMs });
   // The client left (end of stdin, or a closed transport): close the pages and Chromium
@@ -139,21 +155,99 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
         return toolError(`${path} records interactions: open the page with open_page and this snippet in track, use it with interact, and read it with read_results.`);
       }
 
-      // A client that wants progress sends a token with the call; the stages of the run go to it
-      const progressToken = ctx.mcpReq._meta?.progressToken;
-      const onProgress = (progress, message) =>
-        progressToken === undefined
-          ? undefined
-          : ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken, progress, total: STAGES, message } });
-
       try {
-        const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress });
+        const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress: progressFor(ctx) });
         const { id, ...result } = run.results[0];
         return toolResult({ url, snippet: id, viewport, navMs: run.navMs, pageErrors: run.pageErrors, result });
       } catch (err) {
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
         return toolError(`The run failed: ${firstLine(err.message)}`);
       }
+    }
+  );
+
+  server.registerTool(
+    "run_workflow",
+    {
+      title: "Run a workflow",
+      description:
+        "Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page.",
+      inputSchema: z.object({
+        url: HttpUrl,
+        workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
+        viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
+        waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the workflow, in ms"),
+      }),
+      outputSchema: z.object({
+        url: z.string(),
+        workflow: z.string(),
+        viewport: z.enum(VIEWPORTS),
+        navMs: z.number(),
+        pageErrors: z.array(z.string()),
+        results: z
+          .array(z.looseObject({ id: z.string(), status: z.string() }).meta({ additionalProperties: true }))
+          .describe("One object per step, in order, then the follow-ups, each with the reason it was added"),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ url, workflow, viewport, waitMs }, ctx) => {
+      try {
+        const run = await runMeasurement({
+          url,
+          workflow: WORKFLOWS[workflow],
+          rules: RULES,
+          waitMs,
+          viewport: VIEWPORT_PRESETS[viewport],
+          onProgress: progressFor(ctx),
+        });
+        // The runner explains a skipped step with the flag of the CLI; here the tools are what the model has
+        const results = run.results.map((r) =>
+          r.status === "skipped"
+            ? { ...r, reason: "This step measures clicks and key presses: open the page with open_page and this snippet in track, use it with interact, and read it with read_results." }
+            : r
+        );
+        return toolResult({ url, workflow, viewport, navMs: run.navMs, pageErrors: run.pageErrors, results });
+      } catch (err) {
+        if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
+        return toolError(`The run failed: ${firstLine(err.message)}`);
+      }
+    }
+  );
+
+  server.registerTool(
+    "get_crux",
+    {
+      title: "Get CrUX field data",
+      description:
+        "Returns the p75 of LCP, CLS and INP that real Chrome users had on a URL over the last 28 days, from the Chrome UX Report, with their rating. Falls back to the origin when the URL has no data of its own. Compare it with the lab values of run_snippet: field data is what users get.",
+      inputSchema: z.object({
+        url: HttpUrl,
+        formFactor: z.enum(Object.keys(CRUX_FORM_FACTORS)).default("phone").describe("The devices the data describes"),
+      }),
+      outputSchema: z.object({
+        url: z.string(),
+        formFactor: z.string(),
+        scope: z.enum(["url", "origin"]).optional().describe("Whether the data is for the URL or for its whole origin"),
+        metrics: z
+          .record(z.string(), z.object({ p75: z.number(), rating: z.string(), unit: z.string() }))
+          .optional()
+          .describe("By metric name: LCP, CLS, INP"),
+        unavailable: z.string().optional().describe("Why there is no field data, such as a page with too little traffic"),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ url, formFactor }) => {
+      const apiKey = env.CRUX_API_KEY;
+      if (!apiKey) return toolError(CRUX_SETUP);
+      const crux = await fetchCrux({
+        url,
+        apiKey,
+        formFactor: CRUX_FORM_FACTORS[formFactor],
+        ...(env.WEBPERF_CRUX_ENDPOINT ? { endpoint: env.WEBPERF_CRUX_ENDPOINT } : {}),
+      });
+      if (crux.failed) return toolError(`Could not read the CrUX data: ${crux.unavailable}.`);
+      if (crux.unavailable) return toolResult({ url, formFactor, unavailable: crux.unavailable });
+      return toolResult({ url, formFactor, scope: crux.scope, metrics: crux.metrics });
     }
   );
 

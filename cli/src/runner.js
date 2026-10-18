@@ -131,7 +131,9 @@ export async function runMeasurement({
   interactScript,
   interactions = interactScript,
   storageState,
+  onProgress = () => {},
 }) {
+  await onProgress(1, "Opening Chromium");
   const browser = await chromium.launch({ headless });
   try {
     const context = await browser.newContext({ viewport, storageState });
@@ -143,6 +145,7 @@ export async function runMeasurement({
     await page.goto(url, { waitUntil: "load", timeout: navTimeout });
     if (waitMs > 0) await page.waitForTimeout(waitMs);
     const navMs = Date.now() - navStart;
+    await onProgress(2, "Page loaded, running the workflow");
 
     // The steps of the user's script, or the workflow's own. A step that needs a click or a key press
     // is skipped when the interactions have none, so it does not fail for lack of data.
@@ -190,6 +193,7 @@ export async function runMeasurement({
       });
     }
 
+    await onProgress(3, "Workflow and follow-ups evaluated");
     return { url, navMs, results: [...initialResults, ...followUpResults], pageErrors };
   } finally {
     await browser.close();
