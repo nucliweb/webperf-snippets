@@ -25,7 +25,7 @@ function toExpression(source) {
   return source.trim().replace(/;\s*$/, "");
 }
 
-async function evaluateItems(page, items) {
+export async function evaluateItems(page, items) {
   const results = [];
   for (const item of items) {
     try {
@@ -70,7 +70,7 @@ async function evaluateAroundInteractions(page, items, interactions) {
   return items.map((item) => byId.get(item.id));
 }
 
-async function collectTrackingData(page, result, hasInput) {
+export async function collectTrackingData(page, result, hasInput) {
   if (result.status !== "tracking" || !result.getDataFn) return result;
   try {
     const read = () => page.evaluate(`(async () => await ${result.getDataFn}())()`);

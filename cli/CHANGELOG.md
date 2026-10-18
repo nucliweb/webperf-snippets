@@ -11,6 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ### Added
 - `webperf-snippets mcp` starts an MCP server over stdio, for AI agents, with a `list_snippets` tool that lists the snippets with their category, title, aliases and whether they track interactions. It answers clients of the 2026-07-28 revision of the protocol and of the earlier ones. The `@modelcontextprotocol/server` SDK is a new dependency, loaded only by this command.
 - The `run_snippet` tool of the MCP server opens a URL, runs one snippet and returns its result object, with progress notifications. A page that does not load or an unknown snippet comes back as a tool error the agent can act on; a snippet that reports an error stays a result.
+- The MCP server keeps pages open between calls for the tracking snippets: `open_page` installs them and returns a session id, `interact` clicks, types, hovers, scrolls or waits, `read_results` returns what they recorded and `close_page` closes the page. At most three pages are open, an unused page closes after 10 minutes, and a cancelled call or a client that disconnects closes its pages and Chromium.
 
 ### Changed
 - The examples of `--help` and of the README run the CLI on `https://example.com`, a domain reserved for documentation, instead of a real site.

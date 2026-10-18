@@ -215,7 +215,13 @@ claude mcp add webperf -- npx -y webperf-snippets mcp
 | Tool            | What it does                                                                 |
 | --------------- | ---------------------------------------------------------------------------- |
 | `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |
-| `run_snippet`   | Opens a URL in a headless Chromium, runs one snippet and returns the object it returns. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport` and `waitMs`. The snippets that record interactions are not run here. |
+| `run_snippet`   | Opens a URL in a headless Chromium, runs one snippet and returns the object it returns. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport` and `waitMs`. The snippets that record interactions run on a page opened with `open_page`. |
+| `open_page`     | Opens a URL in a page that stays open between calls and installs tracking snippets (`track`, such as `INP`). Returns a `sessionId`. |
+| `interact`      | Runs steps on an open page: `click`, `type`, `hover`, `scroll` or `wait`. |
+| `read_results`  | Returns what the tracking snippets of an open page have recorded. |
+| `close_page`    | Closes an open page. |
+
+At most three pages are open at a time, a page closes after 10 minutes without use, and every page and Chromium close when the client disconnects.
 
 The server answers clients of both eras of the protocol: the 2026-07-28 revision and the earlier ones that open with `initialize`. [ADR 0002](../docs/adr/0002-mcp-server-as-cli-subcommand.md) explains why it is a subcommand and uses stdio.
 
