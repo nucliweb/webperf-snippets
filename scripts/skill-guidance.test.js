@@ -75,3 +75,13 @@ test('finds the generated guidance of every target', () => {
   assert.equal(categoryGuides.length, 5 * GENERATED_DIRS.length)
   assert.equal(routers.length, GENERATED_DIRS.length)
 })
+
+// A skill in a forked context runs in a subagent that does not get the conversation: it does not know
+// the URL the user gave or the page the agent opened, and answered "no page to measure" in the MCP evals
+// (npm run eval:mcp). The skills run in the conversation of the agent instead.
+for (const file of files.filter((f) => f.endsWith('SKILL.md'))) {
+  test(`${rel(file)} runs in the conversation of the agent, not in a forked context`, () => {
+    const frontmatter = read(file).split('\n---')[0]
+    assert.doesNotMatch(frontmatter, /^context:\s*fork/m)
+  })
+}

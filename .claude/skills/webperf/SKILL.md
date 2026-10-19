@@ -1,7 +1,6 @@
 ---
 name: webperf
 description: Web performance measurement and debugging toolkit. Use when the user asks about web performance, wants to audit a page, or says "analyze performance", "debug lcp", "check ttfb", "measure core web vitals", "audit images", or similar.
-context: fork
 license: MIT
 metadata:
   author: Joan Leon | @nucliweb
