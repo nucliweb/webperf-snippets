@@ -51,14 +51,14 @@
   "license": "MIT",
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",
-    "@mdn/browser-compat-data": "^8.1.5",
+    "@mdn/browser-compat-data": "^8.1.6",
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.12.0",
-    "next": "^16.4.0",
+    "next": "^16.4.2",
     "nextra": "^4.6.1",
     "nextra-theme-docs": "^4.6.1",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "eslint": "^10.12.0",
