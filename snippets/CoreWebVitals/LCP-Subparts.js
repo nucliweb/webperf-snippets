@@ -67,6 +67,15 @@
   }
   // @end-shared uniqueSelector
 
+  // The Resource Load Time splits into the wait for the server, until the first byte of the response,
+  // and the download of the body: a slow server and a heavy image need different fixes. Another
+  // origin without Timing-Allow-Origin reports responseStart as 0, and then there is no split.
+  const splitLoadTime = (resEntry, requestStart, responseEnd, activationStart) => {
+    if (!resEntry?.responseStart) return null;
+    const firstByte = Math.min(Math.max(requestStart, resEntry.responseStart - activationStart), responseEnd);
+    return { waiting: firstByte - requestStart, download: responseEnd - firstByte };
+  };
+
   const getNavigationEntry = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) {
@@ -107,6 +116,8 @@
       lcpResponseEnd,
       lcpEntry.startTime - activationStart
     );
+
+    const loadSplit = splitLoadTime(lcpResEntry, lcpRequestStart, lcpResponseEnd, activationStart);
 
     const subPartValues = {
       ttfb: ttfb,
@@ -196,6 +207,9 @@
     console.log("");
     console.log("%c💡 Optimization Focus:", "font-weight: bold; color: #3b82f6;");
     console.log(`   Slowest phase: ${slowest.name} (${formatPercent(slowest.value, lcpRenderTime)})`);
+    if (slowest.key === "resourceLoadTime" && loadSplit) {
+      console.log(`   ${formatMs(loadSplit.waiting)} waiting for the server, ${formatMs(loadSplit.download)} downloading the resource`);
+    }
 
     if (slowest.key === "ttfb") {
       console.log("   → Use a CDN to reduce latency");
@@ -205,6 +219,10 @@
       console.log("   → Preload the LCP image: <link rel=\"preload\" as=\"image\" href=\"...\">");
       console.log("   → Remove render-blocking resources");
       console.log("   → Inline critical CSS");
+    } else if (slowest.key === "resourceLoadTime" && loadSplit && loadSplit.waiting > loadSplit.download) {
+      console.log("   → Reduce the server response time of the LCP resource");
+      console.log("   → Serve it from a CDN, with Cache-Control headers");
+      console.log("   → Check that it is cached, not generated on each request");
     } else if (slowest.key === "resourceLoadTime") {
       console.log("   → Compress and resize the LCP image");
       console.log("   → Use modern formats (WebP, AVIF)");
@@ -277,6 +295,8 @@
   const loadDelayVal = Math.round(lcpRequestStartSync - ttfbSync);
   const loadTimeVal = Math.round(lcpResponseEndSync - lcpRequestStartSync);
   const renderDelayVal = Math.round(lcpRenderTimeSync - lcpResponseEndSync);
+  const loadSplitSync = splitLoadTime(lcpResEntrySync, lcpRequestStartSync, lcpResponseEndSync, activationStartSync);
+  const waitingVal = loadSplitSync ? Math.min(loadTimeVal, Math.round(loadSplitSync.waiting)) : null;
   const subPartsForRank = [
     { key: "ttfb", value: ttfbVal },
     { key: "resourceLoadDelay", value: loadDelayVal },
@@ -312,7 +332,12 @@
       subParts: {
         ttfb: { value: ttfbVal, percent: Math.round((ttfbVal / totalSync) * 100), overTarget: ttfbVal > 800 },
         resourceLoadDelay: { value: loadDelayVal, percent: Math.round((loadDelayVal / totalSync) * 100), overTarget: (loadDelayVal / totalSync) * 100 > 10 },
-        resourceLoadTime: { value: loadTimeVal, percent: Math.round((loadTimeVal / totalSync) * 100), overTarget: (loadTimeVal / totalSync) * 100 > 40 },
+        resourceLoadTime: {
+          value: loadTimeVal,
+          percent: Math.round((loadTimeVal / totalSync) * 100),
+          overTarget: (loadTimeVal / totalSync) * 100 > 40,
+          ...(loadSplitSync ? { waiting: waitingVal, download: loadTimeVal - waitingVal } : {}),
+        },
         elementRenderDelay: { value: renderDelayVal, percent: Math.round((renderDelayVal / totalSync) * 100), overTarget: (renderDelayVal / totalSync) * 100 > 10 },
       },
       slowestPhase: slowestPhaseSync,

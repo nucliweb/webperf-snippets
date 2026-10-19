@@ -28,7 +28,7 @@ LCP is a critical Core Web Vital that measures when the largest content element 
 |----------|------------------|---------------|
 | **Time to First Byte** | Server response time | Slow server, no CDN, no caching |
 | **Resource Load Delay** | Time from TTFB until LCP resource starts loading | Render-blocking resources, late discovery |
-| **Resource Load Time** | Time to download the LCP resource | Large images, slow connection, no compression |
+| **Resource Load Time** | Time to download the LCP resource | Slow server for the resource, large images, slow connection, no compression |
 | **Element Render Delay** | Time from download complete to paint | Client-side rendering, render-blocking JS |
 
 ### Optimization priority
@@ -65,6 +65,12 @@ LCP is a critical Core Web Vital that measures when the largest content element 
 | % | Percentage of total LCP |
 | Status | ✅ OK or 🔴 Over target |
 
+### Waiting or downloading
+
+The snippet splits Resource Load Time with the Resource Timing entry of the LCP resource: the time waiting for the server, until the first byte of the response, and the time downloading the body. They need different fixes: a long wait points to the server or the cache of the resource, a long download to its size. When Resource Load Time is the slowest phase, the console shows the split and recommends fixes for the larger part; the result always carries both values, in `details.subParts.resourceLoadTime.waiting` and `.download`.
+
+A resource from another origin hides that timing unless it sends a `Timing-Allow-Origin` header, and then the snippet reports Resource Load Time without the split.
+
 ### Visual bar
 
 Shows time distribution across the four phases:
@@ -86,7 +92,7 @@ The snippet adds one User Timing measure per sub-part ("Time to First Byte", "Re
 |------------------|-------------|
 | **TTFB** | Server response time, CDN, caching headers |
 | **Load Delay** | Preload hints, render-blocking resources, late `<img>` in HTML |
-| **Load Time** | Image size, format, compression, CDN |
+| **Load Time** | Long wait: server response time of the resource, CDN, caching. Long download: image size, format, compression |
 | **Render Delay** | JavaScript blocking, CSS parsing, client-side rendering |
 
 ### Optimization decision tree

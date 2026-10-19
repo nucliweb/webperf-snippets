@@ -169,7 +169,11 @@ function renderResult(r, verbose) {
     out += rows
       .map(([name, info]) => {
         const status = info.overTarget ? styleText("red", "🔴") : styleText("green", "✓");
-        return `       ${status} ${pad(name, 22)} ${pad(`${info.value}ms`, 8)} ${pad(`${info.percent}%`, 6)}`;
+        const row = `       ${status} ${pad(name, 22)} ${pad(`${info.value}ms`, 8)} ${pad(`${info.percent}%`, 6)}`;
+        // The Resource Load Time splits into the wait for the server and the download, when the snippet measures it
+        return info.waiting == null
+          ? row
+          : `${row}\n         ${styleText("dim", `${info.waiting}ms waiting for the server, ${info.download}ms downloading`)}`;
       })
       .join("\n");
     if (r.details.slowestPhase) {

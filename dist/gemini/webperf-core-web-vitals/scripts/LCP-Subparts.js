@@ -69,6 +69,14 @@
     }
     return parts.join(" > ");
   }
+  const splitLoadTime = (resEntry, requestStart, responseEnd, activationStart) => {
+    if (!resEntry?.responseStart) return null;
+    const firstByte = Math.min(Math.max(requestStart, resEntry.responseStart - activationStart), responseEnd);
+    return {
+      waiting: firstByte - requestStart,
+      download: responseEnd - firstByte
+    };
+  };
   const getNavigationEntry = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) return navEntry;
@@ -85,6 +93,7 @@
     const lcpRequestStart = Math.max(ttfb, lcpResEntry ? (lcpResEntry.requestStart || lcpResEntry.startTime) - activationStart : 0);
     const lcpResponseEnd = Math.max(lcpRequestStart, lcpResEntry ? lcpResEntry.responseEnd - activationStart : 0);
     const lcpRenderTime = Math.max(lcpResponseEnd, lcpEntry.startTime - activationStart);
+    const loadSplit = splitLoadTime(lcpResEntry, lcpRequestStart, lcpResponseEnd, activationStart);
     const subPartValues = {
       ttfb: ttfb,
       resourceLoadDelay: lcpRequestStart - ttfb,
@@ -136,8 +145,10 @@
     "▓".repeat(bars[1].bar);
     "▒".repeat(bars[2].bar);
     "░".repeat(bars[3].bar);
+    if (slowest.key === "resourceLoadTime" && loadSplit) void 0;
     if (slowest.key === "ttfb") {
     } else if (slowest.key === "resourceLoadDelay") {
+    } else if (slowest.key === "resourceLoadTime" && loadSplit && loadSplit.waiting > loadSplit.download) {
     } else if (slowest.key === "resourceLoadTime") {
     } else if (slowest.key === "elementRenderDelay") {
     }
@@ -194,6 +205,8 @@
   const loadDelayVal = Math.round(lcpRequestStartSync - ttfbSync);
   const loadTimeVal = Math.round(lcpResponseEndSync - lcpRequestStartSync);
   const renderDelayVal = Math.round(lcpRenderTimeSync - lcpResponseEndSync);
+  const loadSplitSync = splitLoadTime(lcpResEntrySync, lcpRequestStartSync, lcpResponseEndSync, activationStartSync);
+  const waitingVal = loadSplitSync ? Math.min(loadTimeVal, Math.round(loadSplitSync.waiting)) : null;
   const subPartsForRank = [ {
     key: "ttfb",
     value: ttfbVal
@@ -246,7 +259,11 @@
         resourceLoadTime: {
           value: loadTimeVal,
           percent: Math.round(loadTimeVal / totalSync * 100),
-          overTarget: loadTimeVal / totalSync * 100 > 40
+          overTarget: loadTimeVal / totalSync * 100 > 40,
+          ...loadSplitSync ? {
+            waiting: waitingVal,
+            download: loadTimeVal - waitingVal
+          } : {}
         },
         elementRenderDelay: {
           value: renderDelayVal,
