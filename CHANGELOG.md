@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `npm run eval:mcp`: the same question about a local page with a known answer, asked to an agent with the webperf MCP server, with Chrome DevTools MCP and the webperf skills, and with Chrome DevTools MCP alone, graded on the diagnosis and measured in tokens, turns and time. It runs by hand, not in CI.
+
 ### Changed
 - CI skips the build and the end-to-end tests on its own when a pull request only changes documentation, instead of waiting for the `skip-e2e` label. Opening a pull request with the label fired two runs and cancelled one, which showed as a failed check.
 - Examples, CLI commands, the `OWN_DOMAINS` hint of the snippets and the test data use the domains reserved for documentation (`example.com`, `example.net`, `example.org`) instead of real sites. `scripts/example-domains.test.js`, in `npm run test:site`, fails when a real site comes back as an example.
