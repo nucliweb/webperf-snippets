@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product page</title>
+  <style>body { margin: 0; font-family: sans-serif; } main { padding: 16px; } button { display: block; width: 200px; height: 48px; margin: 8px 0; }</style>
+</head>
+<body>
+  <main>
+    <h1>Trail running shoes</h1>
+    <button id="add" type="button">Add to cart</button>
+    <button id="wish" type="button">Wishlist</button>
+    <p id="status" aria-live="polite"></p>
+  </main>
+  <script>
+    // Adding to the cart blocks the main thread for 250 ms; the wishlist takes 30 ms
+    document.getElementById("add").addEventListener("click", function addToCart() {
+      const end = performance.now() + 250;
+      while (performance.now() < end) {}
+      document.getElementById("status").textContent = "Added to the cart";
+    });
+    document.getElementById("wish").addEventListener("click", function addToWishlist() {
+      const end = performance.now() + 30;
+      while (performance.now() < end) {}
+      document.getElementById("status").textContent = "Saved to the wishlist";
+    });
+  </script>
+</body>
+</html>
