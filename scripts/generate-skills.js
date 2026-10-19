@@ -377,9 +377,9 @@ async function generateCategorySkill(category, catConfig) {
   fs.mkdirSync(refsDir, { recursive: true })
   fs.mkdirSync(distDir, { recursive: true })
 
-  const examplesPath = path.join(refsDir, 'examples.json')
-  const examples = category === 'CoreWebVitals' && fs.existsSync(examplesPath)
-    ? JSON.parse(fs.readFileSync(examplesPath, 'utf-8')).examples
+  const examplesSrc = path.join(SNIPPETS_DIR, category, 'examples.json')
+  const examples = fs.existsSync(examplesSrc)
+    ? JSON.parse(fs.readFileSync(examplesSrc, 'utf-8')).examples
     : null
 
   for (const snippetFile of snippetFiles) {
@@ -389,11 +389,16 @@ async function generateCategorySkill(category, catConfig) {
   }
   console.log(`  built ${snippetFiles.length} scripts to scripts/ and dist/`)
 
+  if (examples) {
+    fs.copyFileSync(examplesSrc, path.join(refsDir, 'examples.json'))
+    console.log(`  copied: references/examples.json`)
+  }
+
   // Write references/snippets.md (L3 — loaded on demand)
   const snippetLines = []
   if (examples) {
     snippetLines.push('## Captured return values', '')
-    snippetLines.push('Each object below is a real result captured by running the snippet against `cli/tests/fixtures/core-web-vitals.html` with the recorded interaction steps for INP.', '')
+    snippetLines.push('Each object below is a real result captured by running the snippet against the seeded test pages.', '')
   }
   for (const meta of metas) {
     snippetLines.push(`---`)
@@ -498,8 +503,8 @@ async function generateCategorySkill(category, catConfig) {
   if (fs.existsSync(path.join(refsDir, 'schema.md'))) {
     fs.copyFileSync(path.join(refsDir, 'schema.md'), path.join(antigravityRefsDir, 'schema.md'))
   }
-  if (fs.existsSync(examplesPath)) {
-    fs.copyFileSync(examplesPath, path.join(antigravityRefsDir, 'examples.json'))
+  if (examples) {
+    fs.copyFileSync(examplesSrc, path.join(antigravityRefsDir, 'examples.json'))
   }
   fs.writeFileSync(path.join(antigravityDir, 'SKILL.md'), buildAntigravitySkillContent(catConfig, bodyLines))
   console.log(`  written: dist/antigravity/${catConfig.skill}/ (${snippetFiles.length} scripts + references + SKILL.md)`)

@@ -1,6 +1,6 @@
 ## Captured return values
 
-Each object below is a real result captured by running the snippet against `cli/tests/fixtures/core-web-vitals.html` with the recorded interaction steps for INP.
+Each object below is a real result captured by running the snippet against the seeded test pages.
 
 ---
 ## Cumulative layout shift (CLS)
@@ -24,7 +24,7 @@ Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual s
   "script": "CLS",
   "status": "ok",
   "metric": "CLS",
-  "value": 0,
+  "value": 0.0324,
   "unit": "score",
   "rating": "good",
   "thresholds": {
@@ -57,7 +57,7 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
   "script": "INP",
   "status": "ok",
   "metric": "INP",
-  "value": 16,
+  "value": 64,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
@@ -66,11 +66,11 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
   },
   "details": {
     "totalInteractions": 1,
-    "worstEvent": "click → button#interaction-button",
+    "worstEvent": "click → button#go",
     "phases": {
-      "inputDelay": 0,
-      "processingTime": 1,
-      "presentationDelay": 15
+      "inputDelay": 1,
+      "processingTime": 61,
+      "presentationDelay": 3
     }
   }
 }
@@ -95,21 +95,49 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
 {
   "script": "LCP-Image-Entropy",
   "status": "ok",
-  "count": 1,
+  "count": 3,
   "details": {
-    "totalImages": 1,
+    "totalImages": 3,
     "lowEntropyCount": 0,
-    "lcpElement": "h1",
-    "lcpImageEligible": null,
-    "lcpImage": null
+    "lcpElement": "img",
+    "lcpImageEligible": true,
+    "lcpImage": {
+      "url": "hero.png",
+      "bpp": 24.1384,
+      "isLowEntropy": false
+    }
   },
   "items": [
     {
       "url": "hero.png",
       "width": 100,
       "height": 100,
-      "displayedWidth": 320,
-      "displayedHeight": 320,
+      "displayedWidth": 600,
+      "displayedHeight": 400,
+      "fileSizeBytes": 30173,
+      "bpp": 24.1384,
+      "isLowEntropy": false,
+      "lcpEligible": true,
+      "isLCP": true
+    },
+    {
+      "url": "hero.png",
+      "width": 100,
+      "height": 100,
+      "displayedWidth": 300,
+      "displayedHeight": 200,
+      "fileSizeBytes": 30173,
+      "bpp": 24.1384,
+      "isLowEntropy": false,
+      "lcpEligible": true,
+      "isLCP": false
+    },
+    {
+      "url": "hero.png",
+      "width": 100,
+      "height": 100,
+      "displayedWidth": 300,
+      "displayedHeight": 200,
       "fileSizeBytes": 30173,
       "bpp": 24.1384,
       "isLowEntropy": false,
@@ -117,12 +145,7 @@ Checks if images qualify as LCP candidates based on their entropy (bits per pixe
       "isLCP": false
     }
   ],
-  "issues": [
-    {
-      "severity": "info",
-      "message": "The LCP element is <h1>, text and not an image, so its entropy does not apply. Run the LCP snippet to measure it."
-    }
-  ]
+  "issues": []
 }
 ```
 ---
@@ -139,7 +162,7 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
   "script": "LCP-Subparts",
   "status": "ok",
   "metric": "LCP",
-  "value": 72,
+  "value": 64,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
@@ -147,27 +170,27 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     "needsImprovement": 4000
   },
   "details": {
-    "element": "#main-heading",
-    "url": null,
+    "element": "#hero",
+    "url": "hero.png",
     "subParts": {
       "ttfb": {
-        "value": 7,
-        "percent": 10,
+        "value": 9,
+        "percent": 14,
         "overTarget": false
       },
       "resourceLoadDelay": {
-        "value": 0,
-        "percent": 0,
-        "overTarget": false
+        "value": 13,
+        "percent": 20,
+        "overTarget": true
       },
       "resourceLoadTime": {
-        "value": 0,
-        "percent": 0,
+        "value": 8,
+        "percent": 13,
         "overTarget": false
       },
       "elementRenderDelay": {
-        "value": 65,
-        "percent": 90,
+        "value": 34,
+        "percent": 53,
         "overTarget": true
       }
     },
@@ -189,7 +212,7 @@ Tracks every LCP candidate element during page load and highlights each one with
   "script": "LCP-Trail",
   "status": "ok",
   "metric": "LCP",
-  "value": 72,
+  "value": 64,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
@@ -198,13 +221,14 @@ Tracks every LCP candidate element during page load and highlights each one with
   },
   "details": {
     "candidateCount": 1,
-    "finalElement": "#main-heading",
+    "finalElement": "#hero",
     "candidates": [
       {
         "index": 1,
-        "selector": "#main-heading",
-        "time": 72,
-        "elementType": "Text block"
+        "selector": "#hero",
+        "time": 64,
+        "elementType": "Image",
+        "url": "hero.png"
       }
     ]
   }
@@ -223,15 +247,42 @@ Detects whether the LCP element is a <video> and audits the poster image configu
 {
   "script": "LCP-Video-Candidate",
   "status": "ok",
+  "metric": "LCP",
+  "value": 60,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 2500,
+    "needsImprovement": 4000
+  },
   "details": {
-    "isVideo": false,
-    "lcpElement": "h1",
-    "lcpUrl": null
+    "isVideo": true,
+    "lcpSource": "poster",
+    "posterUrl": "http://127.0.0.1:56834/hero.png",
+    "videoUrl": null,
+    "posterFormat": "png",
+    "posterPreloaded": false,
+    "fetchpriorityOnPreload": null,
+    "isCrossOrigin": false,
+    "videoAttributes": {
+      "autoplay": false,
+      "muted": false,
+      "playsinline": false,
+      "preload": "none"
+    }
   },
   "issues": [
     {
+      "severity": "warning",
+      "message": "No <link rel=\"preload\" as=\"image\"> for the poster: the browser discovers it late"
+    },
+    {
       "severity": "info",
-      "message": "The LCP element is <h1>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases."
+      "message": "Poster uses png; AVIF or WebP would reduce file size and LCP load time"
+    },
+    {
+      "severity": "warning",
+      "message": "preload=\"none\" on a non-autoplay video may delay poster image loading in some browsers"
     }
   ]
 }
@@ -258,7 +309,7 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
   "script": "LCP",
   "status": "ok",
   "metric": "LCP",
-  "value": 72,
+  "value": 68,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
@@ -266,10 +317,10 @@ Quick check for Largest Contentful Paint, a Core Web Vital that measures loading
     "needsImprovement": 4000
   },
   "details": {
-    "element": "#main-heading",
-    "elementType": "Text block",
-    "url": null,
-    "sizePixels": 24624
+    "element": "#hero",
+    "elementType": "Image",
+    "url": "http://127.0.0.1:56834/hero.png",
+    "sizePixels": 10000
   }
 }
 ```

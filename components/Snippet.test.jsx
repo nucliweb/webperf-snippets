@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Snippet } from "./Snippet";
+import { Snippet, SnippetExample } from "./Snippet";
 
 const CODE = "(() => ({ script: 'Demo', status: 'ok' }))()";
 const PROMPT = "# Run the Demo snippet with webperf-snippets\n\nRun this measurement with the CLI.";
@@ -28,17 +28,18 @@ describe("Snippet", () => {
     expect(html).not.toMatch(/Copy prompt/);
   });
 
-  it("renders a captured return object below the snippet when one is provided", () => {
+  it("renders a captured return object without an internal heading so the page heading owns the TOC entry", () => {
     const example = { script: "Demo", status: "ok", value: 42 };
-    const html = renderToStaticMarkup(<Snippet code={CODE} example={example} />);
+    const html = renderToStaticMarkup(<SnippetExample example={example} />);
     expect(html).toContain('<section class="wp-snippet-example" aria-label="Returned object example">');
-    expect(html).toContain("<h3>Returned object</h3>");
+    expect(html).not.toContain("<h3");
     expect(html).toContain('&quot;value&quot;: 42');
   });
 
   it("does not render an example section when no captured object is provided", () => {
+    expect(renderToStaticMarkup(<SnippetExample />)).toBe("");
     const html = renderToStaticMarkup(<Snippet code={CODE} />);
-    expect(html).not.toContain("Returned object");
+    expect(html).not.toContain("wp-snippet-example");
   });
 
   it("keeps the Copy code button", () => {

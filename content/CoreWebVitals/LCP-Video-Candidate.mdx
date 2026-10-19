@@ -6,8 +6,8 @@ browserSupport:
 ---
 
 import snippet from '../../snippets/CoreWebVitals/LCP-Video-Candidate.js?raw'
-import examples from '../../skills/webperf-core-web-vitals/references/examples.json'
-import { Snippet } from '../../components/Snippet'
+import examples from '../../snippets/CoreWebVitals/examples.json'
+import { Snippet, SnippetExample } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
 
 # LCP video candidate
@@ -62,7 +62,11 @@ The `poster` URL in the `<link>` and the `<video>` must be identical, including 
 
 ### Snippet
 
-<Snippet code={snippet} example={examples.examples["LCP-Video-Candidate"]} />
+<Snippet code={snippet} />
+
+### Returned object
+
+<SnippetExample example={examples.examples["LCP-Video-Candidate"]} />
 
 ### Understanding the results
 
