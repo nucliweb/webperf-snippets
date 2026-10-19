@@ -301,13 +301,15 @@ The phases describe the whole interaction, not one of its events. A tap fires `p
     "subParts": {
       "ttfb": { "value": 450, "percent": 21, "overTarget": false },
       "resourceLoadDelay": { "value": 120, "percent": 6, "overTarget": false },
-      "resourceLoadTime": { "value": 1200, "percent": 57, "overTarget": true },
+      "resourceLoadTime": { "value": 1200, "percent": 57, "overTarget": true, "waiting": 1040, "download": 160 },
       "elementRenderDelay": { "value": 330, "percent": 16, "overTarget": true }
     },
     "slowestPhase": "resourceLoadTime"
   }
 }
 ```
+
+`resourceLoadTime.waiting` is the time until the first byte of the response of the LCP resource, and `resourceLoadTime.download` the time to download its body. Both are missing when Resource Timing hides that timing (another origin without `Timing-Allow-Origin`).
 
 #### LCP-Trail
 

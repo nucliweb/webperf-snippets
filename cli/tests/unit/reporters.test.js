@@ -173,6 +173,41 @@ describe("reportHuman", () => {
     expect(output).toContain("eager-below-fold");
     expect(output).toContain("5 image(s) outside the viewport");
   });
+
+  describe("the LCP sub-parts", () => {
+    const subParts = (resourceLoadTime) => ({
+      ...samplePayload,
+      results: [
+        {
+          id: "LCP-Subparts",
+          status: "ok",
+          metric: "LCP",
+          value: 2036,
+          unit: "ms",
+          rating: "good",
+          details: {
+            subParts: {
+              ttfb: { value: 7, percent: 0, overTarget: false },
+              resourceLoadDelay: { value: 13, percent: 1, overTarget: false },
+              resourceLoadTime,
+              elementRenderDelay: { value: 12, percent: 1, overTarget: false },
+            },
+            slowestPhase: "resourceLoadTime",
+          },
+        },
+      ],
+    });
+
+    it("split the Resource Load Time into the wait for the server and the download", () => {
+      const output = reportHuman(subParts({ value: 2004, percent: 98, overTarget: true, waiting: 2002, download: 2 }));
+      expect(output).toMatch(/2002ms waiting for the server, 2ms downloading/);
+    });
+
+    it("show no split when the snippet could not measure it", () => {
+      const output = reportHuman(subParts({ value: 2004, percent: 98, overTarget: true }));
+      expect(output).not.toContain("waiting for the server");
+    });
+  });
 });
 
 describe("reportMarkdown", () => {
