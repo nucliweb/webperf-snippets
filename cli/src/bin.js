@@ -11,6 +11,7 @@ import { reportJson } from "./reporters/json.js";
 import { reportMarkdown } from "./reporters/markdown.js";
 import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
 import { fetchCrux, formFactorFor } from "./crux.js";
+import { MissingBrowserError } from "./browser.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -230,6 +231,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  process.stderr.write(`Error: ${err.stack ?? err.message}\n`);
+  // A missing Chromium is a step of the setup, not a bug: the message says what to run, without a stack
+  process.stderr.write(err instanceof MissingBrowserError ? `${err.message}\n` : `Error: ${err.stack ?? err.message}\n`);
   process.exit(1);
 });

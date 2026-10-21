@@ -34,7 +34,11 @@ export function createSessions({ launchBrowser, maxPages = 3, idleMs = 10 * 60 *
     }
     opening++;
     try {
-      browser ??= launchBrowser();
+      // A launch that fails (Chromium not installed yet) is not kept: the next page launches again
+      browser ??= launchBrowser().catch((err) => {
+        browser = null;
+        throw err;
+      });
       const context = await (await browser).newContext({ viewport });
       const page = await context.newPage();
       const session = { id: randomUUID(), context, page, pageErrors: [], tracking: [], hadInput: false };

@@ -11,6 +11,7 @@
     "build": "next build --webpack",
     "prebuild": "rm -rf .next && node scripts/generate-llms.js && node scripts/generate-page-markdown.mjs && node scripts/generate-webmcp-registry.mjs",
     "check:consistency": "node scripts/check-consistency.js",
+    "smoke:cli-package": "node scripts/smoke-cli-package.mjs",
     "test:demos": "node --test scripts/demos.test.js",
     "check:emoji": "node scripts/check-emoji.js",
     "test:icons": "node --test lib/rehype-icons.test.js lib/strip-emoji.test.js scripts/check-emoji.test.js",

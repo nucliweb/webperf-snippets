@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/server";
-import { chromium } from "playwright";
 import * as z from "zod/v4";
 import { cliVersion } from "../report-to.js";
 import { CATEGORIES, aliasesOf, listSnippets, resolveSnippetName } from "../snippet-names.js";
@@ -11,6 +10,7 @@ import { RULES } from "../decision-tree.js";
 import { fetchCrux } from "../crux.js";
 import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
+import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js";
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
 
@@ -87,7 +87,7 @@ function describeSnippet(name) {
 
 // The MCP server of the CLI: the same snippets and runner, offered as tools an agent calls by name.
 // serveStdio creates one instance per connection, so the pages it keeps open belong to that client.
-export function createServer({ launchBrowser = () => chromium.launch(), maxPages, idleMs, env = process.env } = {}) {
+export function createServer({ launchBrowser = () => launchChromium(), maxPages, idleMs, env = process.env } = {}) {
   const server = new McpServer({ name: "webperf-snippets", version: cliVersion });
   const sessions = createSessions({ launchBrowser, maxPages, idleMs });
   // The client left (end of stdin, or a closed transport): close the pages and Chromium
@@ -164,6 +164,7 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
         const { id, ...result } = run.results[0];
         return toolResult({ url, snippet: id, viewport, navMs: run.navMs, pageErrors: run.pageErrors, result });
       } catch (err) {
+        if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
         return toolError(`The run failed: ${firstLine(err.message)}`);
       }
@@ -212,6 +213,7 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
         );
         return toolResult({ url, workflow, viewport, navMs: run.navMs, pageErrors: run.pageErrors, results });
       } catch (err) {
+        if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
         return toolError(`The run failed: ${firstLine(err.message)}`);
       }
@@ -292,7 +294,13 @@ export function createServer({ launchBrowser = () => chromium.launch(), maxPages
         items.push({ id: path, path, source });
       }
 
-      const session = await sessions.create({ viewport: VIEWPORT_PRESETS[viewport], signal: ctx.mcpReq.signal });
+      let session;
+      try {
+        session = await sessions.create({ viewport: VIEWPORT_PRESETS[viewport], signal: ctx.mcpReq.signal });
+      } catch (err) {
+        if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
+        throw err;
+      }
       try {
         const navStart = Date.now();
         await session.page.goto(url, { waitUntil: "load", timeout: NAV_TIMEOUT_MS });

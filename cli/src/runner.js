@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { launchChromium } from "./browser.js";
 import { loadSnippet } from "./load-snippet.js";
 import { runInteractions, loadInteractionSteps, isInputStep, settle } from "./interactions.js";
 import { isTrackingSnippet } from "./tracking.js";
@@ -101,7 +101,7 @@ export async function runSnippets({
   onProgress = () => {},
 }) {
   await onProgress(1, "Opening Chromium");
-  const browser = await chromium.launch({ headless });
+  const browser = await launchChromium({ headless });
   try {
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
@@ -134,7 +134,7 @@ export async function runMeasurement({
   onProgress = () => {},
 }) {
   await onProgress(1, "Opening Chromium");
-  const browser = await chromium.launch({ headless });
+  const browser = await launchChromium({ headless });
   try {
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
