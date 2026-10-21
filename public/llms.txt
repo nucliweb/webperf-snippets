@@ -10,6 +10,7 @@
 ## Guides
 
 - [WebPerf Snippets CLI](https://webperf-snippets.net/CLI.md)
+- [MCP server](https://webperf-snippets.net/MCP.md)
 - [DevTools extension](https://webperf-snippets.net/extension.md)
 - [Which snippet should I use?](https://webperf-snippets.net/which-snippet.md)
 

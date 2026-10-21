@@ -26,6 +26,9 @@ export default {
   "CLI": {
     "title": "CLI"
   },
+  "MCP": {
+    "title": "MCP server"
+  },
   "extension": {
     "title": "DevTools extension (beta)"
   },
