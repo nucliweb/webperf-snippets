@@ -6,13 +6,19 @@ const path = require('node:path')
 const { execFileSync } = require('node:child_process')
 const { checkTag } = require('./check-tag-version')
 
-// A repository with the three versioned parts: the collection, the CLI and the extension
-function repo({ collection = '2.0.1', cli = '1.0.0', extension = '0.1.1' } = {}) {
+// A repository with the three versioned parts: the collection, the CLI (with the server.json of its
+// MCP server) and the extension
+const MCP_NAME = 'io.github.nucliweb/webperf-snippets'
+function repo({ collection = '2.0.1', cli = '1.0.0', extension = '0.1.1', server = cli, serverPackage = server, serverName = MCP_NAME } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tag-version-'))
   fs.mkdirSync(path.join(root, 'cli'))
   fs.mkdirSync(path.join(root, 'extension'))
   fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ version: collection }))
-  fs.writeFileSync(path.join(root, 'cli', 'package.json'), JSON.stringify({ version: cli }))
+  fs.writeFileSync(path.join(root, 'cli', 'package.json'), JSON.stringify({ version: cli, mcpName: MCP_NAME }))
+  fs.writeFileSync(
+    path.join(root, 'cli', 'server.json'),
+    JSON.stringify({ name: serverName, version: server, packages: [{ registryType: 'npm', identifier: 'webperf-snippets', version: serverPackage }] })
+  )
   fs.writeFileSync(path.join(root, 'extension', 'manifest.json'), JSON.stringify({ version: extension }))
   return root
 }
@@ -25,6 +31,23 @@ test('a v* tag matches the version of the collection in package.json', () => {
 test('a cli-v* tag matches the version of cli/package.json, not the one of the collection', () => {
   assert.deepEqual(checkTag('cli-v1.0.0', repo()), { ok: true, file: 'cli/package.json', version: '1.0.0' })
   assert.equal(checkTag('cli-v2.0.1', repo()).ok, false)
+})
+
+test('a cli-v* tag also matches the version of cli/server.json and of the npm package it lists', () => {
+  assert.equal(checkTag('cli-v1.1.0', repo({ cli: '1.1.0' })).ok, true)
+  const server = checkTag('cli-v1.1.0', repo({ cli: '1.1.0', server: '1.0.0' }))
+  assert.equal(server.ok, false)
+  assert.match(server.message, /1\.0\.0 of cli\/server\.json/)
+  const pkg = checkTag('cli-v1.1.0', repo({ cli: '1.1.0', serverPackage: '1.0.0' }))
+  assert.equal(pkg.ok, false)
+  assert.match(pkg.message, /packages\[0\]\.version/)
+})
+
+test('the name of cli/server.json is the mcpName of cli/package.json, which the MCP Registry checks', () => {
+  const { ok, message } = checkTag('cli-v1.0.0', repo({ serverName: 'io.github.someone/else' }))
+  assert.equal(ok, false)
+  assert.match(message, /io\.github\.someone\/else/)
+  assert.match(message, /mcpName/)
 })
 
 test('an extension-v* tag matches the version of extension/manifest.json', () => {
