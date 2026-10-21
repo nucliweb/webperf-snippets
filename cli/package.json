@@ -1,6 +1,6 @@
 {
   "name": "webperf-snippets",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "mcpName": "io.github.nucliweb/webperf-snippets",
   "description": "Run curated WebPerf Snippets headlessly via Playwright. Diagnose Core Web Vitals beyond what Lighthouse exposes.",
   "type": "module",
