@@ -107,6 +107,34 @@ async function run(route, { withoutLoaf = false, frames } = {}) {
   }
 }
 
+// A script that blocks while the page parses makes a long animation frame, and on a busy machine
+// that frame can reach the performance timeline after the fixed wait of run(): CI failed twice with
+// 0 ms for the script, which never happened on a laptop or in Docker. This waits up to 5 s for the
+// frame, and returns the frames the page saw, so a failure says whether the frame was missing or
+// came without the script.
+async function runAfterLongFrame(route) {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    await page.goto(`${pageBase}${route}`, { waitUntil: "load" });
+    const start = Date.now();
+    await page
+      .waitForFunction(() => performance.getEntriesByType("long-animation-frame").length > 0, null, { timeout: 5000 })
+      .catch(() => {});
+    const waitedMs = Date.now() - start;
+    const result = await page.evaluate(asExpression("Loading/Third-Party-Impact-by-Domain"));
+    const frames = await page.evaluate(() =>
+      performance.getEntriesByType("long-animation-frame").map((frame) => ({
+        duration: Math.round(frame.duration),
+        scripts: frame.scripts.map((s) => ({ sourceURL: s.sourceURL, invokerType: s.invokerType, duration: Math.round(s.duration) })),
+      }))
+    );
+    return { result, frames, waitedMs };
+  } finally {
+    await browser.close();
+  }
+}
+
 async function summaryLine(route) {
   const browser = await chromium.launch();
   try {
@@ -286,9 +314,9 @@ describe("Third-Party-Impact-by-Domain", () => {
   }, 30000);
 
   it("warns when one domain holds a large share of main-thread time", async () => {
-    const r = await run("/heavy");
+    const { result: r, frames, waitedMs } = await runAfterLongFrame("/heavy");
     const other = r.items.find((i) => i.domain === "other.localhost");
-    expect(other.loafMs).toBeGreaterThan(250);
+    expect(other.loafMs, `long animation frames after waiting ${waitedMs} ms: ${JSON.stringify(frames)}`).toBeGreaterThan(250);
     expect(r.issues.some((i) => i.severity === "warning" && /main-thread/.test(i.message))).toBe(true);
     const light = await run("/");
     expect(light.issues.some((i) => /main-thread/.test(i.message))).toBe(false);
