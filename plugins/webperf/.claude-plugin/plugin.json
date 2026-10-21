@@ -1,0 +1,21 @@
+{
+  "name": "webperf",
+  "displayName": "WebPerf Snippets",
+  "version": "1.0.0",
+  "description": "The MCP server of WebPerf Snippets: run the snippets and workflows on a headless Chromium, and read CrUX field data",
+  "author": {
+    "name": "Joan Leon",
+    "url": "https://webperf-snippets.net"
+  },
+  "homepage": "https://webperf-snippets.net/MCP",
+  "repository": "https://github.com/nucliweb/webperf-snippets",
+  "license": "MIT",
+  "keywords": [
+    "web-performance",
+    "core-web-vitals",
+    "lcp",
+    "inp",
+    "cls",
+    "mcp"
+  ]
+}

@@ -30,6 +30,14 @@ Without it, the tools answer with that same command, and an agent with a termina
 claude mcp add webperf -- npx -y webperf-snippets mcp
 ```
 
+Or install the `webperf` plugin, which adds the same server with the major version of the CLI pinned, so a breaking release does not reach it:
+
+```bash
+/plugin install webperf --marketplace nucliweb/webperf-snippets
+```
+
+On Claude Code versions before 2.1.275, add the marketplace first with `/plugin marketplace add nucliweb/webperf-snippets`, then run `/plugin install webperf@webperf-snippets`.
+
 ### Cursor, Claude Desktop, Gemini CLI and Antigravity
 
 These clients read a JSON file with an `mcpServers` object:
@@ -102,6 +110,8 @@ The prompts chain the tools for a common task, each with a `url` argument: `audi
 ```bash
 claude mcp add webperf -e CRUX_API_KEY=<key> -- npx -y webperf-snippets mcp
 ```
+
+The server of the plugin reads `CRUX_API_KEY` from the environment of Claude Code: export it in your shell before you start Claude Code.
 
 ```json
 {

@@ -36,6 +36,8 @@ public/llms.txt, public/llms-full.txt   Generated
 public/<page>.md        Markdown version of each page, generated before the build and not committed (lib/page-markdown.mjs)
 cli/                    Playwright CLI, workflows, e2e tests and fixtures
 extension/              Chrome DevTools panel that runs the snippets (MV3, loaded unpacked)
+.claude-plugin/         Marketplace of Claude Code, with the plugins of plugins/
+plugins/webperf/        Claude Code plugin with the MCP server of the CLI (npx -y webperf-snippets@1 mcp)
 scripts/                Generators, checks and their tests
 workspace/              Local notes, ignored by git
 ```
