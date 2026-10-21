@@ -38,6 +38,12 @@ The CLI includes an MCP server: an agent in any MCP client (Claude Code, Cursor,
 claude mcp add webperf -- npx -y webperf-snippets mcp
 ```
 
+In Claude Code, the `webperf` plugin installs the same server:
+
+```bash
+/plugin install webperf --marketplace nucliweb/webperf-snippets
+```
+
 See the [MCP server documentation](https://webperf-snippets.net/MCP) for other clients, the tools, the resources and prompts, and the CrUX key.
 
 ### Agent skills

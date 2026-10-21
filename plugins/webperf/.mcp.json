@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "webperf": {
+      "command": "npx",
+      "args": ["-y", "webperf-snippets@1", "mcp"]
+    }
+  }
+}

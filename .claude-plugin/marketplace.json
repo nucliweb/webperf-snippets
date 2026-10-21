@@ -1,0 +1,15 @@
+{
+  "name": "webperf-snippets",
+  "description": "Web performance measurement for AI agents, from WebPerf Snippets",
+  "owner": {
+    "name": "Joan Leon",
+    "url": "https://webperf-snippets.net"
+  },
+  "plugins": [
+    {
+      "name": "webperf",
+      "source": "./plugins/webperf",
+      "description": "The MCP server of WebPerf Snippets: run the snippets and workflows on a headless Chromium, and read CrUX field data"
+    }
+  ]
+}
