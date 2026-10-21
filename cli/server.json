@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.nucliweb/webperf-snippets",
+  "title": "WebPerf Snippets",
+  "description": "Measure Core Web Vitals and debug web performance with 56 snippets in a headless Chromium",
+  "websiteUrl": "https://webperf-snippets.net",
+  "repository": {
+    "url": "https://github.com/nucliweb/webperf-snippets",
+    "source": "github",
+    "subfolder": "cli"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "webperf-snippets",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "CRUX_API_KEY",
+          "description": "Chrome UX Report API key for the field data of get_crux; the other tools work without it",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

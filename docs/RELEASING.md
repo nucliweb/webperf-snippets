@@ -5,10 +5,10 @@ The repository publishes three parts, each with its own version and tag:
 | Part | Version in | Tag | Workflow | Publishes |
 |---|---|---|---|---|
 | Collection and skills | [package.json](../package.json) | `v*` | [release.yml](../.github/workflows/release.yml) | GitHub Release with the skill zips |
-| CLI | [cli/package.json](../cli/package.json) | `cli-v*` | [publish-cli.yml](../.github/workflows/publish-cli.yml) | `webperf-snippets` on npm |
+| CLI | [cli/package.json](../cli/package.json) | `cli-v*` | [publish-cli.yml](../.github/workflows/publish-cli.yml) | `webperf-snippets` on npm, and its MCP server in the MCP Registry |
 | DevTools extension | [extension/manifest.json](../extension/manifest.json) | `extension-v*` | [release-extension.yml](../.github/workflows/release-extension.yml) | GitHub prerelease with the extension zip |
 
-Each workflow first runs `node scripts/check-tag-version.js <tag>`, which fails when the tag does not match the version of its file, so a mistyped tag publishes nothing. Run it locally before pushing a tag:
+Each workflow first runs `node scripts/check-tag-version.js <tag>`, which fails when the tag does not match the version of its file, so a mistyped tag publishes nothing. For the CLI it also checks [cli/server.json](../cli/server.json): its version, the version of the npm package it lists, and its name, which has to be the `mcpName` of `cli/package.json`. Run it locally before pushing a tag:
 
 ```bash
 node scripts/check-tag-version.js cli-v1.1.0
@@ -71,6 +71,16 @@ git push origin cli-v1.1.0
 
 The workflow runs the CLI unit and E2E tests, copies `snippets/` into `cli/` and publishes from there.
 
+It publishes with no stored secret. npm accepts the OIDC token of the run through trusted publishing, configured on npmjs.com for this repository, `publish-cli.yml` and the `npm-publish` environment, and adds the provenance of the package. Then `mcp-publisher` logs in to the MCP Registry with the same token (`login github-oidc`, which allows the `io.github.nucliweb/*` names) and publishes `cli/server.json`. The registry checks that the npm package carries that name in `mcpName`, so the step retries for three minutes while npm lists the new version.
+
+If npm published and the registry step failed, publish `cli/server.json` from a clone instead of tagging again, since npm rejects a version twice:
+
+```bash
+cd cli
+mcp-publisher login github
+mcp-publisher publish
+```
+
 ## DevTools extension (`extension-v*`)
 
 1. Update the version in [extension/manifest.json](../extension/manifest.json) and merge the pull request.
@@ -91,3 +101,4 @@ The workflow tests the zip and publishes it on a GitHub prerelease, so it never 
 - `_meta.js` entries drift from the actual MDX files
 - Published snippet counts in `README.md`, `SKILLS.md`, or `skills/webperf/SKILL.md` are outdated
 - The CLI publish waits forever: the `npm-publish` environment needs its approval.
+- The CLI publish fails at npm with an authentication error: the trusted publisher on npmjs.com has to name this repository, `publish-cli.yml` and the `npm-publish` environment.

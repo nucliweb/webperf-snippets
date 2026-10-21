@@ -9,8 +9,11 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment: npm-publish
+    # id-token: the OIDC token of the run, which npm (trusted publishing) and the MCP Registry
+    # accept instead of a stored secret
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -19,9 +22,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing needs npm 11.5.1 or later
+      - name: Update npm
+        run: npm install -g npm@^11.5.1
 
       - name: Check the version of the tag
         run: node scripts/check-tag-version.js "$GITHUB_REF_NAME"
@@ -42,8 +48,24 @@ jobs:
       - name: Prepare snippets for publishing
         run: cp -r snippets cli/
 
+      # Trusted publishing: npm exchanges the OIDC token of this workflow for a short-lived one, and adds
+      # the provenance of the package
       - name: Publish to npm
         run: npm publish
         working-directory: cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install mcp-publisher
+        run: curl -sSL "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+
+      # The registry checks that the npm package of cli/server.json carries its name in mcpName, so it
+      # waits for npm to list the version it has just published
+      - name: Publish to the MCP Registry
+        working-directory: cli
+        run: |
+          ../mcp-publisher login github-oidc
+          for attempt in 1 2 3 4 5 6; do
+            ../mcp-publisher publish && exit 0
+            echo "Attempt $attempt failed, npm may not list the version yet"
+            sleep 30
+          done
+          exit 1
