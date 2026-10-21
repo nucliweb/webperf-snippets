@@ -212,6 +212,8 @@ The results of a run can add steps on the same page load: LCP over 2.5 s adds `L
 claude mcp add webperf -- npx -y webperf-snippets mcp
 ```
 
+It needs the Chromium of Playwright (`npx playwright install chromium`); without it, the tools answer with that command. The [MCP server documentation](https://webperf-snippets.net/MCP) has the configuration of other clients (Cursor, VS Code, Claude Desktop, Gemini CLI). The server is listed in the [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.nucliweb/webperf-snippets`.
+
 | Tool            | What it does                                                                 |
 | --------------- | ---------------------------------------------------------------------------- |
 | `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |

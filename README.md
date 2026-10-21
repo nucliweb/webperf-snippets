@@ -19,6 +19,7 @@ AI agents are good at interpreting performance data and unreliable when they wri
 | You want to                                           | Use                                                              |
 | ----------------------------------------------------- | ---------------------------------------------------------------- |
 | Audit a URL with any agent that has a terminal        | The [Copy prompt](#copy-prompt) button on each snippet page      |
+| Give an agent the snippets as tools                   | The [MCP server](#mcp-server)                                    |
 | Let the agent drive your Chrome (login, interactions) | The [Agent Skills](#agent-skills) with Chrome DevTools MCP       |
 | Run snippets from scripts or CI                       | The [CLI](#cli)                                                  |
 | Give an agent the whole documentation                 | [`llms.txt`](https://webperf-snippets.net/llms.txt) ([details](#documentation-for-agents)) |
@@ -28,6 +29,16 @@ Not sure which snippet to run? Start from the symptom in [Which snippet should I
 ### Copy prompt
 
 Snippet pages have a **Copy prompt** button above the code. It copies a prompt that asks any AI agent with a terminal to run that snippet with the [CLI](#cli) on the URL you give it, and to report the value, the cause and the issues. The agent runs the published snippet instead of rewriting it or estimating the result.
+
+### MCP server
+
+The CLI includes an MCP server: an agent in any MCP client (Claude Code, Cursor, VS Code, Gemini CLI) calls the snippets and the workflows as tools, on a headless Chromium, and reads the object each one returns. It is listed in the [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.nucliweb/webperf-snippets`.
+
+```bash
+claude mcp add webperf -- npx -y webperf-snippets mcp
+```
+
+See the [MCP server documentation](https://webperf-snippets.net/MCP) for other clients, the tools, the resources and prompts, and the CrUX key.
 
 ### Agent skills
 

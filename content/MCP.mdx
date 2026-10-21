@@ -1,0 +1,151 @@
+---
+type: guide
+---
+
+import { Callout } from '../components/Callout'
+
+# MCP server
+
+The CLI includes a [Model Context Protocol](https://modelcontextprotocol.io) server, so an AI agent calls the snippets as tools instead of reading their source or writing its own measurement code. It opens the page in a headless Chromium, runs the published snippet and returns the object the snippet returns, which follows the [result contract](https://github.com/nucliweb/webperf-snippets/blob/main/snippets/SCHEMA.md).
+
+```bash
+npx -y webperf-snippets mcp
+```
+
+The server runs over stdio: the client starts this command and talks to it through its standard input and output. It is listed in the [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.nucliweb/webperf-snippets`.
+
+## Install
+
+The server needs Node.js 20.12 or later and the Chromium of Playwright, which npx does not download:
+
+```bash
+npx playwright install chromium
+```
+
+Without it, the tools answer with that same command, and an agent with a terminal can run it and call the tool again.
+
+### Claude Code
+
+```bash
+claude mcp add webperf -- npx -y webperf-snippets mcp
+```
+
+### Cursor, Claude Desktop, Gemini CLI and Antigravity
+
+These clients read a JSON file with an `mcpServers` object:
+
+| Client | File |
+| --- | --- |
+| Cursor | `.cursor/mcp.json` in the project, or `~/.cursor/mcp.json` for every project |
+| Claude Desktop | `claude_desktop_config.json`, opened from Settings → Developer → Edit Config |
+| Gemini CLI | `.gemini/settings.json` in the project, or `~/.gemini/settings.json` |
+| Antigravity | `.agents/mcp_config.json` in the workspace, or `~/.gemini/config/mcp_config.json`; in the editor, MCP Servers → Manage MCP Servers → View raw config |
+
+```json
+{
+  "mcpServers": {
+    "webperf": {
+      "command": "npx",
+      "args": ["-y", "webperf-snippets", "mcp"]
+    }
+  }
+}
+```
+
+### VS Code
+
+`.vscode/mcp.json` in the workspace, or the `mcp.json` of the user profile, names the object `servers` and requires the transport:
+
+```json
+{
+  "servers": {
+    "webperf": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "webperf-snippets", "mcp"]
+    }
+  }
+}
+```
+
+## Tools
+
+| Tool | What it does |
+| --- | --- |
+| `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |
+| `run_snippet` | Opens a URL in a headless Chromium, runs one snippet and returns the object it returns. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport` and `waitMs`. |
+| `run_workflow` | Runs a workflow (`core-web-vitals`, `audit`, `loading`, `interaction`) and the follow-ups of its decision tree, such as LCP-Subparts when LCP is over 2.5 s. Takes `url`, `workflow`, and optional `viewport` and `waitMs`. |
+| `get_crux` | Returns the CrUX p75 of LCP, CLS and INP for a URL, or for its origin. Takes `url` and an optional `formFactor` (`phone`, `desktop`, `tablet`). |
+| `open_page` | Opens a URL in a page that stays open between calls and installs tracking snippets (`track`, such as `INP`). Returns a `sessionId`. |
+| `interact` | Runs steps on an open page: `click`, `type`, `hover`, `scroll` or `wait`. |
+| `read_results` | Returns what the tracking snippets of an open page have recorded. |
+| `close_page` | Closes an open page. |
+
+The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with `open_page`: the agent installs them, clicks or types with `interact` and reads them with `read_results`. At most three pages are open at a time, a page closes after 10 minutes without use, and every page and Chromium close when the client disconnects.
+
+## Resources and prompts
+
+The resources are documents a client can attach to the context:
+
+| Resource | What it has |
+| --- | --- |
+| `webperf://schema` | The contract every snippet result follows: base shape, statuses, how to read a result. |
+| `webperf://schema/{snippet}` | The fields one snippet returns, with an example. |
+| `webperf://workflows/{category}` | The workflows and the decision tree of a category. |
+
+The prompts chain the tools for a common task, each with a `url` argument: `audit_lcp`, `debug_inp` and `audit_page`. In Claude Code they run as `/mcp__webperf__audit_lcp`.
+
+## CrUX field data
+
+`get_crux` needs a [CrUX API key](https://developer.chrome.com/docs/crux/api), free in the Google Cloud console, in the `CRUX_API_KEY` variable of the server. It goes in the configuration of the client, never in a tool argument:
+
+```bash
+claude mcp add webperf -e CRUX_API_KEY=<key> -- npx -y webperf-snippets mcp
+```
+
+```json
+{
+  "mcpServers": {
+    "webperf": {
+      "command": "npx",
+      "args": ["-y", "webperf-snippets", "mcp"],
+      "env": { "CRUX_API_KEY": "<key>" }
+    }
+  }
+}
+```
+
+In VS Code, an input keeps the key out of `.vscode/mcp.json`: VS Code asks for it the first time the server starts and stores it.
+
+```json
+{
+  "inputs": [
+    { "type": "promptString", "id": "crux-api-key", "description": "CrUX API key", "password": true }
+  ],
+  "servers": {
+    "webperf": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "webperf-snippets", "mcp"],
+      "env": { "CRUX_API_KEY": "${input:crux-api-key}" }
+    }
+  }
+}
+```
+
+<Callout type="info">
+An app opened from the Dock or the Start menu does not get the variables of your shell. If `CRUX_API_KEY` is only exported in your shell profile, set it in `env`. Keep a file with the key out of version control.
+</Callout>
+
+The other tools work without the key.
+
+## MCP server or Chrome DevTools MCP
+
+The server measures a page in its own headless Chromium, with a fresh profile: no login, no extensions and no cache from earlier visits. To measure a page as you see it in your browser, with your session, use the [Agent Skills](/#agent-skills) with [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp), which run the same snippets in your Chrome.
+
+## Further reading
+
+- [Model Context Protocol](https://modelcontextprotocol.io) | modelcontextprotocol.io
+- [CLI](/CLI) | The same snippets and workflows from the command line and CI
+- [Result contract of the snippets](https://github.com/nucliweb/webperf-snippets/blob/main/snippets/SCHEMA.md) | GitHub
+- [Why the server is a subcommand of the CLI](https://github.com/nucliweb/webperf-snippets/blob/main/docs/adr/0002-mcp-server-as-cli-subcommand.md) | ADR 0002
