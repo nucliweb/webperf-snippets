@@ -8,18 +8,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.1.0] — 2026-10-21
+
 ### Added
 - `webperf-snippets mcp` starts an MCP server over stdio, for AI agents, with a `list_snippets` tool that lists the snippets with their category, title, aliases and whether they track interactions. It answers clients of the 2026-07-28 revision of the protocol and of the earlier ones. The `@modelcontextprotocol/server` SDK is a new dependency, loaded only by this command.
 - The `run_snippet` tool of the MCP server opens a URL, runs one snippet and returns its result object, with progress notifications. A page that does not load or an unknown snippet comes back as a tool error the agent can act on; a snippet that reports an error stays a result.
 - The MCP server keeps pages open between calls for the tracking snippets: `open_page` installs them and returns a session id, `interact` clicks, types, hovers, scrolls or waits, `read_results` returns what they recorded and `close_page` closes the page. At most three pages are open, an unused page closes after 10 minutes, and a cancelled call or a client that disconnects closes its pages and Chromium.
 - The `run_workflow` tool of the MCP server runs the workflows of the CLI with the follow-ups of their decision tree, and `get_crux` returns CrUX field data with the key read from `CRUX_API_KEY` in the environment of the server.
 - The MCP server offers the result contract of the snippets (`webperf://schema`, and one section per snippet at `webperf://schema/{snippet}`) and the workflows of each category (`webperf://workflows/{category}`) as resources, and the prompts `audit_lcp`, `debug_inp` and `audit_page`, which chain the tools with the schema sections the answer needs.
+- The MCP server is listed in the MCP Registry as `io.github.nucliweb/webperf-snippets` (`server.json`, and `mcpName` in `package.json`). The package is published with npm provenance.
 
 ### Changed
 - With `--crux-key`, the CrUX object of the JSON report has `failed: true` when the API answers with an error or does not answer, next to `unavailable`. A page with no field data keeps only `unavailable`.
 - The examples of `--help` and of the README run the CLI on `https://example.com`, a domain reserved for documentation, instead of a real site.
+- The snippets the CLI runs include changes since 1.0.0 that alter their results:
+  - `LCP-Subparts` splits the Resource Load Time into `waiting` (until the first byte of the response) and `download`, in `details.subParts.resourceLoadTime`, when Resource Timing exposes them. The human report shows the split under the row.
+  - `INP`, `Interactions` and `Input-Latency-Breakdown` measure the phases over the whole interaction, not over one of its events: a slow click handler comes out as `click` with the processing as the bottleneck, not as `pointerup` with 0 ms of processing. `Interactions` and `Input-Latency-Breakdown` return `unsupported` in browsers without Event Timing.
+  - `Script-Loading` lists a `nomodule` script with the strategy `nomodule`, never as blocking.
+  - `Inline-Script-Info-and-Size` tells framework data payloads from scripts, with `isDataPayload` and `details.dataPayloadCount`, and counts analytics only from a call or definition.
+  - `LCP-Image-Entropy` divides by the displayed area of the image, capped at its natural area, as Chrome does, with `displayedWidth` and `displayedHeight`.
 
 ### Fixed
+- Without Chromium, which npx does not download, `run_snippet`, `run_workflow`, `open_page` and the CLI say how to install it: `npx playwright install chromium`. The CLI prints it without a stack and exits with `1`. After the install, `open_page` works without restarting the MCP server.
 - After an interaction script with a click or a key press, the tracking snippets (INP, Interactions, Input-Latency-Breakdown) report the interactions on a loaded machine too. The browser can deliver their timing later than the frames the runner waited for, and the result was "No interactions recorded yet". The runner reads a snippet that has no data yet again, every 100 ms, for up to 2 seconds.
 
 ---
@@ -128,7 +140,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.0.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.1.0...HEAD
+[1.1.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.0.0...cli-v1.1.0
 [1.0.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.5.0...cli-v1.0.0
 [0.5.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.4.1...cli-v0.5.0
 [0.4.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.4.0...cli-v0.4.1

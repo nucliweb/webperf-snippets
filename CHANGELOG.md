@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - `npm run eval:mcp`: the same question about a local page with a known answer, asked to an agent with the webperf MCP server, with Chrome DevTools MCP and the webperf skills, and with Chrome DevTools MCP alone, graded on the diagnosis and measured in tokens, turns and time. It runs by hand, not in CI.
+- `npm run smoke:cli-package`: packs the CLI as the publish workflow does, installs it in an empty folder and checks its MCP server without Chromium and after `npx playwright install chromium`. It runs by hand before a release of the CLI.
+- LCP-Subparts splits the Resource Load Time into the wait for the server and the download of the resource, in `details.subParts.resourceLoadTime.waiting` and `.download`, from its Resource Timing entry. When the wait is the larger part of the slowest phase, the console recommends the server, CDN and cache instead of compressing the image. The split is missing when another origin hides its timing (no `Timing-Allow-Origin`).
 
 ### Changed
 - CI skips the build and the end-to-end tests on its own when a pull request only changes documentation, instead of waiting for the `skip-e2e` label. Opening a pull request with the label fired two runs and cancelled one, which showed as a failed check.
@@ -17,6 +19,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `getINPDetails()` of INP returns a result object, `{ script, status, count, items }`, like the other functions the snippets expose, instead of an array. `items` holds the 15 slowest interactions as plain data, with the target as a CSS selector instead of the DOM element. Code or agents that read the array need to read `items`.
 
 ### Fixed
+- The generated skills run in the conversation of the agent, not in a forked context (`context: fork`): a forked skill runs in a subagent that does not get the conversation, so it did not know the URL or the open page and answered that it had no page to measure.
 - INP, Interactions and Input-Latency-Breakdown measure the phases over the whole interaction, not over one of its events. A slow click handler was reported as `pointerup`, with 0 ms of processing and the presentation as the bottleneck; it is reported as `click`, with the processing as the bottleneck. An interaction whose entries arrive in separate observer callbacks counts once.
 - Interactions and Input-Latency-Breakdown return `unsupported` in browsers without Event Timing.
 - Script-Loading lists a `nomodule` script with the strategy `nomodule`, never as blocking: browsers with modules never fetch it.
