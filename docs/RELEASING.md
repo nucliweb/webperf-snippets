@@ -71,7 +71,7 @@ git push origin cli-v1.1.0
 
 The workflow runs the CLI unit and E2E tests, copies `snippets/` into `cli/` and publishes from there.
 
-It publishes with no stored secret. npm accepts the OIDC token of the run through trusted publishing, configured on npmjs.com for this repository, `publish-cli.yml` and the `npm-publish` environment, and adds the provenance of the package. Then `mcp-publisher` logs in to the MCP Registry with the same token (`login github-oidc`, which allows the `io.github.nucliweb/*` names) and publishes `cli/server.json`. The registry checks that the npm package carries that name in `mcpName`, so the step retries for three minutes while npm lists the new version.
+It publishes with no stored secret. npm accepts the OIDC token of the run through trusted publishing, configured on npmjs.com for this repository, `publish-cli.yml` and the `npm-publish` environment, and adds the provenance of the package. Then `mcp-publisher` logs in to the MCP Registry with the same token (`login github-oidc`, which allows the `io.github.nucliweb/*` names) and publishes `cli/server.json`. The registry checks that the npm package carries that name in `mcpName`, so the step retries for five minutes while npm lists the new version.
 
 If npm published and the registry step failed, publish `cli/server.json` from a clone instead of tagging again, since npm rejects a version twice:
 
@@ -101,4 +101,4 @@ The workflow tests the zip and publishes it on a GitHub prerelease, so it never 
 - `_meta.js` entries drift from the actual MDX files
 - Published snippet counts in `README.md`, `SKILLS.md`, or `skills/webperf/SKILL.md` are outdated
 - The CLI publish waits forever: the `npm-publish` environment needs its approval.
-- The CLI publish fails at npm with an authentication error: the trusted publisher on npmjs.com has to name this repository, `publish-cli.yml` and the `npm-publish` environment.
+- The CLI publish fails at npm with an authentication error: the trusted publisher on npmjs.com has to name this repository, `publish-cli.yml` and the `npm-publish` environment, and allow `npm publish`: a trusted publisher that only allows `npm stage publish` rejects it with a 403.
