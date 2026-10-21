@@ -58,12 +58,12 @@ jobs:
         run: curl -sSL "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
 
       # The registry checks that the npm package of cli/server.json carries its name in mcpName, so it
-      # waits for npm to list the version it has just published
+      # waits for npm to list the version it has just published: 1.1.0 took about two and a half minutes
       - name: Publish to the MCP Registry
         working-directory: cli
         run: |
           ../mcp-publisher login github-oidc
-          for attempt in 1 2 3 4 5 6; do
+          for attempt in $(seq 10); do
             ../mcp-publisher publish && exit 0
             echo "Attempt $attempt failed, npm may not list the version yet"
             sleep 30
