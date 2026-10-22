@@ -127,17 +127,18 @@ export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttli
 // report of the median run of each combination folded into a details block, to keep a pull request
 // comment readable.
 export function reportMatrixMarkdown(report) {
-  const { file, summary, metrics, rows, errors } = matrixView(report);
+  const { file, summary, hasVariants, metrics, rows, errors } = matrixView(report);
+  const headings = ["Page", "Device", ...(hasVariants ? ["Variant"] : []), ...metrics];
   const row = (parts) => `|${parts.map((part) => (part ? ` ${part} ` : " ")).join("|")}|`;
 
   const lines = [`## WebPerf Results — ${file}`, `> ${summary}`, ""];
-  lines.push(row(["Page", "Device", "Variant", ...metrics]));
-  lines.push(`|${["Page", "Device", "Variant", ...metrics].map((h) => "-".repeat(h.length + 2)).join("|")}|`);
+  lines.push(row(headings));
+  lines.push(`|${headings.map((h) => "-".repeat(h.length + 2)).join("|")}|`);
   for (const { combination: c, cells } of rows) {
     const drawn = cells
       ? cells.map((cell) => (cell ? `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}` : "·"))
       : ["❌ every run failed", ...metrics.slice(1).map(() => "")];
-    lines.push(row([c.name, c.device, c.variant, ...drawn]));
+    lines.push(row([c.name, c.device, ...(hasVariants ? [c.variant] : []), ...drawn]));
   }
 
   if (errors.length) {

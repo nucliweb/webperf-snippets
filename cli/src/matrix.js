@@ -127,9 +127,10 @@ function readDevices(devices, flags) {
   });
 }
 
-// The variants by name. Without variants, one variant with no conditions of its own.
+// The variants by name. Without variants, one variant with no name and no conditions of its own,
+// so the combinations are the pages on the devices and the reports leave the variant out.
 function readVariants(variants, base, warnings) {
-  if (variants === undefined) return [{ name: "default", headers: {}, ownDomains: [] }];
+  if (variants === undefined) return [{ headers: {}, ownDomains: [] }];
   if (!isObject(variants)) throw new MatrixError("variants must be an object of names and variants");
   if (Object.keys(variants).length === 0) throw new MatrixError("variants has no variant");
 
@@ -206,11 +207,11 @@ export function loadMatrix(path, flags = {}) {
     for (const device of devices) {
       for (const variant of variants) {
         combinations.push({
-          id: `${name} · ${device.name} · ${variant.name}`,
+          id: [name, device.name, variant.name].filter(Boolean).join(" · "),
           name,
           url,
           device: device.name,
-          variant: variant.name,
+          ...(variant.name ? { variant: variant.name } : {}),
           viewport: device.viewport,
           cpu: device.cpu,
           network: device.network,

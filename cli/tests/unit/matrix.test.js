@@ -78,7 +78,13 @@ describe("the shortcuts and defaults of a matrix", () => {
 
   it("measure a mid-range phone, with CPU 4x and Slow 4G, when there are no devices", () => {
     const [only] = load({ urls: ["https://example.com/"] }).combinations;
-    expect(only).toMatchObject({ device: "mobile", viewport: "mobile", cpu: 4, network: "slow-4g", variant: "default" });
+    expect(only).toMatchObject({ device: "mobile", viewport: "mobile", cpu: 4, network: "slow-4g" });
+  });
+
+  it("have no variant when the file defines none, so the id is the page and the device", () => {
+    const [only] = load({ urls: { home: "https://example.com/" }, devices: ["desktop"] }).combinations;
+    expect(only.id).toBe("home · desktop");
+    expect(only).not.toHaveProperty("variant");
   });
 
   it("take an array of viewport presets as devices without throttling", () => {

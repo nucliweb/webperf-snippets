@@ -122,7 +122,17 @@ describe("--matrix", () => {
     expect(code).toBe(0);
     expect(documents).toHaveLength(2);
     expect(JSON.parse(stdout).combinations[0].runs.count).toBe(2);
-    expect(stderr).toContain("[2/2] home · desktop · default · run 2/2");
+    expect(stderr).toContain("[2/2] home · desktop · run 2/2");
+  }, 60000);
+
+  it("leaves out the Variant column and the variant when the file defines none", async () => {
+    const matrix = { urls: { home: `${baseUrl}/home` }, devices: ["mobile", "desktop"] };
+    const human = await cli("--matrix", writeMatrix(matrix));
+    expect(human.stdout).toMatch(/Page\s+Device\s+LCP/);
+    expect(human.stdout).not.toContain("Variant");
+    const { combinations } = JSON.parse((await cli("--matrix", writeMatrix(matrix), "--json")).stdout);
+    expect(combinations.map((c) => c.id)).toEqual(["home · mobile", "home · desktop"]);
+    expect(combinations.every((c) => !("variant" in c))).toBe(true);
   }, 60000);
 
   it("prints a table with the median of each combination in the human report", async () => {

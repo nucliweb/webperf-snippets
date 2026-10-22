@@ -469,6 +469,20 @@ describe("the human report of a matrix", () => {
   });
 });
 
+describe("a matrix without variants", () => {
+  const plain = {
+    ...matrix,
+    combinations: matrix.combinations.slice(0, 1).map(({ variant, ...c }) => ({ ...c, id: "home · mobile" })),
+  };
+
+  it("has no Variant column in the human or markdown table", () => {
+    expect(reportMatrixHuman(plain)).toMatch(/Page\s+Device\s+LCP/);
+    expect(reportMatrixHuman(plain)).not.toContain("Variant");
+    expect(reportMatrixMarkdown(plain)).toContain("| Page | Device | LCP | CLS |");
+    expect(reportMatrixMarkdown(plain)).toContain("| home | mobile | ✅ 1.98s | ✅ 0.0200 |");
+  });
+});
+
 describe("the markdown report of a matrix", () => {
   const output = () => reportMatrixMarkdown(matrix);
 

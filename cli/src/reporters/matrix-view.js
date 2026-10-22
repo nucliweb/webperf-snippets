@@ -16,6 +16,8 @@ export function matrixView({ matrix, runs, combinations }) {
 
   return {
     file: basename(matrix),
+    // A matrix without variants has no Variant column
+    hasVariants: combinations.some((c) => c.variant),
     summary: `${combinations.length} combinations, ${runs} run${runs === 1 ? "" : "s"} each${median}`,
     metrics,
     rows: combinations.map((c) => ({
