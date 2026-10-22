@@ -348,7 +348,7 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
   for (const c of matrix.combinations) {
     const conditions = { url: c.url, viewport: VIEWPORT_PRESETS[c.viewport], storageState: c.storageState, headers: c.headers, cpu: c.cpu, network: c.network, ownDomains: c.ownDomains };
     const median = await measureRuns(() => measureWith(conditions), matrix.runs, matrix.medianBy, (i) => `[${String(++started).padStart(width)}/${total}] ${c.id} · run ${i}/${matrix.runs}`);
-    const identity = { id: c.id, name: c.name, device: c.device, variant: c.variant, url: c.url };
+    const identity = { id: c.id, name: c.name, device: c.device, ...(c.variant ? { variant: c.variant } : {}), url: c.url };
     combinations.push(
       median.payload
         ? { ...identity, ...median.payload, runs: median.runs }
@@ -390,7 +390,7 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
           meta: {
             viewport: viewportOf.get(c.id),
             device: c.device,
-            variant: c.variant,
+            ...(c.variant ? { variant: c.variant } : {}),
             waitMs,
             ...(c.throttling ? { throttling: c.throttling } : {}),
             runs: c.runs,

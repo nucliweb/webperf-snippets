@@ -238,15 +238,17 @@ export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, th
 // One row per combination with the rated median of each metric, and below it the errors that decide
 // the exit code. With verbose, the report of the median run of each combination follows.
 export function reportMatrixHuman(report) {
-  const { file, summary, metrics, rows, errors } = matrixView(report);
-  const widths = ["name", "device", "variant"].map((key) => Math.max(...report.combinations.map((c) => c[key].length), key === "name" ? 4 : 7) + 3);
+  const { file, summary, hasVariants, metrics, rows, errors } = matrixView(report);
+  const columns = [["name", "Page"], ["device", "Device"], ...(hasVariants ? [["variant", "Variant"]] : [])];
+  const widths = columns.map(([key, label]) => Math.max(...report.combinations.map((c) => c[key].length), label.length) + 3);
+  const identity = (values) => values.map((value, i) => pad(value, widths[i])).join("");
 
   const lines = [];
   lines.push(styleText(["bold"], `WebPerf Snippets — ${file} (${summary})`));
   lines.push("");
-  lines.push(styleText("dim", `  ${pad("Page", widths[0])}${pad("Device", widths[1])}${pad("Variant", widths[2])}${metrics.map((m) => pad(m, 14)).join("").trimEnd()}`));
+  lines.push(styleText("dim", `  ${identity(columns.map(([, label]) => label))}${metrics.map((m) => pad(m, 14)).join("").trimEnd()}`));
   for (const { combination: c, cells } of rows) {
-    const row = `  ${pad(c.name, widths[0])}${pad(c.device, widths[1])}${pad(c.variant, widths[2])}`;
+    const row = `  ${identity(columns.map(([key]) => c[key]))}`;
     if (!cells) {
       lines.push(row + styleText("red", "✗ every run failed"));
       continue;
