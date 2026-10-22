@@ -9,6 +9,14 @@ import { cliEnv } from "../helpers/cli-env.js";
 const BIN = join(dirname(fileURLToPath(import.meta.url)), "../../src/bin.js");
 const run = promisify(execFile);
 
+// The LCP entry needs a moment after load to be reported; with a short wait a loaded runner sometimes
+// returns "No LCP entries buffered" and the CLI exits 1, as the other tests of the CLI note.
+const WAIT_MS = "500";
+
+// What the CLI printed, for the message of a failed exit code: without it a failure in CI only says
+// which code came out, not why.
+const said = (stdout = "", stderr = "") => `stderr:\n${stderr}\nstdout:\n${stdout.slice(0, 3000)}`;
+
 // /delays/600,50,350/<id> answers its first load after 600 ms, its second after 50 ms and its third
 // after 350 ms, so the order of the LCP of the runs is the server's and not noise. "destroy" closes
 // the connection instead, so that load fails. Each test uses its own id, which counts its loads.
@@ -46,16 +54,16 @@ let ids = 0;
 const pageWith = (delays) => `${baseUrl}/delays/${delays}/t${++ids}`;
 
 const cli = (url, ...args) =>
-  run("node", [BIN, url, "--wait", "300", ...args], { env: cliEnv() }).then(
-    ({ stdout, stderr }) => ({ code: 0, stdout, stderr }),
-    (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr })
+  run("node", [BIN, url, "--wait", WAIT_MS, ...args], { env: cliEnv() }).then(
+    ({ stdout, stderr }) => ({ code: 0, stdout, stderr, said: said(stdout, stderr) }),
+    (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr, said: said(err.stdout, err.stderr) })
   );
 
 describe("--runs", () => {
   it("measures the page N times and reports the median run by LCP, with the summary of each metric", async () => {
     const url = pageWith("600,50,350");
-    const { code, stdout } = await cli(url, "--runs", "3", "--json");
-    expect(code).toBe(0);
+    const { code, stdout, said: output } = await cli(url, "--runs", "3", "--json");
+    expect(code, output).toBe(0);
     const payload = JSON.parse(stdout);
     expect(payload.runs).toMatchObject({ count: 3, failed: 0, medianRun: 3, medianBy: "LCP" });
     const [first, second, third] = payload.runs.summary.LCP.values;
@@ -78,16 +86,16 @@ describe("--runs", () => {
 
   it("compares the budgets with the median, not with each run", async () => {
     const pass = await cli(pageWith("600,50,350"), "--runs", "3", "--budget-lcp", "550");
-    expect(pass.code).toBe(0);
+    expect(pass.code, pass.said).toBe(0);
 
     const fail = await cli(pageWith("600,50,350"), "--runs", "3", "--budget-lcp", "300");
-    expect(fail.code).toBe(1);
+    expect(fail.code, fail.said).toBe(1);
     expect(fail.stderr).toMatch(/LCP \d+ms exceeds budget 300ms/);
   }, 120000);
 
   it("leaves out a load that fails and counts it", async () => {
-    const { code, stdout } = await cli(pageWith("300,destroy,100"), "--runs", "3", "--json");
-    expect(code).toBe(0);
+    const { code, stdout, said: output } = await cli(pageWith("300,destroy,100"), "--runs", "3", "--json");
+    expect(code, output).toBe(0);
     expect(JSON.parse(stdout).runs).toMatchObject({ count: 3, failed: 1, medianRun: 3 });
   }, 90000);
 
@@ -112,15 +120,15 @@ describe("--runs", () => {
   it("fails with a clear error and exit code 2 for an invalid count or metric, before any load", async () => {
     const url = pageWith("0");
     for (const bad of ["0", "10", "2.5", "many"]) {
-      const { code, stderr } = await cli(url, "--runs", bad);
-      expect(code).toBe(2);
+      const { code, stderr, said: output } = await cli(url, "--runs", bad);
+      expect(code, output).toBe(2);
       expect(stderr).toContain(`Invalid --runs "${bad}". Use a whole number from 1 to 9`);
     }
-    const { code, stderr } = await cli(url, "--runs", "3", "--median-by", "FID");
-    expect(code).toBe(2);
+    const { code, stderr, said: output } = await cli(url, "--runs", "3", "--median-by", "FID");
+    expect(code, output).toBe(2);
     expect(stderr).toContain('Unknown --median-by "FID". Choose from: LCP, FCP, TTFB, CLS, INP, navMs');
     const alone = await cli(url, "--median-by", "LCP");
-    expect(alone.code).toBe(2);
+    expect(alone.code, alone.said).toBe(2);
     expect(alone.stderr).toContain("--median-by needs --runs");
     expect(loads.get(url.split("/").pop())).toBeUndefined();
   }, 60000);
