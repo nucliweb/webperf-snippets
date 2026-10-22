@@ -57,6 +57,12 @@ describe("throttling in the runner", () => {
     expect(slow.results[0].responseEnd).toBeGreaterThanOrEqual(500);
   }, 30000);
 
+  it("adds the latency of a network of its own", async () => {
+    const custom = await measure({ network: { downloadKbps: 50000, uploadKbps: 10000, latencyMs: 600 } });
+    expect(custom.results[0].responseEnd).toBeGreaterThanOrEqual(500);
+    expect(custom.throttling).toEqual({ network: { downloadKbps: 50000, uploadKbps: 10000, latencyMs: 600 } });
+  }, 30000);
+
   it("slows the main thread by the CPU factor", async () => {
     const plain = await measure();
     const slow = await measure({ cpu: 4 });
