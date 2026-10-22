@@ -1,7 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer } from "node:http";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { launch } from "../helpers/contract.js";
 import { loadSnippet } from "../../src/load-snippet.js";
+import { runSnippets, runMeasurement } from "../../src/runner.js";
+import { cliEnv } from "../helpers/cli-env.js";
+
+const BIN = join(dirname(fileURLToPath(import.meta.url)), "../../src/bin.js");
+const exec = promisify(execFile);
 
 // The page lives on www.app.localhost. cdn.app.localhost shares its root domain (first party),
 // other.localhost does not. Listing other.localhost in OWN_DOMAINS makes it first party, the way
@@ -142,5 +151,52 @@ describe.each(CASES)("$name", ({ name, parties }) => {
   it("drops the message once the domain is listed", async () => {
     const { lines } = await run(name, OWN);
     expect(lines.some((l) => l.includes("OWN_DOMAINS is empty"))).toBe(false);
+  }, 60000);
+});
+
+describe("own domains in the runner", () => {
+  const scriptLoading = [{ id: "scripts", path: "Loading/Script-Loading", source: loadSnippet("Loading/Script-Loading") }];
+  const byParty = (payload) => payload.results[0].details.byParty;
+
+  it("runSnippets counts the domains given as first party", async () => {
+    const before = byParty(await runSnippets({ url: pageUrl, items: scriptLoading, waitMs: 400 }));
+    const after = byParty(await runSnippets({ url: pageUrl, items: scriptLoading, waitMs: 400, ownDomains: OWN }));
+    expect(after.thirdParty).toBeLessThan(before.thirdParty);
+    expect(after.firstParty).toBeGreaterThan(before.firstParty);
+  }, 60000);
+
+  it("runMeasurement counts them as first party in the steps of the workflow and in its follow-ups", async () => {
+    const workflow = { steps: [{ id: "scripts", path: "Loading/Script-Loading" }] };
+    // A rule that always follows up with the fonts snippet, which also tells the parties apart
+    const rules = [{ when: (r) => r.id === "scripts", append: { id: "fonts", path: "Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold" }, reason: "always" }];
+    const { results } = await runMeasurement({ url: pageUrl, workflow, rules, waitMs: 400, ownDomains: OWN });
+    expect(results.find((r) => r.id === "scripts").details.byParty.thirdParty).toBe(0);
+    const fonts = results.find((r) => r.id === "fonts");
+    expect(fonts.details.preloadedFonts.every((f) => !f.thirdParty)).toBe(true);
+  }, 60000);
+});
+
+describe("--own-domains flag", () => {
+  const cli = (...args) =>
+    exec("node", [BIN, pageUrl, "--snippet", "script-loading", "--json", "--wait", "400", ...args], { env: cliEnv() }).then(
+      ({ stdout }) => ({ code: 0, stdout, stderr: "" }),
+      (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr })
+    );
+  const thirdParty = ({ stdout }) => JSON.parse(stdout).results[0].details.byParty.thirdParty;
+
+  it("counts the domains given, comma-separated or repeated, as first party", async () => {
+    const before = thirdParty(await cli());
+    expect(before).toBeGreaterThan(0);
+    expect(thirdParty(await cli("--own-domains", "other.localhost"))).toBe(0);
+    expect(thirdParty(await cli("--own-domains", "cdn.example.net, other.localhost"))).toBe(0);
+    expect(thirdParty(await cli("--own-domains", "cdn.example.net", "--own-domains", "https://other.localhost/"))).toBe(0);
+  }, 60000);
+
+  it("fails with a clear error and exit code 2 for an empty domain or one with spaces", async () => {
+    for (const bad of ["", "cdn.example.net,,other.localhost", "other localhost"]) {
+      const { code, stderr } = await cli("--own-domains", bad);
+      expect(code).toBe(2);
+      expect(stderr).toContain(`Invalid --own-domains "${bad}"`);
+    }
   }, 60000);
 });
