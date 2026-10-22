@@ -149,7 +149,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.1.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.2.0...HEAD
+[1.2.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.1.0...cli-v1.2.0
 [1.1.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.0.0...cli-v1.1.0
 [1.0.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.5.0...cli-v1.0.0
 [0.5.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.4.1...cli-v0.5.0
