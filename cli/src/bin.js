@@ -15,6 +15,7 @@ import { MissingBrowserError } from "./browser.js";
 import { parseHeader } from "./headers.js";
 import { NETWORK_PRESETS, parseCpuFactor } from "./throttling.js";
 import { parseOwnDomains } from "./own-domains.js";
+import { MEDIAN_METRICS, summarizeRuns } from "./runs.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -53,6 +54,10 @@ Options:
                             the token of an access proxy. Repeat it for more headers
   --own-domains <list>      Domains of the site to count as first party, such as its
                             own CDN, comma-separated or repeated
+  --runs <n>                Measure the page n times (1 to 9), one after the other, and
+                            report the median run
+  --median-by <metric>      Metric that picks the median run: LCP, FCP, TTFB, CLS, INP,
+                            navMs (default: the first of LCP, FCP, TTFB, navMs measured)
   --crux-key <key>          Add CrUX field data (p75) next to the measured values.
                             Also read from the CRUX_API_KEY environment variable
   --report-to <url>         POST the results to this https URL after the run
@@ -74,6 +79,7 @@ Examples:
   npx webperf-snippets https://example.com --budget-lcp 2500
   npx webperf-snippets https://example.com --cpu 4 --network slow-4g
   npx webperf-snippets https://example.com --workflow loading --own-domains cdn.example.net
+  npx webperf-snippets https://example.com --runs 5 --budget-lcp 2500
   npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
   npx webperf-snippets https://review.example.com --header "CF-Access-Client-Id: $CF_ID" --header "CF-Access-Client-Secret: $CF_SECRET"
@@ -94,10 +100,24 @@ function buildSnippetItem(values) {
   return [{ id: values.snippet, path, source: loadSnippet(path) }];
 }
 
-function checkBudgets(results, values) {
+// The count given to --runs, or null when it is not a whole number from 1 to 9
+function parseRunCount(raw) {
+  return /^[1-9]$/.test(raw.trim()) ? Number(raw) : null;
+}
+
+function checkBudgets({ results, runs }, values) {
   const violations = [];
   const lcpBudget = values["budget-lcp"] ? Number(values["budget-lcp"]) : null;
   const clsBudget = values["budget-cls"] ? Number(values["budget-cls"]) : null;
+
+  // With several runs the budgets compare the median of each metric, not one sample
+  if (runs) {
+    const lcp = runs.summary.LCP?.median;
+    const cls = runs.summary.CLS?.median;
+    if (lcp != null && lcpBudget != null && lcp > lcpBudget) violations.push(`LCP ${lcp}ms exceeds budget ${lcpBudget}ms`);
+    if (cls != null && clsBudget != null && cls > clsBudget) violations.push(`CLS ${cls} exceeds budget ${clsBudget}`);
+    return violations;
+  }
 
   for (const r of results) {
     if (r.status !== "ok") continue;
@@ -137,6 +157,8 @@ async function main() {
         "storage-state": { type: "string" },
         header: { type: "string", multiple: true },
         "own-domains": { type: "string", multiple: true },
+        runs: { type: "string" },
+        "median-by": { type: "string" },
         "crux-key": { type: "string" },
         "report-to": { type: "string" },
         "api-key": { type: "string" },
@@ -202,15 +224,44 @@ async function main() {
   }
   const ownDomains = values["own-domains"] && parseOwnDomains(values["own-domains"]);
 
-  let payload;
+  const runCount = values.runs != null ? parseRunCount(values.runs) : undefined;
+  if (runCount === null) fail(`Invalid --runs "${values.runs}". Use a whole number from 1 to 9`);
+  const medianBy = values["median-by"];
+  if (medianBy != null && !MEDIAN_METRICS.includes(medianBy)) {
+    fail(`Unknown --median-by "${medianBy}". Choose from: ${MEDIAN_METRICS.join(", ")}`);
+  }
+  if (medianBy != null && runCount == null) fail("--median-by needs --runs");
+
+  let measure;
   if (values.snippet) {
     const items = buildSnippetItem(values);
-    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network, ownDomains });
+    measure = () => runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network, ownDomains });
   } else {
     const workflowName = values.workflow ?? "core-web-vitals";
     const workflow = WORKFLOWS[workflowName];
     if (!workflow) fail(`Unknown workflow: ${workflowName}`);
-    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network, ownDomains });
+    measure = () => runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network, ownDomains });
+  }
+
+  let payload;
+  if (runCount == null) {
+    payload = await measure();
+  } else {
+    // One run after the other: in parallel they would compete for the CPU and skew the timings.
+    // The progress goes to stderr, so stdout keeps only the report.
+    const runs = [];
+    for (let i = 1; i <= runCount; i++) {
+      process.stderr.write(`[${i}/${runCount}] ${url} · run ${i}/${runCount}\n`);
+      try {
+        runs.push(await measure());
+      } catch (err) {
+        if (err instanceof MissingBrowserError) throw err;
+        runs.push({ error: err.message });
+      }
+    }
+    const median = summarizeRuns(runs, { medianBy });
+    if (!median.payload) throw new Error(`Every run failed: ${median.errors.join("; ")}`);
+    payload = { ...median.payload, runs: median.runs };
   }
 
   const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;
@@ -238,7 +289,7 @@ async function main() {
         timestamp: new Date().toISOString(),
         navMs: payload.navMs,
         results: payload.results,
-        meta: { viewport: viewportName, waitMs, ...(payload.throttling ? { throttling: payload.throttling } : {}), cli_version: cliVersion },
+        meta: { viewport: viewportName, waitMs, ...(payload.throttling ? { throttling: payload.throttling } : {}), ...(payload.runs ? { runs: payload.runs } : {}), cli_version: cliVersion },
       },
     });
     if (!outcome.ok) {
@@ -249,7 +300,7 @@ async function main() {
   }
 
   // Exit codes.
-  const violations = checkBudgets(payload.results, values);
+  const violations = checkBudgets(payload, values);
   if (violations.length > 0) {
     if (!values.json) {
       for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);

@@ -359,6 +359,46 @@ describe("the conditions of the measurement", () => {
   });
 });
 
+describe("the runs of a measurement", () => {
+  const measured = {
+    ...samplePayload,
+    runs: {
+      count: 3,
+      failed: 1,
+      medianRun: 2,
+      medianBy: "LCP",
+      summary: {
+        LCP: { median: 1200, min: 980, max: 2610, values: [2610, 1200, null, 980], unit: "ms" },
+        CLS: { median: 0.04, min: 0.02, max: 0.11, values: [0.11, 0.04, null, 0.02], unit: "score" },
+      },
+    },
+  };
+
+  it("are named under the header of the human report, with the median, min and max of each metric", () => {
+    const output = reportHuman(measured);
+    expect(output).toContain("3 runs, median by LCP: run 2 (1 failed)");
+    expect(output).toMatch(/LCP\s+median 1\.20s\s+min 980ms\s+max 2\.61s/);
+    expect(output).toMatch(/CLS\s+median 0\.0400\s+min 0\.0200\s+max 0\.1100/);
+  });
+
+  it("say when the median fell back from the metric asked for", () => {
+    const fellBack = { ...measured, runs: { ...measured.runs, failed: 0, medianByRequested: "INP" } };
+    expect(reportHuman(fellBack)).toContain("3 runs, median by LCP (no run measured INP): run 2");
+  });
+
+  it("are a table in the markdown report", () => {
+    const output = reportMarkdown(measured);
+    expect(output).toContain("3 runs, median by LCP: run 2 (1 failed)");
+    expect(output).toContain("| Metric | Median | Min | Max |");
+    expect(output).toContain("| LCP | 1.20s | 980ms | 2.61s |");
+  });
+
+  it("leave both reports as they were without runs", () => {
+    expect(reportHuman(samplePayload)).not.toContain("median by");
+    expect(reportMarkdown(samplePayload)).not.toContain("| Metric | Median |");
+  });
+});
+
 describe("a skipped result", () => {
   const skipped = {
     ...samplePayload,

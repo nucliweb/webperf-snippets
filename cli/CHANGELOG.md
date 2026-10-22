@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `--runs <n>` measures the page n times, from 1 to 9, one after the other, and reports the median run, as WebPageTest does, with the median, min and max of each metric in `runs`. The median follows LCP, or the first of FCP, TTFB and the navigation time that the workflow measures, and `--median-by <metric>` picks another one. Budgets compare the median, and each run is reported on stderr.
+
 ---
 
 ## [1.2.0] — 2026-10-22

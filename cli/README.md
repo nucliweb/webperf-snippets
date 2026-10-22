@@ -156,7 +156,7 @@ Without `--report-to` the CLI makes no external calls. With it, the results are 
 }
 ```
 
-For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the name. With `--cpu` or `--network`, `meta` carries the conditions in `throttling`. `results` is the same list the `--json` output contains, so it can include URLs and details of the measured page; send it only to an endpoint you trust.
+For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the name. With `--cpu` or `--network`, `meta` carries the conditions in `throttling`, and with `--runs`, the summary of the runs in `runs`. `results` is the same list the `--json` output contains, so it can include URLs and details of the measured page; send it only to an endpoint you trust.
 
 - The URL must be `https`. `http` is accepted only for `localhost`, so a key is never sent in clear text.
 - `--api-key` is sent as `Authorization: Bearer <key>`. Prefer the `PERF_REVIEWS_API_KEY` environment variable, because a flag ends up in shell history and CI logs. The key is never printed.
@@ -177,6 +177,28 @@ npx webperf-snippets https://example.com --cpu 4 --network slow-4g
 | `3g`      | 400 kbps    | 400 kbps    | 2000 ms   |
 
 Chrome adds the latency to the body of each response, not to its headers. The values read from `responseStart`, such as the TTFB and its sub-parts, do not include it; the download of each resource, FCP, LCP and the load event do. The report names the conditions under its header, and the JSON output carries them in `throttling`, such as `{ "cpu": 4, "network": "slow-4g" }`. A CPU factor below `1` or an unknown preset exits with code `2`.
+
+One page load is one sample, and lab values vary from one load to the next. `--runs <n>` measures the page n times, from 1 to 9, one after the other, and reports the median run, as WebPageTest does: every result comes from that run, so they agree with each other (the sub-parts of the LCP add up to its LCP):
+
+```bash
+npx webperf-snippets https://example.com --runs 5 --budget-lcp 2500
+```
+
+The median run is the one with the median LCP. A workflow without LCP uses the first of FCP, TTFB and the navigation time that it measures, and `--median-by <metric>` picks another one (`LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`). With an even count it takes the lower of the two middle runs, so the report is always a run that happened. The report adds the median, min and max of each metric across the runs, and the JSON output carries them in `runs`:
+
+```json
+"runs": {
+  "count": 5,
+  "failed": 0,
+  "medianRun": 3,
+  "medianBy": "LCP",
+  "summary": {
+    "LCP": { "median": 2140, "min": 1980, "max": 2610, "values": [2610, 2010, 2140, 1980, 2290], "unit": "ms" }
+  }
+}
+```
+
+`medianRun` counts from 1, and `values` keeps the order of the runs. The budgets compare the median of each metric, not one run. A run that fails, such as a navigation that does not finish, counts in `failed` and is left out of the median; when every run fails, the command exits with code `1`. Each run is reported on stderr as it starts, so stdout keeps only the report. An invalid count or metric exits with code `2`.
 
 CI gating:
 
@@ -200,6 +222,8 @@ npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 | `--storage-state <path>`     | Playwright storage state (cookies and localStorage) for pages that require authentication. |
 | `--header "Name: value"`     | Request header for the origin of the URL only, such as the token of an access proxy. Repeat it for more headers. |
 | `--own-domains <list>`       | Domains of the site to count as first party, such as its own CDN. Comma-separated or repeated. |
+| `--runs <n>`                 | Measure the page n times, from 1 to 9, one after the other, and report the median run. |
+| `--median-by <metric>`       | Metric that picks the median run: `LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`. Default: the first of LCP, FCP, TTFB and `navMs` measured. |
 | `--crux-key <key>`           | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`. |
 | `--report-to <url>`          | POST the results to this `https` URL after the run. No external calls without it. |
 | `--api-key <key>`            | Sent as a Bearer token with `--report-to`. Prefer `PERF_REVIEWS_API_KEY`. |

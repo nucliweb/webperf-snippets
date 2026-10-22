@@ -1,6 +1,7 @@
 import { styleText } from "node:util";
 import { fieldDataView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
+import { describeRuns } from "../runs.js";
 
 const RATING_ICON = {
   good: "🟢",
@@ -203,11 +204,22 @@ function renderFieldData(crux, results) {
   return lines;
 }
 
-export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling }) {
+// The runs line, and the median, min and max of each metric across the runs
+function renderRuns(runs) {
+  const lines = [styleText("dim", describeRuns(runs))];
+  for (const [metric, { median, min, max, unit }] of Object.entries(runs.summary)) {
+    const cell = (label, value) => pad(`${label} ${formatValue(value, unit)}`, 16);
+    lines.push(styleText("dim", `  ${pad(metric, 6)}${cell("median", median)}${cell("min", min)}${cell("max", max).trimEnd()}`));
+  }
+  return lines;
+}
+
+export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling, runs }) {
   const lines = [];
   lines.push(styleText(["bold"], `WebPerf Snippets — ${url}`));
   lines.push(styleText("dim", `Navigated in ${navMs}ms`));
   if (throttling) lines.push(styleText("dim", `Throttling: ${describeThrottling(throttling)}`));
+  if (runs) lines.push(...renderRuns(runs));
   lines.push("");
   for (const r of results) lines.push(renderResult(r, verbose));
   if (crux) {
