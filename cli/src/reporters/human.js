@@ -1,10 +1,8 @@
 import { styleText } from "node:util";
 import { fieldDataView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
-import { basename } from "node:path";
 import { describeRuns } from "../runs.js";
-import { rate } from "../ratings.js";
-import { blockingErrors } from "../blocking.js";
+import { matrixView } from "./matrix-view.js";
 
 const RATING_ICON = {
   good: "🟢",
@@ -217,9 +215,9 @@ function renderRuns(runs) {
   return lines;
 }
 
-export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling, runs }) {
+export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling, runs, title = `WebPerf Snippets — ${url}` }) {
   const lines = [];
-  lines.push(styleText(["bold"], `WebPerf Snippets — ${url}`));
+  lines.push(styleText(["bold"], title));
   lines.push(styleText("dim", `Navigated in ${navMs}ms`));
   if (throttling) lines.push(styleText("dim", `Throttling: ${describeThrottling(throttling)}`));
   if (runs) lines.push(...renderRuns(runs));
@@ -237,44 +235,36 @@ export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, th
   return lines.join("\n");
 }
 
-// The order of the metric columns of the matrix table
-const MATRIX_METRICS = ["LCP", "FCP", "TTFB", "CLS", "INP"];
-
 // One row per combination with the rated median of each metric, and below it the errors that decide
-// the exit code. The results of each combination are in the JSON output.
-export function reportMatrixHuman({ matrix, runs, combinations }) {
-  const measured = combinations.filter((c) => !c.error);
-  const medianBys = [...new Set(measured.map((c) => c.runs.medianBy))];
-  const metrics = MATRIX_METRICS.filter((metric) => measured.some((c) => c.runs.summary[metric]));
-  const widths = ["name", "device", "variant"].map((key) => Math.max(...combinations.map((c) => c[key].length), key === "name" ? 4 : 7) + 3);
+// the exit code. With verbose, the report of the median run of each combination follows.
+export function reportMatrixHuman(report) {
+  const { file, summary, metrics, rows, errors } = matrixView(report);
+  const widths = ["name", "device", "variant"].map((key) => Math.max(...report.combinations.map((c) => c[key].length), key === "name" ? 4 : 7) + 3);
 
   const lines = [];
-  const median = medianBys.length ? `, median by ${medianBys.join(", ")}` : "";
-  lines.push(styleText(["bold"], `WebPerf Snippets — ${basename(matrix)} (${combinations.length} combinations, ${runs} run${runs === 1 ? "" : "s"} each${median})`));
+  lines.push(styleText(["bold"], `WebPerf Snippets — ${file} (${summary})`));
   lines.push("");
   lines.push(styleText("dim", `  ${pad("Page", widths[0])}${pad("Device", widths[1])}${pad("Variant", widths[2])}${metrics.map((m) => pad(m, 14)).join("").trimEnd()}`));
-  for (const c of combinations) {
+  for (const { combination: c, cells } of rows) {
     const row = `  ${pad(c.name, widths[0])}${pad(c.device, widths[1])}${pad(c.variant, widths[2])}`;
-    if (c.error) {
+    if (!cells) {
       lines.push(row + styleText("red", "✗ every run failed"));
       continue;
     }
-    const cells = metrics.map((metric) => {
-      const value = c.runs.summary[metric];
-      if (!value) return pad("·", 14);
-      const rating = rate(metric, value.median);
-      return pad(paint(rating, `${RATING_ICON[rating] ?? "·"} ${formatValue(value.median, value.unit)}`), 14);
-    });
-    lines.push(row + cells.join("").trimEnd());
+    const drawn = cells.map((cell) => (cell ? pad(paint(cell.rating, `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}`), 14) : pad("·", 14)));
+    lines.push(row + drawn.join("").trimEnd());
   }
 
-  const errors = combinations.flatMap((c) =>
-    c.error ? [`${c.id}: ${c.error}`] : blockingErrors(c.results).map((e) => `${c.id}: ${e.id}: ${e.message}`)
-  );
   if (errors.length) {
     lines.push("");
     lines.push(styleText("red", "Errors:"));
     for (const e of errors) lines.push(`  ${styleText("red", "✗")} ${e}`);
+  }
+
+  if (report.verbose) {
+    for (const c of report.combinations.filter((c) => !c.error)) {
+      lines.push("", reportHuman({ ...c, verbose: true, title: `${c.id} — ${c.url}` }));
+    }
   }
   return lines.join("\n");
 }

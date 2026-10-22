@@ -1,6 +1,7 @@
 import { fieldDataView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
 import { describeRuns } from "../runs.js";
+import { matrixView } from "./matrix-view.js";
 
 const RATING_ICON = {
   good: "✅",
@@ -82,9 +83,10 @@ function renderRuns(runs) {
   return lines;
 }
 
-export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling, runs }) {
+// With a null title, the report has no heading, as inside the details block of a matrix
+export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling, runs, title = `WebPerf Results — ${url}` }) {
   const lines = [];
-  lines.push(`## WebPerf Results — ${url}`);
+  if (title) lines.push(`## ${title}`);
   lines.push(`> Navigated in ${navMs}ms`);
   if (throttling) lines.push(">", `> Throttling: ${describeThrottling(throttling)}`);
   if (runs) lines.push(">", `> ${describeRuns(runs)}`);
@@ -118,5 +120,32 @@ export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttli
     for (const err of pageErrors) lines.push(`- ${err}`);
   }
 
+  return lines.join("\n");
+}
+
+// A table with the rated median of each combination, the errors that decide the exit code, and the
+// report of the median run of each combination folded into a details block, to keep a pull request
+// comment readable.
+export function reportMatrixMarkdown(report) {
+  const { file, summary, metrics, rows, errors } = matrixView(report);
+  const row = (parts) => `|${parts.map((part) => (part ? ` ${part} ` : " ")).join("|")}|`;
+
+  const lines = [`## WebPerf Results — ${file}`, `> ${summary}`, ""];
+  lines.push(row(["Page", "Device", "Variant", ...metrics]));
+  lines.push(`|${["Page", "Device", "Variant", ...metrics].map((h) => "-".repeat(h.length + 2)).join("|")}|`);
+  for (const { combination: c, cells } of rows) {
+    const drawn = cells
+      ? cells.map((cell) => (cell ? `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}` : "·"))
+      : ["❌ every run failed", ...metrics.slice(1).map(() => "")];
+    lines.push(row([c.name, c.device, c.variant, ...drawn]));
+  }
+
+  if (errors.length) {
+    lines.push("", "### Errors", ...errors.map((e) => `- ${e}`));
+  }
+
+  for (const c of report.combinations.filter((c) => !c.error)) {
+    lines.push("", `<details><summary>${c.id}</summary>`, "", reportMarkdown({ ...c, title: null }), "", "</details>");
+  }
   return lines.join("\n");
 }

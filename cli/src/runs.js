@@ -27,7 +27,7 @@ const middle = (sorted) => sorted[Math.floor((sorted.length - 1) / 2)];
 // "3 runs, median by LCP: run 2 (1 failed)", for the header of the reports
 export function describeRuns({ count, failed, medianRun, medianBy, medianByRequested }) {
   const by = medianByRequested ? `${medianBy} (no run measured ${medianByRequested})` : medianBy;
-  return `${count} runs, median by ${by}: run ${medianRun}${failed ? ` (${failed} failed)` : ""}`;
+  return `${count} run${count === 1 ? "" : "s"}, median by ${by}: run ${medianRun}${failed ? ` (${failed} failed)` : ""}`;
 }
 
 // The runs as the CLI made them, in order, a run that failed being { error }. Returns the payload of
