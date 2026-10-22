@@ -1,5 +1,6 @@
 import { fieldDataView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
+import { describeRuns } from "../runs.js";
 
 const RATING_ICON = {
   good: "✅",
@@ -72,12 +73,23 @@ function renderFieldData(crux, results) {
   ];
 }
 
-export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling }) {
+// The median, min and max of each metric across the runs
+function renderRuns(runs) {
+  const lines = ["| Metric | Median | Min | Max |", "|--------|--------|-----|-----|"];
+  for (const [metric, { median, min, max, unit }] of Object.entries(runs.summary)) {
+    lines.push(`| ${metric} | ${formatValue(median, unit)} | ${formatValue(min, unit)} | ${formatValue(max, unit)} |`);
+  }
+  return lines;
+}
+
+export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling, runs }) {
   const lines = [];
   lines.push(`## WebPerf Results — ${url}`);
   lines.push(`> Navigated in ${navMs}ms`);
   if (throttling) lines.push(">", `> Throttling: ${describeThrottling(throttling)}`);
+  if (runs) lines.push(">", `> ${describeRuns(runs)}`);
   lines.push("");
+  if (runs) lines.push(...renderRuns(runs), "");
 
   const initial = results.filter((r) => !r.reason);
   if (initial.length > 0) {
