@@ -6,7 +6,7 @@ import { resolveSnippetName } from "./snippet-names.js";
 import { runSnippets, runMeasurement, VIEWPORT_PRESETS } from "./runner.js";
 import { WORKFLOWS } from "./workflows/index.js";
 import { RULES } from "./decision-tree.js";
-import { reportHuman } from "./reporters/human.js";
+import { reportHuman, reportMatrixHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMarkdown } from "./reporters/markdown.js";
 import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
@@ -16,9 +16,12 @@ import { parseHeader } from "./headers.js";
 import { NETWORK_PRESETS, parseCpuFactor } from "./throttling.js";
 import { parseOwnDomains } from "./own-domains.js";
 import { MEDIAN_METRICS, summarizeRuns } from "./runs.js";
+import { loadMatrix } from "./matrix.js";
+import { blockingErrors } from "./blocking.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
+webperf-snippets --matrix <file> [options]
 webperf-snippets mcp
 
 Run curated WebPerf Snippets headlessly via Playwright.
@@ -56,6 +59,8 @@ Options:
                             own CDN, comma-separated or repeated
   --runs <n>                Measure the page n times (1 to 9), one after the other, and
                             report the median run
+  --matrix <file>           Measure every URL of a JSON file on every device and in every
+                            variant it lists, and report a table of the medians
   --median-by <metric>      Metric that picks the median run: LCP, FCP, TTFB, CLS, INP,
                             navMs (default: the first of LCP, FCP, TTFB, navMs measured)
   --crux-key <key>          Add CrUX field data (p75) next to the measured values.
@@ -80,6 +85,7 @@ Examples:
   npx webperf-snippets https://example.com --cpu 4 --network slow-4g
   npx webperf-snippets https://example.com --workflow loading --own-domains cdn.example.net
   npx webperf-snippets https://example.com --runs 5 --budget-lcp 2500
+  npx webperf-snippets --matrix matrix.json --runs 3 --budget-lcp 2500
   npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
   npx webperf-snippets https://review.example.com --header "CF-Access-Client-Id: $CF_ID" --header "CF-Access-Client-Secret: $CF_SECRET"
@@ -157,6 +163,7 @@ async function main() {
         "storage-state": { type: "string" },
         header: { type: "string", multiple: true },
         "own-domains": { type: "string", multiple: true },
+        matrix: { type: "string" },
         runs: { type: "string" },
         "median-by": { type: "string" },
         "crux-key": { type: "string" },
@@ -180,10 +187,14 @@ async function main() {
   }
 
   const url = positionals[0];
-  if (!url) {
+  const matrixPath = values.matrix;
+  if (url && matrixPath) fail("Use a URL or --matrix, not both");
+  if (!url && !matrixPath) {
     process.stdout.write(USAGE);
     process.exit(2);
   }
+  if (matrixPath && values.viewport) fail("--viewport does not apply to --matrix: set the viewport of each device in the file");
+  if (matrixPath && values.markdown) fail("--markdown does not support --matrix yet: use the human report or --json");
 
   const waitMs = values.wait ? Number(values.wait) : 3000;
   const viewportName = values.viewport ?? "mobile";
@@ -201,6 +212,7 @@ async function main() {
 
   const reportUrl = values["report-to"];
   if (reportUrl) {
+    if (matrixPath) fail("--report-to does not support --matrix yet");
     const problem = validateReportUrl(reportUrl);
     if (problem) fail(problem);
   }
@@ -230,36 +242,34 @@ async function main() {
   if (medianBy != null && !MEDIAN_METRICS.includes(medianBy)) {
     fail(`Unknown --median-by "${medianBy}". Choose from: ${MEDIAN_METRICS.join(", ")}`);
   }
-  if (medianBy != null && runCount == null) fail("--median-by needs --runs");
+  if (medianBy != null && runCount == null && !matrixPath) fail("--median-by needs --runs");
 
-  let measure;
-  if (values.snippet) {
-    const items = buildSnippetItem(values);
-    measure = () => runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network, ownDomains });
-  } else {
-    const workflowName = values.workflow ?? "core-web-vitals";
-    const workflow = WORKFLOWS[workflowName];
-    if (!workflow) fail(`Unknown workflow: ${workflowName}`);
-    measure = () => runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network, ownDomains });
+  // What each page load runs, a snippet or a workflow, under the conditions of the load
+  const items = values.snippet ? buildSnippetItem(values) : null;
+  const workflow = values.snippet ? null : WORKFLOWS[values.workflow ?? "core-web-vitals"];
+  if (!values.snippet && !workflow) fail(`Unknown workflow: ${values.workflow}`);
+  const measureWith = (conditions) => {
+    const options = { waitMs, headless: !values.headed, interactScript, ...conditions };
+    return items ? runSnippets({ ...options, items }) : runMeasurement({ ...options, workflow, rules: RULES });
+  };
+
+  if (matrixPath) {
+    let matrix;
+    try {
+      matrix = loadMatrix(matrixPath, { cpu, network, storageState, headers, ownDomains, runs: runCount, medianBy });
+    } catch (err) {
+      fail(err.message);
+    }
+    await runMatrix(matrixPath, matrix, measureWith, values);
+    return;
   }
 
+  const conditions = { url, viewport, storageState, headers, cpu, network, ownDomains };
   let payload;
   if (runCount == null) {
-    payload = await measure();
+    payload = await measureWith(conditions);
   } else {
-    // One run after the other: in parallel they would compete for the CPU and skew the timings.
-    // The progress goes to stderr, so stdout keeps only the report.
-    const runs = [];
-    for (let i = 1; i <= runCount; i++) {
-      process.stderr.write(`[${i}/${runCount}] ${url} · run ${i}/${runCount}\n`);
-      try {
-        runs.push(await measure());
-      } catch (err) {
-        if (err instanceof MissingBrowserError) throw err;
-        runs.push({ error: err.message });
-      }
-    }
-    const median = summarizeRuns(runs, { medianBy });
+    const median = await measureRuns(() => measureWith(conditions), runCount, medianBy, (i) => `[${i}/${runCount}] ${url} · run ${i}/${runCount}`);
     if (!median.payload) throw new Error(`Every run failed: ${median.errors.join("; ")}`);
     payload = { ...median.payload, runs: median.runs };
   }
@@ -307,14 +317,55 @@ async function main() {
     }
     process.exit(1);
   }
+  process.exit(blockingErrors(payload.results).length > 0 ? 1 : 0);
+}
 
-  const anyError = payload.results.some((r) => r.status === "error");
-  // A follow-up (a result with a reason) only informs: its error issues show in the report and
-  // leave the exit code to the budgets and to the steps the workflow runs itself.
-  const anyAuditViolation = payload.results.some(
-    (r) => !r.reason && Array.isArray(r.issues) && r.issues.some((i) => i.severity === "error"),
-  );
-  process.exit(anyError || anyAuditViolation ? 1 : 0);
+// Measures `count` runs one after the other, never in parallel: they would compete for the CPU and
+// skew the timings. Each run is reported on stderr as it starts, so stdout keeps only the report. A
+// run that fails is kept as { error } and left out of the median.
+async function measureRuns(measure, count, medianBy, progress) {
+  const runs = [];
+  for (let i = 1; i <= count; i++) {
+    process.stderr.write(`${progress(i)}\n`);
+    try {
+      runs.push(await measure());
+    } catch (err) {
+      if (err instanceof MissingBrowserError) throw err;
+      runs.push({ error: err.message });
+    }
+  }
+  return summarizeRuns(runs, { medianBy });
+}
+
+// Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
+// its median run, and the exit code follows the same rules as one page, for every combination.
+async function runMatrix(matrixPath, matrix, measureWith, values) {
+  for (const warning of matrix.warnings) process.stderr.write(`Warning: ${warning}\n`);
+
+  const total = matrix.combinations.length * matrix.runs;
+  const width = String(total).length;
+  let started = 0;
+  const combinations = [];
+  for (const c of matrix.combinations) {
+    const conditions = { url: c.url, viewport: VIEWPORT_PRESETS[c.viewport], storageState: c.storageState, headers: c.headers, cpu: c.cpu, network: c.network, ownDomains: c.ownDomains };
+    const median = await measureRuns(() => measureWith(conditions), matrix.runs, matrix.medianBy, (i) => `[${String(++started).padStart(width)}/${total}] ${c.id} · run ${i}/${matrix.runs}`);
+    const identity = { id: c.id, name: c.name, device: c.device, variant: c.variant, url: c.url };
+    combinations.push(
+      median.payload
+        ? { ...identity, ...median.payload, runs: median.runs }
+        : { ...identity, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs } }
+    );
+  }
+
+  const report = { matrix: matrixPath, runs: matrix.runs, combinations };
+  process.stdout.write((values.json ? reportJson(report) : reportMatrixHuman(report)) + "\n");
+
+  const violations = combinations.filter((c) => !c.error).flatMap((c) => checkBudgets(c, values).map((v) => `${v} (${c.id})`));
+  if (!values.json) {
+    for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
+  }
+  const failed = combinations.some((c) => c.error || blockingErrors(c.results).length > 0);
+  process.exit(violations.length > 0 || failed ? 1 : 0);
 }
 
 main().catch((err) => {

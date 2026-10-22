@@ -1,16 +1,16 @@
+import { rate } from "./ratings.js";
+
 const DEFAULT_ENDPOINT = "https://chromeuxreport.googleapis.com/v1/records:queryRecord";
 const CRUX_TIMEOUT_MS = 10000;
 
-// Good / needs-improvement upper bounds from web.dev/articles/vitals.
 const METRICS = [
-  { name: "LCP", key: "largest_contentful_paint", unit: "ms", good: 2500, poor: 4000 },
-  { name: "CLS", key: "cumulative_layout_shift", unit: "score", good: 0.1, poor: 0.25 },
-  { name: "INP", key: "interaction_to_next_paint", unit: "ms", good: 200, poor: 500 },
+  { name: "LCP", key: "largest_contentful_paint", unit: "ms" },
+  { name: "CLS", key: "cumulative_layout_shift", unit: "score" },
+  { name: "INP", key: "interaction_to_next_paint", unit: "ms" },
 ];
 
 const FORM_FACTOR_LABEL = { PHONE: "mobile", DESKTOP: "desktop", TABLET: "tablet" };
 
-const rate = (value, { good, poor }) => (value <= good ? "good" : value <= poor ? "needs-improvement" : "poor");
 
 // The viewport preset decides which population the field data describes.
 export function formFactorFor(viewportName) {
@@ -22,7 +22,7 @@ function parseMetrics(record) {
   for (const m of METRICS) {
     // CLS p75 comes as a string ("0.08"); LCP and INP as numbers.
     const p75 = Number(record?.metrics?.[m.key]?.percentiles?.p75);
-    if (Number.isFinite(p75)) metrics[m.name] = { p75, rating: rate(p75, m), unit: m.unit };
+    if (Number.isFinite(p75)) metrics[m.name] = { p75, rating: rate(m.name, p75), unit: m.unit };
   }
   return metrics;
 }

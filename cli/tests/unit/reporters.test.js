@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reportJson } from "../../src/reporters/json.js";
-import { reportHuman } from "../../src/reporters/human.js";
+import { reportHuman, reportMatrixHuman } from "../../src/reporters/human.js";
 import { reportMarkdown } from "../../src/reporters/markdown.js";
 
 const samplePayload = {
@@ -396,6 +396,61 @@ describe("the runs of a measurement", () => {
   it("leave both reports as they were without runs", () => {
     expect(reportHuman(samplePayload)).not.toContain("median by");
     expect(reportMarkdown(samplePayload)).not.toContain("| Metric | Median |");
+  });
+});
+
+describe("the human report of a matrix", () => {
+  const combination = (name, device, variant, lcp, cls, results = []) => ({
+    id: `${name} · ${device} · ${variant}`,
+    name,
+    device,
+    variant,
+    url: `https://example.com/${name}`,
+    navMs: 900,
+    results,
+    pageErrors: [],
+    runs: {
+      count: 3,
+      failed: 0,
+      medianRun: 2,
+      medianBy: "LCP",
+      summary: {
+        LCP: { median: lcp, min: lcp, max: lcp, values: [lcp, lcp, lcp], unit: "ms" },
+        CLS: { median: cls, min: cls, max: cls, values: [cls, cls, cls], unit: "score" },
+      },
+    },
+  });
+  const matrix = {
+    matrix: "work/matrix.json",
+    runs: 3,
+    combinations: [
+      combination("home", "mobile", "no-consent", 1980, 0.02),
+      combination("home", "mobile", "consent", 2710, 0.31, [
+        { id: "render-blocking", status: "ok", issues: [{ severity: "error", message: "3 render-blocking stylesheets" }] },
+        { id: "image-audit", status: "ok", reason: "follow-up", issues: [{ severity: "error", message: "only informs" }] },
+      ]),
+      { id: "article · desktop · consent", name: "article", device: "desktop", variant: "consent", url: "https://example.com/article", status: "error", error: "Every run failed: net::ERR_CONNECTION_REFUSED", runs: { count: 3, failed: 3 } },
+    ],
+  };
+
+  it("names the file, the combinations, the runs and the metric of the median", () => {
+    expect(reportMatrixHuman(matrix)).toContain("WebPerf Snippets — matrix.json (3 combinations, 3 runs each, median by LCP)");
+    expect(reportMatrixHuman({ ...matrix, runs: 1 })).toContain("(3 combinations, 1 run each, median by LCP)");
+  });
+
+  it("has one row per combination with the rated median of each metric", () => {
+    const lines = reportMatrixHuman(matrix).split("\n");
+    expect(lines.find((l) => l.includes("Page"))).toMatch(/Page\s+Device\s+Variant\s+LCP\s+CLS/);
+    expect(lines.find((l) => l.includes("no-consent"))).toMatch(/home\s+mobile\s+no-consent\s+🟢 1\.98s\s+🟢 0\.0200/);
+    expect(lines.find((l) => /mobile\s+consent/.test(l))).toMatch(/🟡 2\.71s\s+🔴 0\.3100/);
+    expect(lines.find((l) => l.includes("article"))).toMatch(/article\s+desktop\s+consent\s+✗ every run failed/);
+  });
+
+  it("lists the errors that decide the exit code, and leaves out the ones of follow-ups", () => {
+    const output = reportMatrixHuman(matrix);
+    expect(output).toContain("home · mobile · consent: render-blocking: 3 render-blocking stylesheets");
+    expect(output).toContain("article · desktop · consent: Every run failed: net::ERR_CONNECTION_REFUSED");
+    expect(output).not.toContain("only informs");
   });
 });
 
