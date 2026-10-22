@@ -1,4 +1,5 @@
 import { fieldDataView } from "../crux.js";
+import { describeThrottling } from "../throttling.js";
 
 const RATING_ICON = {
   good: "✅",
@@ -71,10 +72,11 @@ function renderFieldData(crux, results) {
   ];
 }
 
-export function reportMarkdown({ url, navMs, results, pageErrors, crux }) {
+export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling }) {
   const lines = [];
   lines.push(`## WebPerf Results — ${url}`);
   lines.push(`> Navigated in ${navMs}ms`);
+  if (throttling) lines.push(">", `> Throttling: ${describeThrottling(throttling)}`);
   lines.push("");
 
   const initial = results.filter((r) => !r.reason);

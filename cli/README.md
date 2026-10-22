@@ -148,11 +148,27 @@ Without `--report-to` the CLI makes no external calls. With it, the results are 
 }
 ```
 
-For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the name. `results` is the same list the `--json` output contains, so it can include URLs and details of the measured page; send it only to an endpoint you trust.
+For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the name. With `--cpu` or `--network`, `meta` carries the conditions in `throttling`. `results` is the same list the `--json` output contains, so it can include URLs and details of the measured page; send it only to an endpoint you trust.
 
 - The URL must be `https`. `http` is accepted only for `localhost`, so a key is never sent in clear text.
 - `--api-key` is sent as `Authorization: Bearer <key>`. Prefer the `PERF_REVIEWS_API_KEY` environment variable, because a flag ends up in shell history and CI logs. The key is never printed.
 - The exit code never depends on the report. A failed POST (error status, unreachable endpoint, or no answer within 5 seconds) prints a warning and the exit code stays the one the budgets and snippets decide. If the endpoint answers `{ "ok": false, "regressions": [...] }`, the regressions are printed as a warning, again without changing the exit code.
+
+Measure under the conditions of a slower device and network with `--cpu` and `--network`. Without them the CLI runs at the speed of the machine, which on a laptop or a CI runner is faster than most phones:
+
+```bash
+npx webperf-snippets https://example.com --cpu 4 --network slow-4g
+```
+
+`--cpu <factor>` slows the main thread down by that factor. `--network` takes the presets of DevTools, with the same values:
+
+| Preset    | Download    | Upload      | Latency   |
+| --------- | ----------- | ----------- | --------- |
+| `fast-4g` | 8.1 Mbps    | 1.35 Mbps   | 165 ms    |
+| `slow-4g` | 1.44 Mbps   | 675 kbps    | 562.5 ms  |
+| `3g`      | 400 kbps    | 400 kbps    | 2000 ms   |
+
+Chrome adds the latency to the body of each response, not to its headers. The values read from `responseStart`, such as the TTFB and its sub-parts, do not include it; the download of each resource, FCP, LCP and the load event do. The report names the conditions under its header, and the JSON output carries them in `throttling`, such as `{ "cpu": 4, "network": "slow-4g" }`. A CPU factor below `1` or an unknown preset exits with code `2`.
 
 CI gating:
 
@@ -170,6 +186,8 @@ npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 | `--markdown`                 | Output GitHub-renderable markdown (for PR comments).                   |
 | `--viewport <preset>`        | Viewport preset: `mobile` (default), `tablet`, `desktop`.             |
 | `--wait <ms>`                | Post-load wait before evaluating snippets. Default: `3000`.            |
+| `--cpu <factor>`             | Slow the main thread down by this factor, such as `4`. No throttling by default. |
+| `--network <preset>`         | Throttle the network with a preset of DevTools: `fast-4g`, `slow-4g`, `3g`. No throttling by default. |
 | `--interact-script <path>`   | JSON file with interactions to run after the page loads (`scroll`, `click`, `hover`, `type`, `wait`). The Interaction snippets are installed first and read afterwards. |
 | `--storage-state <path>`     | Playwright storage state (cookies and localStorage) for pages that require authentication. |
 | `--header "Name: value"`     | Request header for the origin of the URL only, such as the token of an access proxy. Repeat it for more headers. |
