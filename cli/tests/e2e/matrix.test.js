@@ -11,6 +11,14 @@ import { cliEnv } from "../helpers/cli-env.js";
 const BIN = join(dirname(fileURLToPath(import.meta.url)), "../../src/bin.js");
 const run = promisify(execFile);
 
+// The LCP entry needs a moment after load to be reported; with a short wait a loaded runner sometimes
+// returns "No LCP entries buffered" and the CLI exits 1, as the other tests of the CLI note.
+const WAIT_MS = "500";
+
+// What the CLI printed, for the message of a failed exit code: without it a failure in CI only says
+// which code came out, not why.
+const said = (stdout = "", stderr = "") => `stderr:\n${stderr}\nstdout:\n${stdout.slice(0, 3000)}`;
+
 // Two pages on one server. Each page sends its viewport width in a beacon, and the server records the
 // consent cookie and the headers of every request, so the test sees the conditions of each combination.
 let server;
@@ -78,15 +86,15 @@ const clientCase = () => ({
 });
 
 const cli = (...args) =>
-  run("node", [BIN, "--wait", "200", ...args], { env: cliEnv() }).then(
-    ({ stdout, stderr }) => ({ code: 0, stdout, stderr }),
-    (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr })
+  run("node", [BIN, "--wait", WAIT_MS, ...args], { env: cliEnv() }).then(
+    ({ stdout, stderr }) => ({ code: 0, stdout, stderr, said: said(stdout, stderr) }),
+    (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr, said: said(err.stdout, err.stderr) })
   );
 
 describe("--matrix", () => {
   it("measures every combination in order, each with the conditions of its device and variant and the flags of the command line", async () => {
-    const { code, stdout, stderr } = await cli("--matrix", writeMatrix(clientCase()), "--json", "--header", "X-Access: token");
-    expect(code).toBe(0);
+    const { code, stdout, stderr, said: output } = await cli("--matrix", writeMatrix(clientCase()), "--json", "--header", "X-Access: token");
+    expect(code, output).toBe(0);
     const { combinations, runs } = JSON.parse(stdout);
     expect(runs).toBe(1);
     expect(combinations.map((c) => c.id)).toEqual([
@@ -118,8 +126,8 @@ describe("--matrix", () => {
 
   it("repeats each combination the runs of the file, one run after the other", async () => {
     const matrix = { urls: { home: `${baseUrl}/home` }, devices: ["desktop"], runs: 2 };
-    const { code, stdout, stderr } = await cli("--matrix", writeMatrix(matrix), "--json");
-    expect(code).toBe(0);
+    const { code, stdout, stderr, said: output } = await cli("--matrix", writeMatrix(matrix), "--json");
+    expect(code, output).toBe(0);
     expect(documents).toHaveLength(2);
     expect(JSON.parse(stdout).combinations[0].runs.count).toBe(2);
     expect(stderr).toContain("[2/2] home · desktop · run 2/2");
@@ -136,42 +144,42 @@ describe("--matrix", () => {
   }, 60000);
 
   it("prints a table with the median of each combination in the human report", async () => {
-    const { code, stdout } = await cli("--matrix", writeMatrix(clientCase()));
-    expect(code).toBe(0);
+    const { code, stdout, said: output } = await cli("--matrix", writeMatrix(clientCase()));
+    expect(code, output).toBe(0);
     expect(stdout).toContain("matrix.json (8 combinations, 1 run each, median by LCP)");
     expect(stdout).toMatch(/Page\s+Device\s+Variant\s+LCP\s+CLS/);
     expect(stdout).toMatch(/article\s+wide\s+consent\s+\S+ \d+ms/);
   }, 120000);
 
   it("compares the budgets with the median of each combination, and names the combination", async () => {
-    const { code, stderr } = await cli("--matrix", writeMatrix(clientCase()), "--budget-lcp", "250");
-    expect(code).toBe(1);
+    const { code, stderr, said: output } = await cli("--matrix", writeMatrix(clientCase()), "--budget-lcp", "250");
+    expect(code, output).toBe(1);
     // The phone loads the document with 300 ms of latency, so its LCP is over the budget
     expect(stderr).toMatch(/Budget violation: LCP \d+ms exceeds budget 250ms \(home · phone · anon\)/);
   }, 120000);
 
   it("warns about a header of the file that looks like a secret", async () => {
     const matrix = { urls: { home: `${baseUrl}/home` }, devices: ["desktop"], variants: { preview: { headers: { "X-Api-Token": "abc" } } } };
-    const { code, stderr } = await cli("--matrix", writeMatrix(matrix), "--json");
-    expect(code).toBe(0);
+    const { code, stderr, said: output } = await cli("--matrix", writeMatrix(matrix), "--json");
+    expect(code, output).toBe(0);
     expect(stderr).toContain("Warning: variants.preview.headers.X-Api-Token looks like a secret");
   }, 60000);
 
   it("fails with exit code 2 before any page load on an invalid matrix or an option that does not apply", async () => {
     const invalid = await cli("--matrix", writeMatrix({ urls: { home: `${baseUrl}/home` }, devices: { m: { viewport: "watch" } } }, "invalid.json"));
-    expect(invalid.code).toBe(2);
+    expect(invalid.code, invalid.said).toBe(2);
     expect(invalid.stderr).toContain('Invalid matrix: devices.m.viewport "watch" is not a preset');
 
     const missing = await cli("--matrix", join(dir, "missing.json"));
-    expect(missing.code).toBe(2);
+    expect(missing.code, missing.said).toBe(2);
     expect(missing.stderr).toContain("Matrix file not found");
 
     const both = await cli(`${baseUrl}/home`, "--matrix", writeMatrix(clientCase()));
-    expect(both.code).toBe(2);
+    expect(both.code, both.said).toBe(2);
     expect(both.stderr).toContain("Use a URL or --matrix, not both");
 
     const viewport = await cli("--matrix", writeMatrix(clientCase()), "--viewport", "desktop");
-    expect(viewport.code).toBe(2);
+    expect(viewport.code, viewport.said).toBe(2);
     expect(viewport.stderr).toContain("--viewport does not apply to --matrix: set the viewport of each device in the file");
 
     expect(documents).toHaveLength(0);
@@ -220,8 +228,8 @@ describe("--matrix with the other reports", () => {
   });
 
   it("gives a markdown table and the report of each combination in a details block", async () => {
-    const { code, stdout } = await cli("--matrix", writeMatrix(clientCase()), "--markdown");
-    expect(code).toBe(0);
+    const { code, stdout, said: output } = await cli("--matrix", writeMatrix(clientCase()), "--markdown");
+    expect(code, output).toBe(0);
     expect(stdout).toContain("## WebPerf Results — matrix.json");
     expect(stdout).toContain("| Page | Device | Variant | LCP | CLS |");
     expect(stdout.match(/<details><summary>/g)).toHaveLength(8);
@@ -229,15 +237,15 @@ describe("--matrix with the other reports", () => {
   }, 120000);
 
   it("adds the report of each combination to the table with --verbose", async () => {
-    const { code, stdout } = await cli("--matrix", writeMatrix(clientCase()), "--verbose");
-    expect(code).toBe(0);
+    const { code, stdout, said: output } = await cli("--matrix", writeMatrix(clientCase()), "--verbose");
+    expect(code, output).toBe(0);
     expect(stdout).toContain(`home · phone · anon — ${baseUrl}/home`);
     expect(stdout.match(/Navigated in \d+ms/g)).toHaveLength(8);
   }, 120000);
 
   it("asks CrUX once for each URL and form factor, and gives the field data to every combination", async () => {
     const env = cliEnv({ CRUX_API_KEY: "key", WEBPERF_CRUX_ENDPOINT: `http://127.0.0.1:${cruxServer.address().port}/query` });
-    const { stdout } = await run("node", [BIN, "--wait", "200", "--matrix", writeMatrix(clientCase()), "--json"], { env });
+    const { stdout } = await run("node", [BIN, "--wait", WAIT_MS, "--matrix", writeMatrix(clientCase()), "--json"], { env });
     // 2 URLs on 2 form factors; the two variants of a device share the field data
     expect(cruxQueries.map((q) => `${q.url} ${q.formFactor}`).sort()).toEqual([
       `${baseUrl}/article DESKTOP`,
@@ -251,8 +259,8 @@ describe("--matrix with the other reports", () => {
 
   it("reports each combination to --report-to, with its device, variant and runs, and never the value of a header", async () => {
     const reportUrl = `http://127.0.0.1:${reportServer.address().port}/api/report`;
-    const { code } = await cli("--matrix", writeMatrix(clientCase()), "--json", "--report-to", reportUrl, "--header", "X-Access: s3cr3t-value");
-    expect(code).toBe(0);
+    const { code, said: output } = await cli("--matrix", writeMatrix(clientCase()), "--json", "--report-to", reportUrl, "--header", "X-Access: s3cr3t-value");
+    expect(code, output).toBe(0);
     expect(reports).toHaveLength(8);
     expect(reports.some((body) => body.includes("s3cr3t-value"))).toBe(false);
     const bodies = reports.map((body) => JSON.parse(body));
