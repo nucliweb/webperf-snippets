@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.2.0] — 2026-10-22
+
 ### Added
 - `--header "Name: value"`, repeatable, sends request headers to the origin of the measured URL only, for pages behind an access proxy such as Cloudflare Access. Third parties never receive them, so their requests keep their CORS behavior and timings.
 - `--cpu <factor>` and `--network <preset>` measure under CPU and network throttling, with the network presets of DevTools (`fast-4g`, `slow-4g`, `3g`). The reports name the conditions under their header, and the JSON output and the `--report-to` payload carry them in `throttling`.

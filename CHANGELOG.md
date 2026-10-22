@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - `npm run eval:mcp`: the same question about a local page with a known answer, asked to an agent with the webperf MCP server, with Chrome DevTools MCP and the webperf skills, and with Chrome DevTools MCP alone, graded on the diagnosis and measured in tokens, turns and time. It runs by hand, not in CI.
+- A Claude Code plugin, `webperf`, in a marketplace of this repository (`.claude-plugin/marketplace.json`). It starts the MCP server of the CLI with `npx -y webperf-snippets@1 mcp`, pinned to the major version, and installs with `/plugin install webperf --marketplace nucliweb/webperf-snippets`.
 - `npm run smoke:cli-package`: packs the CLI as the publish workflow does, installs it in an empty folder and checks its MCP server without Chromium and after `npx playwright install chromium`. It runs by hand before a release of the CLI.
 - LCP-Subparts splits the Resource Load Time into the wait for the server and the download of the resource, in `details.subParts.resourceLoadTime.waiting` and `.download`, from its Resource Timing entry. When the wait is the larger part of the slowest phase, the console recommends the server, CDN and cache instead of compressing the image. The split is missing when another origin hides its timing (no `Timing-Allow-Origin`).
 
