@@ -12,6 +12,7 @@ import { reportMarkdown } from "./reporters/markdown.js";
 import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
 import { fetchCrux, formFactorFor } from "./crux.js";
 import { MissingBrowserError } from "./browser.js";
+import { parseHeader } from "./headers.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -44,6 +45,8 @@ Options:
                             Actions: scroll, click, hover, type, wait
   --storage-state <path>    Playwright storage state (cookies + localStorage) to
                             measure pages that require authentication
+  --header "Name: value"    Request header for the origin of the URL only, such as
+                            the token of an access proxy. Repeat it for more headers
   --crux-key <key>          Add CrUX field data (p75) next to the measured values.
                             Also read from the CRUX_API_KEY environment variable
   --report-to <url>         POST the results to this https URL after the run
@@ -65,6 +68,7 @@ Examples:
   npx webperf-snippets https://example.com --budget-lcp 2500
   npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
+  npx webperf-snippets https://review.example.com --header "CF-Access-Client-Id: $CF_ID" --header "CF-Access-Client-Secret: $CF_SECRET"
 `;
 
 function fail(message, code = 2) {
@@ -121,6 +125,7 @@ async function main() {
         viewport: { type: "string" },
         "interact-script": { type: "string" },
         "storage-state": { type: "string" },
+        header: { type: "string", multiple: true },
         "crux-key": { type: "string" },
         "report-to": { type: "string" },
         "api-key": { type: "string" },
@@ -166,15 +171,22 @@ async function main() {
     fail(`Storage state file not found: ${storageState}`);
   }
 
+  const headers = {};
+  for (const raw of values.header ?? []) {
+    const header = parseHeader(raw);
+    if (!header) fail(`Invalid header "${raw}". Use --header "Name: value"`);
+    headers[header[0]] = header[1];
+  }
+
   let payload;
   if (values.snippet) {
     const items = buildSnippetItem(values);
-    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState });
+    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers });
   } else {
     const workflowName = values.workflow ?? "core-web-vitals";
     const workflow = WORKFLOWS[workflowName];
     if (!workflow) fail(`Unknown workflow: ${workflowName}`);
-    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState });
+    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers });
   }
 
   const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;

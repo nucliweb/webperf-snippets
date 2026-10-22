@@ -3,6 +3,7 @@ import { loadSnippet } from "./load-snippet.js";
 import { runInteractions, loadInteractionSteps, isInputStep, settle } from "./interactions.js";
 import { isTrackingSnippet } from "./tracking.js";
 import { nextSteps } from "./decision-tree.js";
+import { sendHeadersToOrigin } from "./headers.js";
 
 export const VIEWPORT_PRESETS = {
   mobile: { width: 375, height: 812 },
@@ -97,6 +98,7 @@ export async function runSnippets({
   interactScript,
   interactions = interactScript,
   storageState,
+  headers,
   // Called at each of the three stages of a run, for callers that report progress (the MCP server)
   onProgress = () => {},
 }) {
@@ -105,6 +107,7 @@ export async function runSnippets({
   try {
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
+    await sendHeadersToOrigin(context, page, url, headers);
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
     const navStart = Date.now();
@@ -131,6 +134,7 @@ export async function runMeasurement({
   interactScript,
   interactions = interactScript,
   storageState,
+  headers,
   onProgress = () => {},
 }) {
   await onProgress(1, "Opening Chromium");
@@ -138,6 +142,7 @@ export async function runMeasurement({
   try {
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
+    await sendHeadersToOrigin(context, page, url, headers);
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
 

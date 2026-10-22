@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `--header "Name: value"`, repeatable, sends request headers to the origin of the measured URL only, for pages behind an access proxy such as Cloudflare Access. Third parties never receive them, so their requests keep their CORS behavior and timings.
+
 ---
 
 ## [1.1.0] — 2026-10-21
