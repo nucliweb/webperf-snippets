@@ -14,6 +14,7 @@ import { fetchCrux, formFactorFor } from "./crux.js";
 import { MissingBrowserError } from "./browser.js";
 import { parseHeader } from "./headers.js";
 import { NETWORK_PRESETS, parseCpuFactor } from "./throttling.js";
+import { parseOwnDomains } from "./own-domains.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -50,6 +51,8 @@ Options:
                             measure pages that require authentication
   --header "Name: value"    Request header for the origin of the URL only, such as
                             the token of an access proxy. Repeat it for more headers
+  --own-domains <list>      Domains of the site to count as first party, such as its
+                            own CDN, comma-separated or repeated
   --crux-key <key>          Add CrUX field data (p75) next to the measured values.
                             Also read from the CRUX_API_KEY environment variable
   --report-to <url>         POST the results to this https URL after the run
@@ -70,6 +73,7 @@ Examples:
   npx webperf-snippets https://example.com --snippet Compression-Audit
   npx webperf-snippets https://example.com --budget-lcp 2500
   npx webperf-snippets https://example.com --cpu 4 --network slow-4g
+  npx webperf-snippets https://example.com --workflow loading --own-domains cdn.example.net
   npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
   npx webperf-snippets https://review.example.com --header "CF-Access-Client-Id: $CF_ID" --header "CF-Access-Client-Secret: $CF_SECRET"
@@ -132,6 +136,7 @@ async function main() {
         "interact-script": { type: "string" },
         "storage-state": { type: "string" },
         header: { type: "string", multiple: true },
+        "own-domains": { type: "string", multiple: true },
         "crux-key": { type: "string" },
         "report-to": { type: "string" },
         "api-key": { type: "string" },
@@ -191,15 +196,21 @@ async function main() {
     headers[header[0]] = header[1];
   }
 
+  const invalidOwnDomains = (values["own-domains"] ?? []).find((raw) => !parseOwnDomains([raw]));
+  if (invalidOwnDomains != null) {
+    fail(`Invalid --own-domains "${invalidOwnDomains}". Use domains separated by commas, such as cdn.example.net,static.example.org`);
+  }
+  const ownDomains = values["own-domains"] && parseOwnDomains(values["own-domains"]);
+
   let payload;
   if (values.snippet) {
     const items = buildSnippetItem(values);
-    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network });
+    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network, ownDomains });
   } else {
     const workflowName = values.workflow ?? "core-web-vitals";
     const workflow = WORKFLOWS[workflowName];
     if (!workflow) fail(`Unknown workflow: ${workflowName}`);
-    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network });
+    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network, ownDomains });
   }
 
   const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;

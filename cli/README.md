@@ -44,6 +44,14 @@ Loading audit (11 steps: TTFB, FCP, render-blocking, scripts, resource timings, 
 npx webperf-snippets https://example.com --workflow loading
 ```
 
+The steps that tell first-party from third-party resources count as first party the root domain of the page and its subdomains (`cdn.example.com` for `example.com`). A site that serves its own assets from another domain, such as its CDN, lists it with `--own-domains`, comma-separated or repeated:
+
+```bash
+npx webperf-snippets https://example.com --workflow loading --own-domains cdn.example.net,static.example.org
+```
+
+Each domain counts with its root domain, so `cdn.example.net` makes every host under `example.net` first party. The CLI writes the list in the `OWN_DOMAINS` constant of each snippet, the same one you edit at the top of the snippet in the console. An empty domain or one with spaces exits with code `2`.
+
 Structural checks for CI (22 checks: render-blocking, compression, fonts, images, hints, DOM size and more; the list is in the [CLI page](https://webperf-snippets.net/CLI)):
 
 ```bash
@@ -191,6 +199,7 @@ npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 | `--interact-script <path>`   | JSON file with interactions to run after the page loads (`scroll`, `click`, `hover`, `type`, `wait`). The Interaction snippets are installed first and read afterwards. |
 | `--storage-state <path>`     | Playwright storage state (cookies and localStorage) for pages that require authentication. |
 | `--header "Name: value"`     | Request header for the origin of the URL only, such as the token of an access proxy. Repeat it for more headers. |
+| `--own-domains <list>`       | Domains of the site to count as first party, such as its own CDN. Comma-separated or repeated. |
 | `--crux-key <key>`           | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`. |
 | `--report-to <url>`          | POST the results to this `https` URL after the run. No external calls without it. |
 | `--api-key <key>`            | Sent as a Bearer token with `--report-to`. Prefer `PERF_REVIEWS_API_KEY`. |

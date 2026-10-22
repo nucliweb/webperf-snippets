@@ -11,6 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ### Added
 - `--header "Name: value"`, repeatable, sends request headers to the origin of the measured URL only, for pages behind an access proxy such as Cloudflare Access. Third parties never receive them, so their requests keep their CORS behavior and timings.
 - `--cpu <factor>` and `--network <preset>` measure under CPU and network throttling, with the network presets of DevTools (`fast-4g`, `slow-4g`, `3g`). The reports name the conditions under their header, and the JSON output and the `--report-to` payload carry them in `throttling`.
+- `--own-domains <list>`, comma-separated or repeated, counts the domains of the site that differ from the root domain of the page, such as its own CDN, as first party in the snippets that tell first from third parties. The CLI writes them in the `OWN_DOMAINS` constant of each snippet.
 
 ---
 

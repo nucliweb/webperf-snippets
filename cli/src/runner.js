@@ -4,6 +4,7 @@ import { runInteractions, loadInteractionSteps, isInputStep, settle } from "./in
 import { isTrackingSnippet } from "./tracking.js";
 import { nextSteps } from "./decision-tree.js";
 import { sendHeadersToOrigin } from "./headers.js";
+import { withOwnDomains } from "./own-domains.js";
 import { applyThrottling, throttlingOf } from "./throttling.js";
 
 export const VIEWPORT_PRESETS = {
@@ -102,6 +103,7 @@ export async function runSnippets({
   headers,
   cpu,
   network,
+  ownDomains,
   // Called at each of the three stages of a run, for callers that report progress (the MCP server)
   onProgress = () => {},
 }) {
@@ -119,7 +121,8 @@ export async function runSnippets({
     if (waitMs > 0) await page.waitForTimeout(waitMs);
     const navMs = Date.now() - navStart;
     await onProgress(2, "Page loaded, running the snippets");
-    const results = await evaluateAroundInteractions(page, items, interactions);
+    const prepared = items.map((item) => ({ ...item, source: withOwnDomains(item.source, ownDomains) }));
+    const results = await evaluateAroundInteractions(page, prepared, interactions);
     await onProgress(3, "Snippets evaluated");
     return { url, navMs, results, pageErrors, throttling: throttlingOf({ cpu, network }) };
   } finally {
@@ -141,6 +144,7 @@ export async function runMeasurement({
   headers,
   cpu,
   network,
+  ownDomains,
   onProgress = () => {},
 }) {
   await onProgress(1, "Opening Chromium");
@@ -170,7 +174,7 @@ export async function runMeasurement({
       .map((step) => ({
         id: step.id,
         path: step.path,
-        source: loadSnippet(step.path),
+        source: withOwnDomains(loadSnippet(step.path), ownDomains),
       }));
     const measured = await evaluateAroundInteractions(page, items, steps);
     const initialResults = workflow.steps.map(
@@ -193,7 +197,7 @@ export async function runMeasurement({
       const followItems = followUps.map((f) => ({
         id: f.id,
         path: f.path,
-        source: loadSnippet(f.path),
+        source: withOwnDomains(loadSnippet(f.path), ownDomains),
       }));
       const raw = await evaluateItems(page, followItems);
       // A tracking snippet answers through its data function, which is read right away here
