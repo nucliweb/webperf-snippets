@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.3.0] — 2026-10-23
+
 ### Added
 - `--runs <n>` measures the page n times, from 1 to 9, one after the other, and reports the median run, as WebPageTest does, with the median, min and max of each metric in `runs`. The median follows LCP, or the first of FCP, TTFB and the navigation time that the workflow measures, and `--median-by <metric>` picks another one. Budgets compare the median, and each run is reported on stderr.
 - `--matrix <file>` measures every URL of a JSON file on every device and in every variant it lists, each combination `runs` times, and reports a table with the rated median of each combination, or `{ matrix, runs, combinations }` with `--json`. A device sets its viewport, CPU and network, a preset or a network of its own such as 5G; a variant sets its storage state, headers and own domains. The options of the command line apply to every combination, budgets compare the median of each one, and an invalid file exits with `2` before any page load. `--verbose` adds the report of each combination, `--markdown` folds it into a `<details>` block, CrUX is asked once for each URL and form factor, and `--report-to` posts one report for each combination, with its device, variant and runs.
@@ -153,7 +157,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.2.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.3.0...HEAD
+[1.3.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.2.0...cli-v1.3.0
 [1.2.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.1.0...cli-v1.2.0
 [1.1.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.0.0...cli-v1.1.0
 [1.0.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v0.5.0...cli-v1.0.0
