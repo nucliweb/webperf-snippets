@@ -4,6 +4,12 @@ pre code {
   overflow-y: auto;
 }
 
+/* The first column of a table names an option, an alias or a property: its code stays on one
+   line. A table wider than the column scrolls sideways, as the docs theme makes it. */
+table td:first-child > code {
+  white-space: nowrap;
+}
+
 /* Snippet and Demo components: own styles, independent of the utility classes of the docs theme */
 :root {
   --wp-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
