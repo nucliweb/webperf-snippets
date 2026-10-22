@@ -323,6 +323,40 @@ The median run is the one with the median LCP. A workflow without LCP uses the f
 
 `medianRun` counts from 1, and `values` keeps the order of the runs. The budgets compare the median of each metric, not one run. A run that fails, such as a navigation that does not finish, counts in `failed` and is left out of the median; when every run fails, the command exits with code `1`. Each run is reported on stderr as it starts, so stdout keeps only the report. An invalid count or metric exits with code `2`.
 
+Measure several pages, on several devices and in several variants, in one command with `--matrix <file>`. The file lists them, and the CLI measures every URL on every device and in every variant, each combination `runs` times, one load after the other:
+
+```json copy
+{
+  "urls": {
+    "home": "https://example.com/",
+    "article": "https://example.com/news/some-article"
+  },
+  "devices": {
+    "mobile": { "viewport": "mobile", "cpu": 4, "network": "slow-4g" },
+    "high-end": { "viewport": "mobile", "cpu": 1, "network": { "downloadKbps": 50000, "uploadKbps": 10000, "latencyMs": 20 } },
+    "desktop": { "viewport": "desktop" }
+  },
+  "variants": {
+    "no-consent": {},
+    "consent": { "storageState": "states/consent.json" }
+  },
+  "runs": 3
+}
+```
+
+```bash copy
+npx webperf-snippets --matrix matrix.json --budget-lcp 2500
+```
+
+- `urls`: names and URLs. An array of URLs also works, and names each one by its path and query (`/`, `/news/`), with the host when the URLs have more than one.
+- `devices`: the `viewport` preset, the `cpu` factor and the `network`, a preset (`fast-4g`, `slow-4g`, `3g`) or a network of its own in kilobits per second and milliseconds, for the ones DevTools has no preset for, such as 5G. An array of viewport presets (`["mobile", "desktop"]`) is a shortcut for devices without throttling. Without `devices`, the matrix measures a mid-range phone, with CPU 4x and Slow 4G, as Lighthouse does.
+- `variants`: the conditions of each variant, `storageState` (relative to the file), `headers` and `ownDomains`. Without `variants`, there is one, called `default`.
+- `runs` (1 to 9) and `medianBy`, which `--runs` and `--median-by` replace.
+
+The options of the command line apply to every combination: `--workflow`, `--snippet`, `--wait`, `--interact-script`, `--header`, `--own-domains`, `--storage-state`, `--cpu`, `--network` and the budgets. The file replaces `cpu`, `network` and `storageState` where it sets them, and its `headers` and `ownDomains` add to the ones of the command line, the variant winning on the same header. A matrix file is meant to be versioned, so pass secrets, such as the token of an access proxy, with `--header` and an environment variable; a header of the file whose name looks like a secret raises a warning. A key the CLI does not know is an error, so a typo does not measure without its condition.
+
+The report is a table with one row per combination and the rated median of each metric, followed by the errors that decide the exit code. With `--json`, it is `{ "matrix", "runs", "combinations" }`, each combination being the report of its median run with its `id`, `name`, `device`, `variant` and `runs`. The budgets compare the median of each combination. The command exits with code `1` when a combination exceeds a budget, has an error or fails every run, and with code `2` for an invalid file, before any page load, naming the place of the problem in the JSON. `--viewport` does not apply, since each device sets its own, and `--markdown` and `--report-to` do not support `--matrix`.
+
 Show all items, including passing checks:
 
 ```bash copy
@@ -346,6 +380,7 @@ npx webperf-snippets https://example.com --verbose
 | `--own-domains <list>`   | Domains of the site to count as first party, such as its own CDN. Comma-separated or repeated. |
 | `--runs <n>`             | Measure the page n times, from 1 to 9, one after the other, and report the median run. |
 | `--median-by <metric>`   | Metric that picks the median run: `LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`. Default: the first of LCP, FCP, TTFB and `navMs` measured. |
+| `--matrix <file>`        | Measure every URL of a JSON file on every device and in every variant it lists, and report a table of the medians. |
 | `--crux-key <key>`     | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`.      |
 | `--report-to <url>`    | POST the results to this `https` URL after the run. No external calls without it. |
 | `--api-key <key>`      | Sent as a Bearer token with `--report-to`. Prefer `PERF_REVIEWS_API_KEY`.          |
