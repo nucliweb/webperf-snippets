@@ -340,6 +340,25 @@ describe("reportMarkdown", () => {
   });
 });
 
+describe("the conditions of the measurement", () => {
+  const throttled = { ...samplePayload, throttling: { cpu: 4, network: "slow-4g" } };
+
+  it("are named under the header of the human report", () => {
+    expect(reportHuman(throttled)).toContain("Throttling: CPU 4x, Slow 4G");
+    expect(reportHuman({ ...samplePayload, throttling: { network: "3g" } })).toContain("Throttling: 3G");
+    expect(reportHuman({ ...samplePayload, throttling: { cpu: 6 } })).toContain("Throttling: CPU 6x");
+  });
+
+  it("are named under the header of the markdown report", () => {
+    expect(reportMarkdown(throttled)).toContain("> Throttling: CPU 4x, Slow 4G");
+  });
+
+  it("leave both reports as they were without throttling", () => {
+    expect(reportHuman(samplePayload)).not.toContain("Throttling");
+    expect(reportMarkdown(samplePayload)).not.toContain("Throttling");
+  });
+});
+
 describe("a skipped result", () => {
   const skipped = {
     ...samplePayload,

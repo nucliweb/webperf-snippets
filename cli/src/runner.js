@@ -4,6 +4,7 @@ import { runInteractions, loadInteractionSteps, isInputStep, settle } from "./in
 import { isTrackingSnippet } from "./tracking.js";
 import { nextSteps } from "./decision-tree.js";
 import { sendHeadersToOrigin } from "./headers.js";
+import { applyThrottling, throttlingOf } from "./throttling.js";
 
 export const VIEWPORT_PRESETS = {
   mobile: { width: 375, height: 812 },
@@ -99,6 +100,8 @@ export async function runSnippets({
   interactions = interactScript,
   storageState,
   headers,
+  cpu,
+  network,
   // Called at each of the three stages of a run, for callers that report progress (the MCP server)
   onProgress = () => {},
 }) {
@@ -108,6 +111,7 @@ export async function runSnippets({
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
     await sendHeadersToOrigin(context, page, url, headers);
+    await applyThrottling(context, page, { cpu, network });
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
     const navStart = Date.now();
@@ -117,7 +121,7 @@ export async function runSnippets({
     await onProgress(2, "Page loaded, running the snippets");
     const results = await evaluateAroundInteractions(page, items, interactions);
     await onProgress(3, "Snippets evaluated");
-    return { url, navMs, results, pageErrors };
+    return { url, navMs, results, pageErrors, throttling: throttlingOf({ cpu, network }) };
   } finally {
     await browser.close();
   }
@@ -135,6 +139,8 @@ export async function runMeasurement({
   interactions = interactScript,
   storageState,
   headers,
+  cpu,
+  network,
   onProgress = () => {},
 }) {
   await onProgress(1, "Opening Chromium");
@@ -143,6 +149,7 @@ export async function runMeasurement({
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
     await sendHeadersToOrigin(context, page, url, headers);
+    await applyThrottling(context, page, { cpu, network });
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
 
@@ -199,7 +206,7 @@ export async function runMeasurement({
     }
 
     await onProgress(3, "Workflow and follow-ups evaluated");
-    return { url, navMs, results: [...initialResults, ...followUpResults], pageErrors };
+    return { url, navMs, results: [...initialResults, ...followUpResults], pageErrors, throttling: throttlingOf({ cpu, network }) };
   } finally {
     await browser.close();
   }

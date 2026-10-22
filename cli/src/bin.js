@@ -13,6 +13,7 @@ import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
 import { fetchCrux, formFactorFor } from "./crux.js";
 import { MissingBrowserError } from "./browser.js";
 import { parseHeader } from "./headers.js";
+import { NETWORK_PRESETS, parseCpuFactor } from "./throttling.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -38,6 +39,8 @@ Options:
   --markdown            Output GitHub-renderable markdown (for PR comments)
   --viewport <preset>   Viewport preset: mobile (default), tablet, desktop
   --wait <ms>           Post-load wait before evaluating (default: 3000)
+  --cpu <factor>        Slow the CPU down by this factor, such as 4 (no throttling by default)
+  --network <preset>    Throttle the network as DevTools does: fast-4g, slow-4g, 3g
   --budget-lcp <ms>     Exit 1 if LCP exceeds this value
   --budget-cls <score>  Exit 1 if CLS exceeds this value
   --interact-script <path>  JSON file with interactions to run after the load; the
@@ -66,6 +69,7 @@ Examples:
   npx webperf-snippets https://example.com --snippet fonts
   npx webperf-snippets https://example.com --snippet Compression-Audit
   npx webperf-snippets https://example.com --budget-lcp 2500
+  npx webperf-snippets https://example.com --cpu 4 --network slow-4g
   npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
   npx webperf-snippets https://review.example.com --header "CF-Access-Client-Id: $CF_ID" --header "CF-Access-Client-Secret: $CF_SECRET"
@@ -123,6 +127,8 @@ async function main() {
         "budget-lcp": { type: "string" },
         "budget-cls": { type: "string" },
         viewport: { type: "string" },
+        cpu: { type: "string" },
+        network: { type: "string" },
         "interact-script": { type: "string" },
         "storage-state": { type: "string" },
         header: { type: "string", multiple: true },
@@ -159,6 +165,13 @@ async function main() {
     fail(`Unknown viewport preset: "${viewportName}". Choose from: ${Object.keys(VIEWPORT_PRESETS).join(", ")}`);
   }
 
+  const cpu = values.cpu != null ? parseCpuFactor(values.cpu) : undefined;
+  if (cpu === null) fail(`Invalid CPU factor "${values.cpu}". Use a number of at least 1, such as 4`);
+  const network = values.network;
+  if (network != null && !NETWORK_PRESETS[network]) {
+    fail(`Unknown network preset: "${network}". Choose from: ${Object.keys(NETWORK_PRESETS).join(", ")}`);
+  }
+
   const reportUrl = values["report-to"];
   if (reportUrl) {
     const problem = validateReportUrl(reportUrl);
@@ -181,12 +194,12 @@ async function main() {
   let payload;
   if (values.snippet) {
     const items = buildSnippetItem(values);
-    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers });
+    payload = await runSnippets({ url, items, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network });
   } else {
     const workflowName = values.workflow ?? "core-web-vitals";
     const workflow = WORKFLOWS[workflowName];
     if (!workflow) fail(`Unknown workflow: ${workflowName}`);
-    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers });
+    payload = await runMeasurement({ url, workflow, rules: RULES, waitMs, headless: !values.headed, viewport, interactScript, storageState, headers, cpu, network });
   }
 
   const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;
@@ -214,7 +227,7 @@ async function main() {
         timestamp: new Date().toISOString(),
         navMs: payload.navMs,
         results: payload.results,
-        meta: { viewport: viewportName, waitMs, cli_version: cliVersion },
+        meta: { viewport: viewportName, waitMs, ...(payload.throttling ? { throttling: payload.throttling } : {}), cli_version: cliVersion },
       },
     });
     if (!outcome.ok) {

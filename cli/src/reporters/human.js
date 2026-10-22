@@ -1,5 +1,6 @@
 import { styleText } from "node:util";
 import { fieldDataView } from "../crux.js";
+import { describeThrottling } from "../throttling.js";
 
 const RATING_ICON = {
   good: "🟢",
@@ -202,10 +203,11 @@ function renderFieldData(crux, results) {
   return lines;
 }
 
-export function reportHuman({ url, navMs, results, pageErrors, verbose, crux }) {
+export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling }) {
   const lines = [];
   lines.push(styleText(["bold"], `WebPerf Snippets — ${url}`));
   lines.push(styleText("dim", `Navigated in ${navMs}ms`));
+  if (throttling) lines.push(styleText("dim", `Throttling: ${describeThrottling(throttling)}`));
   lines.push("");
   for (const r of results) lines.push(renderResult(r, verbose));
   if (crux) {
