@@ -167,3 +167,86 @@ describe("--matrix", () => {
     expect(documents).toHaveLength(0);
   }, 60000);
 });
+
+describe("--matrix with the other reports", () => {
+  let cruxServer;
+  let cruxQueries;
+  let reportServer;
+  let reports;
+
+  const listen = (handler) =>
+    new Promise((resolve) => {
+      const s = createServer(handler);
+      s.listen(0, "127.0.0.1", () => resolve(s));
+    });
+  const readBody = (req) =>
+    new Promise((resolve) => {
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => resolve(body));
+    });
+
+  beforeAll(async () => {
+    cruxServer = await listen(async (req, res) => {
+      cruxQueries.push(JSON.parse(await readBody(req)));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ record: { metrics: { largest_contentful_paint: { percentiles: { p75: 2100 } } } } }));
+    });
+    reportServer = await listen(async (req, res) => {
+      reports.push(await readBody(req));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    });
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => cruxServer.close(resolve));
+    await new Promise((resolve) => reportServer.close(resolve));
+  });
+
+  beforeEach(() => {
+    cruxQueries = [];
+    reports = [];
+  });
+
+  it("gives a markdown table and the report of each combination in a details block", async () => {
+    const { code, stdout } = await cli("--matrix", writeMatrix(clientCase()), "--markdown");
+    expect(code).toBe(0);
+    expect(stdout).toContain("## WebPerf Results — matrix.json");
+    expect(stdout).toContain("| Page | Device | Variant | LCP | CLS |");
+    expect(stdout.match(/<details><summary>/g)).toHaveLength(8);
+    expect(stdout).toContain("<details><summary>article · wide · consent</summary>");
+  }, 120000);
+
+  it("adds the report of each combination to the table with --verbose", async () => {
+    const { code, stdout } = await cli("--matrix", writeMatrix(clientCase()), "--verbose");
+    expect(code).toBe(0);
+    expect(stdout).toContain(`home · phone · anon — ${baseUrl}/home`);
+    expect(stdout.match(/Navigated in \d+ms/g)).toHaveLength(8);
+  }, 120000);
+
+  it("asks CrUX once for each URL and form factor, and gives the field data to every combination", async () => {
+    const env = cliEnv({ CRUX_API_KEY: "key", WEBPERF_CRUX_ENDPOINT: `http://127.0.0.1:${cruxServer.address().port}/query` });
+    const { stdout } = await run("node", [BIN, "--wait", "200", "--matrix", writeMatrix(clientCase()), "--json"], { env });
+    // 2 URLs on 2 form factors; the two variants of a device share the field data
+    expect(cruxQueries.map((q) => `${q.url} ${q.formFactor}`).sort()).toEqual([
+      `${baseUrl}/article DESKTOP`,
+      `${baseUrl}/article PHONE`,
+      `${baseUrl}/home DESKTOP`,
+      `${baseUrl}/home PHONE`,
+    ]);
+    const { combinations } = JSON.parse(stdout);
+    expect(combinations.every((c) => c.crux?.metrics?.LCP?.p75 === 2100)).toBe(true);
+  }, 120000);
+
+  it("reports each combination to --report-to, with its device, variant and runs, and never the value of a header", async () => {
+    const reportUrl = `http://127.0.0.1:${reportServer.address().port}/api/report`;
+    const { code } = await cli("--matrix", writeMatrix(clientCase()), "--json", "--report-to", reportUrl, "--header", "X-Access: s3cr3t-value");
+    expect(code).toBe(0);
+    expect(reports).toHaveLength(8);
+    expect(reports.some((body) => body.includes("s3cr3t-value"))).toBe(false);
+    const bodies = reports.map((body) => JSON.parse(body));
+    expect(bodies[1]).toMatchObject({ url: `${baseUrl}/home`, meta: { viewport: "mobile", device: "phone", variant: "consent", runs: { count: 1 } } });
+    expect(bodies[7]).toMatchObject({ url: `${baseUrl}/article`, meta: { viewport: "desktop", device: "wide", variant: "consent" } });
+  }, 120000);
+});

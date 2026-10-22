@@ -8,7 +8,7 @@ import { WORKFLOWS } from "./workflows/index.js";
 import { RULES } from "./decision-tree.js";
 import { reportHuman, reportMatrixHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
-import { reportMarkdown } from "./reporters/markdown.js";
+import { reportMarkdown, reportMatrixMarkdown } from "./reporters/markdown.js";
 import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
 import { fetchCrux, formFactorFor } from "./crux.js";
 import { MissingBrowserError } from "./browser.js";
@@ -194,7 +194,6 @@ async function main() {
     process.exit(2);
   }
   if (matrixPath && values.viewport) fail("--viewport does not apply to --matrix: set the viewport of each device in the file");
-  if (matrixPath && values.markdown) fail("--markdown does not support --matrix yet: use the human report or --json");
 
   const waitMs = values.wait ? Number(values.wait) : 3000;
   const viewportName = values.viewport ?? "mobile";
@@ -212,7 +211,6 @@ async function main() {
 
   const reportUrl = values["report-to"];
   if (reportUrl) {
-    if (matrixPath) fail("--report-to does not support --matrix yet");
     const problem = validateReportUrl(reportUrl);
     if (problem) fail(problem);
   }
@@ -260,7 +258,7 @@ async function main() {
     } catch (err) {
       fail(err.message);
     }
-    await runMatrix(matrixPath, matrix, measureWith, values);
+    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl });
     return;
   }
 
@@ -339,8 +337,9 @@ async function measureRuns(measure, count, medianBy, progress) {
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code follows the same rules as one page, for every combination.
-async function runMatrix(matrixPath, matrix, measureWith, values) {
+async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl }) {
   for (const warning of matrix.warnings) process.stderr.write(`Warning: ${warning}\n`);
+  const viewportOf = new Map(matrix.combinations.map((c) => [c.id, c.viewport]));
 
   const total = matrix.combinations.length * matrix.runs;
   const width = String(total).length;
@@ -357,8 +356,55 @@ async function runMatrix(matrixPath, matrix, measureWith, values) {
     );
   }
 
-  const report = { matrix: matrixPath, runs: matrix.runs, combinations };
-  process.stdout.write((values.json ? reportJson(report) : reportMatrixHuman(report)) + "\n");
+  // The field data of a URL depends on the form factor, not on the variant: one query for each pair
+  const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;
+  if (cruxKey) {
+    const queries = new Map();
+    for (const c of combinations.filter((c) => !c.error)) {
+      const formFactor = formFactorFor(viewportOf.get(c.id));
+      const key = `${c.url} ${formFactor}`;
+      if (!queries.has(key)) queries.set(key, fetchCrux({ url: c.url, apiKey: cruxKey, formFactor }));
+      const crux = await queries.get(key);
+      if (crux) c.crux = crux;
+    }
+  }
+
+  const report = { matrix: matrixPath, runs: matrix.runs, combinations, verbose: values.verbose };
+  const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, runs: matrix.runs, combinations }) : reportMatrixHuman(report);
+  process.stdout.write(output + "\n");
+
+  // One report for each combination, with the body of one page and the device, variant and runs of
+  // the combination. The headers are conditions of the load, never part of the body.
+  if (reportUrl) {
+    for (const c of combinations.filter((c) => !c.error)) {
+      const outcome = await reportTo({
+        url: reportUrl,
+        apiKey: values["api-key"] || process.env.PERF_REVIEWS_API_KEY,
+        body: {
+          url: c.url,
+          workflow: values.snippet ? null : (values.workflow ?? "core-web-vitals"),
+          ...(values.snippet ? { snippet: values.snippet } : {}),
+          timestamp: new Date().toISOString(),
+          navMs: c.navMs,
+          results: c.results,
+          meta: {
+            viewport: viewportOf.get(c.id),
+            device: c.device,
+            variant: c.variant,
+            waitMs,
+            ...(c.throttling ? { throttling: c.throttling } : {}),
+            runs: c.runs,
+            cli_version: cliVersion,
+          },
+        },
+      });
+      if (!outcome.ok) {
+        process.stderr.write(`Warning: could not report ${c.id} to ${new URL(reportUrl).origin} (${outcome.warning})\n`);
+      } else if (outcome.regressions.length > 0) {
+        process.stderr.write(`Regressions detected in ${c.id}:\n${outcome.regressions.map((r) => `  - ${typeof r === "string" ? r : JSON.stringify(r)}`).join("\n")}\n`);
+      }
+    }
+  }
 
   const violations = combinations.filter((c) => !c.error).flatMap((c) => checkBudgets(c, values).map((v) => `${v} (${c.id})`));
   if (!values.json) {
