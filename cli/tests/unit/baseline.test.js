@@ -236,9 +236,10 @@ describe("the warnings of a comparison", () => {
     expect(warningsOf(base, page({ url: "https://pr-9.example.net/news/" })).filter((w) => w.includes("measured /"))).toEqual([]);
   });
 
-  it("go with the file and the URL of the baseline", () => {
+  it("go with the file, the URL and the runs of the baseline", () => {
     const comparison = compare(page({ url: "https://example.com/news/" }), page());
-    expect(comparison).toMatchObject({ file: "baseline.json", url: "https://example.com/news/" });
+    expect(comparison).toMatchObject({ file: "baseline.json", url: "https://example.com/news/", runs: { count: 1 } });
+    expect(compare(page({ runs: runsOf({ LCP: [1, 2, 3] }) }), page()).runs).toEqual({ count: 3, medianBy: "LCP" });
   });
 });
 

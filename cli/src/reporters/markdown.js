@@ -2,6 +2,7 @@ import { fieldDataView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
 import { describeRuns } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
+import { baselineView } from "./baseline-view.js";
 
 const RATING_ICON = {
   good: "✅",
@@ -83,8 +84,27 @@ function renderRuns(runs) {
   return lines;
 }
 
+const VERDICT_ICON = { regressed: "❌", improved: "✅", unchanged: "➖", "not measured": "·" };
+
+// The comparison with --baseline. The warnings go in the comment itself: whoever reads the pull
+// request does not see the stderr of the CI.
+function renderBaseline(comparison) {
+  const view = baselineView(comparison);
+  const lines = ["", `### Compared with \`${view.file}\``, `> ${view.summary}`];
+  for (const warning of view.warnings) lines.push(">", `> ⚠️ ${warning}`);
+  lines.push("", "| Metric | Baseline | Now | Change | Verdict |", "|--------|----------|-----|--------|---------|");
+  for (const row of view.rows) {
+    const value = (v) => (v == null ? "·" : formatValue(v, row.unit));
+    const verdict = `${VERDICT_ICON[row.verdict]} ${row.verdict}${row.note ? ` (${row.note})` : ""}`;
+    lines.push(`| ${row.metric} | ${value(row.baseline)} | ${value(row.current)} | ${row.change ?? "·"} | ${verdict} |`);
+  }
+  if (view.newErrors.length) lines.push("", "#### New errors", ...view.newErrors.map((e) => `- \`${e.id}\`: ${e.message}`));
+  if (view.fixedErrors.length) lines.push("", "#### Fixed errors", ...view.fixedErrors.map((e) => `- \`${e.id}\`: ${e.message}`));
+  return lines;
+}
+
 // With a null title, the report has no heading, as inside the details block of a matrix
-export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling, runs, title = `WebPerf Results — ${url}` }) {
+export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling, runs, baseline, title = `WebPerf Results — ${url}` }) {
   const lines = [];
   if (title) lines.push(`## ${title}`);
   lines.push(`> Navigated in ${navMs}ms`);
@@ -119,6 +139,8 @@ export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttli
     lines.push("### ⚠ Page Errors");
     for (const err of pageErrors) lines.push(`- ${err}`);
   }
+
+  if (baseline) lines.push(...renderBaseline(baseline));
 
   return lines.join("\n");
 }

@@ -3,6 +3,7 @@ import { fieldDataView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
 import { describeRuns } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
+import { baselineView } from "./baseline-view.js";
 
 const RATING_ICON = {
   good: "🟢",
@@ -215,7 +216,26 @@ function renderRuns(runs) {
   return lines;
 }
 
-export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling, runs, title = `WebPerf Snippets — ${url}` }) {
+const VERDICT_STYLE = { regressed: "red", improved: "green", unchanged: "dim", "not measured": "dim" };
+
+// The comparison with --baseline, after the report: its warnings first, since they say how far to
+// trust the table, then a row per metric and the errors that appeared or went away
+function renderBaseline(comparison) {
+  const view = baselineView(comparison);
+  const lines = ["", styleText("bold", `Compared with ${view.file} (${view.summary})`)];
+  for (const warning of view.warnings) lines.push(`  ${styleText("yellow", `Warning: ${warning}`)}`);
+  lines.push(styleText("dim", `  ${pad("Metric", 9)}${pad("Baseline", 11)}${pad("Now", 10)}Change`));
+  for (const row of view.rows) {
+    const value = (v) => (v == null ? "·" : formatValue(v, row.unit));
+    const verdict = row.note ? `${row.verdict} (${row.note})` : row.verdict;
+    lines.push(`  ${pad(row.metric, 9)}${pad(value(row.baseline), 11)}${pad(value(row.current), 10)}${pad(row.change ?? "", 20)}${styleText(VERDICT_STYLE[row.verdict], verdict)}`);
+  }
+  for (const e of view.newErrors) lines.push(`  ${styleText("red", "+ new error")}  ${e.id}: ${e.message}`);
+  for (const e of view.fixedErrors) lines.push(`  ${styleText("green", "− fixed")}      ${e.id}: ${e.message}`);
+  return lines;
+}
+
+export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling, runs, baseline, title = `WebPerf Snippets — ${url}` }) {
   const lines = [];
   lines.push(styleText(["bold"], title));
   lines.push(styleText("dim", `Navigated in ${navMs}ms`));
@@ -232,6 +252,7 @@ export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, th
     lines.push(styleText("yellow", "Page errors during run:"));
     for (const err of pageErrors) lines.push(`  ${styleText("dim", err)}`);
   }
+  if (baseline) lines.push(...renderBaseline(baseline));
   return lines.join("\n");
 }
 

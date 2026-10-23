@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ### Added
 - The JSON output of a page, and of each combination of a matrix, carries `conditions`: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait and the version of the CLI. It is a new field, and the existing ones do not change.
+- `--baseline <file>` compares a page with the `--json` output of an earlier run. LCP, FCP, TTFB, CLS and INP get a verdict against a threshold, the larger of a share of the baseline and a minimum, and, with two runs or more in the baseline, against its range, so a change within the noise of the lab does not count; the errors that decide the exit code are listed as new or fixed, paired by code or by their message with the figures normalized. A different workflow, viewport, wait, throttling, number of runs, version of the CLI, path or query warns on stderr, in the reports and in `warnings`. The human and markdown reports add the comparison, and the JSON output a `baseline` field. `--threshold` changes the threshold of a metric (`LCP=15%`, `LCP=200ms`, `CLS=0.1`). The comparison only informs, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new. An invalid baseline or threshold exits with `2` before the page loads.
 
 ---
 

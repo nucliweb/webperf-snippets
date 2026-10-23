@@ -365,6 +365,50 @@ The report is a table with one row per combination and the rated median of each 
 
 With CrUX, the CLI asks once for each URL and form factor, so the variants of a device share their field data. With `--report-to`, it posts one report for each combination, the body of one page with `meta.device`, `meta.variant` and `meta.runs`; the headers of the command line and of the file are conditions of the load, and no report carries their values.
 
+Compare a run with an earlier one with `--baseline <file>`, the `--json` output of that run. The comparison says which metrics got worse or better beyond the noise of the lab, which errors are new or fixed, and what differs in how both runs were measured:
+
+```bash copy
+# On main, once: the baseline
+npx webperf-snippets https://example.com --runs 5 --json > baseline.json
+
+# On the pull request: compare and report
+npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.json --markdown
+
+# Fail when the page gets worse
+npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.json --fail-on-regression
+```
+
+LCP, FCP, TTFB, CLS and INP compare when both runs measured them, the median of each with `--runs`; a metric that only one side measured is `not measured`. A metric regresses when it gets worse by more than its threshold, the larger of a share of the baseline and a minimum, and, when the baseline has two runs or more, ends above the slowest of them: a median inside the range of the baseline is noise the baseline already had. It improves under the same rules the other way, and otherwise it is unchanged.
+
+| Metric         | Share of the baseline | Minimum |
+| -------------- | --------------------- | ------- |
+| LCP, FCP, TTFB | 10%                   | 100 ms  |
+| INP            | 10%                   | 50 ms   |
+| CLS            | none                  | 0.05    |
+
+`--threshold` changes one part of a threshold and keeps the other: `--threshold LCP=15%` the share, `--threshold LCP=200ms` the minimum, and `--threshold CLS=0.1` the only part of CLS. Repeat it for more metrics.
+
+The errors that compare are the ones that decide the exit code: the issues of severity `error` of the steps of the workflow and the snippets that failed. Two errors are the same when they share a code or, without one, when their messages differ only in their figures, so "Render-blocking CSS (69.21 KB)…" and "Render-blocking CSS (71.80 KB)…" are one error. An error that only this run has is new, and one that only the baseline had is fixed. Warnings and information do not compare, since they change too easily.
+
+The report adds the comparison after the usual one, and `--markdown` a table for the pull request comment. The JSON output carries it in `baseline`:
+
+```json
+"baseline": {
+  "file": "baseline.json",
+  "url": "https://example.com/",
+  "runs": { "count": 5, "medianBy": "LCP" },
+  "metrics": {
+    "LCP": { "baseline": 2100, "current": 2480, "delta": 380, "deltaPercent": 18.1, "threshold": 210, "verdict": "regressed" }
+  },
+  "errors": { "new": [{ "id": "render-blocking", "message": "1 render-blocking resource(s) delay rendering until 900ms" }], "fixed": [] },
+  "warnings": []
+}
+```
+
+When both runs were measured differently, with another workflow or snippet, viewport, wait, throttling, number of runs or version of the CLI, or on another path or query, the CLI compares anyway and warns on stderr, in the reports and in `warnings`: whoever reads the pull request comment does not see the stderr of the CI. Another host does not warn, since it is the review app of a pull request against production. A baseline of one run warns that only the thresholds apply.
+
+The comparison only informs, and the exit code is the same as without it, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new, and names them on stderr. A baseline that does not exist or is not an output of the CLI, the baseline of a matrix for a page, or a `--threshold` the CLI does not understand exits with code `2`, before the page loads. `--baseline` compares a page; `--matrix` does not take it.
+
 Show all items, including passing checks:
 
 ```bash copy
@@ -389,6 +433,9 @@ npx webperf-snippets https://example.com --verbose
 | `--runs <n>`             | Measure the page n times, from 1 to 9, one after the other, and report the median run. |
 | `--median-by <metric>`   | Metric that picks the median run: `LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`. Default: the first of LCP, FCP, TTFB and `navMs` measured. |
 | `--matrix <file>`        | Measure every URL of a JSON file on every device and in every variant it lists, and report a table of the medians. |
+| `--baseline <file>`      | Compare the page with the `--json` output of an earlier run: which metrics got worse or better beyond the noise, and which errors are new or fixed. |
+| `--threshold <metric>=<v>` | The threshold of a metric for `--baseline`, such as `LCP=15%`, `LCP=200ms` or `CLS=0.1`. Repeat it for more metrics. |
+| `--fail-on-regression`   | Exit `1` when a metric regressed or an error is new against `--baseline`. |
 | `--crux-key <key>`     | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`.      |
 | `--report-to <url>`    | POST the results to this `https` URL after the run. No external calls without it. |
 | `--api-key <key>`      | Sent as a Bearer token with `--report-to`. Prefer `PERF_REVIEWS_API_KEY`.          |
@@ -420,8 +467,8 @@ A follow-up informs: the `error` issues it reports appear in the report and do n
 | Code | Meaning                                      |
 | ---- | -------------------------------------------- |
 | `0`  | All checks passed.                           |
-| `1`  | Budget violation, a snippet errored, or a step of the workflow reported an `error` issue. |
-| `2`  | Usage error (missing URL, unknown workflow). |
+| `1`  | Budget violation, a snippet errored, a step of the workflow reported an `error` issue, or, with `--fail-on-regression`, a regression against the baseline. |
+| `2`  | Usage error (missing URL, unknown workflow, a baseline or threshold that is not valid). |
 
 ## Run it from an AI agent
 
