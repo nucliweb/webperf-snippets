@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- The JSON output of a page, and of each combination of a matrix, carries `conditions`: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait and the version of the CLI. It is a new field, and the existing ones do not change.
+
 ---
 
 ## [1.3.0] — 2026-10-23

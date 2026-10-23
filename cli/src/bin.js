@@ -18,6 +18,7 @@ import { parseOwnDomains } from "./own-domains.js";
 import { MEDIAN_METRICS, summarizeRuns } from "./runs.js";
 import { loadMatrix } from "./matrix.js";
 import { blockingErrors } from "./blocking.js";
+import { measurementConditions } from "./conditions.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -250,6 +251,9 @@ async function main() {
     const options = { waitMs, headless: !values.headed, interactScript, ...conditions };
     return items ? runSnippets({ ...options, items }) : runMeasurement({ ...options, workflow, rules: RULES });
   };
+  // What the JSON records of how each page was measured, for a later run to compare with
+  const conditionsFor = (viewport) =>
+    measurementConditions({ viewport, waitMs, ...(items ? { snippet: items[0].path } : { workflow: values.workflow ?? "core-web-vitals" }) });
 
   if (matrixPath) {
     let matrix;
@@ -258,7 +262,7 @@ async function main() {
     } catch (err) {
       fail(err.message);
     }
-    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl });
+    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor });
     return;
   }
 
@@ -271,6 +275,7 @@ async function main() {
     if (!median.payload) throw new Error(`Every run failed: ${median.errors.join("; ")}`);
     payload = { ...median.payload, runs: median.runs };
   }
+  payload.conditions = conditionsFor(viewportName);
 
   const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;
   const crux = cruxKey ? await fetchCrux({ url, apiKey: cruxKey, formFactor: formFactorFor(viewportName) }) : undefined;
@@ -337,7 +342,7 @@ async function measureRuns(measure, count, medianBy, progress) {
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code follows the same rules as one page, for every combination.
-async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl }) {
+async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor }) {
   for (const warning of matrix.warnings) process.stderr.write(`Warning: ${warning}\n`);
   const viewportOf = new Map(matrix.combinations.map((c) => [c.id, c.viewport]));
 
@@ -351,8 +356,8 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
     const identity = { id: c.id, name: c.name, device: c.device, ...(c.variant ? { variant: c.variant } : {}), url: c.url };
     combinations.push(
       median.payload
-        ? { ...identity, ...median.payload, runs: median.runs }
-        : { ...identity, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs } }
+        ? { ...identity, ...median.payload, runs: median.runs, conditions: conditionsFor(c.viewport) }
+        : { ...identity, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs }, conditions: conditionsFor(c.viewport) }
     );
   }
 
