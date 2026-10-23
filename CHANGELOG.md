@@ -30,6 +30,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Inline-Script-Info-and-Size classifies framework data payloads (JSON types, hydration ids such as `__NEXT_DATA__`, `self.__next_f.push(...)`) before looking for patterns, and counts analytics only from a call or definition such as `gtag(...)` or `dataLayer.push(...)`. A data payload that contained the word "gtag" was labelled analytics. Adds `isDataPayload` and `details.dataPayloadCount`.
 - LCP-Image-Entropy divides by the displayed area of the image, capped at its natural area, as Chrome does. It divided by the natural area, so a large image shown small was flagged as low entropy while Chrome took it as the LCP. Adds `displayedWidth` and `displayedHeight`.
 - CLS counts the shifts that the observer has not delivered when the page is hidden. It called `takeRecords()` and dropped the records, so a shift right before the page was hidden was missing from the final value and from `getCLS()`.
+- LCP-Subparts splits the LCP as web-vitals does. It took the first Resource Timing entry for the URL of the LCP resource, so an image downloaded earlier with `fetch()` gave the phases of that earlier request; it takes the last request that started before the render. The end of the download is capped at the LCP, so a video that keeps downloading after its first frame paints no longer gives phases that add up to more than the LCP. An e2e test compares LCP, LCP-Subparts and CLS with the attribution build of web-vitals on the same page.
 
 ---
 
