@@ -53,10 +53,11 @@
 
   observer.observe({ type: "layout-shift", buffered: true });
 
-  // Update on visibility change (final CLS)
+  // Update on visibility change (final CLS). The shifts that the observer has not delivered yet are
+  // in takeRecords(): without them, the last shift before the page hides is lost.
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      observer.takeRecords();
+      for (const entry of observer.takeRecords()) addShift(entry);
       console.log("%c📊 Final CLS (on page hide):", "font-weight: bold;");
       logCLS();
     }

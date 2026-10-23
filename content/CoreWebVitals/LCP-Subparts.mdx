@@ -71,6 +71,8 @@ The snippet splits Resource Load Time with the Resource Timing entry of the LCP 
 
 A resource from another origin hides that timing unless it sends a `Timing-Allow-Origin` header, and then the snippet reports Resource Load Time without the split.
 
+The phases are computed as in [web-vitals](https://github.com/GoogleChrome/web-vitals), so the snippet and a RUM tool built on it give the same numbers. When the page requests the URL of the LCP resource more than once, the snippet takes the last request that started before the render. The end of the download is capped at the LCP: a video keeps downloading after its first frame paints, and the four phases always add up to the LCP.
+
 ### Visual bar
 
 Shows time distribution across the four phases:

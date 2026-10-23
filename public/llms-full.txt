@@ -69,10 +69,11 @@ Quick check for Cumulative Layout Shift, a Core Web Vital that measures visual s
 
   observer.observe({ type: "layout-shift", buffered: true });
 
-  // Update on visibility change (final CLS)
+  // Update on visibility change (final CLS). The shifts that the observer has not delivered yet are
+  // in takeRecords(): without them, the last shift before the page hides is lost.
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      observer.takeRecords();
+      for (const entry of observer.takeRecords()) addShift(entry);
       console.log("%c📊 Final CLS (on page hide):", "font-weight: bold;");
       logCLS();
     }
@@ -988,6 +989,23 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     return { waiting: firstByte - requestStart, download: responseEnd - firstByte };
   };
 
+  // The times that split the LCP into its subparts, as web-vitals computes them. The resource is the
+  // last request for the LCP URL that started before the render: an earlier download of the same URL
+  // did not paint the element. Its end is capped at the LCP, since a video keeps downloading after
+  // its first frame paints, so the four subparts always add up to the LCP.
+  const lcpSubpartTimes = (lcpEntry, navEntry) => {
+    const activationStart = navEntry.activationStart || 0;
+    const renderTime = Math.max(0, lcpEntry.startTime - activationStart);
+    const resEntry = performance
+      .getEntriesByType("resource")
+      .filter((e) => !isOwnRequest(e))
+      .findLast((e) => e.name === lcpEntry.url && (e.requestStart || e.startTime) <= lcpEntry.startTime);
+    const ttfb = Math.max(0, navEntry.responseStart - activationStart);
+    const requestStart = Math.max(ttfb, resEntry ? (resEntry.requestStart || resEntry.startTime) - activationStart : 0);
+    const responseEnd = Math.min(renderTime, Math.max(requestStart, resEntry ? resEntry.responseEnd - activationStart : 0));
+    return { resEntry, activationStart, ttfb, requestStart, responseEnd, renderTime };
+  };
+
   const getNavigationEntry = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) {
@@ -1003,31 +1021,14 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
     const navEntry = getNavigationEntry();
     if (!navEntry) return;
 
-    const lcpResEntry = performance
-      .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
-      .find((e) => e.name === lcpEntry.url);
-
-    const activationStart = navEntry.activationStart || 0;
-
-    // Calculate sub-parts
-    const ttfb = Math.max(0, navEntry.responseStart - activationStart);
-
-    const lcpRequestStart = Math.max(
+    const {
+      resEntry: lcpResEntry,
+      activationStart,
       ttfb,
-      lcpResEntry
-        ? (lcpResEntry.requestStart || lcpResEntry.startTime) - activationStart
-        : 0
-    );
-
-    const lcpResponseEnd = Math.max(
-      lcpRequestStart,
-      lcpResEntry ? lcpResEntry.responseEnd - activationStart : 0
-    );
-
-    const lcpRenderTime = Math.max(
-      lcpResponseEnd,
-      lcpEntry.startTime - activationStart
-    );
+      requestStart: lcpRequestStart,
+      responseEnd: lcpResponseEnd,
+      renderTime: lcpRenderTime,
+    } = lcpSubpartTimes(lcpEntry, navEntry);
 
     const loadSplit = splitLoadTime(lcpResEntry, lcpRequestStart, lcpResponseEnd, activationStart);
 
@@ -1190,17 +1191,14 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
   if (!navEntrySync) {
     return { script: "LCP-Subparts", status: "error", error: "No navigation entry" };
   }
-  const lcpResEntrySync = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e))
-    .find((e) => e.name === lcpEntry.url);
-  const activationStartSync = navEntrySync.activationStart || 0;
-  const ttfbSync = Math.max(0, navEntrySync.responseStart - activationStartSync);
-  const lcpRequestStartSync = Math.max(ttfbSync,
-    lcpResEntrySync ? (lcpResEntrySync.requestStart || lcpResEntrySync.startTime) - activationStartSync : 0
-  );
-  const lcpResponseEndSync = Math.max(lcpRequestStartSync,
-    lcpResEntrySync ? lcpResEntrySync.responseEnd - activationStartSync : 0
-  );
-  const lcpRenderTimeSync = Math.max(lcpResponseEndSync, lcpEntry.startTime - activationStartSync);
+  const {
+    resEntry: lcpResEntrySync,
+    activationStart: activationStartSync,
+    ttfb: ttfbSync,
+    requestStart: lcpRequestStartSync,
+    responseEnd: lcpResponseEndSync,
+    renderTime: lcpRenderTimeSync,
+  } = lcpSubpartTimes(lcpEntry, navEntrySync);
   const totalSync = Math.round(lcpRenderTimeSync);
   const ratingSync = valueToRating(totalSync);
   const ttfbVal = Math.round(ttfbSync);

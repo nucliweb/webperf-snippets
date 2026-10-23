@@ -48,7 +48,7 @@
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      observer.takeRecords();
+      for (const entry of observer.takeRecords()) addShift(entry);
       logCLS();
     }
   });

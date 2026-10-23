@@ -77,6 +77,22 @@
       download: responseEnd - firstByte
     };
   };
+  const lcpSubpartTimes = (lcpEntry, navEntry) => {
+    const activationStart = navEntry.activationStart || 0;
+    const renderTime = Math.max(0, lcpEntry.startTime - activationStart);
+    const resEntry = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).findLast(e => e.name === lcpEntry.url && (e.requestStart || e.startTime) <= lcpEntry.startTime);
+    const ttfb = Math.max(0, navEntry.responseStart - activationStart);
+    const requestStart = Math.max(ttfb, resEntry ? (resEntry.requestStart || resEntry.startTime) - activationStart : 0);
+    const responseEnd = Math.min(renderTime, Math.max(requestStart, resEntry ? resEntry.responseEnd - activationStart : 0));
+    return {
+      resEntry: resEntry,
+      activationStart: activationStart,
+      ttfb: ttfb,
+      requestStart: requestStart,
+      responseEnd: responseEnd,
+      renderTime: renderTime
+    };
+  };
   const getNavigationEntry = () => {
     const navEntry = performance.getEntriesByType("navigation")[0];
     if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) return navEntry;
@@ -87,12 +103,7 @@
     if (!lcpEntry) return;
     const navEntry = getNavigationEntry();
     if (!navEntry) return;
-    const lcpResEntry = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).find(e => e.name === lcpEntry.url);
-    const activationStart = navEntry.activationStart || 0;
-    const ttfb = Math.max(0, navEntry.responseStart - activationStart);
-    const lcpRequestStart = Math.max(ttfb, lcpResEntry ? (lcpResEntry.requestStart || lcpResEntry.startTime) - activationStart : 0);
-    const lcpResponseEnd = Math.max(lcpRequestStart, lcpResEntry ? lcpResEntry.responseEnd - activationStart : 0);
-    const lcpRenderTime = Math.max(lcpResponseEnd, lcpEntry.startTime - activationStart);
+    const {resEntry: lcpResEntry, activationStart: activationStart, ttfb: ttfb, requestStart: lcpRequestStart, responseEnd: lcpResponseEnd, renderTime: lcpRenderTime} = lcpSubpartTimes(lcpEntry, navEntry);
     const loadSplit = splitLoadTime(lcpResEntry, lcpRequestStart, lcpResponseEnd, activationStart);
     const subPartValues = {
       ttfb: ttfb,
@@ -193,12 +204,7 @@
     status: "error",
     error: "No navigation entry"
   };
-  const lcpResEntrySync = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).find(e => e.name === lcpEntry.url);
-  const activationStartSync = navEntrySync.activationStart || 0;
-  const ttfbSync = Math.max(0, navEntrySync.responseStart - activationStartSync);
-  const lcpRequestStartSync = Math.max(ttfbSync, lcpResEntrySync ? (lcpResEntrySync.requestStart || lcpResEntrySync.startTime) - activationStartSync : 0);
-  const lcpResponseEndSync = Math.max(lcpRequestStartSync, lcpResEntrySync ? lcpResEntrySync.responseEnd - activationStartSync : 0);
-  const lcpRenderTimeSync = Math.max(lcpResponseEndSync, lcpEntry.startTime - activationStartSync);
+  const {resEntry: lcpResEntrySync, activationStart: activationStartSync, ttfb: ttfbSync, requestStart: lcpRequestStartSync, responseEnd: lcpResponseEndSync, renderTime: lcpRenderTimeSync} = lcpSubpartTimes(lcpEntry, navEntrySync);
   const totalSync = Math.round(lcpRenderTimeSync);
   const ratingSync = valueToRating(totalSync);
   const ttfbVal = Math.round(ttfbSync);
