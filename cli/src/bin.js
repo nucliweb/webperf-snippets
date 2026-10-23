@@ -19,6 +19,8 @@ import { MEDIAN_METRICS, summarizeRuns } from "./runs.js";
 import { loadMatrix } from "./matrix.js";
 import { blockingErrors } from "./blocking.js";
 import { measurementConditions } from "./conditions.js";
+import { loadBaseline, parseThreshold, thresholdsWith, compareRun } from "./baseline.js";
+import { describeRegressions } from "./reporters/baseline-view.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -64,6 +66,12 @@ Options:
                             variant it lists, and report a table of the medians
   --median-by <metric>      Metric that picks the median run: LCP, FCP, TTFB, CLS, INP,
                             navMs (default: the first of LCP, FCP, TTFB, navMs measured)
+  --baseline <file>         Compare the page with the --json output of an earlier run: which
+                            metrics got worse or better beyond the noise, and which errors are
+                            new or fixed. It only informs, unless --fail-on-regression
+  --threshold <metric>=<v>  The threshold of a metric for --baseline, such as LCP=15%,
+                            LCP=200ms or CLS=0.1. Repeat it for more metrics
+  --fail-on-regression      Exit 1 when a metric regressed or an error is new against --baseline
   --crux-key <key>          Add CrUX field data (p75) next to the measured values.
                             Also read from the CRUX_API_KEY environment variable
   --report-to <url>         POST the results to this https URL after the run
@@ -87,6 +95,8 @@ Examples:
   npx webperf-snippets https://example.com --workflow loading --own-domains cdn.example.net
   npx webperf-snippets https://example.com --runs 5 --budget-lcp 2500
   npx webperf-snippets --matrix matrix.json --runs 3 --budget-lcp 2500
+  npx webperf-snippets https://example.com --runs 5 --json > baseline.json
+  npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.json --fail-on-regression
   npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
   npx webperf-snippets https://review.example.com --header "CF-Access-Client-Id: $CF_ID" --header "CF-Access-Client-Secret: $CF_SECRET"
@@ -167,6 +177,9 @@ async function main() {
         matrix: { type: "string" },
         runs: { type: "string" },
         "median-by": { type: "string" },
+        baseline: { type: "string" },
+        threshold: { type: "string", multiple: true },
+        "fail-on-regression": { type: "boolean" },
         "crux-key": { type: "string" },
         "report-to": { type: "string" },
         "api-key": { type: "string" },
@@ -243,6 +256,23 @@ async function main() {
   }
   if (medianBy != null && runCount == null && !matrixPath) fail("--median-by needs --runs");
 
+  // The baseline is read and checked before the browser opens: a wrong file fails at once
+  let baseline;
+  let thresholds;
+  if (values.baseline) {
+    try {
+      baseline = loadBaseline(values.baseline);
+      thresholds = thresholdsWith((values.threshold ?? []).map(parseThreshold));
+    } catch (err) {
+      fail(err.message);
+    }
+    if (!matrixPath && baseline.kind === "matrix") fail(`${values.baseline} is the baseline of a matrix: compare it with --matrix`);
+    if (matrixPath) fail("--baseline compares one page; the comparison of a matrix comes in a later version");
+  } else {
+    if (values.threshold) fail("--threshold needs --baseline");
+    if (values["fail-on-regression"]) fail("--fail-on-regression needs --baseline");
+  }
+
   // What each page load runs, a snippet or a workflow, under the conditions of the load
   const items = values.snippet ? buildSnippetItem(values) : null;
   const workflow = values.snippet ? null : WORKFLOWS[values.workflow ?? "core-web-vitals"];
@@ -281,6 +311,11 @@ async function main() {
   const crux = cruxKey ? await fetchCrux({ url, apiKey: cruxKey, formFactor: formFactorFor(viewportName) }) : undefined;
   if (crux) payload.crux = crux;
 
+  if (baseline) {
+    payload.baseline = compareRun(baseline.data, payload, { file: baseline.file, thresholds });
+    for (const warning of payload.baseline.warnings) process.stderr.write(`Warning: ${warning}\n`);
+  }
+
   let output;
   if (values.markdown) {
     output = reportMarkdown(payload);
@@ -318,6 +353,12 @@ async function main() {
     if (!values.json) {
       for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
     }
+    process.exit(1);
+  }
+  // Without --fail-on-regression the comparison only informs, and the exit code is the one of today
+  const regressions = values["fail-on-regression"] ? describeRegressions(payload.baseline) : [];
+  if (regressions.length > 0) {
+    for (const r of regressions) process.stderr.write(`Regression against ${baseline.file}: ${r}\n`);
     process.exit(1);
   }
   process.exit(blockingErrors(payload.results).length > 0 ? 1 : 0);

@@ -167,11 +167,13 @@ function warningsOf(base, current) {
   return warnings;
 }
 
-// A page against its baseline, as the `baseline` field of its JSON
+// A page against its baseline, as the `baseline` field of its JSON. The runs of the baseline say how
+// much to trust its values, in the header of the reports.
 export function compareRun(base, current, { file, thresholds = DEFAULT_THRESHOLDS }) {
   return {
     file,
     url: base.url,
+    runs: base.runs ? { count: base.runs.count, medianBy: base.runs.medianBy } : { count: 1 },
     metrics: compareMetrics(base, current, thresholds),
     errors: compareErrors(base, current),
     warnings: warningsOf(base, current),
