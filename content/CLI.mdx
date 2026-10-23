@@ -58,6 +58,12 @@ JSON output (for piping into `jq` or CI scripts):
 npx webperf-snippets https://example.com --json
 ```
 
+The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait and the version of the CLI.
+
+```json
+"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "cliVersion": "1.3.0" }
+```
+
 Run a single snippet by alias or by its own name, in any case. Every snippet of the collection runs this way, with or without its category:
 
 ```bash copy
@@ -355,7 +361,7 @@ npx webperf-snippets --matrix matrix.json --budget-lcp 2500
 
 The options of the command line apply to every combination: `--workflow`, `--snippet`, `--wait`, `--interact-script`, `--header`, `--own-domains`, `--storage-state`, `--cpu`, `--network` and the budgets. The file replaces `cpu`, `network` and `storageState` where it sets them, and its `headers` and `ownDomains` add to the ones of the command line, the variant winning on the same header. A matrix file is meant to be versioned, so pass secrets, such as the token of an access proxy, with `--header` and an environment variable; a header of the file whose name looks like a secret raises a warning. A key the CLI does not know is an error, so a typo does not measure without its condition.
 
-The report is a table with one row per combination and the rated median of each metric, followed by the errors that decide the exit code; `--verbose` adds the report of the median run of each combination. `--markdown` gives the same table and folds the report of each combination into a `<details>` block, to keep a pull request comment readable. With `--json`, it is `{ "matrix", "runs", "combinations" }`, each combination being the report of its median run with its `id`, `name`, `device`, `variant` (when the file defines variants) and `runs`. The budgets compare the median of each combination. The command exits with code `1` when a combination exceeds a budget, has an error or fails every run, and with code `2` for an invalid file, before any page load, naming the place of the problem in the JSON. `--viewport` does not apply, since each device sets its own.
+The report is a table with one row per combination and the rated median of each metric, followed by the errors that decide the exit code; `--verbose` adds the report of the median run of each combination. `--markdown` gives the same table and folds the report of each combination into a `<details>` block, to keep a pull request comment readable. With `--json`, it is `{ "matrix", "runs", "combinations" }`, each combination being the report of its median run with its `id`, `name`, `device`, `variant` (when the file defines variants), `runs` and `conditions`, with the viewport of its device. The budgets compare the median of each combination. The command exits with code `1` when a combination exceeds a budget, has an error or fails every run, and with code `2` for an invalid file, before any page load, naming the place of the problem in the JSON. `--viewport` does not apply, since each device sets its own.
 
 With CrUX, the CLI asks once for each URL and form factor, so the variants of a device share their field data. With `--report-to`, it posts one report for each combination, the body of one page with `meta.device`, `meta.variant` and `meta.runs`; the headers of the command line and of the file are conditions of the load, and no report carries their values.
 
