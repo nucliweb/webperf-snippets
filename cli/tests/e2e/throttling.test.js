@@ -15,11 +15,13 @@ let server;
 let pageUrl;
 let secrets = [];
 
-// The time the document finished downloading, and the time a fixed piece of work takes on the main thread
+// The time the document finished downloading, and the time a fixed piece of work takes on the main thread.
+// The work takes some 20 ms unthrottled: with a few milliseconds, as with 3e6 iterations, the JIT and
+// the slices in which Chrome throttles the CPU made the ratio go from 0.85 to 3.7 for a factor of 4.
 const READ_PAGE = `(() => {
   const start = performance.now();
   let x = 0;
-  for (let i = 0; i < 3e6; i++) x += Math.sqrt(i);
+  for (let i = 0; i < 3e7; i++) x += Math.sqrt(i);
   return {
     status: "ok",
     responseEnd: performance.getEntriesByType("navigation")[0].responseEnd,
