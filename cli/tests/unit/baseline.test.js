@@ -167,6 +167,31 @@ describe("the errors", () => {
     expect(errors).toEqual({ new: [], fixed: [] });
   });
 
+  it("are two errors when they share a code and name different resources", () => {
+    const used = (target) => withIssue("prefetch", "error", `${target.split("/").pop()}: Resource used on current page`, { code: "used-on-current-page", target });
+    const { errors } = compare(page({ results: [used("https://example.com/a.js")] }), page({ results: [used("https://example.com/b.js")] }));
+    expect(errors.new).toEqual([{ id: "prefetch", message: "b.js: Resource used on current page", code: "used-on-current-page", target: "https://example.com/b.js" }]);
+    expect(errors.fixed.map((e) => e.target)).toEqual(["https://example.com/a.js"]);
+  });
+
+  it("compare a resource of the page by its path and query, so a review app on another host matches main", () => {
+    const used = (target) => withIssue("prefetch", "error", "Resource used on current page", { code: "used-on-current-page", target });
+    const { errors } = compare(
+      page({ url: "https://example.com/", results: [used("https://example.com/app.js?v=1"), used("https://cdn.example.org/lib.js")] }),
+      page({ url: "https://pr-12.example.net/", results: [used("https://pr-12.example.net/app.js?v=1"), used("https://cdn2.example.org/lib.js")] })
+    );
+    expect(errors.new.map((e) => e.target)).toEqual(["https://cdn2.example.org/lib.js"]);
+    expect(errors.fixed.map((e) => e.target)).toEqual(["https://cdn.example.org/lib.js"]);
+  });
+
+  it("pair by message a snippet whose errors have no code in the baseline, as one of 1.4.0", () => {
+    const { errors } = compare(
+      page({ results: [blocking("2 blocking script(s) in <head>")] }),
+      page({ results: [withIssue("render-blocking", "error", "3 blocking script(s) in <head>", { code: "blocking-in-head" })] })
+    );
+    expect(errors).toEqual({ new: [], fixed: [] });
+  });
+
   it("leave out warnings and information, which change too easily", () => {
     const { errors } = compare(page(), page({ results: [withIssue("fonts", "warning", "2 fonts are not preloaded"), withIssue("fonts", "info", "4 fonts")] }));
     expect(errors).toEqual({ new: [], fixed: [] });

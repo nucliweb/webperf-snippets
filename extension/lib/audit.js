@@ -56,7 +56,7 @@ export function report({ url, date, rows }) {
   }))
   const pathOf = new Map(results.map((r) => [r.id, r.path]))
   const issues = issuesOf(results)
-    .map((i) => ({ severity: i.severity, id: i.id, path: pathOf.get(i.id), message: i.message }))
+    .map(({ id, code, target, severity, message }) => ({ ...(code ? { code } : {}), severity, id, path: pathOf.get(id), message, ...(target ? { target } : {}) }))
     .sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity))
   return { workflow: 'audit', url: url ?? null, date, overview: counts(rows), issues, results }
 }
@@ -100,24 +100,35 @@ function issuesOf(results) {
     const own = Array.isArray(result?.issues) ? result.issues : []
     const failed = !result || result.status === 'error'
     const list = failed ? [{ severity: 'error', message: result?.error ?? 'The snippet returned nothing' }] : own
-    return list.map((i) => ({ severity: i.severity, id: result.id, message: i.message }))
+    return list.map((i) => ({ ...(i.code ? { code: i.code } : {}), severity: i.severity, id: result.id, message: i.message, ...(i.target ? { target: i.target } : {}) }))
   })
 }
 
 // The text of an issue without its times, which move on every run: "until 1543ms", "2.4 s"
 const withoutTimes = (message) => String(message).replace(/\d+(?:[.,]\d+)?\s?m?s\b/g, '#t')
 
-// An issue is the same in two audits when its snippet, severity and message match once the numbers are
+// An issue is the same in two audits when its snippet, code and target match. A snippet without codes
+// on one side, as in an audit saved before them, pairs by severity and message once the numbers are
 // left out: "7 resources delay rendering until 1543ms" and "6 resources … 1210ms" are one issue
-const issueKey = (i) => `${i.id}|${i.severity}|${withoutTimes(i.message).replace(/\d+(?:[.,]\d+)?/g, '#')}`
+const byMessage = (i) => `${i.id}|${i.severity}|${withoutTimes(i.message).replace(/\d+(?:[.,]\d+)?/g, '#')}`
+const keyFor = (byMessageOnly) => (i) => (i.code && !byMessageOnly.has(i.id) ? `${i.id}|${i.code}|${i.target ?? ''}` : byMessage(i))
+
+// The snippets whose issues, in one of the audits, all lack a code
+function uncoded(issues) {
+  const ids = new Set(issues.map((i) => i.id))
+  for (const i of issues) if (i.code) ids.delete(i.id)
+  return ids
+}
 
 // What changed from an audit to a later one of the same page: the issues that are new, the ones that
-// are gone, the ones whose numbers moved (changed, with the text before and after; a time alone does
-// not count), how many errors, warnings and info each has, and the metrics whose value or rating moved.
-// A message that appears several times counts as many times
+// are gone, the ones whose numbers or severity moved (changed, with the text before and after, and the
+// severity before when it moved; a time alone does not count), how many errors, warnings and info each
+// has, and the metrics whose value or rating moved. A message that appears several times counts as many
+// times
 export function compare(after, before) {
   const old = issuesOf(before.results)
   const now = issuesOf(after.results)
+  const issueKey = keyFor(new Set([...uncoded(old), ...uncoded(now)]))
   const waiting = new Map() // key -> issues of the audit before, not matched yet, in their order
   for (const i of old) waiting.set(issueKey(i), [...(waiting.get(issueKey(i)) ?? []), i])
   const added = []
@@ -126,6 +137,7 @@ export function compare(after, before) {
   for (const i of now) {
     const match = waiting.get(issueKey(i))?.shift()
     if (!match) added.push(i)
+    else if (match.severity !== i.severity) changed.push({ id: i.id, severity: i.severity, severityBefore: match.severity, before: match.message, after: i.message })
     else if (withoutTimes(match.message) !== withoutTimes(i.message)) changed.push({ id: i.id, severity: i.severity, before: match.message, after: i.message })
     else unchanged++
   }

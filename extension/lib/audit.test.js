@@ -225,3 +225,46 @@ test('previousOf finds the last audit of the same page before an audit', () => {
   assert.equal(previousOf(history, history[3]), undefined)
   assert.equal(previousOf(history, history[1]), undefined)
 })
+
+test('the report keeps the code and the target of each issue', () => {
+  const result = {
+    status: 'ok',
+    issues: [{ code: 'used-on-current-page', severity: 'error', message: 'app.js: Resource used on current page', target: 'https://example.com/app.js' }],
+  }
+  const rows = [{ snippet: { auditId: 'prefetch', path: 'Loading/Prefetch-Resource-Validation', title: 'Prefetch' }, result, summary: summarize(result) }]
+  assert.deepEqual(report({ url: 'https://example.com/', date: 'd', rows }).issues, [
+    { code: 'used-on-current-page', severity: 'error', id: 'prefetch', path: 'Loading/Prefetch-Resource-Validation', message: 'app.js: Resource used on current page', target: 'https://example.com/app.js' },
+  ])
+})
+
+const coded = (code, severity, message, target) => ({ code, severity, message, ...(target ? { target } : {}) })
+
+test('compare pairs coded issues by code and target, whatever their messages say', () => {
+  const before = saved('a', 'u', [
+    { id: 'scripts', status: 'ok', issues: [coded('blocking-in-head', 'error', '2 blocking script(s) in <head>')] },
+    { id: 'prefetch', status: 'ok', issues: [coded('used-on-current-page', 'error', 'a.js: used', 'https://example.com/a.js')] },
+  ])
+  const after = saved('b', 'u', [
+    { id: 'scripts', status: 'ok', issues: [coded('blocking-in-head', 'error', 'Blocking scripts in <head>: 2')] },
+    { id: 'prefetch', status: 'ok', issues: [coded('used-on-current-page', 'error', 'b.js: used', 'https://example.com/b.js')] },
+  ])
+  const c = compare(after, before)
+  assert.deepEqual(c.added.map((i) => i.target), ['https://example.com/b.js'])
+  assert.deepEqual(c.resolved.map((i) => i.target), ['https://example.com/a.js'])
+  assert.deepEqual(c.changed, [{ id: 'scripts', severity: 'error', before: '2 blocking script(s) in <head>', after: 'Blocking scripts in <head>: 2' }])
+})
+
+test('an issue that keeps its code and changes its severity is a change, not a new issue', () => {
+  const before = saved('a', 'u', [{ id: 'prefetch', status: 'ok', issues: [coded('total-size', 'warning', 'Total prefetch size: 1.2MB')] }])
+  const after = saved('b', 'u', [{ id: 'prefetch', status: 'ok', issues: [coded('total-size', 'error', 'Total prefetch size: 1.2MB')] }])
+  const c = compare(after, before)
+  assert.deepEqual([c.added, c.resolved], [[], []])
+  assert.deepEqual(c.changed, [{ id: 'prefetch', severity: 'error', severityBefore: 'warning', before: 'Total prefetch size: 1.2MB', after: 'Total prefetch size: 1.2MB' }])
+})
+
+test('an audit saved before the codes pairs by message with one that has them', () => {
+  const before = saved('a', 'u', [{ id: 'scripts', status: 'ok', issues: [issue('error', '2 blocking script(s) in <head>')] }])
+  const after = saved('b', 'u', [{ id: 'scripts', status: 'ok', issues: [coded('blocking-in-head', 'error', '2 blocking script(s) in <head>')] }])
+  const c = compare(after, before)
+  assert.deepEqual([c.added, c.resolved, c.changed, c.unchanged], [[], [], [], 1])
+})

@@ -116,14 +116,38 @@ function compareMetrics(base, current, thresholds) {
   return metrics;
 }
 
-// Two errors are the same when they share a code or, without one, when their messages differ only in
-// their figures: "Render-blocking CSS (69.21 KB)…" and "Render-blocking CSS (71.80 KB)…"
-const keyOf = (error) => `${error.id}\u0000${error.code ?? error.message.replace(/\d+(?:[.,]\d+)*/g, "#")}`;
+// A resource of the page itself by its path and query, so the review app of a PR, on another host,
+// matches main; any other target as it is
+function targetOf(target, pageUrl) {
+  if (!target) return "";
+  try {
+    const url = new URL(target);
+    return url.origin === new URL(pageUrl).origin ? url.pathname + url.search : url.href;
+  } catch {
+    return target;
+  }
+}
+
+// Two errors are the same when they share a code and a target or, when a snippet has no codes on one
+// side (a baseline of 1.4.0), when their messages differ only in their figures: "Render-blocking CSS
+// (69.21 KB)…" and "Render-blocking CSS (71.80 KB)…"
+const byMessage = (error) => `${error.id}\u0000${error.message.replace(/\d+(?:[.,]\d+)*/g, "#")}`;
 
 function compareErrors(base, current) {
-  const byKey = (payload) => new Map(blockingErrors(payload.results ?? []).map((error) => [keyOf(error), error]));
-  const b = byKey(base);
-  const c = byKey(current);
+  const baseErrors = blockingErrors(base.results ?? []);
+  const currentErrors = blockingErrors(current.results ?? []);
+  // The snippets whose errors on one side all lack a code pair by message on both
+  const uncoded = (errors) => {
+    const ids = new Set(errors.map((e) => e.id));
+    for (const e of errors) if (e.code) ids.delete(e.id);
+    return ids;
+  };
+  const byMessageOnly = new Set([...uncoded(baseErrors), ...uncoded(currentErrors)]);
+  const keyOf = (error, pageUrl) =>
+    error.code && !byMessageOnly.has(error.id) ? `${error.id}\u0000${error.code}\u0000${targetOf(error.target, pageUrl)}` : byMessage(error);
+  const byKey = (errors, pageUrl) => new Map(errors.map((error) => [keyOf(error, pageUrl), error]));
+  const b = byKey(baseErrors, base.url);
+  const c = byKey(currentErrors, current.url);
   return {
     new: [...c].filter(([key]) => !b.has(key)).map(([, error]) => error),
     fixed: [...b].filter(([key]) => !c.has(key)).map(([, error]) => error),

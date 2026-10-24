@@ -267,7 +267,7 @@ function comparison() {
     [['Errors', errors], ['Warnings', warnings], ['Info', infos]].map(([label, [b, a]]) => `${label} ${b} → ${a}`).join(' · ')
   const metrics = c.metrics.map((m) => `<li><strong>${escape(title(m.id))}</strong>: ${escape(m.before)} → ${escape(m.after)}</li>`).join('')
   const changed = c.changed
-    .map((i) => `<li><span class="sev sev-${escape(i.severity)}">${escape(i.severity)}</span> <strong>${escape(title(i.id))}</strong>: ${escape(i.before)} → ${escape(i.after)}</li>`)
+    .map((i) => `<li>${i.severityBefore ? `<span class="sev sev-${escape(i.severityBefore)}">${escape(i.severityBefore)}</span> → ` : ''}<span class="sev sev-${escape(i.severity)}">${escape(i.severity)}</span> <strong>${escape(title(i.id))}</strong>: ${escape(i.before)} → ${escape(i.after)}</li>`)
     .join('')
   const section = (heading, count, html) => (count ? `<h4>${heading} <span class="count">${count}</span></h4>${html}` : '')
   const body =
