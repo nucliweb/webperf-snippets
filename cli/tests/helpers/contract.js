@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { chromium } from "playwright";
 import { loadSnippet } from "../../src/load-snippet.js";
+import { ISSUE_CODE } from "./issue-codes.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = resolve(HERE, "../fixtures");
@@ -322,6 +323,14 @@ export function checkResult(name, inspected, prefix = "") {
   scan(result, 0);
 
   if ("corsLimitedAnalysis" in result && typeof result.corsLimitedAnalysis !== "boolean") add("cors-limited-not-boolean");
+
+  // Every issue says what it is with a stable code, and names its resource in a string target
+  if (Array.isArray(result.issues)) {
+    for (const issue of result.issues) {
+      if (typeof issue?.code !== "string" || !ISSUE_CODE.test(issue.code)) add("issue-without-code");
+      if (issue && "target" in issue && typeof issue.target !== "string") add("issue-target-not-string");
+    }
+  }
 
   if (Array.isArray(result.items)) {
     if (result.items.length > MAX_ITEMS) add("items-uncapped");

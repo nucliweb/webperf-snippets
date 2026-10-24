@@ -53,8 +53,10 @@ Every script must return an object matching this shape:
 
   // Issues detected (for audit scripts)
   issues?: Array<{
+    code: string;      // What the issue is, kebab-case, stable across runs and versions (see Issue codes)
     severity: "error" | "warning" | "info";
     message: string;
+    target?: string;   // The URL or selector the issue names, when there is one issue per resource
   }>;
 
   // Tracking scripts (status: "tracking")
@@ -505,8 +507,8 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
     }
   ],
   "issues": [
-    { "severity": "error", "message": "2 blocking scripts in <head>" },
-    { "severity": "error", "message": "1 third-party blocking script" }
+    { "code": "blocking-in-head", "severity": "error", "message": "2 blocking script(s) in <head>" },
+    { "code": "third-party-blocking", "severity": "error", "message": "1 third-party blocking script(s)" }
   ]
 }
 ```
@@ -1189,6 +1191,24 @@ Same shape as Image-Element-Audit but for video elements.
 
 ---
 
+## Issue codes
+
+Every issue has a `code` that says what it is, so a comparison pairs the issues of two runs without reading their text: the message carries figures, and its wording can change from a version to the next. The code is kebab-case and unique within its snippet, so `script` and `code` together name an issue across the collection. A code never changes once published, and is never reused for another situation. The same situation keeps its code when its severity depends on a threshold.
+
+An issue about one resource among several, one issue per resource, also names it in `target`: its URL or a CSS selector. Two issues with the same code and different targets are two issues.
+
+### Script-Loading
+
+| Code | Severity | When |
+|------|----------|------|
+| `blocking-in-head` | error | Classic scripts without `async`, `defer` or `type="module"` in `<head>` |
+| `third-party-blocking` | error | Blocking scripts from a third party |
+| `large-blocking` | warning | Blocking scripts larger than 50 KB |
+| `could-defer` | info | Blocking scripts other than the last three of `<body>`, which could try `defer` |
+| `unknown-size` | info | Scripts whose size is hidden by a missing `Timing-Allow-Origin`, so the total is a lower bound |
+
+---
+
 ## Guidelines for Agents
 
 ### Reading results
@@ -1223,6 +1243,7 @@ data = evaluate_script("getINP()")
 - `rating === "poor"` → high priority fix, check `issues` for specific problems
 - `count > 0` and `issues.length > 0` → audit found actionable problems
 - `count === 0` → nothing to audit (no render-blocking resources, no images, etc.)
+- To tell whether an issue is new, fixed or the same as in an earlier run, compare `script`, `code` and `target`, not `message`
 
 ---
 
@@ -1240,5 +1261,6 @@ data = evaluate_script("getINP()")
 10. **Valid statuses only** — `ok`, `tracking`, `error` or `unsupported`, with an `error` message when the status is `error` or `unsupported`.
 11. **Hidden cross-origin data is reported, not guessed** — a resource whose timing or size is hidden (no `Timing-Allow-Origin`) reports zeros for every size and timing. Count it (`sizeKnown: false`, `corsRestrictedCount`) instead of treating the zero as a measurement.
 12. **Partial analysis is flagged** — when hidden cross-origin data leaves part of the set unanalyzed, set the top-level `corsLimitedAnalysis: true` and report how many resources were skipped in `details` (`sizeUnknownCount`, `corsRestrictedCount`). Set it to `false` when every resource was analyzed.
+13. **Issues carry a stable code**: every issue has a kebab-case `code`, written as a literal in the source (`code: "blocking-in-head"`) and listed under Issue codes, and a `target` string when it is about one resource.
 
-The rules are checked by `cli/tests/e2e/snippet-contract.test.js`, which runs every script, its `getDataFn` and every other getter it exposes on `window` (such as `getINPDetails()` and `checkBfcache()`), on an empty page, a seeded page and a heavy page.
+The rules are checked by `cli/tests/e2e/snippet-contract.test.js`, which runs every script, its `getDataFn` and every other getter it exposes on `window` (such as `getINPDetails()` and `checkBfcache()`), on an empty page, a seeded page and a heavy page. `cli/tests/unit/issue-codes.test.js` checks that the codes in the source of each snippet match its table under Issue codes.

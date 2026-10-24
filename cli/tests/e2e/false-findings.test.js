@@ -86,7 +86,7 @@ describe("Script-Loading and a nomodule script", () => {
     const r = await onPage("scripts-nomodule.html", (page) => page.evaluate(source("Loading/Script-Loading")));
     expect(r.details.byStrategy.blocking).toBe(1);
     expect(r.details.byStrategy.nomodule).toBe(1);
-    expect(r.issues).toContainEqual({ severity: "error", message: "1 blocking script(s) in <head>" });
+    expect(r.issues).toContainEqual({ code: "blocking-in-head", severity: "error", message: "1 blocking script(s) in <head>" });
     const polyfills = r.items.find((i) => i.shortName === "polyfills.js");
     expect(polyfills.strategy).toBe("nomodule");
     expect(r.items.find((i) => i.shortName === "blocking.js").strategy).toBe("blocking");
