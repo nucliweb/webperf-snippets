@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { baselineView, describeRegressions } from "../../src/reporters/baseline-view.js";
+import { baselineView, describeRegressions, changeCell, matrixComparisonView, describeMatrixRegressions } from "../../src/reporters/baseline-view.js";
 
 // A comparison as compareRun gives it
 const comparison = (metrics, { errors = { new: [], fixed: [] }, warnings = [], runs = { count: 5, medianBy: "LCP" } } = {}) => ({
@@ -63,5 +63,46 @@ describe("the regressions that decide the exit code", () => {
 
   it("are none when nothing got worse", () => {
     expect(describeRegressions(comparison({ LCP: { baseline: 2100, current: 2150, delta: 50, deltaPercent: 2.4, threshold: 210, verdict: "unchanged" } }))).toEqual([]);
+  });
+});
+
+describe("the change cell of a matrix", () => {
+  it("shows the change only when it counts, so the table reads at a glance", () => {
+    expect(changeCell("LCP", { delta: 380, deltaPercent: 18.1, threshold: 210, verdict: "regressed" })).toEqual({ text: "▲ +380ms", verdict: "regressed" });
+    expect(changeCell("TTFB", { delta: -400, deltaPercent: -44, threshold: 100, verdict: "improved" })).toEqual({ text: "▼ −400ms", verdict: "improved" });
+    expect(changeCell("CLS", { delta: 0.08, deltaPercent: 200, threshold: 0.05, verdict: "regressed" })).toEqual({ text: "▲ +0.0800", verdict: "regressed" });
+    expect(changeCell("LCP", { delta: 40, deltaPercent: 2, threshold: 210, verdict: "unchanged" })).toEqual({ text: "=", verdict: "unchanged" });
+    expect(changeCell("INP", { baseline: 120, verdict: "not measured" })).toEqual({ text: "·", verdict: "not measured" });
+  });
+});
+
+describe("the comparison of a matrix", () => {
+  const combo = (id, { warnings = [], errors = { new: [], fixed: [] }, metrics = {} } = {}) => ({ id, baseline: comparison(metrics, { warnings, errors }) });
+
+  it("gives a warning that every combination has once, and names the combinations of the others", () => {
+    const view = matrixComparisonView({ file: "last-week.json", added: [], missing: [], warnings: [] }, [
+      combo("home · mobile", { warnings: ["the baseline has 1 run, so only the thresholds apply; measure both with --runs", "the baseline measured /a and this run /b"] }),
+      combo("news · mobile", { warnings: ["the baseline has 1 run, so only the thresholds apply; measure both with --runs"] }),
+      { id: "about · mobile" },
+    ]);
+    expect(view.warnings).toEqual(["the baseline has 1 run, so only the thresholds apply; measure both with --runs", "home · mobile: the baseline measured /a and this run /b"]);
+  });
+
+  it("lists the errors with their combination, and the combinations only one side has", () => {
+    const view = matrixComparisonView({ file: "last-week.json", added: ["about · mobile"], missing: ["legacy · mobile"], warnings: [] }, [
+      combo("home · mobile", { errors: { new: [{ id: "render-blocking", message: "1 render-blocking resource" }], fixed: [{ id: "fonts", message: "old" }] } }),
+    ]);
+    expect(view).toMatchObject({
+      file: "last-week.json",
+      newErrors: ["home · mobile: render-blocking: 1 render-blocking resource"],
+      fixedErrors: ["home · mobile: fonts: old"],
+      added: ["about · mobile"],
+      missing: ["legacy · mobile"],
+    });
+  });
+
+  it("names the combination of each regression", () => {
+    const regressed = { LCP: { baseline: 2100, current: 2480, delta: 380, deltaPercent: 18.1, threshold: 210, verdict: "regressed" } };
+    expect(describeMatrixRegressions([combo("product · mobile", { metrics: regressed }), combo("home · mobile"), { id: "about · mobile" }])).toEqual(["product · mobile: LCP ▲ +380ms (+18%)"]);
   });
 });

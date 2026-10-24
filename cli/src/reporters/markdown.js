@@ -149,22 +149,40 @@ export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttli
 // report of the median run of each combination folded into a details block, to keep a pull request
 // comment readable.
 export function reportMatrixMarkdown(report) {
-  const { file, summary, hasVariants, metrics, rows, errors } = matrixView(report);
-  const headings = ["Page", "Device", ...(hasVariants ? ["Variant"] : []), ...metrics];
+  const { file, summary, hasVariants, metrics, rows, errors, comparison } = matrixView(report);
+  // With --baseline, a change column follows each metric
+  const metricHeadings = metrics.flatMap((m) => (comparison ? [m, "Δ"] : [m]));
+  const headings = ["Page", "Device", ...(hasVariants ? ["Variant"] : []), ...metricHeadings];
   const row = (parts) => `|${parts.map((part) => (part ? ` ${part} ` : " ")).join("|")}|`;
 
   const lines = [`## WebPerf Results — ${file}`, `> ${summary}`, ""];
   lines.push(row(headings));
   lines.push(`|${headings.map((h) => "-".repeat(h.length + 2)).join("|")}|`);
-  for (const { combination: c, cells } of rows) {
+  for (const { combination: c, cells, changes } of rows) {
     const drawn = cells
-      ? cells.map((cell) => (cell ? `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}` : "·"))
-      : ["❌ every run failed", ...metrics.slice(1).map(() => "")];
+      ? cells.flatMap((cell, i) => {
+          const value = cell ? `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}` : "·";
+          return changes ? [value, changes[i].text] : [value];
+        })
+      : ["❌ every run failed", ...metricHeadings.slice(1).map(() => "")];
     lines.push(row([c.name, c.device, ...(hasVariants ? [c.variant] : []), ...drawn]));
   }
 
   if (errors.length) {
     lines.push("", "### Errors", ...errors.map((e) => `- ${e}`));
+  }
+
+  if (comparison) {
+    lines.push("", `### Compared with \`${comparison.file}\``);
+    if (comparison.warnings.length) lines.push(...comparison.warnings.flatMap((w, i) => [...(i ? [">"] : []), `> ⚠️ ${w}`]), "");
+    const ids = (list) => list.map((id) => `\`${id}\``).join(", ");
+    const items = [
+      ...comparison.newErrors.map((e) => `- New error: ${e}`),
+      ...comparison.fixedErrors.map((e) => `- Fixed: ${e}`),
+      ...(comparison.added.length ? [`- Added: ${ids(comparison.added)}`] : []),
+      ...(comparison.missing.length ? [`- Missing: ${ids(comparison.missing)}`] : []),
+    ];
+    lines.push(...(items.length ? items : ["The same combinations, no new or fixed errors."]));
   }
 
   for (const c of report.combinations.filter((c) => !c.error)) {

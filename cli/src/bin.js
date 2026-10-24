@@ -19,8 +19,8 @@ import { MEDIAN_METRICS, summarizeRuns } from "./runs.js";
 import { loadMatrix } from "./matrix.js";
 import { blockingErrors } from "./blocking.js";
 import { measurementConditions } from "./conditions.js";
-import { loadBaseline, parseThreshold, thresholdsWith, compareRun } from "./baseline.js";
-import { describeRegressions } from "./reporters/baseline-view.js";
+import { loadBaseline, parseThreshold, thresholdsWith, compareRun, compareMatrix } from "./baseline.js";
+import { describeRegressions, describeMatrixRegressions, matrixComparisonView } from "./reporters/baseline-view.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -66,9 +66,10 @@ Options:
                             variant it lists, and report a table of the medians
   --median-by <metric>      Metric that picks the median run: LCP, FCP, TTFB, CLS, INP,
                             navMs (default: the first of LCP, FCP, TTFB, navMs measured)
-  --baseline <file>         Compare the page with the --json output of an earlier run: which
-                            metrics got worse or better beyond the noise, and which errors are
-                            new or fixed. It only informs, unless --fail-on-regression
+  --baseline <file>         Compare the page, or each combination of a matrix, with the --json
+                            output of an earlier run: which metrics got worse or better beyond
+                            the noise, and which errors are new or fixed. It only informs,
+                            unless --fail-on-regression
   --threshold <metric>=<v>  The threshold of a metric for --baseline, such as LCP=15%,
                             LCP=200ms or CLS=0.1. Repeat it for more metrics
   --fail-on-regression      Exit 1 when a metric regressed or an error is new against --baseline
@@ -97,6 +98,7 @@ Examples:
   npx webperf-snippets --matrix matrix.json --runs 3 --budget-lcp 2500
   npx webperf-snippets https://example.com --runs 5 --json > baseline.json
   npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.json --fail-on-regression
+  npx webperf-snippets --matrix matrix.json --baseline last-week.json
   npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
   npx webperf-snippets https://review.example.com --header "CF-Access-Client-Id: $CF_ID" --header "CF-Access-Client-Secret: $CF_SECRET"
@@ -267,7 +269,7 @@ async function main() {
       fail(err.message);
     }
     if (!matrixPath && baseline.kind === "matrix") fail(`${values.baseline} is the baseline of a matrix: compare it with --matrix`);
-    if (matrixPath) fail("--baseline compares one page; the comparison of a matrix comes in a later version");
+    if (matrixPath && baseline.kind === "page") fail(`${values.baseline} is the baseline of a page: compare it with a URL, not --matrix`);
   } else {
     if (values.threshold) fail("--threshold needs --baseline");
     if (values["fail-on-regression"]) fail("--fail-on-regression needs --baseline");
@@ -292,7 +294,7 @@ async function main() {
     } catch (err) {
       fail(err.message);
     }
-    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor });
+    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds });
     return;
   }
 
@@ -383,7 +385,7 @@ async function measureRuns(measure, count, medianBy, progress) {
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code follows the same rules as one page, for every combination.
-async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor }) {
+async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds }) {
   for (const warning of matrix.warnings) process.stderr.write(`Warning: ${warning}\n`);
   const viewportOf = new Map(matrix.combinations.map((c) => [c.id, c.viewport]));
 
@@ -415,8 +417,18 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
     }
   }
 
-  const report = { matrix: matrixPath, runs: matrix.runs, combinations, verbose: values.verbose };
-  const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, runs: matrix.runs, combinations }) : reportMatrixHuman(report);
+  // With --baseline, each combination is compared with the one of the same id in the baseline
+  let comparison;
+  if (baseline) {
+    const { root, combinations: byId } = compareMatrix(baseline.data, { combinations }, { file: baseline.file, thresholds });
+    for (const c of combinations) if (byId[c.id]) c.baseline = byId[c.id];
+    comparison = root;
+    for (const warning of matrixComparisonView(root, combinations).warnings) process.stderr.write(`Warning: ${warning}\n`);
+  }
+
+  const withBaseline = comparison ? { baseline: comparison } : {};
+  const report = { matrix: matrixPath, runs: matrix.runs, combinations, verbose: values.verbose, ...withBaseline };
+  const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, runs: matrix.runs, ...withBaseline, combinations }) : reportMatrixHuman(report);
   process.stdout.write(output + "\n");
 
   // One report for each combination, with the body of one page and the device, variant and runs of
@@ -457,7 +469,10 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
     for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
   }
   const failed = combinations.some((c) => c.error || blockingErrors(c.results).length > 0);
-  process.exit(violations.length > 0 || failed ? 1 : 0);
+  // Without --fail-on-regression the comparison only informs
+  const regressions = values["fail-on-regression"] ? describeMatrixRegressions(combinations) : [];
+  for (const r of regressions) process.stderr.write(`Regression against ${baseline.file} in ${r}\n`);
+  process.exit(violations.length > 0 || failed || regressions.length > 0 ? 1 : 0);
 }
 
 main().catch((err) => {

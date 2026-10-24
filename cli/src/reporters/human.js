@@ -216,7 +216,7 @@ function renderRuns(runs) {
   return lines;
 }
 
-const VERDICT_STYLE = { regressed: "red", improved: "green", unchanged: "dim", "not measured": "dim" };
+const VERDICT_STYLE = { regressed: "red", improved: "green", unchanged: "dim", "not measured": "dim", new: "cyan" };
 
 // The comparison with --baseline, after the report: its warnings first, since they say how far to
 // trust the table, then a row per metric and the errors that appeared or went away
@@ -259,7 +259,7 @@ export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, th
 // One row per combination with the rated median of each metric, and below it the errors that decide
 // the exit code. With verbose, the report of the median run of each combination follows.
 export function reportMatrixHuman(report) {
-  const { file, summary, hasVariants, metrics, rows, errors } = matrixView(report);
+  const { file, summary, hasVariants, metrics, rows, errors, comparison } = matrixView(report);
   const columns = [["name", "Page"], ["device", "Device"], ...(hasVariants ? [["variant", "Variant"]] : [])];
   const widths = columns.map(([key, label]) => Math.max(...report.combinations.map((c) => c[key].length), label.length) + 3);
   const identity = (values) => values.map((value, i) => pad(value, widths[i])).join("");
@@ -267,14 +267,19 @@ export function reportMatrixHuman(report) {
   const lines = [];
   lines.push(styleText(["bold"], `WebPerf Snippets — ${file} (${summary})`));
   lines.push("");
-  lines.push(styleText("dim", `  ${identity(columns.map(([, label]) => label))}${metrics.map((m) => pad(m, 14)).join("").trimEnd()}`));
-  for (const { combination: c, cells } of rows) {
+  // With --baseline, a change column follows each metric
+  const headings = metrics.map((m) => pad(m, 14) + (comparison ? pad("Δ", 12) : "")).join("");
+  lines.push(styleText("dim", `  ${identity(columns.map(([, label]) => label))}${headings.trimEnd()}`));
+  for (const { combination: c, cells, changes } of rows) {
     const row = `  ${identity(columns.map(([key]) => c[key]))}`;
     if (!cells) {
       lines.push(row + styleText("red", "✗ every run failed"));
       continue;
     }
-    const drawn = cells.map((cell) => (cell ? pad(paint(cell.rating, `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}`), 14) : pad("·", 14)));
+    const drawn = cells.map((cell, i) => {
+      const value = cell ? pad(paint(cell.rating, `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}`), 14) : pad("·", 14);
+      return value + (changes ? pad(styleText(VERDICT_STYLE[changes[i].verdict], changes[i].text), 12) : "");
+    });
     lines.push(row + drawn.join("").trimEnd());
   }
 
@@ -282,6 +287,18 @@ export function reportMatrixHuman(report) {
     lines.push("");
     lines.push(styleText("red", "Errors:"));
     for (const e of errors) lines.push(`  ${styleText("red", "✗")} ${e}`);
+  }
+
+  if (comparison) {
+    lines.push("", styleText("bold", `Compared with ${comparison.file}`));
+    for (const warning of comparison.warnings) lines.push(`  ${styleText("yellow", `Warning: ${warning}`)}`);
+    for (const e of comparison.newErrors) lines.push(`  ${styleText("red", "+ new error")}  ${e}`);
+    for (const e of comparison.fixedErrors) lines.push(`  ${styleText("green", "− fixed")}      ${e}`);
+    if (comparison.added.length) lines.push(`  Added: ${comparison.added.join(", ")}`);
+    if (comparison.missing.length) lines.push(`  Missing: ${comparison.missing.join(", ")}`);
+    if (!comparison.warnings.length && !comparison.newErrors.length && !comparison.fixedErrors.length && !comparison.added.length && !comparison.missing.length) {
+      lines.push(styleText("dim", "  The same combinations, no new or fixed errors, and no warnings"));
+    }
   }
 
   if (report.verbose) {

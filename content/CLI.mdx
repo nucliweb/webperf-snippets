@@ -407,7 +407,15 @@ The report adds the comparison after the usual one, and `--markdown` a table for
 
 When both runs were measured differently, with another workflow or snippet, viewport, wait, throttling, number of runs or version of the CLI, or on another path or query, the CLI compares anyway and warns on stderr, in the reports and in `warnings`: whoever reads the pull request comment does not see the stderr of the CI. Another host does not warn, since it is the review app of a pull request against production. A baseline of one run warns that only the thresholds apply.
 
-The comparison only informs, and the exit code is the same as without it, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new, and names them on stderr. A baseline that does not exist or is not an output of the CLI, the baseline of a matrix for a page, or a `--threshold` the CLI does not understand exits with code `2`, before the page loads. `--baseline` compares a page; `--matrix` does not take it.
+The comparison only informs, and the exit code is the same as without it, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new, and names them on stderr. A baseline that does not exist or is not an output of the CLI, a baseline of a page for a matrix or of a matrix for a page, or a `--threshold` the CLI does not understand exits with code `2`, before the page loads.
+
+A matrix compares with the `--json` output of an earlier matrix, each combination with the one of the same `id`:
+
+```bash copy
+npx webperf-snippets --matrix matrix.json --runs 3 --baseline last-week.json
+```
+
+The table adds a change column after each metric: the change when it counts (`▲ +380ms`, `▼ −90ms`), `=` when it is unchanged, and `new` for a combination the baseline did not have. Below the table come the warnings, once when every combination has them, the new and fixed errors of each combination, and the combinations that only one side has. `--markdown` gives the same, and the `<details>` block of each combination carries its own comparison. In the JSON output each combination carries its `baseline`, and the root `baseline` names the file and the `added` and `missing` combinations. `--fail-on-regression` exits with `1` when any combination regressed or has a new error.
 
 Show all items, including passing checks:
 
@@ -433,7 +441,7 @@ npx webperf-snippets https://example.com --verbose
 | `--runs <n>`             | Measure the page n times, from 1 to 9, one after the other, and report the median run. |
 | `--median-by <metric>`   | Metric that picks the median run: `LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`. Default: the first of LCP, FCP, TTFB and `navMs` measured. |
 | `--matrix <file>`        | Measure every URL of a JSON file on every device and in every variant it lists, and report a table of the medians. |
-| `--baseline <file>`      | Compare the page with the `--json` output of an earlier run: which metrics got worse or better beyond the noise, and which errors are new or fixed. |
+| `--baseline <file>`      | Compare the page, or each combination of a matrix, with the `--json` output of an earlier run: which metrics got worse or better beyond the noise, and which errors are new or fixed. |
 | `--threshold <metric>=<v>` | The threshold of a metric for `--baseline`, such as `LCP=15%`, `LCP=200ms` or `CLS=0.1`. Repeat it for more metrics. |
 | `--fail-on-regression`   | Exit `1` when a metric regressed or an error is new against `--baseline`. |
 | `--crux-key <key>`     | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`.      |
