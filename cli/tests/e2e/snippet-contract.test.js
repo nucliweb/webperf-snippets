@@ -1,15 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { listSnippets, launch, startContractServers, observeSnippet, exposedGetters } from "../helpers/contract.js";
 import { loadSnippet } from "../../src/load-snippet.js";
+import { PENDING_ISSUE_CODES } from "../helpers/issue-codes.js";
 
 // Contract every snippet must keep (see snippets/SCHEMA.md): the value it returns, the value
 // its getDataFn returns when it tracks, and the value of every other getter it exposes on
 // window (getINPDetails(), checkBfcache()...) must be a JSON-serializable object with a valid
 // `script` and `status`, numbers as numbers, homogeneous items capped at 50, under 50 KB, and
-// no spaced em-dash in any returned text.
+// no spaced em-dash in any returned text, and issues with a kebab-case code and a string target.
 //
 // KNOWN_VIOLATIONS lists what is still broken, per snippet. It can only shrink: a listed
-// violation that no longer happens fails the test, so the entry has to be removed.
+// violation that no longer happens fails the test, so the entry has to be removed. The snippets of
+// PENDING_ISSUE_CODES may still return issues without a code.
 const KNOWN_VIOLATIONS = {
   // analyzeContentVisibilityOpportunities() returns its own shape, without script and status
   "Loading/Content-Visibility": [
@@ -50,7 +52,8 @@ describe("snippet return contract", () => {
         for (const v of await observeSnippet(browser, servers.base, name, pageName)) found.add(v);
       }
       const known = new Set(KNOWN_VIOLATIONS[name] ?? []);
-      const unexpected = [...found].filter((v) => !known.has(v));
+      const pending = PENDING_ISSUE_CODES.includes(name);
+      const unexpected = [...found].filter((v) => !known.has(v) && !(pending && v.endsWith("issue-without-code")));
       const fixed = [...known].filter((v) => !found.has(v));
       expect({ unexpected, fixed }).toEqual({ unexpected: [], fixed: [] });
     },

@@ -170,6 +170,11 @@ describe("resource sizes hidden by Timing-Allow-Origin", () => {
     30000
   );
 
+  it("Script-Loading says so with the code unknown-size", async () => {
+    const r = await runSnippet("Loading/Script-Loading", "/scripts");
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: "unknown-size", severity: "info" }));
+  }, 30000);
+
   it("SVG-Embedded-Bitmap-Analysis does not call an opaque cross-origin SVG 'cached'", async () => {
     const lines = [];
     await withPage(async (page) => {

@@ -226,6 +226,7 @@
 
   if (blockingInHead.length > 0) {
     issues.push({
+      code: "blocking-in-head",
       severity: "error",
       message: `${blockingInHead.length} blocking script(s) in <head>`,
       scripts: blockingInHead,
@@ -235,6 +236,7 @@
 
   if (thirdPartyBlocking.length > 0) {
     issues.push({
+      code: "third-party-blocking",
       severity: "error",
       message: `${thirdPartyBlocking.length} third-party blocking script(s)`,
       scripts: thirdPartyBlocking,
@@ -245,6 +247,7 @@
   const largeBlocking = blocking.filter((s) => s.size > 50 * 1024);
   if (largeBlocking.length > 0) {
     issues.push({
+      code: "large-blocking",
       severity: "warning",
       message: `${largeBlocking.length} large blocking script(s) (> 50 KB)`,
       scripts: largeBlocking,
@@ -262,6 +265,7 @@
 
   if (couldDefer.length > 0 && blocking.length > couldDefer.length) {
     issues.push({
+      code: "could-defer",
       severity: "info",
       message: `${blocking.length - couldDefer.length} blocking script(s) could potentially use defer`,
       fix: "Test with defer attribute to improve parsing performance",
@@ -391,9 +395,9 @@
       durationMs: Math.round(s.duration),
     })),
     issues: [
-      ...issues.map((i) => ({ severity: i.severity, message: i.message })),
+      ...issues.map((i) => ({ code: i.code, severity: i.severity, message: i.message })),
       ...(scripts.some((s) => !s.sizeKnown)
-        ? [{ severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); total size is a lower bound` }]
+        ? [{ code: "unknown-size", severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); total size is a lower bound` }]
         : []),
     ],
   };
