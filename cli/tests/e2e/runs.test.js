@@ -84,11 +84,14 @@ describe("--runs", () => {
     expect(JSON.parse(once.stdout)).not.toHaveProperty("runs");
   }, 90000);
 
+  // The LCP of a load is its delay plus the time the page takes to paint, some 270 ms more on a loaded
+  // CI runner. The budget leaves 650 ms on each side of the median: the slowest run exceeds it, the
+  // median (the load of 350 ms) does not.
   it("compares the budgets with the median, not with each run", async () => {
-    const pass = await cli(pageWith("600,50,350"), "--runs", "3", "--budget-lcp", "550");
+    const pass = await cli(pageWith("1500,50,350"), "--runs", "3", "--budget-lcp", "1000");
     expect(pass.code, pass.said).toBe(0);
 
-    const fail = await cli(pageWith("600,50,350"), "--runs", "3", "--budget-lcp", "300");
+    const fail = await cli(pageWith("1500,50,350"), "--runs", "3", "--budget-lcp", "300");
     expect(fail.code, fail.said).toBe(1);
     expect(fail.stderr).toMatch(/LCP \d+ms exceeds budget 300ms/);
   }, 120000);
