@@ -8,9 +8,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.4.0] — 2026-10-24
+
 ### Added
 - The JSON output of a page, and of each combination of a matrix, carries `conditions`: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait and the version of the CLI. It is a new field, and the existing ones do not change.
 - `--baseline <file>` compares a page with the `--json` output of an earlier run. LCP, FCP, TTFB, CLS and INP get a verdict against a threshold, the larger of a share of the baseline and a minimum, and, with two runs or more in the baseline, against its range, so a change within the noise of the lab does not count; the errors that decide the exit code are listed as new or fixed, paired by code or by their message with the figures normalized. A different workflow, viewport, wait, throttling, number of runs, version of the CLI, path or query warns on stderr, in the reports and in `warnings`. The human and markdown reports add the comparison, and the JSON output a `baseline` field. `--threshold` changes the threshold of a metric (`LCP=15%`, `LCP=200ms`, `CLS=0.1`). The comparison only informs, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new. An invalid baseline or threshold exits with `2` before the page loads. A matrix compares with an earlier matrix, combination by combination by `id`: the table adds a change column after each metric, the comparison lists the warnings, the new and fixed errors and the combinations only one side has, and the JSON output carries `baseline` in each combination and at its root.
+
+### Fixed
+- The snippets the CLI runs include two fixes of the collection, listed in the [root changelog](../CHANGELOG.md): CLS counts the shifts that the observer has not delivered when the page is hidden, and LCP-Subparts splits the LCP as web-vitals does, from the last request for the LCP resource that started before the render and with the end of the download capped at the LCP. Results of CLS and LCP-Subparts can differ from 1.3.0 on the same page.
 
 ---
 
@@ -161,7 +168,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.3.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.4.0...HEAD
+[1.4.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.3.0...cli-v1.4.0
 [1.3.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.2.0...cli-v1.3.0
 [1.2.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.1.0...cli-v1.2.0
 [1.1.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.0.0...cli-v1.1.0
