@@ -47,3 +47,37 @@ export function describeRegressions({ metrics, errors }) {
     ...errors.new.map((e) => `new error ${e.id}: ${e.message}`),
   ];
 }
+
+// The change of a metric in a cell of the matrix table: the figure only when it counts, so the table
+// reads at a glance. "▲ +380ms", "▼ −400ms", "=" for unchanged, "·" when one side did not measure it.
+export function changeCell(metric, m) {
+  if (m.verdict === "not measured") return { text: "·", verdict: m.verdict };
+  if (m.verdict === "unchanged") return { text: "=", verdict: m.verdict };
+  const amount = metric === "CLS" ? Math.abs(m.delta).toFixed(4) : `${Math.abs(Math.round(m.delta))}ms`;
+  return { text: `${arrow(m.delta)} ${signed(m.delta, amount)}`, verdict: m.verdict };
+}
+
+// The comparison of a matrix below its table. A warning that every compared combination has, such as
+// a baseline of one run, shows once; the others name their combinations.
+export function matrixComparisonView(root, combinations) {
+  const compared = combinations.filter((c) => c.baseline);
+  const idsByWarning = new Map();
+  for (const c of compared) {
+    for (const warning of c.baseline.warnings) idsByWarning.set(warning, [...(idsByWarning.get(warning) ?? []), c.id]);
+  }
+  const warnings = [...idsByWarning].map(([warning, ids]) => (ids.length === compared.length ? warning : `${ids.join(", ")}: ${warning}`));
+  const errorsOf = (kind) => compared.flatMap((c) => c.baseline.errors[kind].map((e) => `${c.id}: ${e.id}: ${e.message}`));
+  return {
+    file: root.file,
+    warnings: [...root.warnings, ...warnings],
+    newErrors: errorsOf("new"),
+    fixedErrors: errorsOf("fixed"),
+    added: root.added,
+    missing: root.missing,
+  };
+}
+
+// The regressions of every combination, each named by its combination
+export function describeMatrixRegressions(combinations) {
+  return combinations.filter((c) => c.baseline).flatMap((c) => describeRegressions(c.baseline).map((r) => `${c.id}: ${r}`));
+}

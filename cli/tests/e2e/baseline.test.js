@@ -27,6 +27,8 @@ let base;
 let dir;
 // Every request the server gets: a run that fails before the browser makes none
 let requests = 0;
+// /product is fast until a test makes it slow: the same URL in the baseline and in the run
+let slowProduct = false;
 
 beforeAll(async () => {
   server = await new Promise((resolve) => {
@@ -34,6 +36,7 @@ beforeAll(async () => {
       requests++;
       const path = req.url.split("?")[0];
       if (path === "/fast" || path === "/news") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png"));
+      if (path === "/product") return res.writeHead(200, { "Content-Type": "text/html" }).end(page(slowProduct ? "/hero.png?slow" : "/hero.png"));
       if (path === "/slow") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png?slow"));
       if (path === "/styled") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png", `<link rel="stylesheet" href="/style.css">`));
       if (path === "/style.css") return res.writeHead(200, { "Content-Type": "text/css" }).end("h1{color:#333}");
@@ -118,6 +121,82 @@ describe("--baseline with a page", () => {
     expect(baseline.errors.new, output).toEqual([expect.objectContaining({ id: "render-blocking", message: expect.stringMatching(/render-blocking resource/) })]);
     expect(baseline.errors.fixed).toEqual([]);
   }, 120000);
+});
+
+describe("--baseline with a matrix", () => {
+  // A matrix of pages on one device, written to the folder of the test
+  const writeMatrix = (name, urls) => {
+    const file = join(dir, name);
+    writeFileSync(file, JSON.stringify({ urls, devices: ["mobile"], runs: 2 }));
+    return file;
+  };
+  let lastWeek;
+  let today;
+
+  beforeAll(async () => {
+    slowProduct = false;
+    const before = writeMatrix("before.json", { home: `${base}/fast`, product: `${base}/product`, legacy: `${base}/fast` });
+    const { code, stdout, said: output } = await cli("--matrix", before, "--wait", WAIT_MS, "--json");
+    expect(code, output).toBe(0);
+    lastWeek = join(dir, "last-week.json");
+    writeFileSync(lastWeek, stdout);
+    // This week the product page is slower, a page is new and another one is gone
+    today = writeMatrix("today.json", { home: `${base}/fast`, product: `${base}/product`, about: `${base}/fast` });
+    slowProduct = true;
+  }, 180000);
+
+  afterAll(() => {
+    slowProduct = false;
+  });
+
+  it("compares each combination with the one of the same id, and lists the ones only one side has", async () => {
+    const { code, stdout, said: output } = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, "--json");
+    expect(code, output).toBe(0);
+    const report = JSON.parse(stdout);
+    expect(report.baseline).toEqual({ file: lastWeek, added: ["about · mobile"], missing: ["legacy · mobile"], warnings: [] });
+    const byId = Object.fromEntries(report.combinations.map((c) => [c.id, c]));
+    expect(byId["product · mobile"].baseline.metrics.LCP.verdict).toBe("regressed");
+    expect(byId["home · mobile"].baseline.metrics.LCP.verdict).toBe("unchanged");
+    expect(byId["about · mobile"]).not.toHaveProperty("baseline");
+  }, 180000);
+
+  it("exits with 1 when any combination regressed with --fail-on-regression, and names it", async () => {
+    const { code, stderr, said: output } = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, "--fail-on-regression");
+    expect(code, output).toBe(1);
+    expect(stderr).toMatch(/Regression against .*last-week\.json in product · mobile: LCP ▲ \+\d+ms/);
+    expect(stderr).not.toMatch(/in home · mobile/);
+  }, 180000);
+
+  it("adds a change column to the table, and the comparison below it, in the human and markdown reports", async () => {
+    const human = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek);
+    expect(human.code, human.said).toBe(0);
+    expect(human.stdout).toMatch(/product\s+mobile\s+\S+ \S+\s+▲ \+\d+ms/);
+    expect(human.stdout).toMatch(/about\s+mobile\s+\S+ \S+\s+new/);
+    expect(human.stdout).toContain(`Compared with ${lastWeek}`);
+    expect(human.stdout).toContain("Added: about · mobile");
+    expect(human.stdout).toContain("Missing: legacy · mobile");
+    // Both matrices were measured the same way, with the same runs: nothing to warn about
+    expect(human.stdout).not.toContain("Warning:");
+
+    const markdown = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, "--markdown");
+    expect(markdown.code, markdown.said).toBe(0);
+    expect(markdown.stdout).toMatch(/\| Page \| Device \| LCP \| Δ \|/);
+    expect(markdown.stdout).toMatch(/\| product \| mobile \| \S+ \S+ \| ▲ \+\d+ms \|/);
+    expect(markdown.stdout).toContain("- Added: `about · mobile`");
+    // The report of each combination, folded in its details block, carries its own comparison
+    const details = markdown.stdout.slice(markdown.stdout.indexOf("<details><summary>product · mobile</summary>"));
+    expect(details).toContain("### Compared with `");
+  }, 180000);
+
+  it("refuses the baseline of a page for a matrix, before any page load", async () => {
+    const pageBaseline = join(dir, "one-page.json");
+    writeFileSync(pageBaseline, JSON.stringify({ url: `${base}/fast`, results: [] }));
+    const before = requests;
+    const { code, stderr, said: output } = await cli("--matrix", today, "--baseline", pageBaseline);
+    expect(code, output).toBe(2);
+    expect(stderr).toContain("is the baseline of a page: compare it with a URL, not --matrix");
+    expect(requests).toBe(before);
+  }, 30000);
 });
 
 describe("--baseline fails before opening the browser", () => {
