@@ -7,7 +7,7 @@ export function blockingErrors(results) {
     if (r.status === "error") errors.push({ id: r.id, message: r.error });
     if (r.reason || !Array.isArray(r.issues)) continue;
     for (const issue of r.issues) {
-      if (issue.severity === "error") errors.push({ id: r.id, message: issue.message, ...(issue.code ? { code: issue.code } : {}) });
+      if (issue.severity === "error") errors.push({ id: r.id, message: issue.message, ...(issue.code ? { code: issue.code } : {}), ...(issue.target ? { target: issue.target } : {}) });
     }
   }
   return errors;

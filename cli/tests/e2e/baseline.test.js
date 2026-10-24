@@ -29,6 +29,9 @@ let dir;
 let requests = 0;
 // /product is fast until a test makes it slow: the same URL in the baseline and in the run
 let slowProduct = false;
+// /scripts blocks rendering with one script of its own in <head>, and with one more from another site
+// once a test adds it
+let thirdPartyScript = false;
 
 beforeAll(async () => {
   server = await new Promise((resolve) => {
@@ -40,6 +43,11 @@ beforeAll(async () => {
       if (path === "/slow") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png?slow"));
       if (path === "/styled") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png", `<link rel="stylesheet" href="/style.css">`));
       if (path === "/style.css") return res.writeHead(200, { "Content-Type": "text/css" }).end("h1{color:#333}");
+      if (path === "/scripts") {
+        const tag = thirdPartyScript ? `<script src="http://localhost:${s.address().port}/tag.js"></script>` : "";
+        return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png", `<script src="/app.js"></script>${tag}`));
+      }
+      if (path === "/app.js" || path === "/tag.js") return res.writeHead(200, { "Content-Type": "text/javascript" }).end("1;");
       if (path === "/hero.png") {
         const delay = req.url.includes("slow") ? 800 : 0;
         return setTimeout(() => res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" }).end(png), delay);
@@ -60,10 +68,14 @@ const cli = (...args) =>
     (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr, said: said(err.stdout, err.stderr) })
   );
 
-// Measures a page with --json and keeps its output as a baseline file
+// Measures a page with --json and keeps its output as a baseline file. A page with an error exits with 1
 async function saveBaseline(name, ...args) {
+  return saveBaselineExiting(0, name, ...args);
+}
+
+async function saveBaselineExiting(exitCode, name, ...args) {
   const { code, stdout, said: output } = await cli(...args, "--wait", WAIT_MS, "--json");
-  expect(code, output).toBe(0);
+  expect(code, output).toBe(exitCode);
   const file = join(dir, name);
   writeFileSync(file, stdout);
   return file;
@@ -120,6 +132,18 @@ describe("--baseline with a page", () => {
     const { baseline } = JSON.parse(stdout);
     expect(baseline.errors.new, output).toEqual([expect.objectContaining({ id: "render-blocking", message: expect.stringMatching(/render-blocking resource/) })]);
     expect(baseline.errors.fixed).toEqual([]);
+  }, 120000);
+
+  it("pairs the errors of a snippet by their code, and lists the one with a new code as new", async () => {
+    thirdPartyScript = false;
+    const own = await saveBaselineExiting(1, "own-script.json", `${base}/scripts`, "--snippet", "Script-Loading");
+    thirdPartyScript = true;
+    const { stdout, said: output } = await cli(`${base}/scripts`, "--snippet", "Script-Loading", "--wait", WAIT_MS, "--baseline", own, "--json");
+    thirdPartyScript = false;
+    const { baseline } = JSON.parse(stdout);
+    // blocking-in-head is in both runs, with 1 and then 2 scripts; third-party-blocking is new
+    expect(baseline.errors.new, output).toEqual([expect.objectContaining({ code: "third-party-blocking", message: "1 third-party blocking script(s)" })]);
+    expect(baseline.errors.fixed, output).toEqual([]);
   }, 120000);
 });
 
