@@ -348,9 +348,9 @@ window.analyzeContentVisibilityOpportunities = analyzeContentVisibilityOpportuni
     issues: [
       ...cvResults.autoElements
         .filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none")
-        .map(el => ({ severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)` })),
+        .map(el => ({ code: "missing-intrinsic-size", severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)`, target: el.selector })),
       ...(cvResults.autoElements.length + cvResults.hiddenElements.length === 0
-        ? [{ severity: "info", message: "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost." }]
+        ? [{ code: "not-used", severity: "info", message: "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost." }]
         : []),
     ],
   };

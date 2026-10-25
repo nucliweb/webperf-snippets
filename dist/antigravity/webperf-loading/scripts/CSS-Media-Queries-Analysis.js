@@ -123,19 +123,23 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
   const uniquenessRatio = rules.length ? Math.round(queries.length / rules.length * 1000) / 1000 : 0;
   const issues = [];
   if (rules.length === 0) issues.push({
+    code: "no-wide-rules",
     severity: "info",
     message: `No @media rules for viewports wider than ${minWidth}px`
   }); else {
     issues.push({
+      code: "wide-rules",
       severity: totalBytes > WARNING_BYTES ? "warning" : "info",
       message: `${rules.length} @media rules for viewports wider than ${minWidth}px add ${formatBytes(totalBytes)} of CSS that narrower screens download and parse without using. Move them to a stylesheet with a media attribute, such as <link rel="stylesheet" href="wide.css" media="(min-width: ${minWidth + 1}px)">, which narrower screens fetch at low priority without blocking rendering`
     });
     if (rules.length >= 20 && uniquenessRatio < 0.1) issues.push({
+      code: "repeated-queries",
       severity: "info",
       message: `${queries.length} distinct queries repeat across ${rules.length} @media blocks, the pattern of component-scoped or compiled CSS. Grouping the rules of each query under one block shortens the stylesheets`
     });
   }
   if (corsBlockedCount > 0) issues.push({
+    code: "unreadable-stylesheets",
     severity: "info",
     message: `${corsBlockedCount} cross-origin stylesheet(s) could not be read, so their @media rules are not counted`
   });

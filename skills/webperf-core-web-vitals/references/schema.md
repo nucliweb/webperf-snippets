@@ -1232,6 +1232,94 @@ An issue about one thing among several, one issue per thing, also names it in `t
 | `could-defer` | info | Blocking scripts other than the last three of `<body>`, which could try `defer` |
 | `unknown-size` | info | Scripts whose size is hidden by a missing `Timing-Allow-Origin`, so the total is a lower bound |
 
+### CSS-Media-Queries-Analysis
+
+| Code | Severity | When |
+|------|----------|------|
+| `no-wide-rules` | info | No `@media` rules for viewports wider than the breakpoint (768 px by default) |
+| `wide-rules` | info or warning | `@media` rules for wider viewports that narrower screens download without using, a warning above 50 KB |
+| `repeated-queries` | info | Few distinct queries repeated across many `@media` blocks |
+| `unreadable-stylesheets` | info | Cross-origin stylesheets whose rules cannot be read |
+
+### Content-Visibility
+
+| Code | Severity | When |
+|------|----------|------|
+| `missing-intrinsic-size` | warning | An element with `content-visibility: auto` and no `contain-intrinsic-size`; `target` is its selector |
+| `not-used` | info | No `content-visibility` on the page |
+
+### Critical-CSS-Detection
+
+| Code | Severity | When |
+|------|----------|------|
+| `no-inline-critical-css` | error | Render-blocking stylesheets and no inline critical CSS |
+| `render-blocking-over-budget` | error | Render-blocking CSS above the 14 KB critical budget |
+| `large-not-preloaded` | warning | Render-blocking stylesheets above 10 KB without preload |
+| `inline-over-budget` | error | Inline CSS above the 14 KB critical budget |
+| `styles-in-body` | warning | Inline style blocks in `<body>` |
+
+### Find-Above-The-Fold-Lazy-Loaded-Images
+
+| Code | Severity | When |
+|------|----------|------|
+| `lcp-lazy` | error | The LCP candidate image has `loading="lazy"` |
+| `lazy-above-fold` | warning | Other images above the fold with `loading="lazy"` |
+
+### Find-Images-With-Lazy-and-Fetchpriority
+
+| Code | Severity | When |
+|------|----------|------|
+| `lazy-and-high-priority` | error | Elements with both `loading="lazy"` and `fetchpriority="high"` |
+
+### Find-non-Lazy-Loaded-Images-outside-of-the-viewport
+
+| Code | Severity | When |
+|------|----------|------|
+| `eager-off-viewport` | warning | Images outside the viewport without `loading="lazy"` |
+
+### Find-render-blocking-resources
+
+| Code | Severity | When |
+|------|----------|------|
+| `render-blocking` | error | Resources that block rendering |
+
+### Fonts-Preloaded-Loaded-and-used-above-the-fold
+
+Each issue names its font in `target`.
+
+| Code | Severity | When |
+|------|----------|------|
+| `preloaded-unused` | warning | A preloaded font that the content above the fold does not use |
+| `used-not-preloaded` | warning | A font used above the fold without preload |
+| `preload-no-crossorigin` | error | A font preload without `crossorigin`, which fetches the font twice |
+
+### Inline-CSS-Info-and-Size
+
+| Code | Severity | When |
+|------|----------|------|
+| `over-budget` | warning | Inline CSS above the 14 KB critical budget |
+| `duplicate-blocks` | warning | Style blocks with identical content |
+| `large-blocks` | warning | Style blocks above 5 KB |
+| `styles-in-body` | warning | Style blocks in `<body>` |
+
+### Webfont-Usage-Analyzer
+
+`load-failed`, `loaded-unused` and `redeclared` name the font file by its URL in `target`, or the face when it has none.
+
+| Code | Severity | When |
+|------|----------|------|
+| `load-failed` | error | A font that failed to load |
+| `loaded-unused` | warning | A loaded font that no rendered element uses |
+| `redeclared` | warning | A loaded font declared again later with the same descriptors, so the page uses the other file |
+| `blocking-font-display` | warning | Faces with `font-display` `auto` or `block`, which can keep text invisible |
+| `heavy-fonts` | warning | Web fonts above 300 KB in total |
+| `never-loaded` | info | Faces declared and never loaded |
+| `shadowed` | info | Faces declared more than once, whose earlier declarations never loaded |
+| `unused-subsets` | info | `unicode-range` subsets the page did not need |
+| `size-unknown` | info | Cross-origin font files without `Timing-Allow-Origin`, so the byte totals are a lower bound |
+| `unreadable-stylesheets` | info | Cross-origin stylesheets whose font files cannot be matched to faces |
+| `elements-capped` | info | Only the first 20,000 elements were scanned for text |
+
 ### First-And-Third-Party-Script-Info
 
 | Code | Severity | When |

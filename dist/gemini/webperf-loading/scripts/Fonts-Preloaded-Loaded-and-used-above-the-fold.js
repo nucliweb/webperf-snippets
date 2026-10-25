@@ -158,14 +158,20 @@
       elements: f.elements
     })),
     issues: [ ...preloadedNotUsed.map(f => ({
+      code: "preloaded-unused",
       severity: "warning",
-      message: `Preloaded but not used above fold: ${f.name}`
+      message: `Preloaded but not used above fold: ${f.name}`,
+      target: f.name
     })), ...usedNotPreloaded.map(f => ({
+      code: "used-not-preloaded",
       severity: "warning",
-      message: `Used above fold but not preloaded: ${f.family} (${f.weight})`
+      message: `Used above fold but not preloaded: ${f.family} (${f.weight})`,
+      target: `${f.family} (${f.weight})`
     })), ...preloadedFonts.filter(f => !f.crossorigin).map(f => ({
+      code: "preload-no-crossorigin",
       severity: "error",
-      message: `Font preloaded without crossorigin (double fetch): ${f.name}`
+      message: `Font preloaded without crossorigin (double fetch): ${f.name}`,
+      target: f.name
     })) ]
   };
 })();

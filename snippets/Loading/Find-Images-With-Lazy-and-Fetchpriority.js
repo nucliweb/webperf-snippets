@@ -149,7 +149,7 @@
       };
     }),
     issues: conflictingElements.length > 0
-      ? [{ severity: "error", message: `${conflictingElements.length} element(s) have conflicting loading="lazy" and fetchpriority="high"` }]
+      ? [{ code: "lazy-and-high-priority", severity: "error", message: `${conflictingElements.length} element(s) have conflicting loading="lazy" and fetchpriority="high"` }]
       : [],
   };
 })();

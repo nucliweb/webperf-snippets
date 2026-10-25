@@ -146,6 +146,7 @@
 
   if (totalSize > criticalBudget) {
     issues.push({
+      code: "over-budget",
       type: "size",
       message: `Total inline CSS (${formatBytes(totalSize)}) exceeds 14 KB critical budget`,
       suggestion: "Move non-critical styles to external stylesheet",
@@ -154,6 +155,7 @@
 
   if (duplicates.length > 0) {
     issues.push({
+      code: "duplicate-blocks",
       type: "duplicate",
       message: `Found ${duplicates.length} duplicated style block(s)`,
       details: duplicates.map((d) => `Tags #${d.join(", #")} have identical content`),
@@ -164,6 +166,7 @@
   const largeBlocks = styles.filter((s) => s.size > 5 * 1024);
   if (largeBlocks.length > 0) {
     issues.push({
+      code: "large-blocks",
       type: "large",
       message: `${largeBlocks.length} style block(s) over 5 KB`,
       details: largeBlocks.map((s) => `Tag #${s.index}: ${formatBytes(s.size)}`),
@@ -174,6 +177,7 @@
   const bodyStyles = styles.filter((s) => !s.inHead);
   if (bodyStyles.length > 0) {
     issues.push({
+      code: "styles-in-body",
       type: "location",
       message: `${bodyStyles.length} style block(s) in <body>`,
       details: bodyStyles.map((s) => `Tag #${s.index}`),
@@ -231,6 +235,6 @@
       bodyStyleBlocks: styles.filter(s => !s.inHead).length,
     },
     items: styles.map(s => ({ index: s.index, sizeBytes: s.size, parent: s.parent, inHead: s.inHead, ruleCount: s.ruleCount, hasMediaQueries: s.hasMediaQueries, hasKeyframes: s.hasKeyframes })),
-    issues: issues.map(i => ({ severity: "warning", message: i.message })),
+    issues: issues.map(i => ({ code: i.code, severity: "warning", message: i.message })),
   };
 })();

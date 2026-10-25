@@ -124,8 +124,8 @@ describe("Webfont-Usage-Analyzer", () => {
     const r = await run("/");
     expect(r.issues).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ severity: "warning", message: expect.stringContaining("Loaded Only") }),
-        expect.objectContaining({ severity: "warning", message: expect.stringContaining("Auto Display") }),
+        expect.objectContaining({ code: "loaded-unused", severity: "warning", message: expect.stringContaining("Loaded Only"), target: expect.any(String) }),
+        expect.objectContaining({ code: "blocking-font-display", severity: "warning", message: expect.stringContaining("Auto Display") }),
       ])
     );
     expect(face(r, "Auto Display").display).toBe("auto");
@@ -185,6 +185,7 @@ describe("Webfont-Usage-Analyzer", () => {
     expect(r.details.loadedUnusedBytes).toBe(first.bytes);
     const warnings = r.issues.filter((i) => i.severity === "warning" && /declared again.*Twice/.test(i.message));
     expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toEqual(expect.objectContaining({ code: "redeclared", target: expect.stringMatching(/^http/) }));
   }, 60000);
 
   it("tells a shadowed declaration apart from a face nothing needs", async () => {
@@ -192,7 +193,7 @@ describe("Webfont-Usage-Analyzer", () => {
     const neverNeeded = r.issues.find((i) => /nothing on this page needed them/.test(i.message));
     expect(neverNeeded?.message ?? "").not.toMatch(/Shadowed/);
     const shadowed = r.issues.find((i) => /more than once/.test(i.message));
-    expect(shadowed).toEqual(expect.objectContaining({ severity: "info", message: expect.stringMatching(/Shadowed/) }));
+    expect(shadowed).toEqual(expect.objectContaining({ code: "shadowed", severity: "info", message: expect.stringMatching(/Shadowed/) }));
     // No declaration of "Unneeded" loaded, so it is a face nothing needs, listed once
     expect(shadowed.message).not.toMatch(/Unneeded/);
     expect(neverNeeded.message).toMatch(/\(1\); nothing on this page needed them: Unneeded normal normal$/);

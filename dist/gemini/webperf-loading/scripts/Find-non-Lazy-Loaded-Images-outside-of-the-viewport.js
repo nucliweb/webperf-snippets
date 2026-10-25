@@ -173,6 +173,7 @@
       container: img.container
     })) ],
     issues: totalImages > 0 ? [ {
+      code: "eager-off-viewport",
       severity: "warning",
       message: `${totalImages} image(s) outside the viewport are missing loading="lazy"`
     } ] : []
