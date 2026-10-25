@@ -191,44 +191,62 @@
     return unique.length > 8 ? `${shown} and ${unique.length - 8} more` : shown;
   };
   const issues = [ ...failed.map(f => ({
+    code: "load-failed",
     severity: "error",
-    message: `Font failed to load: ${label(f)}`
+    message: `Font failed to load: ${label(f)}`,
+    target: f.url || label(f)
   })), ...[ ...new Map(loadedUnused.map(f => [ `${label(f)}|${f.url}`, f ])).values() ].map(f => {
     const bytes = wastedBytes(f) ? `, ${kb(wastedBytes(f))} downloaded for nothing` : "";
-    return {
+    const target = f.url || label(f);
+    return f._redeclared ? {
+      code: "redeclared",
       severity: "warning",
-      message: f._redeclared ? `Loaded but declared again later with the same descriptors, so the page renders with the other file: ${label(f)}${f.url ? ` from ${f.url}` : ""}${bytes}` : `Loaded but not used by any rendered element: ${label(f)}${bytes}`
+      message: `Loaded but declared again later with the same descriptors, so the page renders with the other file: ${label(f)}${f.url ? ` from ${f.url}` : ""}${bytes}`,
+      target: target
+    } : {
+      code: "loaded-unused",
+      severity: "warning",
+      message: `Loaded but not used by any rendered element: ${label(f)}${bytes}`,
+      target: target
     };
   }) ];
   if (blockingDisplay.length > 0) issues.push({
+    code: "blocking-font-display",
     severity: "warning",
     message: `font-display is auto or block on ${uniqueLabels(blockingDisplay).length} face(s), so text can stay invisible while they load. Use swap or optional: ${names(blockingDisplay)}`
   });
   if (totalFontBytes > BYTES_WARNING) issues.push({
+    code: "heavy-fonts",
     severity: "warning",
     message: `Web fonts weigh ${kb(totalFontBytes)} in total (over ${kb(BYTES_WARNING)}). Subset, use WOFF2 or drop unused weights`
   });
   if (neverLoadedWhole.length > 0) issues.push({
+    code: "never-loaded",
     severity: "info",
     message: `Declared but never loaded (${uniqueLabels(neverLoadedWhole).length}); nothing on this page needed them: ${names(neverLoadedWhole)}`
   });
   if (shadowed.length > 0) issues.push({
+    code: "shadowed",
     severity: "info",
     message: `Declared more than once with the same descriptors; the page uses a later declaration, so these never loaded (${uniqueLabels(shadowed).length}): ${names(shadowed)}`
   });
   if (neverLoadedSubsets.length > 0) issues.push({
+    code: "unused-subsets",
     severity: "info",
     message: `unicode-range subsets this page did not need (${uniqueLabels(neverLoadedSubsets).length}), which is the intended behavior of a split font: ${names(neverLoadedSubsets)}`
   });
   if (!bytesReadable) issues.push({
+    code: "size-unknown",
     severity: "info",
     message: "Some font files are cross-origin without Timing-Allow-Origin, so their size reads as 0 and the byte totals are a lower bound"
   });
   if (unreadableStylesheets > 0) issues.push({
+    code: "unreadable-stylesheets",
     severity: "info",
     message: `${unreadableStylesheets} cross-origin stylesheet(s) could not be read, so their font files cannot be matched to faces`
   });
   if (scanned < elements.length) issues.push({
+    code: "elements-capped",
     severity: "info",
     message: `Only the first ${MAX_ELEMENTS} elements were scanned for text; some faces may be reported as unused`
   });

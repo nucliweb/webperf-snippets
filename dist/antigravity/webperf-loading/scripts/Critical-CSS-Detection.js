@@ -70,29 +70,34 @@
   }
   const issues = [];
   if (renderBlockingCSS.length > 0 && inlineStyles.length === 0) issues.push({
+    code: "no-inline-critical-css",
     severity: "high",
     message: "No critical CSS inlined: all CSS loads via render-blocking requests",
     suggestion: "Extract above-the-fold styles into a <style> tag in <head> and defer the rest"
   });
   if (totalRenderBlockingDecoded > criticalBudget) issues.push({
+    code: "render-blocking-over-budget",
     severity: "high",
     message: `Render-blocking CSS (${formatBytes(totalRenderBlockingDecoded)}) exceeds the 14 KB critical budget`,
     suggestion: "Inline critical CSS and defer non-critical stylesheets using the media/onload pattern"
   });
   const largeUnpreloaded = renderBlockingCSS.filter(s => !s.preloaded && s.transferSize > 10 * 1024);
   if (largeUnpreloaded.length > 0) issues.push({
+    code: "large-not-preloaded",
     severity: "medium",
     message: `${largeUnpreloaded.length} large render-blocking stylesheet(s) without preload`,
     details: largeUnpreloaded.map(s => `• ${s.filename} (${formatBytes(s.transferSize)})`),
     suggestion: 'Add <link rel="preload" as="style" href="..."> to start download earlier'
   });
   if (totalInlineBytes > criticalBudget) issues.push({
+    code: "inline-over-budget",
     severity: "high",
     message: `Inline CSS (${formatBytes(totalInlineBytes)}) exceeds the 14 KB critical budget`,
     suggestion: "Keep inline critical CSS under 14 KB. Move non-critical styles to an external deferred file."
   });
   const bodyInlineStyles = inlineStyles.filter(s => !s.inHead);
   if (bodyInlineStyles.length > 0) issues.push({
+    code: "styles-in-body",
     severity: "medium",
     message: `${bodyInlineStyles.length} inline style block(s) found in <body>`,
     suggestion: "Move critical styles to <head> to avoid potential render-blocking reflows"
@@ -128,6 +133,7 @@
       corsBlocked: s.corsBlocked
     })),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.severity === "high" ? "error" : "warning",
       message: i.message
     }))

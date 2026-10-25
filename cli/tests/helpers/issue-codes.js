@@ -9,21 +9,6 @@ export const SCHEMA_PATH = join(ROOT, "snippets/SCHEMA.md");
 // The code of an issue: kebab-case, unique within its snippet (see "Issue codes" in snippets/SCHEMA.md)
 export const ISSUE_CODE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-// The snippets that emit issues without a code yet. It can only shrink: a snippet that gets its codes
-// leaves the list, and the contract and the catalog then hold it to them.
-export const PENDING_ISSUE_CODES = [
-  "Loading/CSS-Media-Queries-Analysis",
-  "Loading/Content-Visibility",
-  "Loading/Critical-CSS-Detection",
-  "Loading/Find-Above-The-Fold-Lazy-Loaded-Images",
-  "Loading/Find-Images-With-Lazy-and-Fetchpriority",
-  "Loading/Find-non-Lazy-Loaded-Images-outside-of-the-viewport",
-  "Loading/Find-render-blocking-resources",
-  "Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold",
-  "Loading/Inline-CSS-Info-and-Size",
-  "Loading/Webfont-Usage-Analyzer",
-];
-
 // The codes a snippet emits, read from its source: the literals of `code: "..."`, or in single quotes,
 // in an object. A copy of a code already set (`code: issue.code`) is fine; `nonLiteral` counts the codes
 // built at run time, which the catalog cannot check.

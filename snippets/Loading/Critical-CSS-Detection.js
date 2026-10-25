@@ -221,6 +221,7 @@
 
   if (renderBlockingCSS.length > 0 && inlineStyles.length === 0) {
     issues.push({
+      code: "no-inline-critical-css",
       severity: "high",
       message: "No critical CSS inlined: all CSS loads via render-blocking requests",
       suggestion:
@@ -230,6 +231,7 @@
 
   if (totalRenderBlockingDecoded > criticalBudget) {
     issues.push({
+      code: "render-blocking-over-budget",
       severity: "high",
       message: `Render-blocking CSS (${formatBytes(totalRenderBlockingDecoded)}) exceeds the 14 KB critical budget`,
       suggestion:
@@ -242,6 +244,7 @@
   );
   if (largeUnpreloaded.length > 0) {
     issues.push({
+      code: "large-not-preloaded",
       severity: "medium",
       message: `${largeUnpreloaded.length} large render-blocking stylesheet(s) without preload`,
       details: largeUnpreloaded.map(
@@ -253,6 +256,7 @@
 
   if (totalInlineBytes > criticalBudget) {
     issues.push({
+      code: "inline-over-budget",
       severity: "high",
       message: `Inline CSS (${formatBytes(totalInlineBytes)}) exceeds the 14 KB critical budget`,
       suggestion:
@@ -263,6 +267,7 @@
   const bodyInlineStyles = inlineStyles.filter((s) => !s.inHead);
   if (bodyInlineStyles.length > 0) {
     issues.push({
+      code: "styles-in-body",
       severity: "medium",
       message: `${bodyInlineStyles.length} inline style block(s) found in <body>`,
       suggestion:
@@ -332,6 +337,7 @@
       corsBlocked: s.corsBlocked,
     })),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.severity === 'high' ? 'error' : 'warning',
       message: i.message,
     })),

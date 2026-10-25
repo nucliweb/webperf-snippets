@@ -304,7 +304,7 @@
       })),
     ],
     issues: totalImages > 0
-      ? [{ severity: "warning", message: `${totalImages} image(s) outside the viewport are missing loading="lazy"` }]
+      ? [{ code: "eager-off-viewport", severity: "warning", message: `${totalImages} image(s) outside the viewport are missing loading="lazy"` }]
       : [],
   };
 })();

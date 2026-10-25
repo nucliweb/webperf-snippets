@@ -74,6 +74,7 @@
       sizeBytes: r.size
     })),
     issues: blockingResources.length > 0 ? [ {
+      code: "render-blocking",
       severity: "error",
       message: `${blockingResources.length} render-blocking resource(s) delay rendering until ${Math.round(lastBlockingEnd)}ms`
     } ] : []

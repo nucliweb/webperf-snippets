@@ -149,9 +149,11 @@
       isLcpCandidate: image.isLcpCandidate
     })),
     issues: [ ...results.summary.lcpAffected ? [ {
+      code: "lcp-lazy",
       severity: "error",
       message: 'LCP candidate image has lazy loading: remove loading="lazy" and add fetchpriority="high"'
     } ] : [], ...results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [ {
+      code: "lazy-above-fold",
       severity: "warning",
       message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading: remove loading="lazy"`
     } ] : [] ]

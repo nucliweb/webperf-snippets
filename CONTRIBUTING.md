@@ -65,6 +65,8 @@ The full contract is in [`snippets/SCHEMA.md`](snippets/SCHEMA.md), which is als
 - Chrome only exposes `largest-contentful-paint`, `layout-shift`, `longtask`, `event` and `first-input` entries through a `PerformanceObserver`. `performance.getEntriesByType()` returns `[]` for them, and ESLint rejects it. Use a buffered observer.
 - Never wrap the IIFE in `void`, which discards the return value.
 
+Every issue a snippet returns has a `code`: kebab-case, unique within the snippet and written as a literal (`code: "blocking-in-head"`), so a comparison of two runs pairs the issues without reading their message. An issue about one thing among several, such as an image or a CSS property, names it in `target`. A situation whose severity depends on a threshold keeps one code. The contract fails on an issue without a code, and `cli/tests/unit/issue-codes.test.js` fails when the codes in the source differ from the table of the snippet under Issue codes in `snippets/SCHEMA.md`. A published code never changes.
+
 A snippet runs pasted into the console, so it cannot import a helper. The helpers several snippets share (`getRootDomain`, `isFirstParty`, `logOwnDomainsHint`, `formatBytes`) live in [`snippets/_shared/helpers.js`](snippets/_shared/helpers.js). Copy the block between the `// @shared <name>` and `// @end-shared <name>` markers into the snippet, markers included. `npm run check:consistency` fails when a copy differs from the canonical block, or when a snippet defines one of these helpers without the markers. A snippet that carries `isFirstParty` also declares `const OWN_DOMAINS = [];` at the top, which the helper reads, and calls `logOwnDomainsHint(thirdPartyCount)` once at the end of its console output.
 
 ### 3. Create the MDX documentation page
@@ -132,7 +134,7 @@ Preserve the existing order and group related snippets together.
 
 People, agents and the CLI read the same sources to know what a snippet returns and what comes after it:
 
-- `snippets/SCHEMA.md`: add a `#### My-New-Snippet` entry under its category, with an example of the object it returns. It is the contract the agents read, copied into every skill.
+- `snippets/SCHEMA.md`: add a `#### My-New-Snippet` entry under its category, with an example of the object it returns, and, when it returns issues, a `### My-New-Snippet` table of its codes under Issue codes. It is the contract the agents read, copied into every skill.
 - `snippets/<Category>/WORKFLOWS.md`: add an `### After My-New-Snippet.js` section to the decision tree, and the snippet to the workflows where it belongs (see [Improving workflows and decision trees](#improving-workflows-and-decision-trees)).
 - `content/which-snippet.mdx`: add a row for the symptom the snippet answers.
 
@@ -340,7 +342,7 @@ See `snippets/Loading/WORKFLOWS.md` for a complete reference. The skills read th
 - [ ] Snippet file added under `snippets/<Category>/`, returning an object that follows `snippets/SCHEMA.md`
 - [ ] MDX documentation page created under `content/<Category>/`, with `browserSupport` and a `### Browser support` section
 - [ ] Entry added to `content/<Category>/_meta.js`
-- [ ] Entry in `snippets/SCHEMA.md`, an `After My-New-Snippet.js` section in `WORKFLOWS.md` and a row in `content/which-snippet.mdx`
+- [ ] Entry in `snippets/SCHEMA.md`, with the table of its issue codes, an `After My-New-Snippet.js` section in `WORKFLOWS.md` and a row in `content/which-snippet.mdx`
 - [ ] If the CLI cannot run it: the snippet is in `EXCLUDED` of `lib/snippet-prompt.mjs`
 - [ ] `npm run generate-skills` and `node scripts/generate-llms.js` run, `npm run test:skills` passes, and the output is committed
 - [ ] `npm run lint` and `npm run test:e2e --prefix cli` pass

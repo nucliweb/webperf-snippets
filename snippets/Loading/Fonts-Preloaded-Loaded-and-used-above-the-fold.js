@@ -359,9 +359,9 @@
     items: uniqueLoadedFonts.slice(0, 50).map(f => ({ family: f.family, weight: f.weight, style: f.style, display: f.display })),
     usedFonts: usedFonts.slice(0, 50).map(f => ({ family: f.family, weight: f.weight, style: f.style, elements: f.elements })),
     issues: [
-      ...preloadedNotUsed.map(f => ({ severity: "warning", message: `Preloaded but not used above fold: ${f.name}` })),
-      ...usedNotPreloaded.map(f => ({ severity: "warning", message: `Used above fold but not preloaded: ${f.family} (${f.weight})` })),
-      ...preloadedFonts.filter(f => !f.crossorigin).map(f => ({ severity: "error", message: `Font preloaded without crossorigin (double fetch): ${f.name}` })),
+      ...preloadedNotUsed.map(f => ({ code: "preloaded-unused", severity: "warning", message: `Preloaded but not used above fold: ${f.name}`, target: f.name })),
+      ...usedNotPreloaded.map(f => ({ code: "used-not-preloaded", severity: "warning", message: `Used above fold but not preloaded: ${f.family} (${f.weight})`, target: `${f.family} (${f.weight})` })),
+      ...preloadedFonts.filter(f => !f.crossorigin).map(f => ({ code: "preload-no-crossorigin", severity: "error", message: `Font preloaded without crossorigin (double fetch): ${f.name}`, target: f.name })),
     ],
   };
 })();

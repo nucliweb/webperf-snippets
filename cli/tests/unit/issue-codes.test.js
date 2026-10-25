@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { listSnippets } from "../helpers/contract.js";
 import { loadSnippet } from "../../src/load-snippet.js";
-import { ISSUE_CODE, PENDING_ISSUE_CODES, codesInSource, catalogOf, readCatalog } from "../helpers/issue-codes.js";
+import { ISSUE_CODE, codesInSource, catalogOf, readCatalog } from "../helpers/issue-codes.js";
 
 // The catalog of issue codes in snippets/SCHEMA.md and the codes in the source of each snippet say
 // the same: renaming a code means touching its documentation, and the review sees it.
@@ -71,11 +71,6 @@ describe("the catalog of issue codes", () => {
     // A snippet returns issues when it builds objects with a severity and says issues; LongTask rates its
     // tasks with a severity of their own and returns no issues
     const emitsIssues = /\bseverity:/.test(source) && /\bissues\b/.test(source);
-    if (PENDING_ISSUE_CODES.includes(name)) {
-      // Pending: no codes yet. Once it has them, it leaves PENDING_ISSUE_CODES
-      expect({ codes: [...codes], documented: documented ? [...documented] : null }).toEqual({ codes: [], documented: null });
-      return;
-    }
     expect(nonLiteral).toBe(0);
     expect([...codes].filter((code) => !ISSUE_CODE.test(code))).toEqual([]);
     if (!emitsIssues) {

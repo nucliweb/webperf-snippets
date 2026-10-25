@@ -2398,21 +2398,23 @@ async function analyzeCSSMediaQueries(minWidth = 768) {
 
   const issues = [];
   if (rules.length === 0) {
-    issues.push({ severity: "info", message: `No @media rules for viewports wider than ${minWidth}px` });
+    issues.push({ code: "no-wide-rules", severity: "info", message: `No @media rules for viewports wider than ${minWidth}px` });
   } else {
     issues.push({
+      code: "wide-rules",
       severity: totalBytes > WARNING_BYTES ? "warning" : "info",
       message: `${rules.length} @media rules for viewports wider than ${minWidth}px add ${formatBytes(totalBytes)} of CSS that narrower screens download and parse without using. Move them to a stylesheet with a media attribute, such as <link rel="stylesheet" href="wide.css" media="(min-width: ${minWidth + 1}px)">, which narrower screens fetch at low priority without blocking rendering`,
     });
     if (rules.length >= 20 && uniquenessRatio < 0.1) {
       issues.push({
+        code: "repeated-queries",
         severity: "info",
         message: `${queries.length} distinct queries repeat across ${rules.length} @media blocks, the pattern of component-scoped or compiled CSS. Grouping the rules of each query under one block shortens the stylesheets`,
       });
     }
   }
   if (corsBlockedCount > 0) {
-    issues.push({ severity: "info", message: `${corsBlockedCount} cross-origin stylesheet(s) could not be read, so their @media rules are not counted` });
+    issues.push({ code: "unreadable-stylesheets", severity: "info", message: `${corsBlockedCount} cross-origin stylesheet(s) could not be read, so their @media rules are not counted` });
   }
 
   // --- Console output --------------------------------------------------------------------
@@ -4314,9 +4316,9 @@ window.analyzeContentVisibilityOpportunities = analyzeContentVisibilityOpportuni
     issues: [
       ...cvResults.autoElements
         .filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none")
-        .map(el => ({ severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)` })),
+        .map(el => ({ code: "missing-intrinsic-size", severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)`, target: el.selector })),
       ...(cvResults.autoElements.length + cvResults.hiddenElements.length === 0
-        ? [{ severity: "info", message: "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost." }]
+        ? [{ code: "not-used", severity: "info", message: "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost." }]
         : []),
     ],
   };
@@ -4554,6 +4556,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
 
   if (renderBlockingCSS.length > 0 && inlineStyles.length === 0) {
     issues.push({
+      code: "no-inline-critical-css",
       severity: "high",
       message: "No critical CSS inlined: all CSS loads via render-blocking requests",
       suggestion:
@@ -4563,6 +4566,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
 
   if (totalRenderBlockingDecoded > criticalBudget) {
     issues.push({
+      code: "render-blocking-over-budget",
       severity: "high",
       message: `Render-blocking CSS (${formatBytes(totalRenderBlockingDecoded)}) exceeds the 14 KB critical budget`,
       suggestion:
@@ -4575,6 +4579,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
   );
   if (largeUnpreloaded.length > 0) {
     issues.push({
+      code: "large-not-preloaded",
       severity: "medium",
       message: `${largeUnpreloaded.length} large render-blocking stylesheet(s) without preload`,
       details: largeUnpreloaded.map(
@@ -4586,6 +4591,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
 
   if (totalInlineBytes > criticalBudget) {
     issues.push({
+      code: "inline-over-budget",
       severity: "high",
       message: `Inline CSS (${formatBytes(totalInlineBytes)}) exceeds the 14 KB critical budget`,
       suggestion:
@@ -4596,6 +4602,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
   const bodyInlineStyles = inlineStyles.filter((s) => !s.inHead);
   if (bodyInlineStyles.length > 0) {
     issues.push({
+      code: "styles-in-body",
       severity: "medium",
       message: `${bodyInlineStyles.length} inline style block(s) found in <body>`,
       suggestion:
@@ -4665,6 +4672,7 @@ Analyzes the CSS loading strategy of a page, identifying render-blocking stylesh
       corsBlocked: s.corsBlocked,
     })),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.severity === 'high' ? 'error' : 'warning',
       message: i.message,
     })),
@@ -5329,8 +5337,8 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
       isLcpCandidate: image.isLcpCandidate,
     })),
     issues: [
-      ...(results.summary.lcpAffected ? [{ severity: "error", message: 'LCP candidate image has lazy loading: remove loading="lazy" and add fetchpriority="high"' }] : []),
-      ...(results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [{ severity: "warning", message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading: remove loading="lazy"` }] : []),
+      ...(results.summary.lcpAffected ? [{ code: "lcp-lazy", severity: "error", message: 'LCP candidate image has lazy loading: remove loading="lazy" and add fetchpriority="high"' }] : []),
+      ...(results.lazyImages.filter(i => !i.isLcpCandidate).length > 0 ? [{ code: "lazy-above-fold", severity: "warning", message: `${results.lazyImages.filter(i => !i.isLcpCandidate).length} above-fold image(s) have lazy loading: remove loading="lazy"` }] : []),
     ],
   };
 })();
@@ -5495,7 +5503,7 @@ Detects images that have both loading="lazy" and fetchpriority="high" - a contra
       };
     }),
     issues: conflictingElements.length > 0
-      ? [{ severity: "error", message: `${conflictingElements.length} element(s) have conflicting loading="lazy" and fetchpriority="high"` }]
+      ? [{ code: "lazy-and-high-priority", severity: "error", message: `${conflictingElements.length} element(s) have conflicting loading="lazy" and fetchpriority="high"` }]
       : [],
   };
 })();
@@ -5815,7 +5823,7 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
       })),
     ],
     issues: totalImages > 0
-      ? [{ severity: "warning", message: `${totalImages} image(s) outside the viewport are missing loading="lazy"` }]
+      ? [{ code: "eager-off-viewport", severity: "warning", message: `${totalImages} image(s) outside the viewport are missing loading="lazy"` }]
       : [],
   };
 })();
@@ -5992,7 +6000,7 @@ Identifies resources that block the browser from rendering the page. These resou
       sizeBytes: r.size,
     })),
     issues: blockingResources.length > 0
-      ? [{ severity: "error", message: `${blockingResources.length} render-blocking resource(s) delay rendering until ${Math.round(lastBlockingEnd)}ms` }]
+      ? [{ code: "render-blocking", severity: "error", message: `${blockingResources.length} render-blocking resource(s) delay rendering until ${Math.round(lastBlockingEnd)}ms` }]
       : [],
   };
 })();
@@ -7082,9 +7090,9 @@ Analyzes font loading strategy by comparing preloaded fonts, loaded fonts, and f
     items: uniqueLoadedFonts.slice(0, 50).map(f => ({ family: f.family, weight: f.weight, style: f.style, display: f.display })),
     usedFonts: usedFonts.slice(0, 50).map(f => ({ family: f.family, weight: f.weight, style: f.style, elements: f.elements })),
     issues: [
-      ...preloadedNotUsed.map(f => ({ severity: "warning", message: `Preloaded but not used above fold: ${f.name}` })),
-      ...usedNotPreloaded.map(f => ({ severity: "warning", message: `Used above fold but not preloaded: ${f.family} (${f.weight})` })),
-      ...preloadedFonts.filter(f => !f.crossorigin).map(f => ({ severity: "error", message: `Font preloaded without crossorigin (double fetch): ${f.name}` })),
+      ...preloadedNotUsed.map(f => ({ code: "preloaded-unused", severity: "warning", message: `Preloaded but not used above fold: ${f.name}`, target: f.name })),
+      ...usedNotPreloaded.map(f => ({ code: "used-not-preloaded", severity: "warning", message: `Used above fold but not preloaded: ${f.family} (${f.weight})`, target: `${f.family} (${f.weight})` })),
+      ...preloadedFonts.filter(f => !f.crossorigin).map(f => ({ code: "preload-no-crossorigin", severity: "error", message: `Font preloaded without crossorigin (double fetch): ${f.name}`, target: f.name })),
     ],
   };
 })();
@@ -7253,6 +7261,7 @@ Analyzes all inline <style> tags on the page, measuring their size and identifyi
 
   if (totalSize > criticalBudget) {
     issues.push({
+      code: "over-budget",
       type: "size",
       message: `Total inline CSS (${formatBytes(totalSize)}) exceeds 14 KB critical budget`,
       suggestion: "Move non-critical styles to external stylesheet",
@@ -7261,6 +7270,7 @@ Analyzes all inline <style> tags on the page, measuring their size and identifyi
 
   if (duplicates.length > 0) {
     issues.push({
+      code: "duplicate-blocks",
       type: "duplicate",
       message: `Found ${duplicates.length} duplicated style block(s)`,
       details: duplicates.map((d) => `Tags #${d.join(", #")} have identical content`),
@@ -7271,6 +7281,7 @@ Analyzes all inline <style> tags on the page, measuring their size and identifyi
   const largeBlocks = styles.filter((s) => s.size > 5 * 1024);
   if (largeBlocks.length > 0) {
     issues.push({
+      code: "large-blocks",
       type: "large",
       message: `${largeBlocks.length} style block(s) over 5 KB`,
       details: largeBlocks.map((s) => `Tag #${s.index}: ${formatBytes(s.size)}`),
@@ -7281,6 +7292,7 @@ Analyzes all inline <style> tags on the page, measuring their size and identifyi
   const bodyStyles = styles.filter((s) => !s.inHead);
   if (bodyStyles.length > 0) {
     issues.push({
+      code: "styles-in-body",
       type: "location",
       message: `${bodyStyles.length} style block(s) in <body>`,
       details: bodyStyles.map((s) => `Tag #${s.index}`),
@@ -7338,7 +7350,7 @@ Analyzes all inline <style> tags on the page, measuring their size and identifyi
       bodyStyleBlocks: styles.filter(s => !s.inHead).length,
     },
     items: styles.map(s => ({ index: s.index, sizeBytes: s.size, parent: s.parent, inHead: s.inHead, ruleCount: s.ruleCount, hasMediaQueries: s.hasMediaQueries, hasKeyframes: s.hasKeyframes })),
-    issues: issues.map(i => ({ severity: "warning", message: i.message })),
+    issues: issues.map(i => ({ code: i.code, severity: "warning", message: i.message })),
   };
 })();
 ```
@@ -12882,43 +12894,42 @@ Cross-checks every font face the page knows about against the text that renders,
   };
 
   const issues = [
-    ...failed.map((f) => ({ severity: "error", message: `Font failed to load: ${label(f)}` })),
+    ...failed.map((f) => ({ code: "load-failed", severity: "error", message: `Font failed to load: ${label(f)}`, target: f.url || label(f) })),
     ...[...new Map(loadedUnused.map((f) => [`${label(f)}|${f.url}`, f])).values()].map((f) => {
       const bytes = wastedBytes(f) ? `, ${kb(wastedBytes(f))} downloaded for nothing` : "";
-      return {
-        severity: "warning",
-        message: f._redeclared
-          ? `Loaded but declared again later with the same descriptors, so the page renders with the other file: ${label(f)}${f.url ? ` from ${f.url}` : ""}${bytes}`
-          : `Loaded but not used by any rendered element: ${label(f)}${bytes}`,
-      };
+      const target = f.url || label(f);
+      return f._redeclared
+        ? { code: "redeclared", severity: "warning", message: `Loaded but declared again later with the same descriptors, so the page renders with the other file: ${label(f)}${f.url ? ` from ${f.url}` : ""}${bytes}`, target }
+        : { code: "loaded-unused", severity: "warning", message: `Loaded but not used by any rendered element: ${label(f)}${bytes}`, target };
     }),
   ];
   if (blockingDisplay.length > 0) {
     issues.push({
+      code: "blocking-font-display",
       severity: "warning",
       message: `font-display is auto or block on ${uniqueLabels(blockingDisplay).length} face(s), so text can stay invisible while they load. Use swap or optional: ${names(blockingDisplay)}`,
     });
   }
   if (totalFontBytes > BYTES_WARNING) {
-    issues.push({ severity: "warning", message: `Web fonts weigh ${kb(totalFontBytes)} in total (over ${kb(BYTES_WARNING)}). Subset, use WOFF2 or drop unused weights` });
+    issues.push({ code: "heavy-fonts", severity: "warning", message: `Web fonts weigh ${kb(totalFontBytes)} in total (over ${kb(BYTES_WARNING)}). Subset, use WOFF2 or drop unused weights` });
   }
   if (neverLoadedWhole.length > 0) {
-    issues.push({ severity: "info", message: `Declared but never loaded (${uniqueLabels(neverLoadedWhole).length}); nothing on this page needed them: ${names(neverLoadedWhole)}` });
+    issues.push({ code: "never-loaded", severity: "info", message: `Declared but never loaded (${uniqueLabels(neverLoadedWhole).length}); nothing on this page needed them: ${names(neverLoadedWhole)}` });
   }
   if (shadowed.length > 0) {
-    issues.push({ severity: "info", message: `Declared more than once with the same descriptors; the page uses a later declaration, so these never loaded (${uniqueLabels(shadowed).length}): ${names(shadowed)}` });
+    issues.push({ code: "shadowed", severity: "info", message: `Declared more than once with the same descriptors; the page uses a later declaration, so these never loaded (${uniqueLabels(shadowed).length}): ${names(shadowed)}` });
   }
   if (neverLoadedSubsets.length > 0) {
-    issues.push({ severity: "info", message: `unicode-range subsets this page did not need (${uniqueLabels(neverLoadedSubsets).length}), which is the intended behavior of a split font: ${names(neverLoadedSubsets)}` });
+    issues.push({ code: "unused-subsets", severity: "info", message: `unicode-range subsets this page did not need (${uniqueLabels(neverLoadedSubsets).length}), which is the intended behavior of a split font: ${names(neverLoadedSubsets)}` });
   }
   if (!bytesReadable) {
-    issues.push({ severity: "info", message: "Some font files are cross-origin without Timing-Allow-Origin, so their size reads as 0 and the byte totals are a lower bound" });
+    issues.push({ code: "size-unknown", severity: "info", message: "Some font files are cross-origin without Timing-Allow-Origin, so their size reads as 0 and the byte totals are a lower bound" });
   }
   if (unreadableStylesheets > 0) {
-    issues.push({ severity: "info", message: `${unreadableStylesheets} cross-origin stylesheet(s) could not be read, so their font files cannot be matched to faces` });
+    issues.push({ code: "unreadable-stylesheets", severity: "info", message: `${unreadableStylesheets} cross-origin stylesheet(s) could not be read, so their font files cannot be matched to faces` });
   }
   if (scanned < elements.length) {
-    issues.push({ severity: "info", message: `Only the first ${MAX_ELEMENTS} elements were scanned for text; some faces may be reported as unused` });
+    issues.push({ code: "elements-capped", severity: "info", message: `Only the first ${MAX_ELEMENTS} elements were scanned for text; some faces may be reported as unused` });
   }
 
   // --- One row per face and file --------------------------------------------------------
