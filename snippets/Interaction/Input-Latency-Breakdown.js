@@ -132,10 +132,11 @@
       console.log(
         "   Interact with the page (click, type, etc.) and call this again."
       );
+      // Nothing failed: someone has to use the page first, so it is still tracking
       return {
         script: "Input-Latency-Breakdown",
-        status: "error",
-        error: "No interactions recorded yet. Interact with the page (click, type, etc.) and call getInputLatencyBreakdown() again.",
+        status: "tracking",
+        message: "No interactions yet: click, tap or type on the page, then call getInputLatencyBreakdown() again.",
         getDataFn: "getInputLatencyBreakdown",
       };
     }

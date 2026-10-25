@@ -183,8 +183,8 @@ One interaction fires several events: a tap fires `pointerdown`, `pointerup` and
 
 ### "No interactions recorded"
 
-- Cause: Page hasn't had meaningful interactions yet
-- Solution: Interact with the page (clicks, keypresses) then run `getINP()`
+- Cause: Page hasn't had meaningful interactions yet. `getINP()` returns `status: "tracking"` with that message: nothing failed, the snippet is still recording.
+- Solution: Interact with the page (clicks, keypresses) then run `getINP()` again
 
 ### "All interactions show 0ms for phases"
 

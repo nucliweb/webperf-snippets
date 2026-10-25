@@ -248,13 +248,15 @@ describe("getINPDetails()", () => {
     expect(matches).toEqual(details.items.map((_, i) => ((29 - i) % 2 ? "slow" : "fast")));
   }, 30000);
 
-  it("returns an error with no items before any interaction", async () => {
-    const details = await withPage(async (page) => {
+  it("is still tracking before any interaction, which is no error: it says what to do and where to read again", async () => {
+    const { inp, details } = await withPage(async (page) => {
       await page.evaluate(source(SNIPPETS.inp.name));
-      return page.evaluate(() => window.getINPDetails());
+      return { inp: await page.evaluate(() => window.getINP()), details: await page.evaluate(() => window.getINPDetails()) };
     });
-    expect(details).toEqual(expect.objectContaining({ script: "INP", status: "error", count: 0, items: [] }));
-    expect(typeof details.error).toBe("string");
+    expect(inp).toEqual(expect.objectContaining({ script: "INP", status: "tracking", getDataFn: "getINP", message: expect.stringMatching(/No interactions yet/) }));
+    expect(inp.error).toBeUndefined();
+    expect(details).toEqual(expect.objectContaining({ script: "INP", status: "tracking", getDataFn: "getINPDetails", count: 0, items: [] }));
+    expect(details.message).toMatch(/No interactions yet/);
   }, 30000);
 });
 

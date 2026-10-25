@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- INP (`getINP()` and `getINPDetails()`), Interactions and Input-Latency-Breakdown return `status: "tracking"` with a `message` and their `getDataFn` before any interaction, instead of `status: "error"`: nothing failed, someone has to use the page first. Code or agents that retried on `error` need to retry on `tracking`. The extension shows that state as information, not as a warning.
+
 ---
 
 ## [2.1.0] — 2026-10-25
