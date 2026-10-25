@@ -170,6 +170,12 @@ fieldset label { display: flex; gap: 6px; align-items: center; padding: 2px 0; c
 /* Audit */
 #audit progress { width: 100%; margin: 0 0 12px; accent-color: var(--accent); }
 .overview { margin: 0 0 12px; font-weight: 600; }
+.filter { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
+.filter button { padding: 2px 10px; font: inherit; color: var(--fg); background: none; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.filter button[aria-pressed="true"] { color: var(--accent); font-weight: 600; background: var(--accent-bg); border-color: var(--accent); }
+.filter .count { font-weight: 400; color: var(--muted); }
+.hidden-rows { margin: 8px 0 0; }
+.empty-filter { margin: 0 0 8px; }
 .row-link { padding: 0; font: inherit; color: var(--accent); text-align: left; background: none; border: 0; cursor: pointer; }
 .row-link:hover, .row-link:focus-visible { text-decoration: underline; }
 .tally { display: inline-block; min-width: 20px; padding: 0 6px; font-weight: 600; text-align: center; border-radius: 9px; }
