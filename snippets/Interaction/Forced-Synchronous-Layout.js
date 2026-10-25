@@ -265,8 +265,10 @@
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
         .map(([property, count]) => ({
+          code: "forced-layout",
           severity: count > 5 ? "error" : "warning",
           message: `${property} triggered ${count} forced synchronous layout${count > 1 ? "s" : ""}. Read layout properties before writing to the DOM.`,
+          target: property,
         })),
     };
   };

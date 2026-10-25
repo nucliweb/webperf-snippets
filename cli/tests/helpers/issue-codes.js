@@ -12,15 +12,6 @@ export const ISSUE_CODE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // The snippets that emit issues without a code yet. It can only shrink: a snippet that gets its codes
 // leaves the list, and the contract and the catalog then hold it to them.
 export const PENDING_ISSUE_CODES = [
-  "CoreWebVitals/LCP-Image-Entropy",
-  "CoreWebVitals/LCP-Video-Candidate",
-  "Interaction/DOM-Size-and-Depth",
-  "Interaction/Forced-Synchronous-Layout",
-  "Interaction/Input-Latency-Breakdown",
-  "Interaction/Interactions",
-  "Interaction/Long-Animation-Frames-Helpers",
-  "Interaction/LongTask",
-  "Interaction/Scroll-Performance",
   "Loading/Back-Forward-Cache",
   "Loading/CSS-Media-Queries-Analysis",
   "Loading/Cache-Strategy-Analysis",
@@ -51,10 +42,6 @@ export const PENDING_ISSUE_CODES = [
   "Loading/Third-Party-Impact-by-Domain",
   "Loading/Validate-Preload-Async-Defer-Scripts",
   "Loading/Webfont-Usage-Analyzer",
-  "Media/Image-Element-Audit",
-  "Media/Oversized-Images",
-  "Media/SVG-Embedded-Bitmap-Analysis",
-  "Media/Video-Element-Audit",
 ];
 
 // The codes a snippet emits, read from its source: the literals of `code: "..."` in an object. A copy

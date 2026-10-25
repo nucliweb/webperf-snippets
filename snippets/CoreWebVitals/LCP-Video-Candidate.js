@@ -71,22 +71,22 @@
   // The value of a non-video LCP belongs to the LCP snippet; this one only says what the element is
   if (!element || element.tagName !== "VIDEO") {
     const tag = element ? element.tagName.toLowerCase() : null;
-    const message = tag
-      ? `The LCP element is <${tag}>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases.`
-      : "The LCP element is no longer in the DOM, so it cannot be checked for a <video>. Run the LCP snippet to measure it.";
+    const issue = tag
+      ? { code: "lcp-not-video", severity: "info", message: `The LCP element is <${tag}>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases.` }
+      : { code: "lcp-element-removed", severity: "info", message: "The LCP element is no longer in the DOM, so it cannot be checked for a <video>. Run the LCP snippet to measure it." };
     console.log("%cLCP element is not a <video>", "font-weight: bold;");
     console.log("");
     console.log(`   Tag      : ${tag ? `<${tag}>` : "(element no longer in DOM)"}`);
     if (lcp.url) console.log(`   URL      : ${lcp.url}`);
     if (element) console.log("   Element  :", element);
     console.log("");
-    console.log(`   ${message}`);
+    console.log(`   ${issue.message}`);
     console.groupEnd();
     return {
       script: "LCP-Video-Candidate",
       status: "ok",
       details: { isVideo: false, lcpElement: tag, lcpUrl: lcp.url || null },
-      issues: [{ severity: "info", message }],
+      issues: [issue],
     };
   }
 
@@ -140,34 +140,35 @@
 
   if (secondsAfterLoad > 10) {
     issues.push({
+      code: "late-candidate",
       s: "warning",
       msg: `The LCP candidate rendered ${secondsAfterLoad} s after the page loaded, because the page stayed open without interaction. Reload and run the snippet again to measure the LCP of the load`,
     });
   }
 
   if (lcpSource === "first-frame") {
-    issues.push({ s: "info", msg: "LCP is the first video frame: adding a poster gives explicit control over the LCP image" });
+    issues.push({ code: "first-frame-lcp", s: "info", msg: "LCP is the first video frame: adding a poster gives explicit control over the LCP image" });
   }
   if (lcpSource === "first-frame" && (!autoplay || !muted)) {
-    issues.push({ s: "warning", msg: "First-frame LCP requires autoplay + muted for the browser to render it immediately" });
+    issues.push({ code: "first-frame-not-autoplay-muted", s: "warning", msg: "First-frame LCP requires autoplay + muted for the browser to render it immediately" });
   }
 
   if (posterAttr && !posterPreload) {
-    issues.push({ s: "warning", msg: 'No <link rel="preload" as="image"> for the poster: the browser discovers it late' });
+    issues.push({ code: "poster-not-preloaded", s: "warning", msg: 'No <link rel="preload" as="image"> for the poster: the browser discovers it late' });
   } else if (posterPreload && posterPreload.getAttribute("fetchpriority") !== "high") {
-    issues.push({ s: "info", msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised' });
+    issues.push({ code: "poster-preload-no-fetchpriority", s: "info", msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised' });
   }
 
   if (posterAttr && !isModernFormat && posterFormat !== "unknown") {
-    issues.push({ s: "info", msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time` });
+    issues.push({ code: "poster-legacy-format", s: "info", msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time` });
   }
 
   if (isCrossOrigin) {
-    issues.push({ s: "info", msg: "renderTime is 0: the resource is cross-origin and the server does not send Timing-Allow-Origin" });
+    issues.push({ code: "render-time-hidden", s: "info", msg: "renderTime is 0: the resource is cross-origin and the server does not send Timing-Allow-Origin" });
   }
 
   if (!autoplay && preload === "none") {
-    issues.push({ s: "warning", msg: 'preload="none" on a non-autoplay video may delay poster image loading in some browsers' });
+    issues.push({ code: "preload-none-delays-poster", s: "warning", msg: 'preload="none" on a non-autoplay video may delay poster image loading in some browsers' });
   }
 
   // Summary
@@ -265,6 +266,6 @@
       isCrossOrigin,
       videoAttributes: { autoplay, muted, playsinline, preload },
     },
-    issues: issues.map((i) => ({ severity: i.s === "warning" ? "warning" : "info", message: i.msg })),
+    issues: issues.map((i) => ({ code: i.code, severity: i.s === "warning" ? "warning" : "info", message: i.msg })),
   };
 })();

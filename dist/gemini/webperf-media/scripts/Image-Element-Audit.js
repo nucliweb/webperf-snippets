@@ -161,49 +161,60 @@
     let lcpPreload = null;
     if (isLcp) {
       if (fetchpriority !== "high") issues.push({
+        code: "lcp-no-fetchpriority",
         s: "error",
         msg: 'Add fetchpriority="high" to the LCP image'
       });
       if (loading === "lazy") issues.push({
+        code: "lcp-lazy",
         s: "error",
         msg: 'Remove loading="lazy" from the LCP image'
       });
       if (decoding !== "sync") issues.push({
+        code: "lcp-not-decoding-sync",
         s: "warning",
         msg: 'Consider decoding="sync" for the LCP image'
       });
       lcpPreload = findPreloadForLcp(img, imagePreloads);
       if (!lcpPreload) issues.push({
+        code: "lcp-not-preloaded",
         s: "warning",
         msg: 'LCP image has no <link rel="preload" as="image">'
       }); else if (lcpPreload.getAttribute("fetchpriority") !== "high") issues.push({
+        code: "lcp-preload-no-fetchpriority",
         s: "info",
         msg: 'LCP image preload is missing fetchpriority="high"'
       });
     } else if (inViewport) {
       if (loading === "lazy") issues.push({
+        code: "lazy-in-viewport",
         s: "warning",
         msg: 'Remove loading="lazy" (image is above the fold)'
       });
     } else {
       if (loading !== "lazy") issues.push({
+        code: "eager-off-viewport",
         s: "warning",
         msg: 'Add loading="lazy" (image is off-viewport)'
       });
       if (fetchpriority === "high") issues.push({
+        code: "high-priority-off-viewport",
         s: "error",
         msg: 'Remove fetchpriority="high" (image is off-viewport)'
       });
     }
     if (loading === "lazy" && fetchpriority === "high") issues.push({
+      code: "lazy-and-high-priority",
       s: "error",
       msg: 'Conflict: loading="lazy" + fetchpriority="high"'
     });
     if (!hasDimensions) issues.push({
+      code: "missing-dimensions",
       s: "warning",
       msg: "Missing width/height attributes (CLS risk)"
     });
     if (!isModernFormat(format) && !inPicture && format !== "svg") issues.push({
+      code: "no-modern-format",
       s: "info",
       msg: "No modern format detected (WebP / AVIF / JXL)"
     });
@@ -284,16 +295,22 @@
       hasSizes: r.hasSizes,
       inPicture: r.inPicture,
       issues: r.issues.map(i => ({
+        code: i.code,
         severity: i.s,
         message: i.msg
       }))
     })),
     issues: [ ...nonImageTag ? [ {
+      code: "lcp-not-img",
       severity: "info",
       message: `The LCP element is not an <img> (${nonImageTag === "unknown" ? "not in the page's images" : nonImageTag}), so no image is audited as the LCP`
     } ] : [], ...audited.flatMap(r => r.issues.map(i => ({
+      code: i.code,
       severity: i.s,
-      message: `${shortSrc(r.src) || "(no src)"}: ${i.msg}`
+      message: `${shortSrc(r.src) || "(no src)"}: ${i.msg}`,
+      ...r.src ? {
+        target: r.src.startsWith("data:") ? r.src.slice(0, 60) : r.src
+      } : {}
     }))) ]
   };
 })();

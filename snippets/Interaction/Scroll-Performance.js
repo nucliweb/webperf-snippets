@@ -207,12 +207,14 @@
     const issues = [];
     if (nonPassiveListeners.length > 0) {
       issues.push({
+        code: "non-passive-listeners",
         severity: "warning",
         message: `${nonPassiveListeners.length} non-passive scroll or touch listener(s). Add { passive: true } so scrolling does not wait for JavaScript.`,
       });
     }
     if (css.willChangeElements.length > 0) {
       issues.push({
+        code: "will-change",
         severity: "info",
         message: `will-change is set on ${css.willChangeElements.length} element(s). Remove it from elements that do not animate, since each one keeps a compositor layer.`,
       });

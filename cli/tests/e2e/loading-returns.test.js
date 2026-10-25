@@ -316,7 +316,7 @@ describe("SVG-Embedded-Bitmap-Analysis", () => {
   it("reports the sprite opportunity as an info issue with the counts", async () => {
     const many = await runOn("/svgs", "Media/SVG-Embedded-Bitmap-Analysis");
     expect(many.issues).toEqual([
-      { severity: "info", message: "6 standalone inline SVGs could share one <symbol> sprite referenced with <use> (1 inline SVG already uses <use>)" },
+      { code: "sprite-opportunity", severity: "info", message: "6 standalone inline SVGs could share one <symbol> sprite referenced with <use> (1 inline SVG already uses <use>)" },
     ]);
     const none = await runOn("/empty", "Media/SVG-Embedded-Bitmap-Analysis");
     expect(none.issues).toEqual([]);

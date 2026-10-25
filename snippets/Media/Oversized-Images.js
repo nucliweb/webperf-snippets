@@ -186,13 +186,17 @@
     if (f.verdict === "oversized") {
       const kb = f.wastedBytes === null ? "" : `, about ${Math.round(f.wastedBytes / 1024)} KB wasted`;
       return {
+        code: "oversized",
         severity: f.ratio >= SEVERE_OVERSIZED ? "warning" : "info",
         message: `${fileName(f.url)}: ${size} file for a ${shown} slot at ${dpr}x (${f.ratio}x too large${kb})`,
+        target: f.url,
       };
     }
     return {
+      code: "undersized",
       severity: f.ratio < SEVERE_UNDERSIZED ? "warning" : "info",
       message: `${fileName(f.url)}: ${size} file for a ${shown} slot at ${dpr}x (blurry, needs ${round2(1 / f.ratio)}x more pixels)`,
+      target: f.url,
     };
   });
 

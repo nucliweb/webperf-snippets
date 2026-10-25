@@ -64,7 +64,9 @@ describe("the catalog of issue codes", () => {
     const source = loadSnippet(name);
     const { codes, nonLiteral } = codesInSource(source);
     const documented = catalog.get(name.split("/").pop());
-    const emitsIssues = /\bseverity:/.test(source);
+    // A snippet returns issues when it builds objects with a severity and says issues; LongTask rates its
+    // tasks with a severity of their own and returns no issues
+    const emitsIssues = /\bseverity:/.test(source) && /\bissues\b/.test(source);
     if (PENDING_ISSUE_CODES.includes(name)) {
       // Pending: no codes yet. Once it has them, it leaves PENDING_ISSUE_CODES
       expect({ codes: [...codes], documented: documented ? [...documented] : null }).toEqual({ codes: [], documented: null });

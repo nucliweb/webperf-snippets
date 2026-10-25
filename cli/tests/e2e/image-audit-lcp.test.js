@@ -47,6 +47,9 @@ describe("Image-Element-Audit, LCP image", () => {
     expect(r.items.some((i) => i.isLCP)).toBe(false);
     expect(lcpIssues(r)).toEqual([]);
     expect(r.issues.some((i) => i.severity === "info" && /LCP element is not an <img>/.test(i.message))).toBe(true);
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: "lcp-not-img" }));
+    // Every other issue is about one image, named by its URL
+    expect(r.issues.filter((i) => i.code !== "lcp-not-img").every((i) => typeof i.target === "string")).toBe(true);
   }, 60000);
 
   it("names no LCP image when the LCP element is a CSS background", async () => {

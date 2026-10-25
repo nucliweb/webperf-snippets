@@ -111,12 +111,14 @@
   }
   const issues = [];
   if (withBitmaps.length > 0) issues.push({
+    code: "embedded-bitmaps",
     severity: "warning",
     message: `${withBitmaps.length} SVG file(s) contain embedded bitmaps`
   });
   if (spriteOpportunity) {
     const withUse = svgsWithUse > 0 ? ` (${svgsWithUse} inline SVG${svgsWithUse === 1 ? " already uses" : "s already use"} <use>)` : "";
     issues.push({
+      code: "sprite-opportunity",
       severity: "info",
       message: `${standaloneInlineSvgs} standalone inline SVGs could share one <symbol> sprite referenced with <use>${withUse}`
     });
