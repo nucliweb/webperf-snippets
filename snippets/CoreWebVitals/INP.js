@@ -349,10 +349,11 @@
       };
     }
     if (interactions.length === 0) {
+      // Nothing failed: someone has to use the page first, so it is still tracking
       return {
         script: "INP",
-        status: "error",
-        error: "No interactions recorded yet. Interact with the page and call getINP() again.",
+        status: "tracking",
+        message: "No interactions yet: click, tap or type on the page, then call getINP() again.",
         getDataFn: "getINP",
         details,
       };
@@ -378,8 +379,9 @@
       console.groupEnd();
       return {
         script: "INP",
-        status: "error",
-        error: "No interactions recorded yet. Interact with the page and call getINPDetails() again.",
+        status: "tracking",
+        message: "No interactions yet: click, tap or type on the page, then call getINPDetails() again.",
+        getDataFn: "getINPDetails",
         count: 0,
         items: [],
       };

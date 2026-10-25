@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Changed
+- A tracking snippet with nothing recorded, such as INP without interactions, is reported as `not measured` with its message, and no longer counts as a failed snippet: the command exits with `0` for it. After a click or a key press the CLI reads it again while it is still tracking, as it did while it returned an error.
+
 ---
 
 ## [1.5.0] — 2026-10-25

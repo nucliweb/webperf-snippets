@@ -11,6 +11,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - The audit table of the extension opens on the snippets with errors or warnings, with the number of the others and a link to show them. Errors, Errors and warnings, and All change the rows it shows, each with its count; the panel remembers the choice, and Copy JSON and Download JSON keep every snippet.
 
+### Changed
+- INP (`getINP()` and `getINPDetails()`), Interactions and Input-Latency-Breakdown return `status: "tracking"` with a `message` and their `getDataFn` before any interaction, instead of `status: "error"`: nothing failed, someone has to use the page first. Code or agents that retried on `error` need to retry on `tracking`. The extension shows that state as information, not as a warning.
+
 ---
 
 ## [2.1.0] — 2026-10-25

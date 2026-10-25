@@ -16,8 +16,8 @@ export const VIEWPORT_PRESETS = {
 const DEFAULT_NAV_TIMEOUT = 30000;
 
 // On a loaded machine the browser can deliver the timing of a click later than the frames `settle`
-// waits for. After a click or a key press, a tracking snippet that has no data yet is read again,
-// every POLL_MS, until it has some or LATE_ENTRIES_MS have passed.
+// waits for. After a click or a key press, a tracking snippet that has no data yet, and so is still
+// tracking, is read again every POLL_MS until it has some or LATE_ENTRIES_MS have passed.
 const LATE_ENTRIES_MS = 2000;
 const POLL_MS = 100;
 
@@ -79,7 +79,7 @@ export async function collectTrackingData(page, result, hasInput) {
     const read = () => page.evaluate(`(async () => await ${result.getDataFn}())()`);
     let data = await read();
     const deadline = Date.now() + LATE_ENTRIES_MS;
-    while (hasInput && data?.status === "error" && Date.now() < deadline) {
+    while (hasInput && data?.status === "tracking" && Date.now() < deadline) {
       await page.waitForTimeout(POLL_MS);
       data = await read();
     }

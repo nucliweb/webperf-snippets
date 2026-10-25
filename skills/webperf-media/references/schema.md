@@ -170,7 +170,7 @@ return {
 **The window function must also return a structured object** matching the same schema, including when nothing has been recorded yet:
 
 - `status: "ok"` with `count: 0` when zero is a valid result (no long tasks, no long animation frames).
-- `status: "error"` with an `error` message when there is nothing to report yet and the agent needs to act first (no interactions recorded).
+- `status: "tracking"` with a `message` and its `getDataFn` when there is nothing to report yet and someone has to act first (no interactions recorded): nothing failed, the snippet is still recording. `status: "error"` is for a snippet that failed.
 
 **Scripts using this pattern:** INP, Interactions, Input-Latency-Breakdown, Layout-Shift-Loading-and-Interaction, Scroll-Performance, Long-Animation-Frames (ongoing tracking), LongTask (ongoing tracking), Long-Animation-Frames-Script-Attribution.
 
@@ -262,11 +262,11 @@ Returns buffered CLS immediately and keeps tracking. Always call `getCLS()` afte
 }
 ```
 
-If no interactions yet, `getINP()` returns `status: "error"` with `getDataFn: "getINP"` — retry after user interaction.
+If no interactions yet, `getINP()` returns `status: "tracking"` with a `message` and `getDataFn: "getINP"`: interact with the page and call it again.
 
 The phases describe the whole interaction, not one of its events. A tap fires `pointerdown`, `pointerup` and `click`, and a key press `keydown` and `keyup`, with one `interactionId`. INP, Interactions and Input-Latency-Breakdown group the entries by `interactionId`, also when they arrive in separate observer callbacks, and measure the interaction over its entries painted in the frame of the longest one: `inputDelay` runs from the first `startTime` to the first `processingStart`, `processingTime` to the last `processingEnd`, and `presentationDelay` from there to the paint (`startTime + duration`, never below zero). The interaction is reported under the event whose handler ran longest, or under the `click` or `keydown` when no handler took a millisecond more than theirs; `worstEvent`, the Interactions `type` and the Input-Latency-Breakdown event type follow that rule.
 
-`getINPDetails()` returns the 15 slowest interactions, slowest first, with the total in `count`. `target` is a CSS selector built like `details.element` of LCP, or `null` when the browser reports no target. Use it when `getINP()` shows poor INP and you need to identify patterns across multiple slow interactions. With no interactions yet it returns `status: "error"`, `count: 0` and no items.
+`getINPDetails()` returns the 15 slowest interactions, slowest first, with the total in `count`. `target` is a CSS selector built like `details.element` of LCP, or `null` when the browser reports no target. Use it when `getINP()` shows poor INP and you need to identify patterns across multiple slow interactions. With no interactions yet it returns `status: "tracking"`, a `message`, `count: 0` and no items.
 
 ```json
 {

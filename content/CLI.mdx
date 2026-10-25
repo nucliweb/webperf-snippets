@@ -282,7 +282,7 @@ It installs the Interaction snippets, runs the interactions, and then reads them
 | `interactions`  | Every interaction with its latency and rating                              |
 | `input-latency` | Input delay, processing time and presentation delay of each event type     |
 
-`interactions` and `input-latency` need a click or a `type` step. When the interactions have none, they appear as `skipped` with the reason, and they do not count as errors. When the script has a click but the page records no interaction, they report an error, which tells you the step did not reach an element that responds.
+`interactions` and `input-latency` need a click or a `type` step. When the interactions have none, they appear as `skipped` with the reason, and they do not count as errors. When the script has a click but the page records no interaction, they are reported as `not measured` and do not count as errors; it usually means the step did not reach an element that responds.
 
 Simulate a mobile viewport (default) or switch to desktop:
 

@@ -350,7 +350,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Read the tracking snippets",
       description:
-        "Returns what the tracking snippets installed by open_page have recorded on the page so far, as the objects they return. A snippet with nothing recorded yet answers with status error, which is a result, not a failure.",
+        "Returns what the tracking snippets installed by open_page have recorded on the page so far, as the objects they return. A snippet with nothing recorded yet, such as INP before any interaction, answers with status tracking and a message: interact with the page and read again.",
       inputSchema: z.object({ sessionId: SessionId }),
       outputSchema: z.object({ sessionId: z.string(), pageErrors: z.array(z.string()), results: z.array(SnippetResult) }),
       annotations: { readOnlyHint: true, openWorldHint: false },

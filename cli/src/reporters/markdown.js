@@ -39,9 +39,15 @@ function renderSkippedRow(r) {
   return `| ${r.id} | ⏭ skipped | ${r.reason} |`;
 }
 
+// A tracking snippet with nothing recorded, such as INP without interactions, measured nothing
+function renderNotMeasuredRow(r) {
+  return `| ${r.id} | · not measured | ${r.message ?? "nothing recorded"} |`;
+}
+
 function renderRow(r) {
   if (r.status === "skipped") return renderSkippedRow(r);
   if (r.status === "error") return renderErrorRow(r);
+  if (r.status === "tracking") return renderNotMeasuredRow(r);
   if (Array.isArray(r.issues)) return renderAuditRow(r);
   return renderMetricRow(r);
 }
