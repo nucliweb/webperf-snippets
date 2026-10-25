@@ -225,7 +225,7 @@ describe("Audit snippets — green fixture (no violations)", () => {
       expect(r.status).toBe("ok");
       expect(r.count).toBe(0);
       expect(r.items).toEqual([]);
-      expect(r.issues).toEqual([{ severity: "info", message: expect.stringMatching(/No <video> elements on this page/) }]);
+      expect(r.issues).toEqual([{ code: "no-videos", severity: "info", message: expect.stringMatching(/No <video> elements on this page/) }]);
     },
     30000,
   );
@@ -306,6 +306,7 @@ describe("Audit snippets — violations fixture (deliberate issues)", () => {
       const [r] = await runAudit(`${baseUrl}/wide`, step("video"));
       expect(r.status).toBe("ok");
       expect(r.issues.some((i) => i.severity === "warning" && /poster/.test(i.message))).toBe(true);
+      expect(r.issues).toContainEqual(expect.objectContaining({ code: "missing-poster", target: expect.stringMatching(/^http/) }));
     },
     30000,
   );

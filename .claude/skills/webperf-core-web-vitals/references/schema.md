@@ -56,7 +56,7 @@ Every script must return an object matching this shape:
     code: string;      // What the issue is, kebab-case, stable across runs and versions (see Issue codes)
     severity: "error" | "warning" | "info";
     message: string;
-    target?: string;   // The URL or selector the issue names, when there is one issue per resource
+    target?: string;   // The URL, selector or name the issue is about, when there is one issue per thing
   }>;
 
   // Tracking scripts (status: "tracking")
@@ -1195,7 +1195,32 @@ Same shape as Image-Element-Audit but for video elements.
 
 Every issue has a `code` that says what it is, so a comparison pairs the issues of two runs without reading their text: the message carries figures, and its wording can change from a version to the next. The code is kebab-case and unique within its snippet, so `script` and `code` together name an issue across the collection. A code never changes once published, and is never reused for another situation. The same situation keeps its code when its severity depends on a threshold.
 
-An issue about one resource among several, one issue per resource, also names it in `target`: its URL or a CSS selector. Two issues with the same code and different targets are two issues.
+An issue about one thing among several, one issue per thing, also names it in `target`: the URL of a resource, a CSS selector, or a name such as an event type or a CSS property. Two issues with the same code and different targets are two issues.
+
+### LCP-Image-Entropy
+
+| Code | Severity | When |
+|------|----------|------|
+| `low-entropy-images` | warning | Images under 0.05 bits per pixel, which Chrome does not take as the LCP |
+| `lcp-low-entropy` | error | The LCP image itself has low entropy |
+| `lcp-size-unknown` | info | The LCP `<img>` has no file size to read (a `data:` URL, or cross-origin without `Timing-Allow-Origin`) |
+| `lcp-not-img` | info | The LCP is the image of another element, such as a CSS background or a video poster |
+| `lcp-is-text` | info | The LCP element is text |
+
+### LCP-Video-Candidate
+
+| Code | Severity | When |
+|------|----------|------|
+| `lcp-not-video` | info | The LCP element is not a `<video>` |
+| `lcp-element-removed` | info | The LCP element is no longer in the DOM |
+| `late-candidate` | warning | The LCP candidate rendered more than 10 s after the load |
+| `first-frame-lcp` | info | The LCP is the first frame of the video, without a poster |
+| `first-frame-not-autoplay-muted` | warning | A first-frame LCP on a video without `autoplay` and `muted` |
+| `poster-not-preloaded` | warning | The poster has no `<link rel="preload" as="image">` |
+| `poster-preload-no-fetchpriority` | info | The preload of the poster has no `fetchpriority="high"` |
+| `poster-legacy-format` | info | The poster is not AVIF or WebP |
+| `render-time-hidden` | info | `renderTime` is 0: the video is cross-origin without `Timing-Allow-Origin` |
+| `preload-none-delays-poster` | warning | `preload="none"` on a video without `autoplay` |
 
 ### Script-Loading
 
@@ -1206,6 +1231,90 @@ An issue about one resource among several, one issue per resource, also names it
 | `large-blocking` | warning | Blocking scripts larger than 50 KB |
 | `could-defer` | info | Blocking scripts other than the last three of `<body>`, which could try `defer` |
 | `unknown-size` | info | Scripts whose size is hidden by a missing `Timing-Allow-Origin`, so the total is a lower bound |
+
+### DOM-Size-and-Depth
+
+| Code | Severity | When |
+|------|----------|------|
+| `too-many-nodes` | warning or error | More than 800 nodes, an error above 1,400 |
+| `too-deep` | warning | A DOM deeper than 32 levels |
+| `too-many-children` | warning | An element with more than 60 children |
+
+### Forced-Synchronous-Layout
+
+| Code | Severity | When |
+|------|----------|------|
+| `forced-layout` | warning or error | A layout property read after a write forced a layout, an error above 5 times; `target` is the property |
+
+### Input-Latency-Breakdown
+
+| Code | Severity | When |
+|------|----------|------|
+| `slow-event-type` | warning or error | An event type whose P75 is not good, an error when poor; `target` is the event type |
+
+### Interactions
+
+| Code | Severity | When |
+|------|----------|------|
+| `slow-interaction` | warning or error | An interaction above 200 ms, an error above 500 ms; `target` is its type |
+
+### Scroll-Performance
+
+| Code | Severity | When |
+|------|----------|------|
+| `non-passive-listeners` | warning | Scroll or touch listeners without `{ passive: true }` |
+| `will-change` | info | Elements with `will-change` set |
+
+### Image-Element-Audit
+
+Each issue names its image in `target`, except `lcp-not-img`.
+
+| Code | Severity | When |
+|------|----------|------|
+| `lcp-not-img` | info | The LCP element is not an `<img>` |
+| `lcp-no-fetchpriority` | error | The LCP image has no `fetchpriority="high"` |
+| `lcp-lazy` | error | The LCP image has `loading="lazy"` |
+| `lcp-not-decoding-sync` | warning | The LCP image has no `decoding="sync"` |
+| `lcp-not-preloaded` | warning | The LCP image has no `<link rel="preload" as="image">` |
+| `lcp-preload-no-fetchpriority` | info | The preload of the LCP image has no `fetchpriority="high"` |
+| `lazy-in-viewport` | warning | An image in the viewport with `loading="lazy"` |
+| `eager-off-viewport` | warning | An image outside the viewport without `loading="lazy"` |
+| `high-priority-off-viewport` | error | An image outside the viewport with `fetchpriority="high"` |
+| `lazy-and-high-priority` | error | An image with both `loading="lazy"` and `fetchpriority="high"` |
+| `missing-dimensions` | warning | An image without `width` and `height` |
+| `no-modern-format` | info | An image that is not WebP, AVIF, JPEG XL or SVG, outside a `<picture>` |
+
+### Oversized-Images
+
+Each issue names its image in `target`.
+
+| Code | Severity | When |
+|------|----------|------|
+| `oversized` | info or warning | A file larger than its slot needs, a warning when it is far larger |
+| `undersized` | info or warning | A file smaller than its slot needs, so it looks blurry, a warning when it is far smaller |
+
+### SVG-Embedded-Bitmap-Analysis
+
+| Code | Severity | When |
+|------|----------|------|
+| `embedded-bitmaps` | warning | SVG files that contain bitmaps |
+| `sprite-opportunity` | info | Standalone inline SVGs that could share one `<symbol>` sprite |
+
+### Video-Element-Audit
+
+Each issue names its video in `target`, except `no-videos`.
+
+| Code | Severity | When |
+|------|----------|------|
+| `no-videos` | info | No `<video>` elements on the page |
+| `preload-auto` | error | `preload="auto"` on a video without `autoplay` |
+| `off-viewport-preload` | warning | A video outside the viewport without `preload="none"` |
+| `autoplay-not-muted` | error | `autoplay` without `muted` |
+| `autoplay-no-playsinline` | warning | `autoplay` without `playsinline` |
+| `missing-poster` | warning | A video without a poster |
+| `missing-dimensions` | warning | A video without `width` and `height` |
+| `no-modern-codec` | info | No WebM source (VP9 or AV1) |
+| `no-controls` | info | A video without `controls` and without `autoplay` |
 
 ---
 

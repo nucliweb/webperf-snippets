@@ -264,8 +264,10 @@
         .sort((a, b) => b.duration - a.duration)
         .slice(0, 10)
         .map((i) => ({
+          code: "slow-interaction",
           severity: i.rating === "poor" ? "error" : "warning",
           message: `${i.type} interaction took ${Math.round(i.duration)}ms (${i.rating}), above the ${i.rating === "poor" ? "500ms" : "200ms"} threshold`,
+          target: i.type,
         })),
     };
   };

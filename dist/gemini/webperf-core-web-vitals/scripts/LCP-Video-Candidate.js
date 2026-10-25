@@ -56,7 +56,15 @@
   const lcpTime = Math.round(Math.max(0, lcp.startTime - activationStart));
   if (!element || element.tagName !== "VIDEO") {
     const tag = element ? element.tagName.toLowerCase() : null;
-    const message = tag ? `The LCP element is <${tag}>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases.` : "The LCP element is no longer in the DOM, so it cannot be checked for a <video>. Run the LCP snippet to measure it.";
+    const issue = tag ? {
+      code: "lcp-not-video",
+      severity: "info",
+      message: `The LCP element is <${tag}>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases.`
+    } : {
+      code: "lcp-element-removed",
+      severity: "info",
+      message: "The LCP element is no longer in the DOM, so it cannot be checked for a <video>. Run the LCP snippet to measure it."
+    };
     if (lcp.url) void 0;
     if (element) void 0;
     return {
@@ -67,10 +75,7 @@
         lcpElement: tag,
         lcpUrl: lcp.url || null
       },
-      issues: [ {
-        severity: "info",
-        message: message
-      } ]
+      issues: [ issue ]
     };
   }
   const posterAttr = element.getAttribute("poster") || "";
@@ -101,33 +106,41 @@
   const playsinline = element.hasAttribute("playsinline");
   const issues = [];
   if (secondsAfterLoad > 10) issues.push({
+    code: "late-candidate",
     s: "warning",
     msg: `The LCP candidate rendered ${secondsAfterLoad} s after the page loaded, because the page stayed open without interaction. Reload and run the snippet again to measure the LCP of the load`
   });
   if (lcpSource === "first-frame") issues.push({
+    code: "first-frame-lcp",
     s: "info",
     msg: "LCP is the first video frame: adding a poster gives explicit control over the LCP image"
   });
   if (lcpSource === "first-frame" && (!autoplay || !muted)) issues.push({
+    code: "first-frame-not-autoplay-muted",
     s: "warning",
     msg: "First-frame LCP requires autoplay + muted for the browser to render it immediately"
   });
   if (posterAttr && !posterPreload) issues.push({
+    code: "poster-not-preloaded",
     s: "warning",
     msg: 'No <link rel="preload" as="image"> for the poster: the browser discovers it late'
   }); else if (posterPreload && posterPreload.getAttribute("fetchpriority") !== "high") issues.push({
+    code: "poster-preload-no-fetchpriority",
     s: "info",
     msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised'
   });
   if (posterAttr && !isModernFormat && posterFormat !== "unknown") issues.push({
+    code: "poster-legacy-format",
     s: "info",
     msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time`
   });
   if (isCrossOrigin) issues.push({
+    code: "render-time-hidden",
     s: "info",
     msg: "renderTime is 0: the resource is cross-origin and the server does not send Timing-Allow-Origin"
   });
   if (!autoplay && preload === "none") issues.push({
+    code: "preload-none-delays-poster",
     s: "warning",
     msg: 'preload="none" on a non-autoplay video may delay poster image loading in some browsers'
   });
@@ -174,6 +187,7 @@
       }
     },
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.s === "warning" ? "warning" : "info",
       message: i.msg
     }))

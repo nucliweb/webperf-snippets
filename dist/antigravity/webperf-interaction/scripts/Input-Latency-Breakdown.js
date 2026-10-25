@@ -184,8 +184,10 @@
       const bottleneck = phases.reduce((a, c) => a.value > c.value ? a : c);
       const rating = valueToRating(p75(b.durations));
       return {
+        code: "slow-event-type",
         severity: rating === "poor" ? "error" : "warning",
-        message: `${type} P75 is ${Math.round(p75(b.durations))}ms (${rating}). Bottleneck: ${bottleneck.name}. Fix: ${BOTTLENECK_FIXES[bottleneck.name]}.`
+        message: `${type} P75 is ${Math.round(p75(b.durations))}ms (${rating}). Bottleneck: ${bottleneck.name}. Fix: ${BOTTLENECK_FIXES[bottleneck.name]}.`,
+        target: type
       };
     });
     return {

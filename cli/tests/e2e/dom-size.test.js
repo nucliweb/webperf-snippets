@@ -92,7 +92,7 @@ describe("DOM-Size-and-Depth", () => {
     expect(r.details.totalElements).toBeGreaterThan(6400);
     expect(r.details.maxDepth).toBeGreaterThan(5000);
     const nodeIssue = r.issues.find((i) => i.message.includes("nodes"));
-    expect(nodeIssue.severity).toBe("error");
+    expect(nodeIssue).toEqual(expect.objectContaining({ code: "too-many-nodes", severity: "error" }));
     expect(r.details.deepestElement.length).toBeLessThan(500);
   }, 60000);
 

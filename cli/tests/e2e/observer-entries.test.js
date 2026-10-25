@@ -102,6 +102,7 @@ describe("snippets that read observer-only entry types", () => {
     expect(r.details.lcpElement).toMatch(/^(h1|p)$/);
     expect(r.details.lcpImage).toBeNull();
     expect(r.issues).toContainEqual({
+      code: "lcp-is-text",
       severity: "info",
       message: `The LCP element is <${r.details.lcpElement}>, text and not an image, so its entropy does not apply. Run the LCP snippet to measure it.`,
     });
@@ -111,6 +112,7 @@ describe("snippets that read observer-only entry types", () => {
     const r = await run("CoreWebVitals/LCP-Image-Entropy", "lcp-background.html");
     expect(r.details.lcpElement).toBe("div");
     expect(r.issues).toContainEqual({
+      code: "lcp-not-img",
       severity: "info",
       message:
         "The LCP is the image of a <div>, such as a CSS background or a video poster, and this snippet reads <img> elements only. Run the LCP snippet to measure it.",
@@ -121,6 +123,7 @@ describe("snippets that read observer-only entry types", () => {
     const r = await run("CoreWebVitals/LCP-Image-Entropy", "lcp-data-image.html");
     expect(r.details.lcpElement).toBe("img");
     expect(r.issues).toContainEqual({
+      code: "lcp-size-unknown",
       severity: "info",
       message:
         "The LCP <img> has no file size to read, as with a data: URL or a cross-origin image without Timing-Allow-Origin, so its entropy cannot be computed.",
@@ -146,6 +149,7 @@ describe("snippets that read observer-only entry types", () => {
     expect(r.details).toEqual({ isVideo: false, lcpElement: "img", lcpUrl: expect.stringMatching(/\/hero\.png$/) });
     expect(r.issues).toEqual([
       {
+        code: "lcp-not-video",
         severity: "info",
         message: "The LCP element is <img>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases.",
       },

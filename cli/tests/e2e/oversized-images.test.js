@@ -144,6 +144,8 @@ describe("Oversized-Images", () => {
     expect(big.ratio).toBe(8);
     expect(big.wastedPixels).toBe(1600 * 1200 - 200 * 150);
     expect(r.issues.some((i) => i.severity === "warning" && i.message.includes("1600.png"))).toBe(true);
+    // The issue names its image by its URL, so a later run pairs it with the same image
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: "oversized", target: expect.stringMatching(/1600\.png/) }));
   }, 60000);
 
   it("does not report a correctly sized image, nor hidden, zero-size or unloaded ones", async () => {

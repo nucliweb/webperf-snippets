@@ -74,17 +74,21 @@
   }));
   const issues = [];
   if (totalElements > THRESHOLDS.errorNodes) issues.push({
+    code: "too-many-nodes",
     severity: "error",
     message: `${totalElements} nodes exceeds ${THRESHOLDS.errorNodes}; a large DOM slows style recalculation and layout on every interaction`
   }); else if (totalElements > THRESHOLDS.warnNodes) issues.push({
+    code: "too-many-nodes",
     severity: "warning",
     message: `${totalElements} nodes exceeds ${THRESHOLDS.warnNodes}; a large DOM increases style recalculation and layout cost`
   });
   if (maxDepth > THRESHOLDS.maxDepth) issues.push({
+    code: "too-deep",
     severity: "warning",
     message: `DOM depth of ${maxDepth} exceeds ${THRESHOLDS.maxDepth}; deep trees make style and layout work costlier (deepest: ${selectorFor(deepest)})`
   });
   if (widest && widest.children > THRESHOLDS.maxChildren) issues.push({
+    code: "too-many-children",
     severity: "warning",
     message: `${widestSelector} has ${widest.children} children, above ${THRESHOLDS.maxChildren}; consider virtualizing or paginating the list`
   });

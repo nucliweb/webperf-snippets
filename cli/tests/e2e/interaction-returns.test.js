@@ -127,6 +127,8 @@ describe("Forced-Synchronous-Layout", () => {
     expect(new Set(second.items.map(keys)).size).toBe(1);
     expect(keys(second.items[0])).toBe("accessType,count,element,fastestSinceLastMutationMs,property");
     expect(second.issues.some((i) => i.severity === "error")).toBe(true);
+    // One issue per property, named in target
+    expect(second.issues.every((i) => i.code === "forced-layout" && second.items.some((item) => item.property === i.target))).toBe(true);
     expect(noSpacedDash(second.issues)).toBe(true);
   }, 30000);
 

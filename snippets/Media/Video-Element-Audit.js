@@ -60,7 +60,7 @@
       status: "ok",
       count: 0,
       items: [],
-      issues: [{ severity: "info", message: "No <video> elements on this page, so there was nothing to audit." }],
+      issues: [{ code: "no-videos", severity: "info", message: "No <video> elements on this page, so there was nothing to audit." }],
     };
   }
 
@@ -84,6 +84,7 @@
 
     if (preload === "auto" && !autoplay) {
       issues.push({
+        code: "preload-auto",
         s: "error",
         msg: 'preload="auto" loads the full video eagerly: use preload="none" or preload="metadata"',
       });
@@ -91,6 +92,7 @@
 
     if (!autoplay && !inViewport && preload !== "none") {
       issues.push({
+        code: "off-viewport-preload",
         s: "warning",
         msg: 'Off-viewport video without preload="none": set preload="none" to avoid unnecessary loading',
       });
@@ -98,6 +100,7 @@
 
     if (autoplay && !muted) {
       issues.push({
+        code: "autoplay-not-muted",
         s: "error",
         msg: "autoplay without muted: browsers block unmuted autoplay",
       });
@@ -105,6 +108,7 @@
 
     if (autoplay && !playsinline) {
       issues.push({
+        code: "autoplay-no-playsinline",
         s: "warning",
         msg: "autoplay without playsinline: iOS Safari forces fullscreen mode",
       });
@@ -112,6 +116,7 @@
 
     if (!poster) {
       issues.push({
+        code: "missing-poster",
         s: "warning",
         msg: "Missing poster: no preview frame shown before playback starts",
       });
@@ -119,6 +124,7 @@
 
     if (!hasDimensions) {
       issues.push({
+        code: "missing-dimensions",
         s: "warning",
         msg: "Missing width/height attributes (CLS risk)",
       });
@@ -126,6 +132,7 @@
 
     if (!isModernCodec(codec) && codec !== "no source") {
       issues.push({
+        code: "no-modern-codec",
         s: "info",
         msg: "No modern codec source detected: consider adding a WebM source (VP9 or AV1) for better compression",
       });
@@ -133,6 +140,7 @@
 
     if (!controls && !autoplay) {
       issues.push({
+        code: "no-controls",
         s: "info",
         msg: "No controls attribute and no autoplay, so users may not be able to play the video",
       });
@@ -276,12 +284,15 @@
       hasPoster: r.poster !== "(not set)",
       hasDimensions: r.hasDimensions,
       sourceCount: r.sourceCount,
-      issues: r.issues.map((i) => ({ severity: i.s, message: i.msg })),
+      issues: r.issues.map((i) => ({ code: i.code, severity: i.s, message: i.msg })),
     })),
     issues: audited.flatMap((r) =>
       r.issues.map((i) => ({
+        code: i.code,
         severity: i.s,
         message: `${shortSrc(r.src) || "(no src)"}: ${i.msg}`,
+        // The URL names the video; a data: URL is cut, as it can weigh more than the result
+        ...(r.src ? { target: r.src.startsWith("data:") ? r.src.slice(0, 60) : r.src } : {}),
       }))
     ),
   };
