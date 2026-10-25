@@ -506,6 +506,28 @@ describe("the markdown report of a matrix", () => {
   });
 });
 
+describe("a tracking snippet with nothing recorded", () => {
+  const notYet = {
+    ...samplePayload,
+    results: [
+      ...samplePayload.results,
+      { id: "INP", script: "INP", status: "tracking", getDataFn: "getINP", message: "No interactions yet: click, tap or type on the page, then call getINP() again." },
+    ],
+  };
+
+  it("shows in the human report as not measured, with its message, and not as an error", () => {
+    const output = reportHuman(notYet);
+    expect(output).toMatch(/INP\s+.*not measured: No interactions yet/);
+    expect(output).not.toContain("✗");
+  });
+
+  it("shows in the markdown report as not measured, and not as an error", () => {
+    const output = reportMarkdown(notYet);
+    expect(output).toMatch(/\| INP \| · not measured \| No interactions yet: click, tap or type on the page, then call getINP\(\) again\. \|/);
+    expect(output).not.toContain("❌");
+  });
+});
+
 describe("a skipped result", () => {
   const skipped = {
     ...samplePayload,

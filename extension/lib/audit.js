@@ -34,6 +34,16 @@ export const bySeverity = (a, b) =>
   Math.sign(b.summary.warnings) - Math.sign(a.summary.warnings) ||
   Math.sign(b.summary.infos) - Math.sign(a.summary.infos)
 
+// The filters of the audit table: the snippets with errors, with errors or warnings, or all of them.
+// A filter the panel does not know shows every row
+const FILTERS = {
+  errors: (r) => r.summary.errors > 0,
+  issues: (r) => r.summary.errors > 0 || r.summary.warnings > 0,
+  all: () => true,
+}
+export const filterRows = (rows, filter) => rows.filter(FILTERS[filter] ?? FILTERS.all)
+export const filterCounts = (rows) => Object.fromEntries(Object.keys(FILTERS).map((f) => [f, filterRows(rows, f).length]))
+
 function counts(rows) {
   const withErrors = rows.filter((r) => r.summary.errors > 0).length
   const withWarnings = rows.filter((r) => r.summary.errors === 0 && r.summary.warnings > 0).length

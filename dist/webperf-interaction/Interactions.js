@@ -133,8 +133,9 @@
     if (allInteractions.length === 0) {
       return {
         script: "Interactions",
-        status: "error",
-        error: "No interactions recorded yet",
+        status: "tracking",
+        message: "No interactions yet: click, tap or type on the page, then call getInteractionSummary() again.",
+        getDataFn: "getInteractionSummary",
         count: 0
       };
     }

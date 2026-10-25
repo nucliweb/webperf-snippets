@@ -45,6 +45,18 @@ const recorded = (page, getter, ready) =>
     polling: 100,
   });
 
+describe("before any interaction", () => {
+  // Nothing has failed: someone has to use the page first, so the getter is still tracking
+  it.each([
+    ["Interaction/Input-Latency-Breakdown", "getInputLatencyBreakdown"],
+    ["Interaction/Interactions", "getInteractionSummary"],
+  ])("%s says what to do and where to read again", async (name, getter) => {
+    const { second } = await session(name, { getter });
+    expect(second).toEqual(expect.objectContaining({ status: "tracking", getDataFn: getter, message: expect.stringMatching(/No interactions yet/) }));
+    expect(second.error).toBeUndefined();
+  }, 30000);
+});
+
 describe("Input-Latency-Breakdown", () => {
   it("returns one item per event type and an issue for each slow one", async () => {
     const { second } = await session("Interaction/Input-Latency-Breakdown", {

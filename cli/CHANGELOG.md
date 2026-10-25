@@ -14,6 +14,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ### Changed
 - A budget never passes unchecked. One whose metric the run does not measure, such as `--budget-lcp` with `--workflow audit`, exits with `2` before the page loads, naming the workflow or snippet that measures it; one whose metric was not measured, such as INP without interactions or an LCP that failed, exits with `1`. A value that is not a number of 0 or more exits with `2`; it passed before. Each failed budget goes to stderr also with `--json`.
 - The `budget-lcp` and `budget-cls` inputs of the GitHub Action default to `auto`: 2500 and 0.1 with the `core-web-vitals` workflow, and no budget with the others, which do not measure LCP or CLS. An empty value still disables the check.
+- A tracking snippet with nothing recorded, such as INP without interactions, is reported as `not measured` with its message, and no longer counts as a failed snippet: the command exits with `0` for it. After a click or a key press the CLI reads it again while it is still tracking, as it did while it returned an error.
 
 ---
 

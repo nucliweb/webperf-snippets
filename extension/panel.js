@@ -3,7 +3,7 @@ import { renderResult } from './lib/render.js'
 import { readTrackingData, reloadPage, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
 import { createSettings } from './lib/settings.js'
-import { addToHistory, bySeverity, compare, fromReport, overview, previousOf, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
+import { addToHistory, bySeverity, compare, filterCounts, filterRows, fromReport, overview, previousOf, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
@@ -165,6 +165,11 @@ function showHome() {
 let audits = []
 let audit = null
 let reloadBeforeAudit = saved.reloadBeforeAudit
+// The rows the audit table shows, to keep the errors and warnings in focus; the panel remembers it
+const FILTERS = { errors: 'Errors', issues: 'Errors and warnings', all: 'All' }
+const HIDDEN_BY = { errors: 'without errors', issues: 'with info only or nothing to fix' }
+const EMPTY_FOR = { errors: 'No snippet has errors.', issues: 'No snippet has errors or warnings.' }
+let auditFilter = FILTERS[saved.auditFilter] ? saved.auditFilter : 'issues'
 
 function auditList() {
   if (audits.length === 0) return ''
@@ -242,6 +247,13 @@ function showAudit() {
     downloadReport(report({ url: audit.url, date: audit.date, rows: audit.rows }))
   )
   document.getElementById('audit').addEventListener('click', (event) => {
+    const filter = event.target.closest('button[data-filter]')
+    if (filter) {
+      auditFilter = filter.dataset.filter
+      remember('auditFilter', auditFilter)
+      renderAudit()
+      return
+    }
     const button = event.target.closest('button[data-row]')
     if (button) {
       const row = audit.rows.find((r) => r.snippet.id === button.dataset.row)
@@ -298,8 +310,20 @@ function renderAudit() {
     : audit.done
       ? `<p class="overview">${escape(overview(audit.rows))}</p>`
       : ''
+  // Once the audit is done the filter applies; while it runs, every row shows as it arrives
+  const shown = audit.done ? filterRows(rows, auditFilter) : rows
+  const hidden = rows.length - shown.length
+  const counts = filterCounts(rows)
+  const filters = audit.done
+    ? `<div class="filter" role="group" aria-label="Show">${Object.entries(FILTERS)
+        .map(([key, label]) => `<button type="button" data-filter="${key}" aria-pressed="${key === auditFilter}">${label} <span class="count">${counts[key]}</span></button>`)
+        .join('')}</div>`
+    : ''
+  const more = hidden
+    ? `<p class="note hidden-rows">${hidden} more snippet${hidden === 1 ? '' : 's'} ${HIDDEN_BY[auditFilter]} · <button type="button" class="row-link" data-filter="all">Show all</button></p>`
+    : ''
   const cell = (n, kind) => `<td class="num">${n ? `<span class="tally tally-${kind}">${n}</span>` : ''}</td>`
-  const body = rows
+  const body = shown
     .map(
       ({ snippet, summary }) => `<tr>
         <td><button type="button" class="row-link" data-row="${escape(snippet.id)}">${escape(snippet.title)}</button></td>
@@ -309,11 +333,13 @@ function renderAudit() {
       </tr>`
     )
     .join('')
-  view.innerHTML = `${status}${audit.done ? comparison() : ''}${
-    rows.length
+  view.innerHTML = `${status}${audit.done ? comparison() : ''}${filters}${
+    shown.length
       ? `<section><div class="table"><table><thead><tr><th>Snippet</th><th>Result</th><th>Errors</th><th>Warnings</th><th>Info</th><th>Main issue</th></tr></thead><tbody>${body}</tbody></table></div></section>`
-      : ''
-  }`
+      : rows.length
+        ? `<p class="clean empty-filter">${EMPTY_FOR[auditFilter]}</p>`
+        : ''
+  }${more}`
 }
 
 function showSnippet(snippet, { result: given, fromAudit = false } = {}) {

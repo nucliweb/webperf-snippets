@@ -4,9 +4,10 @@
 // fails, the panel uses the defaults and saves nothing.
 
 // audits are the reports of the last audits (lib/audit.js), newest first, listed on the home page;
-// reloadBeforeAudit makes the audit start from a fresh load of the page, as the CLI does
-export const DEFAULTS = { theme: 'devtools', side: 'left', sidebar: 'expanded', snippet: null, audits: [], reloadBeforeAudit: true }
-const SYNCED = new Set(['theme', 'side', 'reloadBeforeAudit'])
+// reloadBeforeAudit makes the audit start from a fresh load of the page, as the CLI does; auditFilter
+// is the rows the audit table shows (lib/audit.js): errors, issues (errors and warnings) or all
+export const DEFAULTS = { theme: 'devtools', side: 'left', sidebar: 'expanded', snippet: null, audits: [], reloadBeforeAudit: true, auditFilter: 'issues' }
+const SYNCED = new Set(['theme', 'side', 'reloadBeforeAudit', 'auditFilter'])
 
 export function createSettings(storage) {
   const areaOf = (key) => (SYNCED.has(key) ? storage?.sync : storage?.local)

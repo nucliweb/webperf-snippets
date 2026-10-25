@@ -142,6 +142,11 @@ function renderResult(r, verbose) {
     return `  ${styleText("red", "✗")} ${pad(r.id, 16)} ${styleText("dim", r.error)}`;
   }
 
+  // A tracking snippet with nothing recorded, such as INP without interactions, measured nothing
+  if (r.status === "tracking") {
+    return `  ${styleText("dim", "·")} ${pad(r.id, 16)} ${styleText("dim", `not measured: ${r.message ?? "nothing recorded"}`)}`;
+  }
+
   if (r.script === "Fonts-Preloaded-Loaded-and-used-above-the-fold") {
     return renderFontsResult(r);
   }

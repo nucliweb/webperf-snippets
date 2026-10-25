@@ -184,7 +184,14 @@
     if (allInteractions.length === 0) {
       console.log("%c📊 No interactions recorded yet.", "font-weight: bold;");
       console.log("   Interact with the page (click, type, etc.) and call this again.");
-      return { script: "Interactions", status: "error", error: "No interactions recorded yet", count: 0 };
+      // Nothing failed: someone has to use the page first, so it is still tracking
+      return {
+        script: "Interactions",
+        status: "tracking",
+        message: "No interactions yet: click, tap or type on the page, then call getInteractionSummary() again.",
+        getDataFn: "getInteractionSummary",
+        count: 0,
+      };
     }
 
     console.group("%c📊 Interaction Summary", "font-weight: bold; font-size: 14px;");

@@ -80,7 +80,7 @@ describe("a page that stays open", () => {
     const { sessionId } = (await open({ url: `${servers.base}/slow-click`, track: ["Interactions"] })).structuredContent;
     const read = await call("read_results", { sessionId });
     expect(read.isError).toBeFalsy();
-    expect(read.structuredContent.results[0]).toMatchObject({ script: "Interactions", status: "error" });
+    expect(read.structuredContent.results[0]).toMatchObject({ script: "Interactions", status: "tracking", getDataFn: "getInteractionSummary" });
   }, 60000);
 
   it("only installs tracking snippets, and points to run_snippet for the others", async () => {
