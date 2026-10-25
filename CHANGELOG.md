@@ -8,9 +8,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.1.0] — 2026-10-25
+
+One change breaks code or agents that read a result: `getINPDetails()` of INP returns a result object instead of an array, so they need to read `items`. It is listed first under Changed. Issues gain a stable `code`, and `target` when there is one issue per thing.
+
 ### Added
 - Issues carry a `code`, kebab-case and stable across runs and versions, so a comparison pairs the issues of two runs without reading their message, and a `target` with the URL, selector or name of what the issue is about when there is one issue per thing, such as an image or a CSS property. `snippets/SCHEMA.md` lists the codes of each snippet under Issue codes, and `cli/tests/unit/issue-codes.test.js` fails when the source and the table differ. Every snippet that returns issues carries its codes, and the contract fails on an issue without one.
 - `npm run eval:mcp`: the same question about a local page with a known answer, asked to an agent with the webperf MCP server, with Chrome DevTools MCP and the webperf skills, and with Chrome DevTools MCP alone, graded on the diagnosis and measured in tokens, turns and time. It runs by hand, not in CI.
+- The CLI reaches version 1.5.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `--baseline` pairs the errors of a snippet by their code and target, and the MCP server gives the issue codes of each snippet in its schema resource.
 - The CLI reaches version 1.4.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `--baseline` compares a page, or a matrix combination by combination, with the `--json` output of an earlier run, with a threshold per metric, the new and fixed errors, warnings when the conditions differ, and `--fail-on-regression` to exit with `1` on a regression. The JSON output carries the conditions of each measurement in `conditions`.
 - The CLI reaches version 1.3.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `--runs` measures a page several times and reports the median run, and `--matrix` measures several pages on several devices and in several variants, such as with and without the consent cookie, from one JSON file, with a table of the medians.
 - The CLI reaches version 1.2.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `--header` for pages behind an access proxy, sent only to the origin of the measured URL, `--cpu` and `--network` for CPU and network throttling with the presets of DevTools, and `--own-domains` for the domains of the site that count as first party.
@@ -19,11 +26,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - LCP-Subparts splits the Resource Load Time into the wait for the server and the download of the resource, in `details.subParts.resourceLoadTime.waiting` and `.download`, from its Resource Timing entry. When the wait is the larger part of the slowest phase, the console recommends the server, CDN and cache instead of compressing the image. The split is missing when another origin hides its timing (no `Timing-Allow-Origin`).
 
 ### Changed
-- The audit comparison of the extension pairs issues by their code and target, whatever their messages say, and an issue whose severity moves is listed as changed, with both severities, instead of new and resolved. An audit saved before the codes pairs by message as before. The downloaded report carries the `code` and `target` of each issue.
+- `getINPDetails()` of INP returns a result object, `{ script, status, count, items }`, like the other functions the snippets expose, instead of an array. `items` holds the 15 slowest interactions as plain data, with the target as a CSS selector instead of the DOM element. Code or agents that read the array need to read `items`.
+- The extension, at version 0.2.0: the audit comparison pairs issues by their code and target, whatever their messages say, and an issue whose severity moves is listed as changed, with both severities, instead of new and resolved. An audit saved before the codes pairs by message as before. The downloaded report carries the `code` and `target` of each issue.
 - The code in the first column of a table, such as an option of the CLI or a property, stays on one line. A table wider than the content column scrolls sideways inside its own box.
 - CI skips the build and the end-to-end tests on its own when a pull request only changes documentation, instead of waiting for the `skip-e2e` label. Opening a pull request with the label fired two runs and cancelled one, which showed as a failed check.
 - Examples, CLI commands, the `OWN_DOMAINS` hint of the snippets and the test data use the domains reserved for documentation (`example.com`, `example.net`, `example.org`) instead of real sites. `scripts/example-domains.test.js`, in `npm run test:site`, fails when a real site comes back as an example.
-- `getINPDetails()` of INP returns a result object, `{ script, status, count, items }`, like the other functions the snippets expose, instead of an array. `items` holds the 15 slowest interactions as plain data, with the target as a CSS selector instead of the DOM element. Code or agents that read the array need to read `items`.
 
 ### Fixed
 - The generated skills run in the conversation of the agent, not in a forked context (`context: fork`): a forked skill runs in a subagent that does not get the conversation, so it did not know the URL or the open page and answered that it had no page to measure.
@@ -202,7 +209,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.3.0...v2.0.0
 [1.3.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.2.0...v1.3.0

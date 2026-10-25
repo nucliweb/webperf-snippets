@@ -4,7 +4,7 @@ description: Intelligent media optimization with automated workflows for images,
 license: MIT
 metadata:
   author: Joan Leon | @nucliweb
-  version: 2.0.1
+  version: 2.1.0
   mcp-server: chrome-devtools
   category: web-performance
   repository: https://github.com/nucliweb/webperf-snippets

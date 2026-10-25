@@ -61,7 +61,7 @@ npx webperf-snippets https://example.com --json
 The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait and the version of the CLI.
 
 ```json
-"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "cliVersion": "1.4.0" }
+"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "cliVersion": "1.5.0" }
 ```
 
 Run a single snippet by alias or by its own name, in any case. Every snippet of the collection runs this way, with or without its category:
@@ -159,7 +159,7 @@ Without `--report-to` the CLI makes no external calls. With it, the results are 
   "timestamp": "2026-05-06T10:00:00.000Z",
   "navMs": 1240,
   "results": [],
-  "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "1.4.0" }
+  "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "1.5.0" }
 }
 ```
 
