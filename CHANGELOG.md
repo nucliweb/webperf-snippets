@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- The audit table of the extension opens on the snippets with errors or warnings, with the number of the others and a link to show them. Errors, Errors and warnings, and All change the rows it shows, each with its count; the panel remembers the choice, and Copy JSON and Download JSON keep every snippet.
+
 ---
 
 ## [2.1.0] — 2026-10-25

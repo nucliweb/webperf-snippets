@@ -27,6 +27,7 @@ test('the preferences come from the synced area and the state of the panel from 
     snippet: 'LCP',
     audits: [{ workflow: 'audit' }],
     reloadBeforeAudit: true,
+    auditFilter: 'issues',
   })
 })
 
@@ -38,7 +39,8 @@ test('save writes the preferences to the synced area and the rest to the local o
   await settings.save('side', 'right')
   await settings.save('sidebar', 'collapsed')
   await settings.save('snippet', 'TTFB')
-  assert.deepEqual(sync.data, { theme: 'light', side: 'right' })
+  await settings.save('auditFilter', 'all')
+  assert.deepEqual(sync.data, { theme: 'light', side: 'right', auditFilter: 'all' })
   assert.deepEqual(local.data, { sidebar: 'collapsed', snippet: 'TTFB' })
 })
 
