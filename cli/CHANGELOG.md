@@ -8,9 +8,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.5.0] — 2026-10-25
+
 ### Changed
 - The `webperf://schema` resource of the MCP server keeps the rules of the issue codes and leaves out the table of each snippet, which goes in `webperf://schema/{snippet}`. A snippet with issue codes and no section of its own has a resource with its table.
 - `--baseline` pairs the errors of a snippet by their code and the resource they name (`target`), whatever their messages say; a resource of the page itself compares by its path and query, so a review app on another host matches production. A snippet without codes on one side, as in a baseline of 1.4.0, keeps pairing by message with the figures normalized. The errors in `baseline.errors` carry their `target`.
+- The snippets the CLI runs give each issue a stable `code`, and a `target` when there is one issue per thing, as listed under Issue codes in `snippets/SCHEMA.md`. No message changes.
 
 ---
 
@@ -172,7 +177,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.4.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.5.0...HEAD
+[1.5.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.4.0...cli-v1.5.0
 [1.4.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.3.0...cli-v1.4.0
 [1.3.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.2.0...cli-v1.3.0
 [1.2.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.1.0...cli-v1.2.0
