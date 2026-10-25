@@ -2029,6 +2029,7 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
       : [];
     confirmed.forEach(({ reason, frame }) => {
       issues.push({
+        code: 'not-restored',
         reason: `${reason} (${frame})`,
         severity: 'high',
         source: 'browser',
@@ -2040,6 +2041,7 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
     // cannot be detected from JavaScript.
     if (window.onunload !== null && !confirmed.some(({ reason }) => reason === 'unload-listener')) {
       issues.push({
+        code: 'unload-handler',
         reason: 'window.onunload handler set',
         severity: 'high',
         source: 'detected',
@@ -2055,6 +2057,7 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
         const cacheControl = res.headers.get('cache-control') || '';
         if (/no-store/i.test(cacheControl) && !confirmed.some(({ reason }) => reason === 'response-cache-control-no-store')) {
           issues.push({
+            code: 'cache-control-no-store',
             reason: 'Cache-Control: no-store on the page response',
             severity: 'medium',
             source: 'detected',
@@ -2070,6 +2073,7 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
     const iframeCount = document.querySelectorAll('iframe').length;
     if (iframeCount > 0) {
       issues.push({
+        code: 'iframes',
         reason: `${iframeCount} iframe(s) on the page`,
         severity: 'info',
         source: 'note',
@@ -2079,6 +2083,7 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
 
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       issues.push({
+        code: 'service-worker',
         reason: 'Service Worker controls the page',
         severity: 'info',
         source: 'note',
@@ -2202,8 +2207,10 @@ Analyzes Back/Forward Cache (bfcache) to determine if your page is eligible for 
       notRestoredReasons: results.notRestoredReasons,
     },
     issues: results.blockingReasons.map((i) => ({
+      code: i.code,
       severity: i.severity === 'high' ? 'error' : i.severity === 'medium' ? 'warning' : 'info',
       message: i.reason,
+      ...(i.code === 'not-restored' ? { target: i.reason } : {}),
     })),
   });
 
@@ -2796,6 +2803,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 
     if (isStaticAsset(type) && cc["no-store"]) {
       entry.antiPatterns.push({
+        code: "static-no-store",
         id: "static-no-store",
         severity: "error",
         message: `${type} asset with no-store; static assets should be cacheable`,
@@ -2804,6 +2812,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 
     if (entry.hasHash && maxAge !== null && maxAge < 86400 && !cc["no-store"]) {
       entry.antiPatterns.push({
+        code: "versioned-short-cache",
         id: "versioned-short-cache",
         severity: "warning",
         message: `Versioned URL (hash detected) but max-age=${maxAge}s: consider long cache or immutable`,
@@ -2812,6 +2821,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 
     if (entry.hasHash && !cc["immutable"] && !cc["no-store"] && (maxAge === null || maxAge >= 86400)) {
       entry.antiPatterns.push({
+        code: "versioned-not-immutable",
         id: "versioned-not-immutable",
         severity: "info",
         message: `Versioned URL (hash detected) without Cache-Control: immutable`,
@@ -2823,6 +2833,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       ["none", "no-store", "no-cache"].includes(strategy)
     ) {
       entry.antiPatterns.push({
+        code: "large-no-cache",
         id: "large-no-cache",
         severity: "error",
         message: `Large resource (${formatBytes(entry.decodedBodySize)}) with no effective cache`,
@@ -2831,6 +2842,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 
     if (entry.headers["expires"] && !entry.headers["cache-control"]) {
       entry.antiPatterns.push({
+        code: "expires-without-cc",
         id: "expires-without-cc",
         severity: "warning",
         message: `Uses Expires header without Cache-Control (outdated pattern)`,
@@ -2839,6 +2851,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
 
     if (isStaticAsset(type) && maxAge === 0) {
       entry.antiPatterns.push({
+        code: "maxage-zero-static",
         id: "maxage-zero-static",
         severity: "warning",
         message: `Static asset with max-age=0, which forces revalidation on every request`,
@@ -2853,6 +2866,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       !cc["no-store"]
     ) {
       entry.antiPatterns.push({
+        code: "short-cache-static",
         id: "short-cache-static",
         severity: "warning",
         message: `Static asset with max-age=${maxAge}s (< 1h): consider a longer cache duration`,
@@ -2931,6 +2945,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
   // are anti-patterns like the header-based ones: they reach `items` and `issues`.
   for (const entry of uncompressedResources) {
     entry.antiPatterns.push({
+      code: "uncompressed",
       id: "uncompressed",
       severity: "warning",
       message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}): enable Brotli or gzip`,
@@ -2939,6 +2954,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
   for (const duplicate of costlyDuplicates) {
     // One finding per URL, on the first request, not one per request
     entries.find((e) => e.url === duplicate.url).antiPatterns.push({
+      code: "duplicate-uncached",
       id: "duplicate-uncached",
       severity: "warning",
       message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network: load it once or make it cacheable`,
@@ -3010,6 +3026,7 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       .join(", ");
     coverageIssue = {
       severity: "info",
+      code: "header-coverage",
       id: "header-coverage",
       message: `Cache headers were read for ${headersAnalyzed} of ${entries.length} resources (${headerCoveragePercent}%): the rest are on other origins or are not static assets, so their Cache-Control cannot be read from the page. Most of them are on ${topHosts}; check those hosts in the Network panel or with curl -I`,
     };
@@ -3375,10 +3392,12 @@ Audits HTTP caching strategies across all page resources, identifying resources 
       })),
     issues: [
       ...allAntiPatterns.map((p) => ({
+        code: p.code,
         severity: p.severity,
         id: p.id,
         resource: p.resource,
         message: p.message,
+        target: p.url,
       })),
       ...(coverageIssue ? [coverageIssue] : []),
     ],
@@ -3496,6 +3515,7 @@ Detects client-side redirects that add unnecessary latency to page load and impa
   if (sameOrigin && referrerPath !== currentPath && referrerPath !== '') {
     hasClientRedirect = true;
     indicators.push({
+      code: 'same-origin-navigation',
       type: 'Same-origin navigation',
       from: referrerPath,
       to: currentPath,
@@ -3550,6 +3570,7 @@ Detects client-side redirects that add unnecessary latency to page load and impa
   // Only flag if it's BOTH fast AND small (likely a redirect page)
   if (sameOrigin && domContentLoaded < 500 && responseSize < 10000) {
     indicators.push({
+      code: 'fast-minimal-navigation',
       type: 'Fast minimal-content navigation',
       duration: domContentLoaded.toFixed(1) + 'ms',
       size: (responseSize / 1024).toFixed(1) + ' KB',
@@ -3734,9 +3755,9 @@ Detects client-side redirects that add unnecessary latency to page load and impa
       referrerPath,
     },
     issues: [
-      ...(serverRedirects > 0 ? [{ severity: "warning", message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)` }] : []),
-      ...(documentNavigations.length > 0 ? [{ severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected, likely a client-side redirect` }] : []),
-      ...indicators.filter(i => i.severity === "warning").map(i => ({ severity: "warning", message: i.type })),
+      ...(serverRedirects > 0 ? [{ code: "server-redirects", severity: "warning", message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)` }] : []),
+      ...(documentNavigations.length > 0 ? [{ code: "document-navigation", severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected, likely a client-side redirect` }] : []),
+      ...indicators.filter(i => i.severity === "warning").map(i => ({ code: i.code, severity: "warning", message: i.type })),
     ],
   };
 })();
@@ -3871,18 +3892,21 @@ Finds text-based resources (JavaScript, CSS, HTML, JSON, SVG, XML and TTF/OTF fo
   const issues = [];
   if (uncompressed.length > 0) {
     issues.push({
+      code: "uncompressed",
       severity: "warning",
       message: `${uncompressed.length} text resource(s) served without compression; enabling gzip or brotli could save about ${formatBytes(estimatedSavingsBytes)}`,
     });
   }
   if (corsLimitedAnalysis) {
     issues.push({
+      code: "unknown-size",
       severity: "info",
       message: `${sizeUnknownCount} cross-origin text resource(s) without Timing-Allow-Origin report zero sizes, so their compression is unknown`,
     });
   }
   if (!contentEncodingSupported && candidates.length > 0) {
     issues.push({
+      code: "content-encoding-unavailable",
       severity: "info",
       message: "PerformanceResourceTiming.contentEncoding is not available; compression is inferred from encodedBodySize versus decodedBodySize",
     });
@@ -8088,7 +8112,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
       status: "ok",
       count: 0,
       items: [],
-      issues: [{ severity: "info", message: 'No prefetch hints on this page (rel="prefetch"), so there was nothing to validate.' }],
+      issues: [{ code: "no-prefetch", severity: "info", message: 'No prefetch hints on this page (rel="prefetch"), so there was nothing to validate.' }],
     };
   }
 
@@ -8176,12 +8200,14 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
     // Check for missing or invalid 'as' attribute
     if (as === "unknown") {
       analysis.warnings.push({
+        code: "missing-as",
         type: "missing-as",
         severity: "warning",
         message: "Missing 'as' attribute - browser cannot apply correct MIME type matching",
       });
     } else if (!validAsValues.has(as)) {
       analysis.warnings.push({
+        code: "invalid-as",
         type: "invalid-as",
         severity: "warning",
         message: `Invalid 'as' value: "${as}" - should be one of: ${Array.from(validAsValues).join(", ")}`,
@@ -8191,6 +8217,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
     // Check for duplicate prefetch
     if (seenUrls.has(normalizedUrl)) {
       analysis.warnings.push({
+        code: "duplicate-prefetch",
         type: "duplicate-prefetch",
         severity: "warning",
         message: "Duplicate prefetch - this URL is prefetched multiple times",
@@ -8229,6 +8256,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
       if (isCurrentPageResource) {
         analysis.isCurrentPage = true;
         analysis.warnings.push({
+          code: "used-on-current-page",
           type: "wrong-hint",
           severity: "error",
           message: "Resource used on current page - should use preload instead",
@@ -8239,6 +8267,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
       if (analysis.size > THRESHOLDS.largeFileSize) {
         const sizeMB = (analysis.size / (1024 * 1024)).toFixed(2);
         analysis.warnings.push({
+          code: "large-file",
           type: "large-file",
           severity: "warning",
           message: `Large file (${sizeMB}MB) - consider if prefetch is appropriate`,
@@ -8263,6 +8292,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
 
       if (isInappropriate) {
         analysis.warnings.push({
+          code: "inappropriate-type",
           type: "inappropriate-type",
           severity: "warning",
           message: `Type "${as}" may not be suitable for prefetch: ${inappropriateReason}`,
@@ -8289,6 +8319,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
   const countIssues = [];
   if (prefetchLinks.length > THRESHOLDS.maxCount) {
     countIssues.push({
+      code: "too-many-prefetches",
       type: "excessive-count",
       severity: "warning",
       message: `${prefetchLinks.length} prefetch hints found (recommended: <${THRESHOLDS.maxCount})`,
@@ -8302,6 +8333,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
 
   if (totalSize > THRESHOLDS.totalSizeCritical) {
     countIssues.push({
+      code: "large-total-size",
       type: "excessive-size",
       severity: "error",
       message: `Total prefetch size: ${totalSizeMB}MB (critical threshold exceeded)`,
@@ -8309,6 +8341,7 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
     });
   } else if (totalSize > THRESHOLDS.totalSizeWarning) {
     countIssues.push({
+      code: "large-total-size",
       type: "high-size",
       severity: "warning",
       message: `Total prefetch size: ${totalSizeMB}MB (warning threshold exceeded)`,
@@ -8523,8 +8556,8 @@ Detects potential performance issues with rel="prefetch" resource hints by analy
     },
     items: [...validPrefetch, ...issues].map(item => ({ href: item.shortUrl, as: item.as, sizeBytes: item.size, loaded: item.loaded, isCurrentPage: item.isCurrentPage || false })),
     issues: [
-      ...countIssues.map(i => ({ severity: i.severity === "error" ? "error" : "warning", message: i.message })),
-      ...issues.flatMap(item => item.warnings.filter(w => w.severity !== "info").map(w => ({ severity: w.severity, message: `${item.shortUrl}: ${w.message}` }))),
+      ...countIssues.map(i => ({ code: i.code, severity: i.severity === "error" ? "error" : "warning", message: i.message })),
+      ...issues.flatMap(item => item.warnings.filter(w => w.severity !== "info").map(w => ({ code: w.code, severity: w.severity, message: `${item.shortUrl}: ${w.message}`, target: item.href }))),
     ],
   };
 })();
@@ -8617,8 +8650,10 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
     .filter((link) => link.getAttribute("fetchpriority") === "low")
     .forEach((link) => {
       issues.push({
+        code: "preload-low-priority",
         severity: "error",
         element: link,
+        url: link.href,
         resource: shortUrl(link),
         message: 'preload + fetchpriority="low" is contradictory',
         detail:
@@ -8634,8 +8669,10 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
       const entry = getEntry(el);
       if (entry && entry.startTime < 500) {
         issues.push({
+          code: "low-priority-loaded-early",
           severity: "warning",
           element: el,
+          url: el.src || el.href,
           resource: shortUrl(el),
           message: `fetchpriority="low" but loaded at ${entry.startTime.toFixed(0)}ms`,
           detail:
@@ -8652,8 +8689,10 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
       const entry = getEntry(el);
       if (entry && entry.startTime > 3000) {
         issues.push({
+          code: "high-priority-loaded-late",
           severity: "warning",
           element: el,
+          url: el.src || el.href,
           resource: shortUrl(el),
           message: `fetchpriority="high" but loaded at ${entry.startTime.toFixed(0)}ms`,
           detail:
@@ -8667,8 +8706,10 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
   if (lcpCandidate && lcpCandidate.getAttribute("fetchpriority") !== "high") {
     const fp = lcpCandidate.getAttribute("fetchpriority");
     issues.push({
+      code: "lcp-no-fetchpriority",
       severity: "warning",
       element: lcpCandidate,
+      url: lcpCandidate.currentSrc || lcpCandidate.src,
       resource:
         (lcpCandidate.currentSrc || lcpCandidate.src).split("/").pop()?.split("?")[0] ||
         "LCP image",
@@ -8880,8 +8921,10 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
       resource: (el.src || el.href || el.getAttribute("href") || "").split("/").pop()?.split("?")[0] || "",
     })),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.severity,
       message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message,
+      ...(i.url ? { target: i.url } : {}),
     })),
   };
 })();
@@ -9435,9 +9478,9 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
       })),
     ].slice(0, 50),
     issues: [
-      ...(totalIssues > 0 ? [{ severity: "warning", message: `${totalIssues} unused hint(s) waste bandwidth` }] : []),
-      ...(missingHints.length > 0 ? [{ severity: "info", message: `${missingHints.length} domain(s) could benefit from connection hints` }] : []),
-      ...(redundantDomains.length > 0 ? [{ severity: "warning", message: `${redundantDomains.length} domain(s) have both preconnect and dns-prefetch (redundant)` }] : []),
+      ...(totalIssues > 0 ? [{ code: "unused-hints", severity: "warning", message: `${totalIssues} unused hint(s) waste bandwidth` }] : []),
+      ...(missingHints.length > 0 ? [{ code: "missing-connection-hints", severity: "info", message: `${missingHints.length} domain(s) could benefit from connection hints` }] : []),
+      ...(redundantDomains.length > 0 ? [{ code: "redundant-hints", severity: "warning", message: `${redundantDomains.length} domain(s) have both preconnect and dns-prefetch (redundant)` }] : []),
     ],
   };
 })();
@@ -9546,6 +9589,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
       if (type.requiresAs && !hint.as) {
         issues.push({
           hint,
+          code: "preload-missing-as",
           issue: "Missing 'as' attribute (required for preload)",
           severity: "error",
           fix: `Add as="script|style|font|image|fetch"`,
@@ -9555,6 +9599,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
       if (hint.as === "font" && !hint.crossorigin) {
         issues.push({
           hint,
+          code: "font-preload-no-crossorigin",
           issue: "Font preload without crossorigin (causes double fetch)",
           severity: "error",
           fix: 'Add crossorigin="anonymous"',
@@ -9575,6 +9620,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
         if (corsResources.length > 0) {
           issues.push({
             hint,
+            code: "preconnect-no-crossorigin",
             issue: "Preconnect may need crossorigin for CORS resources",
             severity: "warning",
             fix: 'Consider adding crossorigin="anonymous"',
@@ -9593,6 +9639,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
     if (!wasUsed) {
       issues.push({
         hint: preload,
+        code: "unused-preload",
         issue: "Preloaded resource not used within page load",
         severity: "warning",
         fix: "Remove unused preload or verify it's needed",
@@ -9615,6 +9662,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
     if (!hasResources && pc.hostname) {
       issues.push({
         hint: pc,
+        code: "unused-preconnect",
         issue: `No resources loaded from ${pc.hostname}`,
         severity: "warning",
         fix: "Remove unused preconnect or verify it's needed for future resources",
@@ -9626,6 +9674,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
   if (preloads.length > 6) {
     issues.push({
       hint: { rel: "preload", href: `${preloads.length} preloads` },
+      code: "too-many-preloads",
       issue: `Too many preloads (${preloads.length}) - they compete for bandwidth`,
       severity: "warning",
       fix: "Limit to 5-6 most critical resources",
@@ -9877,7 +9926,7 @@ Analyzes resource hints on the page, checking for proper usage and identifying o
       })),
     },
     items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
-    issues: issues.map(i => ({ severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}` })),
+    issues: issues.map(i => ({ code: i.code, severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}`, ...(i.hint.element ? { target: i.hint.href } : {}) })),
   };
 })();
 ```
@@ -10835,6 +10884,7 @@ Lists the Server-Timing metrics that the server sends with the document and with
   const issues = [];
   if (nav.serverTiming.length === 0) {
     issues.push({
+      code: "no-server-timing",
       severity: "info",
       message:
         "The document response sends no Server-Timing header. Add one, for example Server-Timing: db;dur=53, to expose backend timings in DevTools and in the Performance API.",
@@ -10842,12 +10892,14 @@ Lists the Server-Timing metrics that the server sends with the document and with
   }
   if (corsRestrictedCount > 0) {
     issues.push({
+      code: "timing-hidden",
       severity: "info",
       message: `${corsRestrictedCount} cross-origin resource(s) hide their timing because they lack Timing-Allow-Origin, so their Server-Timing cannot be read. Add Timing-Allow-Origin to expose it.`,
     });
   }
   if (!earlyHintsReceived) {
     issues.push({
+      code: "no-early-hints",
       severity: "info",
       message:
         "No 103 Early Hints response was observed for the document. If the server can send Link preload or preconnect headers before the final response, Early Hints lets the browser start those fetches earlier.",
@@ -10918,7 +10970,7 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
       count: 0,
       details: {},
       items: [],
-      issues: [{ severity: "error", message: "Service Workers not supported in this browser" }],
+      issues: [{ code: "unsupported", severity: "error", message: "Service Workers not supported in this browser" }],
     };
   }
 
@@ -11012,11 +11064,12 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
   const issues = [];
 
   if (registrations.length === 0) {
-    issues.push({ severity: "info", message: "No Service Workers registered" });
+    issues.push({ code: "no-service-worker", severity: "info", message: "No Service Workers registered" });
   }
 
   if (registrations.length > 0 && !controller) {
     issues.push({
+      code: "not-controlled",
       severity: "warning",
       message: "Page is not controlled by a Service Worker (hard reload or first visit). Do a normal reload.",
     });
@@ -11025,25 +11078,31 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
   for (const item of items) {
     if (item.hasWaiting) {
       issues.push({
+        code: "update-pending",
         severity: "warning",
         message: `Service Worker update pending for ${item.scope}. Call skipWaiting() to activate the new version.`,
+        target: item.scope,
       });
     }
     if (item.navigationPreloadEnabled === false) {
       issues.push({
+        code: "navigation-preload-disabled",
         severity: "info",
         message: `Navigation Preload is disabled for ${item.scope}. Consider enabling it with registration.navigationPreload.enable().`,
+        target: item.scope,
       });
     }
   }
 
   if (swOverheadMs !== null && swOverheadMs > 100) {
     issues.push({
+      code: "slow-startup",
       severity: "error",
       message: `High SW startup time (${swOverheadMs}ms). Enable Navigation Preload to reduce overhead.`,
     });
   } else if (swOverheadMs !== null && swOverheadMs > 50) {
     issues.push({
+      code: "slow-startup",
       severity: "warning",
       message: `Moderate SW startup time (${swOverheadMs}ms)`,
     });
@@ -11051,11 +11110,13 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 
   if (cacheHitRate !== null && cacheHitRate < 50) {
     issues.push({
+      code: "low-cache-hit-rate",
       severity: "error",
       message: `Low SW cache hit rate (${cacheHitRate}%). Review the caching strategy.`,
     });
   } else if (cacheHitRate !== null && cacheHitRate < 80) {
     issues.push({
+      code: "low-cache-hit-rate",
       severity: "warning",
       message: `Moderate SW cache hit rate (${cacheHitRate}%). Review the caching strategy for more resources.`,
     });
@@ -11063,6 +11124,7 @@ Analyzes the Service Worker lifecycle, cache behavior, and its performance impac
 
   if (unknownSource.length > 0) {
     issues.push({
+      code: "unknown-source",
       severity: "info",
       message: `${unknownSource.length} intercepted resource(s) are cross-origin without Timing-Allow-Origin, so their source is unknown. The hit rate excludes them.`,
     });
@@ -11321,6 +11383,7 @@ Inspects how a page uses the Speculation Rules API to prefetch and prerender fut
         parsed = JSON.parse(script.textContent);
       } catch (e) {
         issues.push({
+          code: 'invalid-json',
           severity: 'error',
           message: `Speculation rules script #${index + 1} is not valid JSON (${e.message}). The browser ignores the whole script.`,
         });
@@ -11350,12 +11413,14 @@ Inspects how a page uses the Speculation Rules API to prefetch and prerender fut
           const isPrerender = action === 'prerender' || action === 'prerender_until_script';
           if (isPrerender && source === 'list' && (eagerness === 'immediate' || eagerness === 'eager') && urls.length > EAGER_PRERENDER_LIMIT) {
             issues.push({
+              code: 'eager-list-capped',
               severity: 'warning',
               message: `A ${action} rule lists ${urls.length} URLs with eagerness "${eagerness}". Chrome caps eager prerenders, so the extra URLs are not prerendered. Fix: list fewer URLs or use "moderate".`,
             });
           }
           if (isPrerender && source === 'document' && (eagerness === 'immediate' || eagerness === 'eager')) {
             issues.push({
+              code: 'eager-document-rule',
               severity: 'warning',
               message: `A document ${action} rule uses eagerness "${eagerness}", which prerenders matching links without a user signal and can waste bandwidth and CPU. Fix: use "moderate" or "conservative".`,
             });
@@ -11365,15 +11430,15 @@ Inspects how a page uses the Speculation Rules API to prefetch and prerender fut
     });
 
     if (scripts.length === 0) {
-      issues.push({ severity: 'info', message: 'No speculation rules found in the DOM. Rules delivered in the Speculation-Rules HTTP header are not readable from JavaScript.' });
+      issues.push({ code: 'no-rules', severity: 'info', message: 'No speculation rules found in the DOM. Rules delivered in the Speculation-Rules HTTP header are not readable from JavaScript.' });
     } else if (items.length === 0 && !issues.some((i) => i.severity === 'error')) {
-      issues.push({ severity: 'info', message: 'Speculation rules scripts were found but contain no prefetch or prerender rules.' });
+      issues.push({ code: 'no-prefetch-or-prerender', severity: 'info', message: 'Speculation rules scripts were found but contain no prefetch or prerender rules.' });
     }
     if (!supported && scripts.length > 0) {
-      issues.push({ severity: 'info', message: 'This browser does not support speculation rules, so the rules are ignored.' });
+      issues.push({ code: 'unsupported', severity: 'info', message: 'This browser does not support speculation rules, so the rules are ignored.' });
     }
     if (activationStart > 0) {
-      issues.push({ severity: 'info', message: `This page was prerendered and activated at ${activationStart}ms. Navigation timings are relative to activationStart.` });
+      issues.push({ code: 'prerendered', severity: 'info', message: `This page was prerendered and activated at ${activationStart}ms. Navigation timings are relative to activationStart.` });
     }
 
     return {
@@ -11596,6 +11661,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
     const slowestMs = Math.round(slowestSync.duration);
     const share = ttfbValueSync > 0 ? Math.round((slowestSync.duration / ttfbValueSync) * 100) : 0;
     issues.push({
+      code: "slow-ttfb",
       severity: rating === "poor" ? "error" : "warning",
       message: `TTFB is ${value} ms (${rating}); ${phaseLabels[slowestSync.key]} takes ${slowestMs} ms of it (${share}%). Fix: ${phaseFixes[slowestSync.key]}.`,
     });
@@ -11788,7 +11854,7 @@ Time to First Byte (TTFB) measures the time from when the user starts navigating
       corsLimitedAnalysis: corsRestrictedCount > 0,
       details: { avgTtfbMs: null, maxTtfbMs: null, minTtfbMs: null, thirdPartyCount: 0, slowCount: 0, corsRestrictedCount },
       items: [],
-      issues: [{ severity: "info", message: "No resources with TTFB data available" }],
+      issues: [{ code: "no-resources", severity: "info", message: "No resources with TTFB data available" }],
     };
   }
   const ttfbVals = resourcesSync.map((r) => r.ttfbMs);

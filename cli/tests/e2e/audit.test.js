@@ -213,7 +213,7 @@ describe("Audit snippets — green fixture (no violations)", () => {
       expect(r.status).toBe("ok");
       expect(r.count).toBe(0);
       expect(r.items).toEqual([]);
-      expect(r.issues).toEqual([{ severity: "info", message: expect.stringMatching(/No prefetch hints on this page/) }]);
+      expect(r.issues).toEqual([{ code: "no-prefetch", severity: "info", message: expect.stringMatching(/No prefetch hints on this page/) }]);
     },
     30000,
   );

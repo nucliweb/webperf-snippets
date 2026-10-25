@@ -16,6 +16,10 @@ describe("codesInSource", () => {
     expect(codesInSource(source)).toEqual({ codes: new Set(["blocking-in-head", "large-blocking"]), nonLiteral: 0 });
   });
 
+  it("reads a code in single quotes, as the snippets written with them have", () => {
+    expect(codesInSource("issues.push({ code: 'invalid-json', severity: 'error' })")).toEqual({ codes: new Set(["invalid-json"]), nonLiteral: 0 });
+  });
+
   it("leaves out the word code inside a string, and accepts a copy of a code already set", () => {
     const source = `console.log("%cSuggested code:", "bold"); issues.map((i) => ({ code: i.code, severity: i.severity }))`;
     expect(codesInSource(source)).toEqual({ codes: new Set(), nonLiteral: 0 });

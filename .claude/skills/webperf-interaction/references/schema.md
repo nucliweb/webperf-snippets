@@ -1298,6 +1298,143 @@ Each issue names the preloaded script in `target`.
 | `async-defer-preload` | error | A script with `async` or `defer` that is also preloaded, which raises its priority |
 | `module-preload` | warning | An ES module preloaded with `rel="preload"` instead of `rel="modulepreload"` |
 
+### Back-Forward-Cache
+
+| Code | Severity | When |
+|------|----------|------|
+| `not-restored` | error | A reason the browser gave for not restoring the page from bfcache, after a back or forward navigation; `target` is the reason and its frame |
+| `unload-handler` | error | A `window.onunload` handler |
+| `cache-control-no-store` | warning | `Cache-Control: no-store` on the page response |
+| `iframes` | info | Iframes on the page, whose blockers block the whole page |
+| `service-worker` | info | A Service Worker controls the page, which bfcache allows |
+
+### Cache-Strategy-Analysis
+
+Each issue names its resource in `target`, except `header-coverage`. `id` repeats the code, as before the codes.
+
+| Code | Severity | When |
+|------|----------|------|
+| `static-no-store` | error | A static asset with `no-store` |
+| `versioned-short-cache` | warning | A URL with a hash and a short `max-age` |
+| `versioned-not-immutable` | info | A URL with a hash and no `immutable` |
+| `large-no-cache` | error | A large resource with no effective cache |
+| `expires-without-cc` | warning | An `Expires` header without `Cache-Control` |
+| `maxage-zero-static` | warning | A static asset with `max-age=0` |
+| `short-cache-static` | warning | A static asset with a `max-age` under an hour |
+| `uncompressed` | warning | A text resource sent uncompressed |
+| `duplicate-uncached` | warning | A resource loaded several times from the network |
+| `header-coverage` | info | The share of resources whose cache headers could be read |
+
+### Client-Side-Redirect-Detection
+
+| Code | Severity | When |
+|------|----------|------|
+| `server-redirects` | warning | Server-side redirects before the document |
+| `document-navigation` | error | Same-origin document navigations, likely a client-side redirect |
+| `same-origin-navigation` | warning | A same-origin referrer with another path |
+| `fast-minimal-navigation` | warning | A small same-origin page that loads fast, possibly a redirect page |
+
+### Compression-Audit
+
+| Code | Severity | When |
+|------|----------|------|
+| `uncompressed` | warning | Text resources served without compression |
+| `unknown-size` | info | Cross-origin text resources without `Timing-Allow-Origin`, whose compression is unknown |
+| `content-encoding-unavailable` | info | No `contentEncoding` in Resource Timing, so compression is inferred from the sizes |
+
+### Prefetch-Resource-Validation
+
+Each issue about one prefetch names its URL in `target`.
+
+| Code | Severity | When |
+|------|----------|------|
+| `no-prefetch` | info | No `rel="prefetch"` hints on the page |
+| `missing-as` | warning | A prefetch without `as` |
+| `invalid-as` | warning | A prefetch with an `as` value that does not exist |
+| `duplicate-prefetch` | warning | A URL prefetched more than once |
+| `used-on-current-page` | error | A prefetched resource that the current page uses, which needs `preload` |
+| `large-file` | warning | A prefetched file above 500 KB |
+| `inappropriate-type` | warning | A prefetched type that may not suit prefetch |
+| `too-many-prefetches` | warning | More than 10 prefetch hints |
+| `large-total-size` | warning or error | Prefetches above 2 MB in total, an error above 5 MB |
+
+### Priority-Hints-Audit
+
+Each issue names its resource in `target`.
+
+| Code | Severity | When |
+|------|----------|------|
+| `preload-low-priority` | error | A preload with `fetchpriority="low"` |
+| `low-priority-loaded-early` | warning | A `fetchpriority="low"` resource that still loaded early |
+| `high-priority-loaded-late` | warning | A `fetchpriority="high"` resource that still loaded late |
+| `lcp-no-fetchpriority` | warning | The LCP candidate image without `fetchpriority="high"` |
+
+### Resource-Hints
+
+Each issue about one hint names its URL in `target`.
+
+| Code | Severity | When |
+|------|----------|------|
+| `preload-missing-as` | error | A preload without `as` |
+| `font-preload-no-crossorigin` | error | A font preload without `crossorigin`, which fetches the font twice |
+| `preconnect-no-crossorigin` | warning | A preconnect without `crossorigin` to an origin that serves CORS resources |
+| `unused-preload` | warning | A preload that the page did not use during the load |
+| `unused-preconnect` | warning | A preconnect to an origin the page loaded nothing from |
+| `too-many-preloads` | warning | More than 6 preloads |
+
+### Resource-Hints-Validation
+
+| Code | Severity | When |
+|------|----------|------|
+| `unused-hints` | warning | Hints the page did not use |
+| `missing-connection-hints` | info | Domains that could use a connection hint |
+| `redundant-hints` | warning | Domains with both `preconnect` and `dns-prefetch` |
+
+### Server-Timing-Early-Hints
+
+| Code | Severity | When |
+|------|----------|------|
+| `no-server-timing` | info | The document response has no `Server-Timing` header |
+| `timing-hidden` | info | Cross-origin resources without `Timing-Allow-Origin`, whose Server-Timing cannot be read |
+| `no-early-hints` | info | No 103 Early Hints response for the document |
+
+### Service-Worker-Analysis
+
+| Code | Severity | When |
+|------|----------|------|
+| `unsupported` | error | The browser has no Service Workers |
+| `no-service-worker` | info | No Service Worker registered |
+| `not-controlled` | warning | The page is not controlled by its Service Worker, after a hard reload or on a first visit |
+| `update-pending` | warning | A waiting update; `target` is the scope |
+| `navigation-preload-disabled` | info | Navigation Preload is off; `target` is the scope |
+| `slow-startup` | warning or error | A Service Worker startup above 50 ms, an error above 100 ms |
+| `low-cache-hit-rate` | warning or error | A cache hit rate under 80%, an error under 50% |
+| `unknown-source` | info | Intercepted cross-origin resources without `Timing-Allow-Origin`, left out of the hit rate |
+
+### Speculation-Rules-Inspector
+
+| Code | Severity | When |
+|------|----------|------|
+| `invalid-json` | error | A speculation rules script that is not valid JSON |
+| `eager-list-capped` | warning | An eager prerender list with more than 10 URLs, above what Chrome prerenders |
+| `eager-document-rule` | warning | A document prerender rule with eager eagerness |
+| `no-rules` | info | No speculation rules in the DOM |
+| `no-prefetch-or-prerender` | info | Speculation rules scripts without prefetch or prerender rules |
+| `unsupported` | info | The browser does not support speculation rules |
+| `prerendered` | info | The page was prerendered, so its timings start at `activationStart` |
+
+### TTFB-Resources
+
+| Code | Severity | When |
+|------|----------|------|
+| `no-resources` | info | No resources with TTFB data |
+
+### TTFB-Sub-Parts
+
+| Code | Severity | When |
+|------|----------|------|
+| `slow-ttfb` | warning or error | A TTFB that is not good, an error when poor, naming its slowest phase |
+
 ### DOM-Size-and-Depth
 
 | Code | Severity | When |

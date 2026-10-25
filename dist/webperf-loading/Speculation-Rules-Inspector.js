@@ -26,6 +26,7 @@
         parsed = JSON.parse(script.textContent);
       } catch (e) {
         issues.push({
+          code: "invalid-json",
           severity: "error",
           message: `Speculation rules script #${index + 1} is not valid JSON (${e.message}). The browser ignores the whole script.`
         });
@@ -51,10 +52,12 @@
           });
           const isPrerender = action === "prerender" || action === "prerender_until_script";
           if (isPrerender && source === "list" && (eagerness === "immediate" || eagerness === "eager") && urls.length > EAGER_PRERENDER_LIMIT) issues.push({
+            code: "eager-list-capped",
             severity: "warning",
             message: `A ${action} rule lists ${urls.length} URLs with eagerness "${eagerness}". Chrome caps eager prerenders, so the extra URLs are not prerendered. Fix: list fewer URLs or use "moderate".`
           });
           if (isPrerender && source === "document" && (eagerness === "immediate" || eagerness === "eager")) issues.push({
+            code: "eager-document-rule",
             severity: "warning",
             message: `A document ${action} rule uses eagerness "${eagerness}", which prerenders matching links without a user signal and can waste bandwidth and CPU. Fix: use "moderate" or "conservative".`
           });
@@ -62,17 +65,21 @@
       }
     });
     if (scripts.length === 0) issues.push({
+      code: "no-rules",
       severity: "info",
       message: "No speculation rules found in the DOM. Rules delivered in the Speculation-Rules HTTP header are not readable from JavaScript."
     }); else if (items.length === 0 && !issues.some(i => i.severity === "error")) issues.push({
+      code: "no-prefetch-or-prerender",
       severity: "info",
       message: "Speculation rules scripts were found but contain no prefetch or prerender rules."
     });
     if (!supported && scripts.length > 0) issues.push({
+      code: "unsupported",
       severity: "info",
       message: "This browser does not support speculation rules, so the rules are ignored."
     });
     if (activationStart > 0) issues.push({
+      code: "prerendered",
       severity: "info",
       message: `This page was prerendered and activated at ${activationStart}ms. Navigation timings are relative to activationStart.`
     });

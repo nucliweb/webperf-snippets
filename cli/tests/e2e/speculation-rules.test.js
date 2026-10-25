@@ -82,7 +82,7 @@ describe("Speculation-Rules-Inspector", () => {
     expect(r.status).toBe("ok");
     expect(r.count).toBe(0);
     expect(r.details.scriptCount).toBe(0);
-    expect(r.issues).toEqual([{ severity: "info", message: expect.stringMatching(/no speculation rules/i) }]);
+    expect(r.issues).toEqual([{ code: "no-rules", severity: "info", message: expect.stringMatching(/no speculation rules/i) }]);
   }, 60000);
 
   it("tracks a prerendering page and reports the activation through the getter", async () => {

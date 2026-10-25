@@ -40,6 +40,7 @@
   if (sameOrigin && referrerPath !== currentPath && referrerPath !== "") {
     hasClientRedirect = true;
     indicators.push({
+      code: "same-origin-navigation",
       type: "Same-origin navigation",
       from: referrerPath,
       to: currentPath,
@@ -72,6 +73,7 @@
   const domContentLoaded = navEntry.domContentLoadedEventEnd - navEntry.startTime;
   const responseSize = navEntry.transferSize || navEntry.encodedBodySize || 0;
   if (sameOrigin && domContentLoaded < 500 && responseSize < 10000) indicators.push({
+    code: "fast-minimal-navigation",
     type: "Fast minimal-content navigation",
     duration: domContentLoaded.toFixed(1) + "ms",
     size: (responseSize / 1024).toFixed(1) + " KB",
@@ -122,12 +124,15 @@
       referrerPath: referrerPath
     },
     issues: [ ...serverRedirects > 0 ? [ {
+      code: "server-redirects",
       severity: "warning",
       message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)`
     } ] : [], ...documentNavigations.length > 0 ? [ {
+      code: "document-navigation",
       severity: "error",
       message: `${documentNavigations.length} same-origin document navigation(s) detected, likely a client-side redirect`
     } ] : [], ...indicators.filter(i => i.severity === "warning").map(i => ({
+      code: i.code,
       severity: "warning",
       message: i.type
     })) ]

@@ -538,9 +538,9 @@
       })),
     ].slice(0, 50),
     issues: [
-      ...(totalIssues > 0 ? [{ severity: "warning", message: `${totalIssues} unused hint(s) waste bandwidth` }] : []),
-      ...(missingHints.length > 0 ? [{ severity: "info", message: `${missingHints.length} domain(s) could benefit from connection hints` }] : []),
-      ...(redundantDomains.length > 0 ? [{ severity: "warning", message: `${redundantDomains.length} domain(s) have both preconnect and dns-prefetch (redundant)` }] : []),
+      ...(totalIssues > 0 ? [{ code: "unused-hints", severity: "warning", message: `${totalIssues} unused hint(s) waste bandwidth` }] : []),
+      ...(missingHints.length > 0 ? [{ code: "missing-connection-hints", severity: "info", message: `${missingHints.length} domain(s) could benefit from connection hints` }] : []),
+      ...(redundantDomains.length > 0 ? [{ code: "redundant-hints", severity: "warning", message: `${redundantDomains.length} domain(s) have both preconnect and dns-prefetch (redundant)` }] : []),
     ],
   };
 })();

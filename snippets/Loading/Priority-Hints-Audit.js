@@ -77,8 +77,10 @@
     .filter((link) => link.getAttribute("fetchpriority") === "low")
     .forEach((link) => {
       issues.push({
+        code: "preload-low-priority",
         severity: "error",
         element: link,
+        url: link.href,
         resource: shortUrl(link),
         message: 'preload + fetchpriority="low" is contradictory',
         detail:
@@ -94,8 +96,10 @@
       const entry = getEntry(el);
       if (entry && entry.startTime < 500) {
         issues.push({
+          code: "low-priority-loaded-early",
           severity: "warning",
           element: el,
+          url: el.src || el.href,
           resource: shortUrl(el),
           message: `fetchpriority="low" but loaded at ${entry.startTime.toFixed(0)}ms`,
           detail:
@@ -112,8 +116,10 @@
       const entry = getEntry(el);
       if (entry && entry.startTime > 3000) {
         issues.push({
+          code: "high-priority-loaded-late",
           severity: "warning",
           element: el,
+          url: el.src || el.href,
           resource: shortUrl(el),
           message: `fetchpriority="high" but loaded at ${entry.startTime.toFixed(0)}ms`,
           detail:
@@ -127,8 +133,10 @@
   if (lcpCandidate && lcpCandidate.getAttribute("fetchpriority") !== "high") {
     const fp = lcpCandidate.getAttribute("fetchpriority");
     issues.push({
+      code: "lcp-no-fetchpriority",
       severity: "warning",
       element: lcpCandidate,
+      url: lcpCandidate.currentSrc || lcpCandidate.src,
       resource:
         (lcpCandidate.currentSrc || lcpCandidate.src).split("/").pop()?.split("?")[0] ||
         "LCP image",
@@ -340,8 +348,10 @@
       resource: (el.src || el.href || el.getAttribute("href") || "").split("/").pop()?.split("?")[0] || "",
     })),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.severity,
       message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message,
+      ...(i.url ? { target: i.url } : {}),
     })),
   };
 })();

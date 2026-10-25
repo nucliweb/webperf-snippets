@@ -11,6 +11,7 @@
       details: {},
       items: [],
       issues: [ {
+        code: "unsupported",
         severity: "error",
         message: "Service Workers not supported in this browser"
       } ]
@@ -78,38 +79,49 @@
   });
   const issues = [];
   if (registrations.length === 0) issues.push({
+    code: "no-service-worker",
     severity: "info",
     message: "No Service Workers registered"
   });
   if (registrations.length > 0 && !controller) issues.push({
+    code: "not-controlled",
     severity: "warning",
     message: "Page is not controlled by a Service Worker (hard reload or first visit). Do a normal reload."
   });
   for (const item of items) {
     if (item.hasWaiting) issues.push({
+      code: "update-pending",
       severity: "warning",
-      message: `Service Worker update pending for ${item.scope}. Call skipWaiting() to activate the new version.`
+      message: `Service Worker update pending for ${item.scope}. Call skipWaiting() to activate the new version.`,
+      target: item.scope
     });
     if (item.navigationPreloadEnabled === false) issues.push({
+      code: "navigation-preload-disabled",
       severity: "info",
-      message: `Navigation Preload is disabled for ${item.scope}. Consider enabling it with registration.navigationPreload.enable().`
+      message: `Navigation Preload is disabled for ${item.scope}. Consider enabling it with registration.navigationPreload.enable().`,
+      target: item.scope
     });
   }
   if (swOverheadMs !== null && swOverheadMs > 100) issues.push({
+    code: "slow-startup",
     severity: "error",
     message: `High SW startup time (${swOverheadMs}ms). Enable Navigation Preload to reduce overhead.`
   }); else if (swOverheadMs !== null && swOverheadMs > 50) issues.push({
+    code: "slow-startup",
     severity: "warning",
     message: `Moderate SW startup time (${swOverheadMs}ms)`
   });
   if (cacheHitRate !== null && cacheHitRate < 50) issues.push({
+    code: "low-cache-hit-rate",
     severity: "error",
     message: `Low SW cache hit rate (${cacheHitRate}%). Review the caching strategy.`
   }); else if (cacheHitRate !== null && cacheHitRate < 80) issues.push({
+    code: "low-cache-hit-rate",
     severity: "warning",
     message: `Moderate SW cache hit rate (${cacheHitRate}%). Review the caching strategy for more resources.`
   });
   if (unknownSource.length > 0) issues.push({
+    code: "unknown-source",
     severity: "info",
     message: `${unknownSource.length} intercepted resource(s) are cross-origin without Timing-Allow-Origin, so their source is unknown. The hit rate excludes them.`
   });

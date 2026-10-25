@@ -93,6 +93,7 @@
       if (type.requiresAs && !hint.as) {
         issues.push({
           hint,
+          code: "preload-missing-as",
           issue: "Missing 'as' attribute (required for preload)",
           severity: "error",
           fix: `Add as="script|style|font|image|fetch"`,
@@ -102,6 +103,7 @@
       if (hint.as === "font" && !hint.crossorigin) {
         issues.push({
           hint,
+          code: "font-preload-no-crossorigin",
           issue: "Font preload without crossorigin (causes double fetch)",
           severity: "error",
           fix: 'Add crossorigin="anonymous"',
@@ -122,6 +124,7 @@
         if (corsResources.length > 0) {
           issues.push({
             hint,
+            code: "preconnect-no-crossorigin",
             issue: "Preconnect may need crossorigin for CORS resources",
             severity: "warning",
             fix: 'Consider adding crossorigin="anonymous"',
@@ -140,6 +143,7 @@
     if (!wasUsed) {
       issues.push({
         hint: preload,
+        code: "unused-preload",
         issue: "Preloaded resource not used within page load",
         severity: "warning",
         fix: "Remove unused preload or verify it's needed",
@@ -162,6 +166,7 @@
     if (!hasResources && pc.hostname) {
       issues.push({
         hint: pc,
+        code: "unused-preconnect",
         issue: `No resources loaded from ${pc.hostname}`,
         severity: "warning",
         fix: "Remove unused preconnect or verify it's needed for future resources",
@@ -173,6 +178,7 @@
   if (preloads.length > 6) {
     issues.push({
       hint: { rel: "preload", href: `${preloads.length} preloads` },
+      code: "too-many-preloads",
       issue: `Too many preloads (${preloads.length}) - they compete for bandwidth`,
       severity: "warning",
       fix: "Limit to 5-6 most critical resources",
@@ -424,6 +430,6 @@
       })),
     },
     items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
-    issues: issues.map(i => ({ severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}` })),
+    issues: issues.map(i => ({ code: i.code, severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}`, ...(i.hint.element ? { target: i.hint.href } : {}) })),
   };
 })();

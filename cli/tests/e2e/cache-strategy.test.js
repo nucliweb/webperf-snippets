@@ -111,6 +111,8 @@ describe("Cache-Strategy-Analysis, findings that need no cache headers", () => {
     const issue = result.issues.find((i) => i.id === "duplicate-uncached");
     expect(issue.severity).toBe("warning");
     expect(issue.resource).toBe("data.json");
+    // The code repeats the id, and target is the whole URL
+    expect(issue).toEqual(expect.objectContaining({ code: "duplicate-uncached", target: expect.stringMatching(/^http.*\/data\.json$/) }));
   }, 30000);
 
   it("reports a duplicated resource once, not once per request", async () => {

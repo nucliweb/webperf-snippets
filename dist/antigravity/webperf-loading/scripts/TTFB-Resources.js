@@ -99,6 +99,7 @@
     },
     items: [],
     issues: [ {
+      code: "no-resources",
       severity: "info",
       message: "No resources with TTFB data available"
     } ]

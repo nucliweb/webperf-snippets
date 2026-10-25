@@ -82,6 +82,7 @@
       : [];
     confirmed.forEach(({ reason, frame }) => {
       issues.push({
+        code: 'not-restored',
         reason: `${reason} (${frame})`,
         severity: 'high',
         source: 'browser',
@@ -93,6 +94,7 @@
     // cannot be detected from JavaScript.
     if (window.onunload !== null && !confirmed.some(({ reason }) => reason === 'unload-listener')) {
       issues.push({
+        code: 'unload-handler',
         reason: 'window.onunload handler set',
         severity: 'high',
         source: 'detected',
@@ -108,6 +110,7 @@
         const cacheControl = res.headers.get('cache-control') || '';
         if (/no-store/i.test(cacheControl) && !confirmed.some(({ reason }) => reason === 'response-cache-control-no-store')) {
           issues.push({
+            code: 'cache-control-no-store',
             reason: 'Cache-Control: no-store on the page response',
             severity: 'medium',
             source: 'detected',
@@ -123,6 +126,7 @@
     const iframeCount = document.querySelectorAll('iframe').length;
     if (iframeCount > 0) {
       issues.push({
+        code: 'iframes',
         reason: `${iframeCount} iframe(s) on the page`,
         severity: 'info',
         source: 'note',
@@ -132,6 +136,7 @@
 
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       issues.push({
+        code: 'service-worker',
         reason: 'Service Worker controls the page',
         severity: 'info',
         source: 'note',
@@ -255,8 +260,10 @@
       notRestoredReasons: results.notRestoredReasons,
     },
     issues: results.blockingReasons.map((i) => ({
+      code: i.code,
       severity: i.severity === 'high' ? 'error' : i.severity === 'medium' ? 'warning' : 'info',
       message: i.reason,
+      ...(i.code === 'not-restored' ? { target: i.reason } : {}),
     })),
   });
 

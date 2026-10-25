@@ -337,6 +337,7 @@
 
     if (isStaticAsset(type) && cc["no-store"]) {
       entry.antiPatterns.push({
+        code: "static-no-store",
         id: "static-no-store",
         severity: "error",
         message: `${type} asset with no-store; static assets should be cacheable`,
@@ -345,6 +346,7 @@
 
     if (entry.hasHash && maxAge !== null && maxAge < 86400 && !cc["no-store"]) {
       entry.antiPatterns.push({
+        code: "versioned-short-cache",
         id: "versioned-short-cache",
         severity: "warning",
         message: `Versioned URL (hash detected) but max-age=${maxAge}s: consider long cache or immutable`,
@@ -353,6 +355,7 @@
 
     if (entry.hasHash && !cc["immutable"] && !cc["no-store"] && (maxAge === null || maxAge >= 86400)) {
       entry.antiPatterns.push({
+        code: "versioned-not-immutable",
         id: "versioned-not-immutable",
         severity: "info",
         message: `Versioned URL (hash detected) without Cache-Control: immutable`,
@@ -364,6 +367,7 @@
       ["none", "no-store", "no-cache"].includes(strategy)
     ) {
       entry.antiPatterns.push({
+        code: "large-no-cache",
         id: "large-no-cache",
         severity: "error",
         message: `Large resource (${formatBytes(entry.decodedBodySize)}) with no effective cache`,
@@ -372,6 +376,7 @@
 
     if (entry.headers["expires"] && !entry.headers["cache-control"]) {
       entry.antiPatterns.push({
+        code: "expires-without-cc",
         id: "expires-without-cc",
         severity: "warning",
         message: `Uses Expires header without Cache-Control (outdated pattern)`,
@@ -380,6 +385,7 @@
 
     if (isStaticAsset(type) && maxAge === 0) {
       entry.antiPatterns.push({
+        code: "maxage-zero-static",
         id: "maxage-zero-static",
         severity: "warning",
         message: `Static asset with max-age=0, which forces revalidation on every request`,
@@ -394,6 +400,7 @@
       !cc["no-store"]
     ) {
       entry.antiPatterns.push({
+        code: "short-cache-static",
         id: "short-cache-static",
         severity: "warning",
         message: `Static asset with max-age=${maxAge}s (< 1h): consider a longer cache duration`,
@@ -472,6 +479,7 @@
   // are anti-patterns like the header-based ones: they reach `items` and `issues`.
   for (const entry of uncompressedResources) {
     entry.antiPatterns.push({
+      code: "uncompressed",
       id: "uncompressed",
       severity: "warning",
       message: `${entry.type} sent uncompressed (${formatBytes(entry.encodedBodySize)} on the wire for ${formatBytes(entry.decodedBodySize)}): enable Brotli or gzip`,
@@ -480,6 +488,7 @@
   for (const duplicate of costlyDuplicates) {
     // One finding per URL, on the first request, not one per request
     entries.find((e) => e.url === duplicate.url).antiPatterns.push({
+      code: "duplicate-uncached",
       id: "duplicate-uncached",
       severity: "warning",
       message: `Loaded ${duplicate.count} times, ${duplicate.uncachedLoads} from the network: load it once or make it cacheable`,
@@ -551,6 +560,7 @@
       .join(", ");
     coverageIssue = {
       severity: "info",
+      code: "header-coverage",
       id: "header-coverage",
       message: `Cache headers were read for ${headersAnalyzed} of ${entries.length} resources (${headerCoveragePercent}%): the rest are on other origins or are not static assets, so their Cache-Control cannot be read from the page. Most of them are on ${topHosts}; check those hosts in the Network panel or with curl -I`,
     };
@@ -916,10 +926,12 @@
       })),
     issues: [
       ...allAntiPatterns.map((p) => ({
+        code: p.code,
         severity: p.severity,
         id: p.id,
         resource: p.resource,
         message: p.message,
+        target: p.url,
       })),
       ...(coverageIssue ? [coverageIssue] : []),
     ],
