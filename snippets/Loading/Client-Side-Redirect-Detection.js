@@ -99,6 +99,7 @@
   if (sameOrigin && referrerPath !== currentPath && referrerPath !== '') {
     hasClientRedirect = true;
     indicators.push({
+      code: 'same-origin-navigation',
       type: 'Same-origin navigation',
       from: referrerPath,
       to: currentPath,
@@ -153,6 +154,7 @@
   // Only flag if it's BOTH fast AND small (likely a redirect page)
   if (sameOrigin && domContentLoaded < 500 && responseSize < 10000) {
     indicators.push({
+      code: 'fast-minimal-navigation',
       type: 'Fast minimal-content navigation',
       duration: domContentLoaded.toFixed(1) + 'ms',
       size: (responseSize / 1024).toFixed(1) + ' KB',
@@ -337,9 +339,9 @@
       referrerPath,
     },
     issues: [
-      ...(serverRedirects > 0 ? [{ severity: "warning", message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)` }] : []),
-      ...(documentNavigations.length > 0 ? [{ severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected, likely a client-side redirect` }] : []),
-      ...indicators.filter(i => i.severity === "warning").map(i => ({ severity: "warning", message: i.type })),
+      ...(serverRedirects > 0 ? [{ code: "server-redirects", severity: "warning", message: `${serverRedirects} server-side redirect(s) detected (${Math.round(redirectTime)}ms)` }] : []),
+      ...(documentNavigations.length > 0 ? [{ code: "document-navigation", severity: "error", message: `${documentNavigations.length} same-origin document navigation(s) detected, likely a client-side redirect` }] : []),
+      ...indicators.filter(i => i.severity === "warning").map(i => ({ code: i.code, severity: "warning", message: i.type })),
     ],
   };
 })();

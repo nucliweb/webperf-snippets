@@ -10,6 +10,7 @@
       count: 0,
       items: [],
       issues: [ {
+        code: "no-prefetch",
         severity: "info",
         message: 'No prefetch hints on this page (rel="prefetch"), so there was nothing to validate.'
       } ]
@@ -62,15 +63,18 @@
       warnings: []
     };
     if (as === "unknown") analysis.warnings.push({
+      code: "missing-as",
       type: "missing-as",
       severity: "warning",
       message: "Missing 'as' attribute - browser cannot apply correct MIME type matching"
     }); else if (!validAsValues.has(as)) analysis.warnings.push({
+      code: "invalid-as",
       type: "invalid-as",
       severity: "warning",
       message: `Invalid 'as' value: "${as}" - should be one of: ${Array.from(validAsValues).join(", ")}`
     });
     if (seenUrls.has(normalizedUrl)) analysis.warnings.push({
+      code: "duplicate-prefetch",
       type: "duplicate-prefetch",
       severity: "warning",
       message: "Duplicate prefetch - this URL is prefetched multiple times"
@@ -88,6 +92,7 @@
       if (isCurrentPageResource) {
         analysis.isCurrentPage = true;
         analysis.warnings.push({
+          code: "used-on-current-page",
           type: "wrong-hint",
           severity: "error",
           message: "Resource used on current page - should use preload instead"
@@ -96,6 +101,7 @@
       if (analysis.size > THRESHOLDS.largeFileSize) {
         const sizeMB = (analysis.size / (1024 * 1024)).toFixed(2);
         analysis.warnings.push({
+          code: "large-file",
           type: "large-file",
           severity: "warning",
           message: `Large file (${sizeMB}MB) - consider if prefetch is appropriate`
@@ -114,6 +120,7 @@
         inappropriateReason = `Script is ${(analysis.size / 1024).toFixed(0)}KB (>1MB threshold)`;
       }
       if (isInappropriate) analysis.warnings.push({
+        code: "inappropriate-type",
         type: "inappropriate-type",
         severity: "warning",
         message: `Type "${as}" may not be suitable for prefetch: ${inappropriateReason}`
@@ -127,6 +134,7 @@
   });
   const countIssues = [];
   if (prefetchLinks.length > THRESHOLDS.maxCount) countIssues.push({
+    code: "too-many-prefetches",
     type: "excessive-count",
     severity: "warning",
     message: `${prefetchLinks.length} prefetch hints found (recommended: <${THRESHOLDS.maxCount})`,
@@ -135,11 +143,13 @@
   const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
   (totalTransferSize / (1024 * 1024)).toFixed(2);
   if (totalSize > THRESHOLDS.totalSizeCritical) countIssues.push({
+    code: "large-total-size",
     type: "excessive-size",
     severity: "error",
     message: `Total prefetch size: ${totalSizeMB}MB (critical threshold exceeded)`,
     explanation: "This is very high and will significantly impact mobile users"
   }); else if (totalSize > THRESHOLDS.totalSizeWarning) countIssues.push({
+    code: "large-total-size",
     type: "high-size",
     severity: "warning",
     message: `Total prefetch size: ${totalSizeMB}MB (warning threshold exceeded)`,
@@ -219,11 +229,14 @@
       isCurrentPage: item.isCurrentPage || false
     })),
     issues: [ ...countIssues.map(i => ({
+      code: i.code,
       severity: i.severity === "error" ? "error" : "warning",
       message: i.message
     })), ...issues.flatMap(item => item.warnings.filter(w => w.severity !== "info").map(w => ({
+      code: w.code,
       severity: w.severity,
-      message: `${item.shortUrl}: ${w.message}`
+      message: `${item.shortUrl}: ${w.message}`,
+      target: item.href
     }))) ]
   };
 })();

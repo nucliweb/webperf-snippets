@@ -49,6 +49,7 @@
     const confirmed = results.notRestoredReasons ? flattenReasons(results.notRestoredReasons, results.notRestoredReasons.url || "main frame") : [];
     confirmed.forEach(({reason: reason, frame: frame}) => {
       issues.push({
+        code: "not-restored",
         reason: `${reason} (${frame})`,
         severity: "high",
         source: "browser",
@@ -56,6 +57,7 @@
       });
     });
     if (window.onunload !== null && !confirmed.some(({reason: reason}) => reason === "unload-listener")) issues.push({
+      code: "unload-handler",
       reason: "window.onunload handler set",
       severity: "high",
       source: "detected",
@@ -68,6 +70,7 @@
       });
       const cacheControl = res.headers.get("cache-control") || "";
       if (/no-store/i.test(cacheControl) && !confirmed.some(({reason: reason}) => reason === "response-cache-control-no-store")) issues.push({
+        code: "cache-control-no-store",
         reason: "Cache-Control: no-store on the page response",
         severity: "medium",
         source: "detected",
@@ -76,12 +79,14 @@
     } catch {}
     const iframeCount = document.querySelectorAll("iframe").length;
     if (iframeCount > 0) issues.push({
+      code: "iframes",
       reason: `${iframeCount} iframe(s) on the page`,
       severity: "info",
       source: "note",
       description: "A bfcache blocker inside an iframe blocks the whole page. See notRestoredReasons after a back navigation."
     });
     if ("serviceWorker" in navigator && navigator.serviceWorker.controller) issues.push({
+      code: "service-worker",
       reason: "Service Worker controls the page",
       severity: "info",
       source: "note",
@@ -128,8 +133,12 @@
       notRestoredReasons: results.notRestoredReasons
     },
     issues: results.blockingReasons.map(i => ({
+      code: i.code,
       severity: i.severity === "high" ? "error" : i.severity === "medium" ? "warning" : "info",
-      message: i.reason
+      message: i.reason,
+      ...i.code === "not-restored" ? {
+        target: i.reason
+      } : {}
     }))
   });
   window.checkBfcache = async () => {

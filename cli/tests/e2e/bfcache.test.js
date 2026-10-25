@@ -66,6 +66,7 @@ describe("Back-Forward-Cache detection", () => {
     const r = await runFresh("/unload-prop");
     expect(r.details.eligibility).toBe("likely-blocked");
     expect(r.issues.some((i) => i.severity === "error" && /unload/i.test(i.message))).toBe(true);
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: "unload-handler", severity: "error" }));
   }, 30000);
 
   it("detects Cache-Control: no-store from the response headers", async () => {
@@ -108,5 +109,7 @@ describe("Back-Forward-Cache detection", () => {
     expect(nrr.children[0].reasons).toContain("unload-listener");
     expect(r.details.eligibility).toBe("blocked");
     expect(r.issues.some((i) => i.severity === "error" && /unload-listener/.test(i.message) && /frame-blocked/.test(i.message))).toBe(true);
+    // Each reason the browser gives is its own issue, named in target
+    expect(r.issues.filter((i) => i.code === "not-restored").every((i) => i.target === i.message)).toBe(true);
   }, 30000);
 });

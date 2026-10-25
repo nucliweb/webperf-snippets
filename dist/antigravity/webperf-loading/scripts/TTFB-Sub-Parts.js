@@ -110,6 +110,7 @@
     const slowestMs = Math.round(slowestSync.duration);
     const share = ttfbValueSync > 0 ? Math.round(slowestSync.duration / ttfbValueSync * 100) : 0;
     issues.push({
+      code: "slow-ttfb",
       severity: rating === "poor" ? "error" : "warning",
       message: `TTFB is ${value} ms (${rating}); ${phaseLabels[slowestSync.key]} takes ${slowestMs} ms of it (${share}%). Fix: ${phaseFixes[slowestSync.key]}.`
     });

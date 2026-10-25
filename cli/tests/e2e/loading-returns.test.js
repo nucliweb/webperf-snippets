@@ -145,7 +145,8 @@ describe("Priority-Hints-Audit and Validate-Preload-Async-Defer-Scripts", () => 
   it("Priority-Hints-Audit puts the fix inside the message", async () => {
     const r = await runOn("/priority", "Loading/Priority-Hints-Audit");
     expect(r.issues.length).toBeGreaterThan(0);
-    for (const i of r.issues) expect(keysOf(i)).toBe("message,severity");
+    // Each issue names its resource, so a later run pairs it with the same one
+    for (const i of r.issues) expect(keysOf(i)).toBe("code,message,severity,target");
     expect(r.issues.some((i) => i.message.includes("Fix: "))).toBe(true);
     expect(r.issues.every((i) => !i.message.includes(" — "))).toBe(true);
   }, 30000);
@@ -225,7 +226,7 @@ describe("TTFB-Resources, a page without measurable resources", () => {
       slowCount: 0,
       corsRestrictedCount: 0,
     });
-    expect(r.issues).toEqual([{ severity: "info", message: "No resources with TTFB data available" }]);
+    expect(r.issues).toEqual([{ code: "no-resources", severity: "info", message: "No resources with TTFB data available" }]);
   }, 60000);
 });
 

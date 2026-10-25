@@ -119,18 +119,21 @@
   const issues = [];
   if (uncompressed.length > 0) {
     issues.push({
+      code: "uncompressed",
       severity: "warning",
       message: `${uncompressed.length} text resource(s) served without compression; enabling gzip or brotli could save about ${formatBytes(estimatedSavingsBytes)}`,
     });
   }
   if (corsLimitedAnalysis) {
     issues.push({
+      code: "unknown-size",
       severity: "info",
       message: `${sizeUnknownCount} cross-origin text resource(s) without Timing-Allow-Origin report zero sizes, so their compression is unknown`,
     });
   }
   if (!contentEncodingSupported && candidates.length > 0) {
     issues.push({
+      code: "content-encoding-unavailable",
       severity: "info",
       message: "PerformanceResourceTiming.contentEncoding is not available; compression is inferred from encodedBodySize versus decodedBodySize",
     });

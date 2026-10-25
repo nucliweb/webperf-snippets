@@ -12,11 +12,7 @@ export const ISSUE_CODE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // The snippets that emit issues without a code yet. It can only shrink: a snippet that gets its codes
 // leaves the list, and the contract and the catalog then hold it to them.
 export const PENDING_ISSUE_CODES = [
-  "Loading/Back-Forward-Cache",
   "Loading/CSS-Media-Queries-Analysis",
-  "Loading/Cache-Strategy-Analysis",
-  "Loading/Client-Side-Redirect-Detection",
-  "Loading/Compression-Audit",
   "Loading/Content-Visibility",
   "Loading/Critical-CSS-Detection",
   "Loading/Find-Above-The-Fold-Lazy-Loaded-Images",
@@ -25,27 +21,18 @@ export const PENDING_ISSUE_CODES = [
   "Loading/Find-render-blocking-resources",
   "Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold",
   "Loading/Inline-CSS-Info-and-Size",
-  "Loading/Prefetch-Resource-Validation",
-  "Loading/Priority-Hints-Audit",
-  "Loading/Resource-Hints",
-  "Loading/Resource-Hints-Validation",
-  "Loading/Server-Timing-Early-Hints",
-  "Loading/Service-Worker-Analysis",
-  "Loading/Speculation-Rules-Inspector",
-  "Loading/TTFB-Resources",
-  "Loading/TTFB-Sub-Parts",
   "Loading/Webfont-Usage-Analyzer",
 ];
 
-// The codes a snippet emits, read from its source: the literals of `code: "..."` in an object. A copy
-// of a code already set (`code: issue.code`) is fine; `nonLiteral` counts the codes built at run time,
-// which the catalog cannot check.
+// The codes a snippet emits, read from its source: the literals of `code: "..."`, or in single quotes,
+// in an object. A copy of a code already set (`code: issue.code`) is fine; `nonLiteral` counts the codes
+// built at run time, which the catalog cannot check.
 export function codesInSource(source) {
   const codes = new Set();
   let nonLiteral = 0;
   for (const [, value] of source.matchAll(/(?<=[{,]\s*)code:\s*([^,}\n]+)/g)) {
-    const literal = value.match(/^"([^"]*)"\s*$/);
-    if (literal) codes.add(literal[1]);
+    const literal = value.match(/^(["'])([^"']*)\1\s*$/);
+    if (literal) codes.add(literal[2]);
     else if (!/^[\w$]+(?:\?)?\.code\s*$/.test(value)) nonLiteral++;
   }
   return { codes, nonLiteral };

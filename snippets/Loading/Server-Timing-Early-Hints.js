@@ -83,6 +83,7 @@
   const issues = [];
   if (nav.serverTiming.length === 0) {
     issues.push({
+      code: "no-server-timing",
       severity: "info",
       message:
         "The document response sends no Server-Timing header. Add one, for example Server-Timing: db;dur=53, to expose backend timings in DevTools and in the Performance API.",
@@ -90,12 +91,14 @@
   }
   if (corsRestrictedCount > 0) {
     issues.push({
+      code: "timing-hidden",
       severity: "info",
       message: `${corsRestrictedCount} cross-origin resource(s) hide their timing because they lack Timing-Allow-Origin, so their Server-Timing cannot be read. Add Timing-Allow-Origin to expose it.`,
     });
   }
   if (!earlyHintsReceived) {
     issues.push({
+      code: "no-early-hints",
       severity: "info",
       message:
         "No 103 Early Hints response was observed for the document. If the server can send Link preload or preconnect headers before the final response, Early Hints lets the browser start those fetches earlier.",

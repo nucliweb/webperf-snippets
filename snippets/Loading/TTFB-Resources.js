@@ -168,7 +168,7 @@
       corsLimitedAnalysis: corsRestrictedCount > 0,
       details: { avgTtfbMs: null, maxTtfbMs: null, minTtfbMs: null, thirdPartyCount: 0, slowCount: 0, corsRestrictedCount },
       items: [],
-      issues: [{ severity: "info", message: "No resources with TTFB data available" }],
+      issues: [{ code: "no-resources", severity: "info", message: "No resources with TTFB data available" }],
     };
   }
   const ttfbVals = resourcesSync.map((r) => r.ttfbMs);
