@@ -24,6 +24,7 @@ export const interactionWorkflow = {
     { id: "scroll", path: "Interaction/Scroll-Performance" },
     { id: "layout-shifts", path: "Interaction/Layout-Shift-Loading-and-Interaction" },
     { id: "forced-layout", path: "Interaction/Forced-Synchronous-Layout" },
+    { id: "INP", path: "CoreWebVitals/INP", needsInput: true },
     { id: "interactions", path: "Interaction/Interactions", needsInput: true },
     { id: "input-latency", path: "Interaction/Input-Latency-Breakdown", needsInput: true },
   ],

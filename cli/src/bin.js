@@ -18,6 +18,7 @@ import { parseOwnDomains } from "./own-domains.js";
 import { MEDIAN_METRICS, summarizeRuns } from "./runs.js";
 import { loadMatrix } from "./matrix.js";
 import { blockingErrors } from "./blocking.js";
+import { MEASURED_BY, checkBudgets, parseBudgets, unmeasuredMetrics, violationsOf } from "./budgets.js";
 import { measurementConditions } from "./conditions.js";
 import { loadBaseline, parseThreshold, thresholdsWith, compareRun, compareMatrix } from "./baseline.js";
 import { describeRegressions, describeMatrixRegressions, matrixComparisonView } from "./reporters/baseline-view.js";
@@ -49,8 +50,11 @@ Options:
   --wait <ms>           Post-load wait before evaluating (default: 3000)
   --cpu <factor>        Slow the CPU down by this factor, such as 4 (no throttling by default)
   --network <preset>    Throttle the network as DevTools does: fast-4g, slow-4g, 3g
-  --budget-lcp <ms>     Exit 1 if LCP exceeds this value
-  --budget-cls <score>  Exit 1 if CLS exceeds this value
+  --budget-lcp <ms>     Exit 1 if LCP exceeds this value, or was not measured
+  --budget-fcp <ms>     Exit 1 if FCP exceeds this value, or was not measured
+  --budget-ttfb <ms>    Exit 1 if TTFB exceeds this value, or was not measured
+  --budget-cls <score>  Exit 1 if CLS exceeds this value, or was not measured
+  --budget-inp <ms>     Exit 1 if INP exceeds this value, or was not measured (interaction workflow)
   --interact-script <path>  JSON file with interactions to run after the load; the
                             Interaction snippets are installed first and read last
                             Actions: scroll, click, hover, type, wait
@@ -124,30 +128,13 @@ function parseRunCount(raw) {
   return /^[1-9]$/.test(raw.trim()) ? Number(raw) : null;
 }
 
-function checkBudgets({ results, runs }, values) {
-  const violations = [];
-  const lcpBudget = values["budget-lcp"] ? Number(values["budget-lcp"]) : null;
-  const clsBudget = values["budget-cls"] ? Number(values["budget-cls"]) : null;
-
-  // With several runs the budgets compare the median of each metric, not one sample
-  if (runs) {
-    const lcp = runs.summary.LCP?.median;
-    const cls = runs.summary.CLS?.median;
-    if (lcp != null && lcpBudget != null && lcp > lcpBudget) violations.push(`LCP ${lcp}ms exceeds budget ${lcpBudget}ms`);
-    if (cls != null && clsBudget != null && cls > clsBudget) violations.push(`CLS ${cls} exceeds budget ${clsBudget}`);
-    return violations;
-  }
-
-  for (const r of results) {
-    if (r.status !== "ok") continue;
-    if (r.metric === "LCP" && lcpBudget != null && r.value > lcpBudget) {
-      violations.push(`LCP ${r.value}ms exceeds budget ${lcpBudget}ms`);
-    }
-    if (r.metric === "CLS" && clsBudget != null && r.value > clsBudget) {
-      violations.push(`CLS ${r.value} exceeds budget ${clsBudget}`);
-    }
-  }
-  return violations;
+// What to run instead, when a budget names a metric the run does not measure
+function budgetUsage(metric, run) {
+  const workflows = Object.values(WORKFLOWS)
+    .filter((w) => w.steps.some((step) => MEASURED_BY[metric].includes(step.path)))
+    .map((w) => w.id);
+  const instead = [...workflows.map((id) => `--workflow ${id}`), `--snippet ${MEASURED_BY[metric][0].split("/").pop()}`].join(" or ");
+  return `--budget-${metric.toLowerCase()} needs a run that measures ${metric}, and ${run} does not. Use ${instead}`;
 }
 
 async function main() {
@@ -168,7 +155,10 @@ async function main() {
         markdown: { type: "boolean" },
         wait: { type: "string" },
         "budget-lcp": { type: "string" },
+        "budget-fcp": { type: "string" },
+        "budget-ttfb": { type: "string" },
         "budget-cls": { type: "string" },
+        "budget-inp": { type: "string" },
         viewport: { type: "string" },
         cpu: { type: "string" },
         network: { type: "string" },
@@ -275,10 +265,20 @@ async function main() {
     if (values["fail-on-regression"]) fail("--fail-on-regression needs --baseline");
   }
 
+  let budgets;
+  try {
+    budgets = parseBudgets(values);
+  } catch (err) {
+    fail(err.message);
+  }
+
   // What each page load runs, a snippet or a workflow, under the conditions of the load
   const items = values.snippet ? buildSnippetItem(values) : null;
   const workflow = values.snippet ? null : WORKFLOWS[values.workflow ?? "core-web-vitals"];
   if (!values.snippet && !workflow) fail(`Unknown workflow: ${values.workflow}`);
+  // A budget of a metric that no snippet of the run measures could never pass: a usage error
+  const [unmeasured] = unmeasuredMetrics(budgets, items ? [items[0].path] : workflow.steps.map((step) => step.path));
+  if (unmeasured) fail(budgetUsage(unmeasured, items ? `--snippet ${values.snippet}` : `the ${workflow.id} workflow`));
   const measureWith = (conditions) => {
     const options = { waitMs, headless: !values.headed, interactScript, ...conditions };
     return items ? runSnippets({ ...options, items }) : runMeasurement({ ...options, workflow, rules: RULES });
@@ -294,7 +294,7 @@ async function main() {
     } catch (err) {
       fail(err.message);
     }
-    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds });
+    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds, budgets });
     return;
   }
 
@@ -349,12 +349,10 @@ async function main() {
     }
   }
 
-  // Exit codes.
-  const violations = checkBudgets(payload, values);
+  // Exit codes. stderr names the budgets that failed, also with --json, whose report is on stdout
+  const violations = violationsOf(checkBudgets(payload, budgets));
   if (violations.length > 0) {
-    if (!values.json) {
-      for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
-    }
+    for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
     process.exit(1);
   }
   // Without --fail-on-regression the comparison only informs, and the exit code is the one of today
@@ -385,7 +383,7 @@ async function measureRuns(measure, count, medianBy, progress) {
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code follows the same rules as one page, for every combination.
-async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds }) {
+async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds, budgets }) {
   for (const warning of matrix.warnings) process.stderr.write(`Warning: ${warning}\n`);
   const viewportOf = new Map(matrix.combinations.map((c) => [c.id, c.viewport]));
 
@@ -464,10 +462,8 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
     }
   }
 
-  const violations = combinations.filter((c) => !c.error).flatMap((c) => checkBudgets(c, values).map((v) => `${v} (${c.id})`));
-  if (!values.json) {
-    for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
-  }
+  const violations = combinations.filter((c) => !c.error).flatMap((c) => violationsOf(checkBudgets(c, budgets)).map((v) => `${v} (${c.id})`));
+  for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
   const failed = combinations.some((c) => c.error || blockingErrors(c.results).length > 0);
   // Without --fail-on-regression the comparison only informs
   const regressions = values["fail-on-regression"] ? describeMatrixRegressions(combinations) : [];

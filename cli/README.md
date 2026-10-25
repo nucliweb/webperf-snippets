@@ -300,6 +300,8 @@ CI gating:
 npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 ```
 
+Each budget compares the value measured, or the median with `--runs`, and fails when the value is above it. `--budget-lcp` and `--budget-cls` need the `core-web-vitals` workflow, `--budget-fcp` the `loading` workflow, `--budget-ttfb` the `loading` or `audit` workflow, and `--budget-inp` the `interaction` workflow with a click or a key press; `--snippet` with the snippet of the metric works too. A budget of a metric that the run does not measure exits with code `2` before the page loads, and one whose metric was not measured, such as INP without interactions, exits with code `1`: a budget never passes unchecked. Each failed budget is written to stderr, also with `--json`.
+
 ### Options
 
 | Option                       | Description                                                            |
@@ -325,8 +327,11 @@ npx webperf-snippets https://example.com --budget-lcp 2500 --budget-cls 0.1
 | `--crux-key <key>`           | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`. |
 | `--report-to <url>`          | POST the results to this `https` URL after the run. No external calls without it. |
 | `--api-key <key>`            | Sent as a Bearer token with `--report-to`. Prefer `PERF_REVIEWS_API_KEY`. |
-| `--budget-lcp <ms>`          | Exit `1` if LCP exceeds this value.                                    |
-| `--budget-cls <score>`       | Exit `1` if CLS exceeds this value.                                    |
+| `--budget-lcp <ms>`          | Exit `1` if LCP exceeds this value or was not measured.                                    |
+| `--budget-fcp <ms>`          | Exit `1` if FCP exceeds this value or was not measured.                                    |
+| `--budget-ttfb <ms>`         | Exit `1` if TTFB exceeds this value or was not measured.                                    |
+| `--budget-cls <score>`       | Exit `1` if CLS exceeds this value or was not measured.                                    |
+| `--budget-inp <ms>`          | Exit `1` if INP exceeds this value or was not measured.                                    |
 | `--verbose`                  | Show all items, including passing checks.                              |
 | `--headed`                   | Show the browser window (debug).                                       |
 | `-h, --help`                 | Show help.                                                             |
@@ -453,8 +458,11 @@ jobs:
 | ---------------- | ------------------- | -------------------------------------------------------------------------------------------- |
 | `url`            | required            | URL to measure.                                                                              |
 | `workflow`       | `core-web-vitals`   | Workflow to run: `core-web-vitals`, `loading`, `audit` or `interaction`.                                    |
-| `budget-lcp`     | `2500`              | LCP budget in ms. An empty value disables the check.                                         |
-| `budget-cls`     | `0.1`               | CLS budget. An empty value disables the check.                                               |
+| `budget-lcp`     | `auto`              | LCP budget in ms. `auto` is `2500` with `core-web-vitals` and no budget with the other workflows. An empty value disables the check. |
+| `budget-fcp`     |                     | FCP budget in ms, for `loading`.                                                              |
+| `budget-ttfb`    |                     | TTFB budget in ms, for `loading` or `audit`.                                                  |
+| `budget-cls`     | `auto`              | CLS budget. `auto` is `0.1` with `core-web-vitals` and no budget with the other workflows. An empty value disables the check. |
+| `budget-inp`     |                     | INP budget in ms, for `interaction` with a click or a key press.                             |
 | `fail-on-budget` | `true`              | Fail the step when a budget is exceeded or a snippet errors. Use `"false"` to read `exit-code` and decide yourself. |
 | `cli-version`    | `latest`            | Version of the `webperf-snippets` npm package to run.                                        |
 

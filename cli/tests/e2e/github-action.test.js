@@ -170,6 +170,22 @@ describe("run.sh arguments", () => {
     ]);
   });
 
+  it("forwards the budgets of FCP, TTFB and INP", async () => {
+    const none = { WEBPERF_BUDGET_LCP: "", WEBPERF_BUDGET_CLS: "" };
+    await runAction({ ...none, WEBPERF_WORKFLOW: "loading", WEBPERF_BUDGET_FCP: "1800", WEBPERF_BUDGET_TTFB: "800" });
+    expect(argsSeen()).toEqual(["https://example.com", "--workflow", "loading", "--markdown", "--budget-fcp", "1800", "--budget-ttfb", "800"]);
+    await runAction({ ...none, WEBPERF_WORKFLOW: "interaction", WEBPERF_BUDGET_INP: "200" });
+    expect(argsSeen()).toEqual(["https://example.com", "--workflow", "interaction", "--markdown", "--budget-inp", "200"]);
+  });
+
+  it("applies the default budgets of LCP and CLS (auto) to the core-web-vitals workflow only", async () => {
+    await runAction({ WEBPERF_BUDGET_LCP: "auto", WEBPERF_BUDGET_CLS: "auto" });
+    expect(argsSeen()).toEqual(["https://example.com", "--workflow", "core-web-vitals", "--markdown", "--budget-lcp", "2500", "--budget-cls", "0.1"]);
+    // The audit workflow measures neither, so the defaults would be a usage error
+    await runAction({ WEBPERF_WORKFLOW: "audit", WEBPERF_BUDGET_LCP: "auto", WEBPERF_BUDGET_CLS: "auto" });
+    expect(argsSeen()).toEqual(["https://example.com", "--workflow", "audit", "--markdown"]);
+  });
+
   it("omits a budget flag when its input is empty", async () => {
     await runAction({ WEBPERF_BUDGET_LCP: "", WEBPERF_BUDGET_CLS: "" });
     expect(argsSeen()).toEqual(["https://example.com", "--workflow", "core-web-vitals", "--markdown"]);

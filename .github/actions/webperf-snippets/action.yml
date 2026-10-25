@@ -12,11 +12,20 @@ inputs:
     description: Workflow to run (core-web-vitals, loading, audit, interaction)
     default: core-web-vitals
   budget-lcp:
-    description: LCP budget in ms. The run fails if it is exceeded. Empty disables the check.
-    default: "2500"
+    description: LCP budget in ms. The run fails if it is exceeded or LCP was not measured. "auto" is 2500 with the core-web-vitals workflow and no budget with the others, which do not measure LCP. Empty disables the check.
+    default: auto
+  budget-fcp:
+    description: FCP budget in ms, for the loading workflow. The run fails if it is exceeded or FCP was not measured. Empty disables the check.
+    default: ""
+  budget-ttfb:
+    description: TTFB budget in ms, for the loading and audit workflows. The run fails if it is exceeded or TTFB was not measured. Empty disables the check.
+    default: ""
   budget-cls:
-    description: CLS budget. The run fails if it is exceeded. Empty disables the check.
-    default: "0.1"
+    description: CLS budget. The run fails if it is exceeded or CLS was not measured. "auto" is 0.1 with the core-web-vitals workflow and no budget with the others, which do not measure CLS. Empty disables the check.
+    default: auto
+  budget-inp:
+    description: INP budget in ms, for the interaction workflow with clicks or key presses. The run fails if it is exceeded or INP was not measured. Empty disables the check.
+    default: ""
   fail-on-budget:
     description: Fail the step when a budget is exceeded or a snippet errors. Set to "false" to read the exit-code output and decide yourself, for example to post the markdown first.
     default: "true"
@@ -53,6 +62,9 @@ runs:
         WEBPERF_URL: ${{ inputs.url }}
         WEBPERF_WORKFLOW: ${{ inputs.workflow }}
         WEBPERF_BUDGET_LCP: ${{ inputs.budget-lcp }}
+        WEBPERF_BUDGET_FCP: ${{ inputs.budget-fcp }}
+        WEBPERF_BUDGET_TTFB: ${{ inputs.budget-ttfb }}
         WEBPERF_BUDGET_CLS: ${{ inputs.budget-cls }}
+        WEBPERF_BUDGET_INP: ${{ inputs.budget-inp }}
         WEBPERF_FAIL_ON_BUDGET: ${{ inputs.fail-on-budget }}
       run: bash "${{ github.action_path }}/run.sh"
