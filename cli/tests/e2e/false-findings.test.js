@@ -114,7 +114,7 @@ describe("Inline-Script-Info-and-Size and framework data payloads", () => {
   it("classifies the analytics bootstrap as analytics", async () => {
     const r = await run();
     expect(byIndex(r, 1)).toEqual(expect.objectContaining({ isAnalytics: true, isDataPayload: false }));
-    expect(r.issues).toContainEqual({ severity: "warning", message: "1 analytics script(s) blocking in <head>" });
+    expect(r.issues).toContainEqual({ code: "analytics-in-head", severity: "warning", message: "1 analytics script(s) blocking in <head>" });
   }, 30000);
 
   it("classifies data that only mentions an analytics call as data, not analytics or config", async () => {

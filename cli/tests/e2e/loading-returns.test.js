@@ -156,7 +156,9 @@ describe("Priority-Hints-Audit and Validate-Preload-Async-Defer-Scripts", () => 
     expect(r.items.length).toBeLessThanOrEqual(50);
     expect(new Set(r.items.map(keysOf)).size).toBe(1);
     expect(keysOf(r.items[0])).toBe("location,reviewNote,strategy,type,url");
-    for (const i of r.issues) expect(keysOf(i)).toBe("message,severity");
+    // Each issue names its preloaded script, so a later run pairs it with the same one
+    for (const i of r.issues) expect(keysOf(i)).toBe("code,message,severity,target");
+    expect(r.issues.every((i) => r.items.some((item) => i.target.endsWith(item.url)))).toBe(true);
   }, 30000);
 });
 

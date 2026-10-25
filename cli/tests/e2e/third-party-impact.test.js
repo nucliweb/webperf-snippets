@@ -318,6 +318,7 @@ describe("Third-Party-Impact-by-Domain", () => {
     const other = r.items.find((i) => i.domain === "other.localhost");
     expect(other.loafMs, `long animation frames after waiting ${waitedMs} ms: ${JSON.stringify(frames)}`).toBeGreaterThan(250);
     expect(r.issues.some((i) => i.severity === "warning" && /main-thread/.test(i.message))).toBe(true);
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: "heavy-domain", target: "other.localhost" }));
     const light = await run("/");
     expect(light.issues.some((i) => /main-thread/.test(i.message))).toBe(false);
   }, 60000);

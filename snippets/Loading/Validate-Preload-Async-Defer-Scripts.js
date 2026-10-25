@@ -83,6 +83,7 @@
       } else {
         // Preload without matching script and not loaded - likely unused
         issues.push({
+          code: "orphan-preload",
           type: "orphan",
           severity: "warning",
           preload,
@@ -137,6 +138,7 @@
           });
         } else {
           issues.push({
+            code: "async-defer-preload",
             type: "async-defer-preload",
             severity: "error",
             preload,
@@ -156,6 +158,7 @@
       } else if (isModule) {
         // ES modules without async/defer behave like defer by default
         issues.push({
+          code: "module-preload",
           type: "module-preload",
           severity: "warning",
           preload,
@@ -413,8 +416,10 @@
     },
     items: Array.from(itemsByUrl.values()).slice(0, 50),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.severity,
       message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message,
+      target: i.url,
     })),
   };
 })();

@@ -198,15 +198,19 @@
       hasTiming: s.hasTiming
     })),
     issues: [ ...slowScripts.length > 0 ? [ {
+      code: "slow-scripts",
       severity: "warning",
       message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load`
     } ] : [], ...hasSlowDns ? [ {
+      code: "slow-dns",
       severity: "warning",
       message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect."
     } ] : [], ...hasSlowTcp ? [ {
+      code: "slow-connection",
       severity: "warning",
       message: "Slow TCP connections detected (>100ms). Add preconnect for critical origins."
     } ] : [], ...hasSlowRequest ? [ {
+      code: "slow-server",
       severity: "warning",
       message: "Slow server response times detected (>200ms). Consider CDN or self-hosting."
     } ] : [] ]

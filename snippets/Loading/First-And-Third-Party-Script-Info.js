@@ -321,14 +321,15 @@
     })),
     issues: [
       ...(scripts.some((s) => !s.sizeKnown)
-        ? [{ severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound` }]
+        ? [{ code: "unknown-size", severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound` }]
         : []),
       ...(!renderBlockingSupported && totalScripts > 0
-        ? [{ severity: "info", message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which scripts block rendering is unknown; run the snippet in Chrome or Edge to check" }]
+        ? [{ code: "render-blocking-unsupported", severity: "info", message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which scripts block rendering is unknown; run the snippet in Chrome or Edge to check" }]
         : []),
       ...(thirdMetrics.blocking > 0
         ? [
             {
+              code: "third-party-blocking",
               severity: "error",
               message: `${thirdMetrics.blocking} render-blocking third-party script(s)`,
             },
@@ -337,6 +338,7 @@
       ...(thirdMetrics.hosts.length > 3
         ? [
             {
+              code: "many-third-party-hosts",
               severity: "warning",
               message: `${thirdMetrics.hosts.length} different third-party hosts require separate DNS lookups`,
             },
@@ -345,6 +347,7 @@
       ...(thirdMetrics.totalSize > 100 * 1024
         ? [
             {
+              code: "large-third-party",
               severity: "warning",
               message: `Third-party scripts total ${Math.round(thirdMetrics.totalSize / 1024)} KB`,
             },

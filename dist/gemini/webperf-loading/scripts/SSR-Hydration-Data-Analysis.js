@@ -117,8 +117,10 @@
   const issuesData = [];
   detected.forEach(fw => {
     if (fw.exceedsThreshold) issuesData.push({
+      code: "large-hydration-data",
       severity: "warning",
-      message: `${fw.name} hydration data (${Math.round(fw.size / 1024)} KB) exceeds ${Math.round(fw.threshold / 1024)} KB threshold`
+      message: `${fw.name} hydration data (${Math.round(fw.size / 1024)} KB) exceeds ${Math.round(fw.threshold / 1024)} KB threshold`,
+      target: fw.name
     });
     if (fw.type === "json" && fw.content) try {
       const data = JSON.parse(fw.content);
@@ -177,14 +179,17 @@
           });
         });
         if (largeArrays.length > 0) issuesData.push({
+          code: "large-arrays",
           severity: "warning",
           message: `pageProps has large arrays (${largeArrays.join(", ")}). Consider pagination.`
         });
         if (checkDepth(pageProps)) issuesData.push({
+          code: "deep-nesting",
           severity: "warning",
           message: "pageProps contains deeply nested data (more than 5 levels)."
         });
         if (sensitiveKeys.length > 0) issuesData.push({
+          code: "sensitive-keys",
           severity: "warning",
           message: `pageProps has keys that look sensitive (${sensitiveKeys.slice(0, 5).join(", ")}). Everything in pageProps is sent to every visitor.`
         });

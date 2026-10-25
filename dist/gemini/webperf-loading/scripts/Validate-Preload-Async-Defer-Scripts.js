@@ -46,6 +46,7 @@
         shortUrl: shortUrl,
         note: "Dynamic script (not in DOM, but loaded)"
       }); else issues.push({
+        code: "orphan-preload",
         type: "orphan",
         severity: "warning",
         preload: preload,
@@ -81,6 +82,7 @@
           naturalPriority: naturalPriority,
           note: "Early discovery with low priority - acceptable pattern"
         }); else issues.push({
+          code: "async-defer-preload",
           type: "async-defer-preload",
           severity: "error",
           preload: preload,
@@ -97,6 +99,7 @@
           fix: `Remove the preload, OR add fetchpriority="low" to the <script> tag to keep early discovery without priority escalation`
         });
       } else if (isModule) issues.push({
+        code: "module-preload",
         type: "module-preload",
         severity: "warning",
         preload: preload,
@@ -195,8 +198,10 @@
     },
     items: Array.from(itemsByUrl.values()).slice(0, 50),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.severity,
-      message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message
+      message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message,
+      target: i.url
     }))
   };
 })();

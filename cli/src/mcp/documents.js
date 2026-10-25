@@ -19,30 +19,50 @@ function readDocument(relativePath) {
 }
 
 // Splits SCHEMA.md into the general contract and the section of each snippet ("#### LCP" up to the next
-// heading of that level or above). The general contract is everything outside "## Script-Specific Schemas".
+// heading of that level or above). The general contract is everything outside "## Script-Specific Schemas"
+// and outside the tables of "## Issue codes", whose rules it keeps. The table of a snippet ("### LCP"
+// under Issue codes) goes with its section, or makes one when the snippet has none.
 export function splitSchema(markdown) {
   const lines = markdown.split("\n");
-  const start = lines.findIndex((l) => l.startsWith("## Script-Specific Schemas"));
-  const end = lines.findIndex((l, i) => i > start && l.startsWith("## "));
-  const general = [...lines.slice(0, start), ...lines.slice(end)].join("\n");
+  const sectionOf = (heading) => {
+    const start = lines.findIndex((l) => l.startsWith(heading));
+    if (start === -1) return [lines.length, lines.length];
+    const next = lines.findIndex((l, i) => i > start && l.startsWith("## "));
+    return [start, next === -1 ? lines.length : next];
+  };
+  const [schemasStart, schemasEnd] = sectionOf("## Script-Specific Schemas");
+  const [codesStart, codesEnd] = sectionOf("## Issue codes");
+  const firstTable = lines.findIndex((l, i) => i > codesStart && i < codesEnd && l.startsWith("### "));
+  const tablesStart = firstTable === -1 ? codesEnd : firstTable;
+  const general = lines
+    .filter((_, i) => !(i >= schemasStart && i < schemasEnd) && !(i >= tablesStart && i < codesEnd))
+    .join("\n");
 
   const sections = new Map();
-  let name = null;
-  let current = [];
-  const flush = () => name && sections.set(name, current.join("\n").trim());
-  for (const line of lines.slice(start, end)) {
-    if (line.startsWith("#### ")) {
-      flush();
-      name = line.slice(5).split(" ")[0];
-      current = [line];
-    } else if (/^#{1,3} /.test(line)) {
-      flush();
-      name = null;
-    } else if (name) {
-      current.push(line);
+  const collect = (from, to, level, add) => {
+    let name = null;
+    let current = [];
+    const flush = () => name && add(name, current.join("\n").trim());
+    for (const line of lines.slice(from, to)) {
+      if (line.startsWith(`${level} `)) {
+        flush();
+        name = line.slice(level.length + 1).split(" ")[0];
+        current = [line];
+      } else if (/^#{1,4} /.test(line)) {
+        flush();
+        name = null;
+      } else if (name) {
+        current.push(line);
+      }
     }
-  }
-  flush();
+    flush();
+  };
+  collect(schemasStart, schemasEnd, "####", (name, text) => sections.set(name, text));
+  collect(tablesStart, codesEnd, "###", (name, text) => {
+    // The last table runs into the rule that closes the section
+    const table = `Issue codes:\n${text.split("\n").slice(1).join("\n").replace(/\n+---$/, "")}`;
+    sections.set(name, sections.has(name) ? `${sections.get(name)}\n\n${table}` : `#### ${name}\n\n${table}`);
+  });
   return { general, sections };
 }
 
@@ -65,7 +85,7 @@ export function registerResources(server) {
     "webperf://schema",
     {
       title: "Snippet result contract",
-      description: "What every snippet returns: the base shape, the statuses, the execution patterns and how to read a result. The fields of each snippet are in webperf://schema/{snippet}.",
+      description: "What every snippet returns: the base shape, the statuses, the execution patterns, how to read a result and the rules of the issue codes. The fields and the issue codes of each snippet are in webperf://schema/{snippet}.",
       mimeType: MARKDOWN,
     },
     async (uri) => markdown(uri, schemaSection())
@@ -80,7 +100,7 @@ export function registerResources(server) {
     }),
     {
       title: "Result of one snippet",
-      description: "The fields one snippet returns, with an example, from snippets/SCHEMA.md.",
+      description: "The fields one snippet returns, with an example, and the codes of its issues, from snippets/SCHEMA.md.",
       mimeType: MARKDOWN,
     },
     async (uri, { snippet }) => {

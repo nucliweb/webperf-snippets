@@ -1232,6 +1232,72 @@ An issue about one thing among several, one issue per thing, also names it in `t
 | `could-defer` | info | Blocking scripts other than the last three of `<body>`, which could try `defer` |
 | `unknown-size` | info | Scripts whose size is hidden by a missing `Timing-Allow-Origin`, so the total is a lower bound |
 
+### First-And-Third-Party-Script-Info
+
+| Code | Severity | When |
+|------|----------|------|
+| `unknown-size` | info | Scripts whose size is hidden by a missing `Timing-Allow-Origin`, so the totals are a lower bound |
+| `render-blocking-unsupported` | info | The browser has no `renderBlockingStatus` (only Chromium has it) |
+| `third-party-blocking` | error | Third-party scripts that block rendering |
+| `many-third-party-hosts` | warning | Scripts from more than 3 third-party hosts |
+| `large-third-party` | warning | Third-party scripts above 100 KB in total |
+
+### First-And-Third-Party-Script-Timings
+
+| Code | Severity | When |
+|------|----------|------|
+| `slow-scripts` | warning | Scripts that take more than 500 ms to load |
+| `slow-dns` | warning | A DNS lookup above 100 ms |
+| `slow-connection` | warning | A TCP connection above 100 ms |
+| `slow-server` | warning | A server response above 200 ms |
+
+### Inline-Script-Info-and-Size
+
+| Code | Severity | When |
+|------|----------|------|
+| `parser-blocking-in-head` | error | Inline scripts in `<head>` that block the parser |
+| `large-inline` | warning | Inline scripts above 2 KB |
+| `duplicate-scripts` | warning | Inline scripts with identical content |
+| `analytics-in-head` | warning | Analytics scripts that block in `<head>` |
+
+### JS-Execution-Time-Breakdown
+
+| Code | Severity | When |
+|------|----------|------|
+| `render-blocking` | error | Scripts that block HTML parsing |
+| `high-parse-cost` | warning | An estimated parse cost above 500 ms on mobile |
+| `split-candidates` | warning | Scripts above 50 KB decoded, candidates for code splitting |
+| `low-compression` | warning | A compression ratio below 2x on more than 10 KB of scripts |
+
+### SSR-Hydration-Data-Analysis
+
+| Code | Severity | When |
+|------|----------|------|
+| `large-hydration-data` | warning | The hydration data of a framework above its threshold; `target` is the framework |
+| `large-arrays` | warning | `pageProps` arrays with more than 50 entries |
+| `deep-nesting` | warning | `pageProps` nested more than 5 levels |
+| `sensitive-keys` | warning | `pageProps` keys that look sensitive |
+
+### Third-Party-Impact-by-Domain
+
+| Code | Severity | When |
+|------|----------|------|
+| `render-blocking-domains` | warning | Third-party domains that serve render-blocking resources |
+| `heavy-domain` | warning | A domain whose scripts take more than 250 ms in long animation frames; `target` is the domain |
+| `render-blocking-unsupported` | info | The browser has no `renderBlockingStatus` (only Chromium has it) |
+| `loaf-unattributed` | info | Long animation frames with no third-party script attributed |
+| `unknown-size` | info | Third-party requests without `Timing-Allow-Origin`, so the transfer size is a lower bound |
+
+### Validate-Preload-Async-Defer-Scripts
+
+Each issue names the preloaded script in `target`.
+
+| Code | Severity | When |
+|------|----------|------|
+| `orphan-preload` | warning | A preloaded script that the page neither has nor loaded |
+| `async-defer-preload` | error | A script with `async` or `defer` that is also preloaded, which raises its priority |
+| `module-preload` | warning | An ES module preloaded with `rel="preload"` instead of `rel="modulepreload"` |
+
 ### DOM-Size-and-Depth
 
 | Code | Severity | When |

@@ -187,30 +187,36 @@
   const issues = [];
   if (blocking.length > 0) {
     issues.push({
+      code: "render-blocking-domains",
       severity: "warning",
       message: `${blocking.length} third-party domain(s) serve render-blocking resources (${listDomains(blocking)}); load them async or defer, or self-host them`,
     });
   }
   heavy.slice(0, MAX_LISTED_DOMAINS).forEach((d) => {
     issues.push({
+      code: "heavy-domain",
       severity: "warning",
       message: `${d.domain} scripts take ${d.loafMs} ms of main-thread time in long animation frames (over ${LOAF_WARNING_MS} ms); defer, delay or remove them`,
+      target: d.domain,
     });
   });
   if (!renderBlockingSupported && all.length > 0) {
     issues.push({
+      code: "render-blocking-unsupported",
       severity: "info",
       message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which third-party domains block rendering is unknown; run the snippet in Chrome or Edge to check",
     });
   }
   if (loafUnattributed) {
     issues.push({
+      code: "loaf-unattributed",
       severity: "info",
       message: `${longFrames} long animation frame(s) took ${longFramesMs} ms, but no third-party script was attributed in them (Long Animation Frames only list scripts over 5 ms), so 0 ms per domain does not rule out third-party cost`,
     });
   }
   if (corsLimitedAnalysis) {
     issues.push({
+      code: "unknown-size",
       severity: "info",
       message: `${sizeUnknownCount} third-party request(s) without Timing-Allow-Origin report zero sizes, so the transfer size is a lower bound`,
     });
