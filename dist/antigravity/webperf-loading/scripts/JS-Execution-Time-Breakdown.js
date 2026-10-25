@@ -171,15 +171,19 @@
       corsRestricted: s.corsRestricted
     })),
     issues: [ ...blocking.length > 0 ? [ {
+      code: "render-blocking",
       severity: "error",
       message: `${blocking.length} render-blocking script(s) delay HTML parsing`
     } ] : [], ...hasHighParseTime ? [ {
+      code: "high-parse-cost",
       severity: "warning",
       message: `High estimated parse cost (~${Math.round(totalEstParse)}ms on mobile)`
     } ] : [], ...splitCandidates.length > 0 ? [ {
+      code: "split-candidates",
       severity: "warning",
       message: `${splitCandidates.length} script(s) over 50KB decoded. Consider code splitting.`
     } ] : [], ...poorCompression ? [ {
+      code: "low-compression",
       severity: "warning",
       message: `Low compression ratio (${compressionRatio.toFixed(1)}x). Enable Brotli or gzip.`
     } ] : [] ]

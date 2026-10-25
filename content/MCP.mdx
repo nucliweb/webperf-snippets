@@ -97,8 +97,8 @@ The resources are documents a client can attach to the context:
 
 | Resource | What it has |
 | --- | --- |
-| `webperf://schema` | The contract every snippet result follows: base shape, statuses, how to read a result. |
-| `webperf://schema/{snippet}` | The fields one snippet returns, with an example. |
+| `webperf://schema` | The contract every snippet result follows: base shape, statuses, how to read a result, the rules of the issue codes. |
+| `webperf://schema/{snippet}` | The fields one snippet returns, with an example, and the codes of its issues. |
 | `webperf://workflows/{category}` | The workflows and the decision tree of a category. |
 
 The prompts chain the tools for a common task, each with a `url` argument: `audit_lcp`, `debug_inp` and `audit_page`. In Claude Code they run as `/mcp__webperf__audit_lcp`.

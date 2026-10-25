@@ -115,6 +115,7 @@
   }
   const issues = [];
   if (parserBlockingInHead.length > 0) issues.push({
+    code: "parser-blocking-in-head",
     type: "blocking",
     message: `${parserBlockingInHead.length} parser-blocking script(s) in <head>`,
     details: parserBlockingInHead.map(s => `Script #${s.index}: ${formatBytes(s.size)}`),
@@ -122,12 +123,14 @@
   });
   const largeScripts = executableScripts.filter(s => s.size > 2 * 1024);
   if (largeScripts.length > 0) issues.push({
+    code: "large-inline",
     type: "large",
     message: `${largeScripts.length} script(s) over 2 KB`,
     details: largeScripts.map(s => `Script #${s.index}: ${formatBytes(s.size)}`),
     suggestion: "Consider moving large scripts to external cacheable files"
   });
   if (duplicates.length > 0) issues.push({
+    code: "duplicate-scripts",
     type: "duplicate",
     message: `${duplicates.length} duplicated script(s) detected`,
     details: duplicates.map(d => `Scripts #${d.join(", #")} have identical content`),
@@ -135,6 +138,7 @@
   });
   const analyticsInHead = executableScripts.filter(s => s.isAnalytics && s.inHead && s.isParserBlocking);
   if (analyticsInHead.length > 0) issues.push({
+    code: "analytics-in-head",
     type: "analytics",
     message: `${analyticsInHead.length} analytics script(s) blocking in <head>`,
     details: analyticsInHead.map(s => `Script #${s.index}`),
@@ -172,6 +176,7 @@
       isDataPayload: s.isDataPayload
     })),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.type === "blocking" ? "error" : "warning",
       message: i.message
     }))

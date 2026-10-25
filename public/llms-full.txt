@@ -6305,14 +6305,15 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
     })),
     issues: [
       ...(scripts.some((s) => !s.sizeKnown)
-        ? [{ severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound` }]
+        ? [{ code: "unknown-size", severity: "info", message: `${scripts.filter((s) => !s.sizeKnown).length} script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound` }]
         : []),
       ...(!renderBlockingSupported && totalScripts > 0
-        ? [{ severity: "info", message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which scripts block rendering is unknown; run the snippet in Chrome or Edge to check" }]
+        ? [{ code: "render-blocking-unsupported", severity: "info", message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which scripts block rendering is unknown; run the snippet in Chrome or Edge to check" }]
         : []),
       ...(thirdMetrics.blocking > 0
         ? [
             {
+              code: "third-party-blocking",
               severity: "error",
               message: `${thirdMetrics.blocking} render-blocking third-party script(s)`,
             },
@@ -6321,6 +6322,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
       ...(thirdMetrics.hosts.length > 3
         ? [
             {
+              code: "many-third-party-hosts",
               severity: "warning",
               message: `${thirdMetrics.hosts.length} different third-party hosts require separate DNS lookups`,
             },
@@ -6329,6 +6331,7 @@ Analyzes all scripts loaded on the page, separating them into first-party (your 
       ...(thirdMetrics.totalSize > 100 * 1024
         ? [
             {
+              code: "large-third-party",
               severity: "warning",
               message: `Third-party scripts total ${Math.round(thirdMetrics.totalSize / 1024)} KB`,
             },
@@ -6677,10 +6680,10 @@ Analyzes detailed timing phases for all scripts, comparing first-party vs third-
     },
     items: slowestScripts.slice(0, MAX_ITEMS).map(s => ({ shortName: s.shortName, host: s.host, firstParty: s.firstParty, totalMs: Math.round(s.total), dnsMs: roundOrNull(s.dns), tcpMs: roundOrNull(s.tcp), requestMs: roundOrNull(s.request), responseMs: roundOrNull(s.response), hasTiming: s.hasTiming })),
     issues: [
-      ...(slowScripts.length > 0 ? [{ severity: "warning", message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load` }] : []),
-      ...(hasSlowDns ? [{ severity: "warning", message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect." }] : []),
-      ...(hasSlowTcp ? [{ severity: "warning", message: "Slow TCP connections detected (>100ms). Add preconnect for critical origins." }] : []),
-      ...(hasSlowRequest ? [{ severity: "warning", message: "Slow server response times detected (>200ms). Consider CDN or self-hosting." }] : []),
+      ...(slowScripts.length > 0 ? [{ code: "slow-scripts", severity: "warning", message: `${slowScripts.length} script(s) take over ${slowThreshold}ms to load` }] : []),
+      ...(hasSlowDns ? [{ code: "slow-dns", severity: "warning", message: "Slow DNS lookups detected (>100ms). Add dns-prefetch or preconnect." }] : []),
+      ...(hasSlowTcp ? [{ code: "slow-connection", severity: "warning", message: "Slow TCP connections detected (>100ms). Add preconnect for critical origins." }] : []),
+      ...(hasSlowRequest ? [{ code: "slow-server", severity: "warning", message: "Slow server response times detected (>200ms). Consider CDN or self-hosting." }] : []),
     ],
   };
 })();
@@ -7565,6 +7568,7 @@ Analyzes all inline <script> tags on the page, measuring their size and identify
 
   if (parserBlockingInHead.length > 0) {
     issues.push({
+      code: "parser-blocking-in-head",
       type: "blocking",
       message: `${parserBlockingInHead.length} parser-blocking script(s) in <head>`,
       details: parserBlockingInHead.map(
@@ -7577,6 +7581,7 @@ Analyzes all inline <script> tags on the page, measuring their size and identify
   const largeScripts = executableScripts.filter((s) => s.size > 2 * 1024);
   if (largeScripts.length > 0) {
     issues.push({
+      code: "large-inline",
       type: "large",
       message: `${largeScripts.length} script(s) over 2 KB`,
       details: largeScripts.map((s) => `Script #${s.index}: ${formatBytes(s.size)}`),
@@ -7586,6 +7591,7 @@ Analyzes all inline <script> tags on the page, measuring their size and identify
 
   if (duplicates.length > 0) {
     issues.push({
+      code: "duplicate-scripts",
       type: "duplicate",
       message: `${duplicates.length} duplicated script(s) detected`,
       details: duplicates.map((d) => `Scripts #${d.join(", #")} have identical content`),
@@ -7598,6 +7604,7 @@ Analyzes all inline <script> tags on the page, measuring their size and identify
   );
   if (analyticsInHead.length > 0) {
     issues.push({
+      code: "analytics-in-head",
       type: "analytics",
       message: `${analyticsInHead.length} analytics script(s) blocking in <head>`,
       details: analyticsInHead.map((s) => `Script #${s.index}`),
@@ -7671,7 +7678,7 @@ Analyzes all inline <script> tags on the page, measuring their size and identify
       dataPayloadCount: scripts.filter((s) => s.isDataPayload).length,
     },
     items: rankedScripts.slice(0, MAX_ITEMS).map(s => ({ index: s.index, sizeBytes: s.size, category: s.category, inHead: s.inHead, isParserBlocking: s.isParserBlocking, isAnalytics: s.isAnalytics, isConfig: s.isConfig, isDataPayload: s.isDataPayload })),
-    issues: issues.map(i => ({ severity: i.type === "blocking" ? "error" : "warning", message: i.message })),
+    issues: issues.map(i => ({ code: i.code, severity: i.type === "blocking" ? "error" : "warning", message: i.message })),
   };
 })();
 ```
@@ -8034,10 +8041,10 @@ Identifies where JavaScript time goes during page load: network download vs brow
     },
     items: scripts.slice(0, 50).map(s => ({ shortName: s.shortName, isBlocking: s.isBlocking, downloadMs: Math.round(s.downloadDuration), estimatedParseMobileMs: s.estimatedParseMobile, transferBytes: s.transferSize, decodedBytes: s.decodedSize, corsRestricted: s.corsRestricted })),
     issues: [
-      ...(blocking.length > 0 ? [{ severity: "error", message: `${blocking.length} render-blocking script(s) delay HTML parsing` }] : []),
-      ...(hasHighParseTime ? [{ severity: "warning", message: `High estimated parse cost (~${Math.round(totalEstParse)}ms on mobile)` }] : []),
-      ...(splitCandidates.length > 0 ? [{ severity: "warning", message: `${splitCandidates.length} script(s) over 50KB decoded. Consider code splitting.` }] : []),
-      ...(poorCompression ? [{ severity: "warning", message: `Low compression ratio (${compressionRatio.toFixed(1)}x). Enable Brotli or gzip.` }] : []),
+      ...(blocking.length > 0 ? [{ code: "render-blocking", severity: "error", message: `${blocking.length} render-blocking script(s) delay HTML parsing` }] : []),
+      ...(hasHighParseTime ? [{ code: "high-parse-cost", severity: "warning", message: `High estimated parse cost (~${Math.round(totalEstParse)}ms on mobile)` }] : []),
+      ...(splitCandidates.length > 0 ? [{ code: "split-candidates", severity: "warning", message: `${splitCandidates.length} script(s) over 50KB decoded. Consider code splitting.` }] : []),
+      ...(poorCompression ? [{ code: "low-compression", severity: "warning", message: `Low compression ratio (${compressionRatio.toFixed(1)}x). Enable Brotli or gzip.` }] : []),
     ],
   };
 })();
@@ -10063,8 +10070,10 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
   detected.forEach((fw) => {
     if (fw.exceedsThreshold) {
       issuesData.push({
+        code: "large-hydration-data",
         severity: "warning",
         message: `${fw.name} hydration data (${Math.round(fw.size / 1024)} KB) exceeds ${Math.round(fw.threshold / 1024)} KB threshold`,
+        target: fw.name,
       });
     }
     console.log("");
@@ -10181,13 +10190,14 @@ Analyzes hydration data scripts used by SSR frameworks like Next.js, Nuxt, Remix
             });
           });
           if (largeArrays.length > 0) {
-            issuesData.push({ severity: "warning", message: `pageProps has large arrays (${largeArrays.join(", ")}). Consider pagination.` });
+            issuesData.push({ code: "large-arrays", severity: "warning", message: `pageProps has large arrays (${largeArrays.join(", ")}). Consider pagination.` });
           }
           if (checkDepth(pageProps)) {
-            issuesData.push({ severity: "warning", message: "pageProps contains deeply nested data (more than 5 levels)." });
+            issuesData.push({ code: "deep-nesting", severity: "warning", message: "pageProps contains deeply nested data (more than 5 levels)." });
           }
           if (sensitiveKeys.length > 0) {
             issuesData.push({
+              code: "sensitive-keys",
               severity: "warning",
               message: `pageProps has keys that look sensitive (${sensitiveKeys.slice(0, 5).join(", ")}). Everything in pageProps is sent to every visitor.`,
             });
@@ -11999,30 +12009,36 @@ Groups every third-party request by root domain and reports, per domain, the req
   const issues = [];
   if (blocking.length > 0) {
     issues.push({
+      code: "render-blocking-domains",
       severity: "warning",
       message: `${blocking.length} third-party domain(s) serve render-blocking resources (${listDomains(blocking)}); load them async or defer, or self-host them`,
     });
   }
   heavy.slice(0, MAX_LISTED_DOMAINS).forEach((d) => {
     issues.push({
+      code: "heavy-domain",
       severity: "warning",
       message: `${d.domain} scripts take ${d.loafMs} ms of main-thread time in long animation frames (over ${LOAF_WARNING_MS} ms); defer, delay or remove them`,
+      target: d.domain,
     });
   });
   if (!renderBlockingSupported && all.length > 0) {
     issues.push({
+      code: "render-blocking-unsupported",
       severity: "info",
       message: "renderBlockingStatus is not supported in this browser (Chrome 107+), so which third-party domains block rendering is unknown; run the snippet in Chrome or Edge to check",
     });
   }
   if (loafUnattributed) {
     issues.push({
+      code: "loaf-unattributed",
       severity: "info",
       message: `${longFrames} long animation frame(s) took ${longFramesMs} ms, but no third-party script was attributed in them (Long Animation Frames only list scripts over 5 ms), so 0 ms per domain does not rule out third-party cost`,
     });
   }
   if (corsLimitedAnalysis) {
     issues.push({
+      code: "unknown-size",
       severity: "info",
       message: `${sizeUnknownCount} third-party request(s) without Timing-Allow-Origin report zero sizes, so the transfer size is a lower bound`,
     });
@@ -12179,6 +12195,7 @@ Detects preload resource hints for scripts that use async or defer attributes. T
       } else {
         // Preload without matching script and not loaded - likely unused
         issues.push({
+          code: "orphan-preload",
           type: "orphan",
           severity: "warning",
           preload,
@@ -12233,6 +12250,7 @@ Detects preload resource hints for scripts that use async or defer attributes. T
           });
         } else {
           issues.push({
+            code: "async-defer-preload",
             type: "async-defer-preload",
             severity: "error",
             preload,
@@ -12252,6 +12270,7 @@ Detects preload resource hints for scripts that use async or defer attributes. T
       } else if (isModule) {
         // ES modules without async/defer behave like defer by default
         issues.push({
+          code: "module-preload",
           type: "module-preload",
           severity: "warning",
           preload,
@@ -12509,8 +12528,10 @@ Detects preload resource hints for scripts that use async or defer attributes. T
     },
     items: Array.from(itemsByUrl.values()).slice(0, 50),
     issues: issues.map(i => ({
+      code: i.code,
       severity: i.severity,
       message: i.fix ? `${i.message.replace(/\.$/, "")}. Fix: ${i.fix}` : i.message,
+      target: i.url,
     })),
   };
 })();

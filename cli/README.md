@@ -389,8 +389,8 @@ The server also offers resources, documents a client can attach to the context:
 
 | Resource                         | What it has                                                              |
 | -------------------------------- | ------------------------------------------------------------------------ |
-| `webperf://schema`               | The contract every snippet result follows: base shape, statuses, how to read a result. |
-| `webperf://schema/{snippet}`     | The fields one snippet returns, with an example.                         |
+| `webperf://schema`               | The contract every snippet result follows: base shape, statuses, how to read a result, the rules of the issue codes. |
+| `webperf://schema/{snippet}`     | The fields one snippet returns, with an example, and the codes of its issues. |
 | `webperf://workflows/{category}` | The workflows and the decision tree of a category.                       |
 
 And prompts, templates that chain the tools (in Claude Code, `/mcp__webperf__audit_lcp`): `audit_lcp`, `debug_inp` and `audit_page`, each with a `url` argument.

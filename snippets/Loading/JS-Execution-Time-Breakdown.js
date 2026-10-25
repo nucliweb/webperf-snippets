@@ -348,10 +348,10 @@
     },
     items: scripts.slice(0, 50).map(s => ({ shortName: s.shortName, isBlocking: s.isBlocking, downloadMs: Math.round(s.downloadDuration), estimatedParseMobileMs: s.estimatedParseMobile, transferBytes: s.transferSize, decodedBytes: s.decodedSize, corsRestricted: s.corsRestricted })),
     issues: [
-      ...(blocking.length > 0 ? [{ severity: "error", message: `${blocking.length} render-blocking script(s) delay HTML parsing` }] : []),
-      ...(hasHighParseTime ? [{ severity: "warning", message: `High estimated parse cost (~${Math.round(totalEstParse)}ms on mobile)` }] : []),
-      ...(splitCandidates.length > 0 ? [{ severity: "warning", message: `${splitCandidates.length} script(s) over 50KB decoded. Consider code splitting.` }] : []),
-      ...(poorCompression ? [{ severity: "warning", message: `Low compression ratio (${compressionRatio.toFixed(1)}x). Enable Brotli or gzip.` }] : []),
+      ...(blocking.length > 0 ? [{ code: "render-blocking", severity: "error", message: `${blocking.length} render-blocking script(s) delay HTML parsing` }] : []),
+      ...(hasHighParseTime ? [{ code: "high-parse-cost", severity: "warning", message: `High estimated parse cost (~${Math.round(totalEstParse)}ms on mobile)` }] : []),
+      ...(splitCandidates.length > 0 ? [{ code: "split-candidates", severity: "warning", message: `${splitCandidates.length} script(s) over 50KB decoded. Consider code splitting.` }] : []),
+      ...(poorCompression ? [{ code: "low-compression", severity: "warning", message: `Low compression ratio (${compressionRatio.toFixed(1)}x). Enable Brotli or gzip.` }] : []),
     ],
   };
 })();

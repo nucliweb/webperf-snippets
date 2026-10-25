@@ -31,8 +31,9 @@ describe("resources", () => {
     expect(uris).toContain("webperf://schema");
     expect(uris).toContain("webperf://schema/LCP");
     expect(uris).toContain("webperf://schema/INP");
-    // A snippet without a section of its own is not listed
-    expect(uris).not.toContain("webperf://schema/Back-Forward-Cache");
+    // A snippet with issue codes and no section has its codes; one with neither is not listed
+    expect(uris).toContain("webperf://schema/Validate-Preload-Async-Defer-Scripts");
+    expect(uris).not.toContain("webperf://schema/Event-Processing-Time");
     expect(uris.filter((u) => u.startsWith("webperf://workflows/")).sort()).toEqual([
       "webperf://workflows/CoreWebVitals",
       "webperf://workflows/Interaction",
@@ -48,7 +49,19 @@ describe("resources", () => {
     expect(schema.text).toMatch(/## Base Shape/);
     expect(schema.text).toMatch(/## Guidelines for Agents/);
     expect(schema.text).not.toMatch(/^#### LCP$/m);
+    // The rules of the issue codes, without the table of each snippet
+    expect(schema.text).toMatch(/## Issue codes/);
+    expect(schema.text).not.toMatch(/`blocking-in-head`/);
     expect(schema.text.length).toBeLessThan(20000);
+  });
+
+  it("give the issue codes of a snippet with its section, or alone when it has no section", async () => {
+    const scripts = await read("webperf://schema/Script-Loading");
+    expect(scripts.text).toMatch(/^#### Script-Loading$/m);
+    expect(scripts.text).toMatch(/\| `blocking-in-head` \| error \|/);
+    const preloads = await read("webperf://schema/Validate-Preload-Async-Defer-Scripts");
+    expect(preloads.text).toMatch(/\| `orphan-preload` \| warning \|/);
+    expect(preloads.text).not.toMatch(/`blocking-in-head`/);
   });
 
   it("give the section of one snippet", async () => {
@@ -65,7 +78,7 @@ describe("resources", () => {
   });
 
   it("do not answer for a snippet or a category they do not have", async () => {
-    await expect(client.readResource({ uri: "webperf://schema/Back-Forward-Cache" })).rejects.toThrow();
+    await expect(client.readResource({ uri: "webperf://schema/Event-Processing-Time" })).rejects.toThrow();
     await expect(client.readResource({ uri: "webperf://workflows/Fonts" })).rejects.toThrow();
   });
 });
