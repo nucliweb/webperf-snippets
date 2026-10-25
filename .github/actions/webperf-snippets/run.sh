@@ -11,9 +11,25 @@
 set -uo pipefail
 
 read -r -a cmd <<< "${WEBPERF_CMD:?WEBPERF_CMD is required}"
-args=("${WEBPERF_URL:?WEBPERF_URL is required}" --workflow "${WEBPERF_WORKFLOW:-core-web-vitals}" --markdown)
-[ -n "${WEBPERF_BUDGET_LCP:-}" ] && args+=(--budget-lcp "$WEBPERF_BUDGET_LCP")
-[ -n "${WEBPERF_BUDGET_CLS:-}" ] && args+=(--budget-cls "$WEBPERF_BUDGET_CLS")
+workflow="${WEBPERF_WORKFLOW:-core-web-vitals}"
+args=("${WEBPERF_URL:?WEBPERF_URL is required}" --workflow "$workflow" --markdown)
+
+# Adds a budget flag when its input has a value. "auto", the default of LCP and CLS, means the default
+# value with the core-web-vitals workflow, the one that measures them, and no budget with the others:
+# the CLI rejects a budget of a metric the workflow does not measure.
+budget() {
+  local option=$1 value=$2 default=${3:-}
+  if [ "$value" = "auto" ]; then
+    [ "$workflow" = "core-web-vitals" ] && value=$default || value=""
+  fi
+  [ -n "$value" ] && args+=("$option" "$value")
+  return 0
+}
+budget --budget-lcp "${WEBPERF_BUDGET_LCP:-}" 2500
+budget --budget-fcp "${WEBPERF_BUDGET_FCP:-}"
+budget --budget-ttfb "${WEBPERF_BUDGET_TTFB:-}"
+budget --budget-cls "${WEBPERF_BUDGET_CLS:-}" 0.1
+budget --budget-inp "${WEBPERF_BUDGET_INP:-}"
 
 markdown=$("${cmd[@]}" "${args[@]}")
 code=$?

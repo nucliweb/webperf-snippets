@@ -95,7 +95,7 @@ describe("run_workflow", () => {
     await connect();
     const result = await call("run_workflow", { url: `${servers.base}/seeded`, workflow: "interaction", waitMs: 0 });
     const skipped = result.structuredContent.results.filter((r) => r.status === "skipped");
-    expect(skipped.map((r) => r.id)).toEqual(["interactions", "input-latency"]);
+    expect(skipped.map((r) => r.id)).toEqual(["INP", "interactions", "input-latency"]);
     for (const r of skipped) {
       expect(r.reason).toMatch(/open_page/);
       expect(r.reason).not.toMatch(/--interact-script/);

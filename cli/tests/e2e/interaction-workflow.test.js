@@ -44,7 +44,7 @@ beforeAll(
 
 afterAll(() => new Promise((resolve) => server.close(resolve)));
 
-const NEEDS_INPUT = ["interactions", "input-latency"];
+const NEEDS_INPUT = ["INP", "interactions", "input-latency"];
 const CLICK = [{ action: "click", selector: "#btn" }, { action: "wait", ms: 400 }];
 
 async function measure(interactions) {
