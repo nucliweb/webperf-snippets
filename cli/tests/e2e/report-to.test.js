@@ -96,6 +96,14 @@ describe("--report-to", () => {
     expect(body.meta).toEqual({ viewport: "desktop", waitMs: 600, cli_version: CLI_VERSION });
   }, 30000);
 
+  it("sends the verdict of each budget, and no budgets field without them", async () => {
+    await cli(["--report-to", reportUrl, "--budget-lcp", "60000"]);
+    expect(received[0].body.budgets).toEqual([expect.objectContaining({ metric: "LCP", budget: 60000, verdict: "passed", unit: "ms" })]);
+    received.length = 0;
+    await cli(["--report-to", reportUrl]);
+    expect(received[0].body).not.toHaveProperty("budgets");
+  }, 60000);
+
   it("sends --api-key as a Bearer token", async () => {
     await cli(["--report-to", reportUrl, "--api-key", "key-from-flag"]);
     expect(received[0].headers.authorization).toBe("Bearer key-from-flag");

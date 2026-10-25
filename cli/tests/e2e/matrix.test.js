@@ -152,10 +152,12 @@ describe("--matrix", () => {
   }, 120000);
 
   it("compares the budgets with the median of each combination, and names the combination", async () => {
-    const { code, stderr, said: output } = await cli("--matrix", writeMatrix(clientCase()), "--budget-lcp", "250");
+    const { code, stdout, stderr, said: output } = await cli("--matrix", writeMatrix(clientCase()), "--budget-lcp", "250");
     expect(code, output).toBe(1);
     // The phone loads the document with 300 ms of latency, so its LCP is over the budget
     expect(stderr).toMatch(/Budget violation: LCP \d+ms exceeds budget 250ms \(home · phone · anon\)/);
+    // The report says it too, under the table
+    expect(stdout).toMatch(/Budgets\n[\s\S]*home · phone · anon: LCP \d+ms exceeds budget 250ms/);
   }, 120000);
 
   it("warns about a header of the file that looks like a secret", async () => {

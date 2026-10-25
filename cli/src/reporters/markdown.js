@@ -3,6 +3,7 @@ import { describeThrottling } from "../throttling.js";
 import { describeRuns } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
 import { baselineView } from "./baseline-view.js";
+import { budgetRows, matrixBudgetFailures } from "./budgets-view.js";
 
 const RATING_ICON = {
   good: "✅",
@@ -110,7 +111,13 @@ function renderBaseline(comparison) {
 }
 
 // With a null title, the report has no heading, as inside the details block of a matrix
-export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling, runs, baseline, title = `WebPerf Results — ${url}` }) {
+// Every budget the run was given, passed or not: the comment of a pull request says which one failed
+function renderBudgets(budgets) {
+  const rows = budgetRows(budgets, formatValue).map((row) => `| ${row.metric} | ${row.value} | ${row.budget} | ${row.passed ? "✅" : "❌"} ${row.verdict} |`);
+  return ["", "### Budgets", "| Metric | Value | Budget | Verdict |", "|--------|-------|--------|---------|", ...rows];
+}
+
+export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling, runs, baseline, budgets, title = `WebPerf Results — ${url}` }) {
   const lines = [];
   if (title) lines.push(`## ${title}`);
   lines.push(`> Navigated in ${navMs}ms`);
@@ -146,6 +153,7 @@ export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttli
     for (const err of pageErrors) lines.push(`- ${err}`);
   }
 
+  if (budgets?.length) lines.push(...renderBudgets(budgets));
   if (baseline) lines.push(...renderBaseline(baseline));
 
   return lines.join("\n");
@@ -176,6 +184,11 @@ export function reportMatrixMarkdown(report) {
 
   if (errors.length) {
     lines.push("", "### Errors", ...errors.map((e) => `- ${e}`));
+  }
+
+  const budgetFailures = matrixBudgetFailures(report.combinations, formatValue);
+  if (budgetFailures) {
+    lines.push("", "### Budgets", ...(budgetFailures.length ? budgetFailures.map((f) => `- ❌ ${f}`) : ["✅ Every budget passed"]));
   }
 
   if (comparison) {

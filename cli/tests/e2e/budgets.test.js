@@ -98,3 +98,16 @@ describe("--budget-fcp and --budget-ttfb", () => {
     expect(tight.stderr).toMatch(/Budget violation: TTFB [\d.]+ms exceeds budget 0ms/);
   }, 120000);
 });
+
+describe("the budgets in the reports", () => {
+  it("gives every budget its verdict in the JSON output and in the markdown report", async () => {
+    const json = await cli(base, "--wait", WAIT_MS, "--budget-lcp", "60000", "--budget-cls", "0", "--json");
+    const { budgets } = JSON.parse(json.stdout);
+    expect(budgets, json.said).toEqual([
+      expect.objectContaining({ metric: "LCP", budget: 60000, unit: "ms", verdict: "passed" }),
+      expect.objectContaining({ metric: "CLS", budget: 0, unit: "score" }),
+    ]);
+    const markdown = await cli(base, "--wait", WAIT_MS, "--budget-lcp", "60000", "--markdown");
+    expect(markdown.stdout, markdown.said).toMatch(/### Budgets\n\| Metric \| Value \| Budget \| Verdict \|[\s\S]*\| LCP \| [\d.]+m?s \| 60\.00s \| ✅ passed \|/);
+  }, 120000);
+});

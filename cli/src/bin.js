@@ -318,6 +318,9 @@ async function main() {
     for (const warning of payload.baseline.warnings) process.stderr.write(`Warning: ${warning}\n`);
   }
 
+  // The verdict of each budget goes in the report, so a pull request comment says which one failed
+  if (Object.keys(budgets).length > 0) payload.budgets = checkBudgets(payload, budgets);
+
   let output;
   if (values.markdown) {
     output = reportMarkdown(payload);
@@ -339,6 +342,7 @@ async function main() {
         timestamp: new Date().toISOString(),
         navMs: payload.navMs,
         results: payload.results,
+        ...(payload.budgets ? { budgets: payload.budgets } : {}),
         meta: { viewport: viewportName, waitMs, ...(payload.throttling ? { throttling: payload.throttling } : {}), ...(payload.runs ? { runs: payload.runs } : {}), cli_version: cliVersion },
       },
     });
@@ -350,7 +354,7 @@ async function main() {
   }
 
   // Exit codes. stderr names the budgets that failed, also with --json, whose report is on stdout
-  const violations = violationsOf(checkBudgets(payload, budgets));
+  const violations = violationsOf(payload.budgets ?? []);
   if (violations.length > 0) {
     for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
     process.exit(1);
@@ -424,6 +428,8 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
     for (const warning of matrixComparisonView(root, combinations).warnings) process.stderr.write(`Warning: ${warning}\n`);
   }
 
+  if (Object.keys(budgets).length > 0) for (const c of combinations.filter((c) => !c.error)) c.budgets = checkBudgets(c, budgets);
+
   const withBaseline = comparison ? { baseline: comparison } : {};
   const report = { matrix: matrixPath, runs: matrix.runs, combinations, verbose: values.verbose, ...withBaseline };
   const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, runs: matrix.runs, ...withBaseline, combinations }) : reportMatrixHuman(report);
@@ -443,6 +449,7 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
           timestamp: new Date().toISOString(),
           navMs: c.navMs,
           results: c.results,
+          ...(c.budgets ? { budgets: c.budgets } : {}),
           meta: {
             viewport: viewportOf.get(c.id),
             device: c.device,
@@ -462,7 +469,7 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
     }
   }
 
-  const violations = combinations.filter((c) => !c.error).flatMap((c) => violationsOf(checkBudgets(c, budgets)).map((v) => `${v} (${c.id})`));
+  const violations = combinations.flatMap((c) => violationsOf(c.budgets ?? []).map((v) => `${v} (${c.id})`));
   for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
   const failed = combinations.some((c) => c.error || blockingErrors(c.results).length > 0);
   // Without --fail-on-regression the comparison only informs

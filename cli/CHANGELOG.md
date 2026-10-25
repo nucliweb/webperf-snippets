@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ## [Unreleased]
 
 ### Added
+- The reports list every budget with its value and verdict (`passed`, `exceeded` with by how much, or `not measured` with why): a Budgets section in the human and markdown reports, and `budgets` in the JSON output, in each combination of a matrix and in the body of `--report-to`. A matrix lists the failed budgets with their combination under its table. A pull request comment says which budget failed, which only stderr said before.
 - `--budget-fcp`, `--budget-ttfb` and `--budget-inp`, next to `--budget-lcp` and `--budget-cls`: a budget for each metric the CLI measures. The interaction workflow measures INP, in a step `INP` that needs a click or a key press like `interactions` and `input-latency`. The GitHub Action takes `budget-fcp`, `budget-ttfb` and `budget-inp`.
 
 ### Changed
