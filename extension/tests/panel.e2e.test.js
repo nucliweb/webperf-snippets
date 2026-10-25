@@ -302,8 +302,25 @@ test('the audit runs the snippets of the audit of the CLI, sums them up and open
   await panel.click('#go-home')
   await panel.click('#run-audit')
   await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
-  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
   assert.match(await panel.textContent('#audit .overview'), new RegExp(`^${auditWorkflow.steps.length} snippets: `))
+  // The table opens on the snippets with errors or warnings, and says how many it leaves out
+  const shownRows = () => panel.locator('#audit tbody tr').count()
+  const pressed = () => panel.getAttribute('#audit .filter [aria-pressed="true"]', 'data-filter')
+  assert.equal(await pressed(), 'issues')
+  const withIssues = await shownRows()
+  assert.ok(withIssues > 0 && withIssues < auditWorkflow.steps.length, `${withIssues} rows with errors or warnings`)
+  assert.equal(await panel.locator('#audit tbody tr:not(:has(.tally-error)):not(:has(.tally-warning))').count(), 0)
+  assert.match(await panel.textContent('#audit .hidden-rows'), new RegExp(`^${auditWorkflow.steps.length - withIssues} more snippets? with info only or nothing to fix`))
+  assert.match(await panel.textContent('#audit .filter [data-filter="all"]'), new RegExp(`All ${auditWorkflow.steps.length}`))
+  // Errors keeps the snippets with errors only
+  await panel.click('#audit .filter [data-filter="errors"]')
+  assert.equal(await pressed(), 'errors')
+  assert.equal(await panel.locator('#audit tbody tr:not(:has(.tally-error))').count(), 0)
+  // Show all lists every snippet
+  await panel.click('#audit .hidden-rows button')
+  assert.equal(await pressed(), 'all')
+  assert.equal(await shownRows(), auditWorkflow.steps.length)
+  assert.equal(await panel.locator('#audit .hidden-rows').count(), 0)
   // A snippet with nothing to fix says so, and a metric shows its value and rating
   const rows = await panel.locator('#audit tbody tr').evaluateAll((trs) => trs.map((tr) => tr.textContent.replace(/\s+/g, ' ').trim()))
   assert.ok(rows.some((r) => r.includes('No issues found')), 'no row says it has no issues')
@@ -324,13 +341,16 @@ test('the audit runs the snippets of the audit of the CLI, sums them up and open
   await reopenPanel()
   await panel.click('#go-home')
   await panel.click('main .audits li >> nth=0 >> .open-audit')
+  // The panel remembers the filter after closing DevTools
+  assert.equal(await pressed(), 'all')
   assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
   await panel.click('#audit tbody tr >> nth=0 >> button')
   await panel.waitForSelector('#result .raw pre', { state: 'attached' })
   await panel.click('#back-to-audit')
   assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
 
-  // Copy JSON and Download JSON give the audit in the shape of the CLI
+  // Copy JSON and Download JSON give the audit in the shape of the CLI, with every snippet whatever the filter
+  await panel.click('#audit .filter [data-filter="issues"]')
   await panel.evaluate(() => (window.__copied.length = 0))
   await panel.click('#copy-audit')
   await panel.waitForFunction(() => window.__copied.length === 1)
@@ -361,9 +381,11 @@ test('the home page lists the audits, opens and deletes them, and keeps them aft
   await reopenPanel()
   await panel.click('#go-home')
   assert.equal(await entries.count(), before + 1)
-  // The newest opens with its results
+  // The newest opens with its results, every one of them under All
   await entries.nth(0).locator('.open-audit').click()
+  await panel.click('#audit .filter [data-filter="all"]')
   assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+  await panel.click('#audit .filter [data-filter="issues"]')
   await panel.click('#go-home')
   const [download] = await Promise.all([panel.waitForEvent('download'), entries.nth(0).locator('.download-audit').click()])
   assert.match(download.suggestedFilename(), /^webperf-audit-127\.0\.0\.1-/)

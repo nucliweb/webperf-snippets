@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { summarize, bySeverity, overview, report, reportFileName, fromReport, addToHistory, removeFromHistory, compare, previousOf } from './audit.js'
+import { summarize, bySeverity, overview, report, reportFileName, fromReport, addToHistory, removeFromHistory, compare, previousOf, filterRows, filterCounts } from './audit.js'
 
 test('summarize counts the issues of a result by severity and names the worst one', () => {
   const s = summarize({
@@ -267,4 +267,18 @@ test('an audit saved before the codes pairs by message with one that has them', 
   const after = saved('b', 'u', [{ id: 'scripts', status: 'ok', issues: [coded('blocking-in-head', 'error', '2 blocking script(s) in <head>')] }])
   const c = compare(after, before)
   assert.deepEqual([c.added, c.resolved, c.changed, c.unchanged], [[], [], [], 1])
+})
+
+test('the filter of the audit keeps the snippets with errors, with errors or warnings, or all of them', () => {
+  const row = (id, errors, warnings, infos) => ({ snippet: { id }, summary: { errors, warnings, infos } })
+  const rows = [row('a', 1, 0, 0), row('b', 0, 2, 1), row('c', 0, 0, 3), row('d', 0, 0, 0), row('e', 2, 1, 0)]
+  const ids = (filter) => filterRows(rows, filter).map((r) => r.snippet.id)
+  assert.deepEqual(ids('errors'), ['a', 'e'])
+  assert.deepEqual(ids('issues'), ['a', 'b', 'e'])
+  assert.deepEqual(ids('all'), ['a', 'b', 'c', 'd', 'e'])
+  // A value the panel does not know, as a setting saved by another version, shows every row
+  assert.deepEqual(ids('unknown'), ids('all'))
+  assert.deepEqual(filterCounts(rows), { errors: 2, issues: 3, all: 5 })
+  // A snippet that failed counts as an error
+  assert.deepEqual(filterRows([{ snippet: { id: 'x' }, summary: summarize({ status: 'error', error: 'It failed' }) }], 'errors').length, 1)
 })
