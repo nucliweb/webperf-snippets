@@ -9,6 +9,17 @@
   --good: #0a7d3c;
   --ni: #b06000;
   --poor: #c5221f;
+  /* The phases, in the colours of the diagrams of the documentation */
+  --phase-0: #bf8700;
+  --phase-1: #8250df;
+  --phase-2: #0969da;
+  --phase-3: #1b7c83;
+  --phase-4: #bc4c00;
+  --phase-5: #bf3989;
+  --phase-6: #1a7f37;
+  --phase-7: #6e7781;
+  --phase-8: #cf222e;
+  --phase-9: #953800;
   color-scheme: light;
 }
 :root.dark {
@@ -22,6 +33,16 @@
   --good: #81c995;
   --ni: #fdd663;
   --poor: #f28b82;
+  --phase-0: #e3b341;
+  --phase-1: #d2a8ff;
+  --phase-2: #58a6ff;
+  --phase-3: #39c5cf;
+  --phase-4: #f0883e;
+  --phase-5: #f778ba;
+  --phase-6: #3fb950;
+  --phase-7: #8b949e;
+  --phase-8: #ff7b72;
+  --phase-9: #ffa657;
   color-scheme: dark;
 }
 :root {
@@ -121,6 +142,41 @@ th { position: sticky; top: 0; font-weight: 600; color: var(--muted); background
 .phrase + .phrase { padding-top: 4px; }
 .phrase:last-child { padding-bottom: 8px; }
 .phrase strong { font-variant-numeric: tabular-nums; }
+/* The phases of a metric: a bar over the zones of its thresholds, and a row per phase */
+.phases { padding: 8px 12px; }
+.phases-label { margin: 0 0 6px; color: var(--muted); }
+.phase-bar { position: relative; display: flex; height: 20px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+.zone { height: 100%; }
+.zone-good { background: var(--good-bg); }
+.zone-ni { background: var(--ni-bg); }
+.zone-poor { flex: 1; background: var(--poor-bg); }
+.phase { position: absolute; top: 3px; bottom: 3px; min-width: 2px; border-radius: 2px; }
+.phase-ticks { position: relative; height: 16px; font-size: 10px; color: var(--muted); }
+.phase-ticks span { position: absolute; transform: translateX(-50%); }
+.phase-list { display: grid; grid-template-columns: max-content max-content max-content max-content; gap: 2px 12px; margin: 4px 0 0; padding: 0; list-style: none; }
+.phase-row { display: contents; }
+.phase-row > span { align-self: center; }
+.phase-value, .phase-percent { text-align: right; font-variant-numeric: tabular-nums; }
+.phase-percent { color: var(--muted); }
+.phase-row.slowest .phase-name, .phase-row.slowest .phase-value { font-weight: 600; }
+.phase-row.over .phase-percent { color: var(--poor); font-weight: 600; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; }
+.phase-0 { background: var(--phase-0); }
+.phase-1 { background: var(--phase-1); }
+.phase-2 { background: var(--phase-2); }
+.phase-3 { background: var(--phase-3); }
+.phase-4 { background: var(--phase-4); }
+.phase-5 { background: var(--phase-5); }
+.phase-6 { background: var(--phase-6); }
+.phase-7 { background: var(--phase-7); }
+.phase-8 { background: var(--phase-8); }
+.phase-9 { background: var(--phase-9); }
+/* A list of objects inside a field or a cell: a table folded under its number of rows */
+.nested summary { color: var(--accent); cursor: pointer; }
+.nested .table { margin-top: 4px; border: 1px solid var(--border); border-radius: 4px; }
+dl.nested { padding: 0; }
+td.mark { text-align: center; color: var(--good); }
+.url { cursor: help; }
 .raw pre { overflow: auto; padding: 8px; background: var(--hover); border-radius: 4px; }
 .inspect { padding: 0; font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); text-align: left; background: none; border: 0; cursor: pointer; }
 .inspect:hover, .inspect:focus-visible { text-decoration: underline; }

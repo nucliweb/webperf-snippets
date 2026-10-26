@@ -6,7 +6,26 @@
 export default {
   '*': {
     title: 'Items',
-    fields: {},
+    fields: {
+      subParts: { label: 'Subparts' },
+      sslTls: { label: 'SSL/TLS' },
+    },
+    // The words of the view itself
+    words: {
+      yes: 'Yes',
+      no: 'No',
+      none: 'none',
+      rows: { one: '{n} row', other: '{n} rows' },
+    },
+  },
+  'TTFB-Sub-Parts': {
+    fields: {
+      redirectWait: { label: 'Redirect' },
+      serviceWorkerCache: { label: 'Service worker' },
+      dnsLookup: { label: 'DNS' },
+      tcpConnection: { label: 'TCP' },
+      serverResponse: { label: 'Request' },
+    },
   },
   'Find-render-blocking-resources': {
     title: 'Render-blocking resources',

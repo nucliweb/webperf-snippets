@@ -475,6 +475,17 @@ test('a result reads with the labels, formats and table title of its view', asyn
   assert.doesNotMatch(shown, /totalBlockingUntilMs|responseEndMs|sizeBytes/)
 })
 
+test('the phases of LCP are a chart with a row per phase, and no value is shown as JSON', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="LCP-Subparts"]')
+  const result = await resultOf('#run')
+  const phases = Object.keys(result.details.subParts)
+  assert.equal(await panel.locator('#result .phases .phase-row').count(), phases.length)
+  assert.equal(await panel.textContent('#result .phases .phase-row.slowest .phase-name'), await panel.textContent('#result .details dt:text("Slowest phase") + dd'))
+  const shown = (await panel.locator('#result > section').allTextContents()).join(' ')
+  assert.doesNotMatch(shown, /[{[]"/)
+})
+
 test('the panel lists every snippet, and each category says how many it has', async () => {
   assert.equal(await panel.locator('#list button').count(), snippets.length)
   const counts = await panel.locator('#list h2 .count').allTextContents()

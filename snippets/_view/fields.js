@@ -4,7 +4,20 @@
 // its format from the suffix of its key (format.js). The words are in locales/.
 
 export default {
-  '*': {},
+  '*': {
+    // A CSS selector of an element of the page, which a consumer can make inspectable
+    selector: { format: 'selector' },
+    element: { format: 'selector' },
+    lcpElement: { format: 'selector' },
+    finalElement: { format: 'selector' },
+    // The name of a phase, read as its label
+    slowestPhase: { format: 'key' },
+    // The issues of a row: the issues section of the result lists them already
+    issues: { hidden: true },
+  },
+  INP: {
+    phases: { format: 'phases' },
+  },
   'Find-render-blocking-resources': {
     shortName: { order: 1 },
     type: { order: 2 },
