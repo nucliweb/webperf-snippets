@@ -8,7 +8,7 @@ max_turns: 5
 license: MIT
 metadata:
   author: Joan Leon | @nucliweb
-  version: 2.1.0
+  version: 2.2.0
   mcp-server: chrome-devtools
   category: web-performance
   repository: https://github.com/nucliweb/webperf-snippets

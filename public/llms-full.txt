@@ -2,7 +2,7 @@
 
 Tested JavaScript snippets that measure and debug web performance. Your AI agent runs them for you, or you run them yourself in DevTools.
 Source: https://webperf-snippets.net
-Version: 2.1.0
+Version: 2.2.0
 
 ---
 
