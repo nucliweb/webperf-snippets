@@ -17,6 +17,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - A long CSS selector in a table of the extension wraps like a long URL, instead of widening the table until it scrolls sideways (DOM-Size-and-Depth on a large page).
+- Critical-CSS-Detection leaves out the `<link rel="stylesheet">` without `href` or with `disabled`, which load nothing. It counted them as render-blocking stylesheets with no name, 0 bytes and 0 rules, which inflated `renderBlockingCount`, and on a page with only such links reported "No critical CSS inlined".
 
 ---
 
