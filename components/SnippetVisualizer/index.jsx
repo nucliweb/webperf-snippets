@@ -14,9 +14,10 @@ and choose "Copy object", then paste it here.
 
 Or run: JSON.stringify(result) and paste the output.`;
 
-function detectRenderer(result) {
+export function detectRenderer(result) {
   if (result.script === "Fonts-Preloaded-Loaded-and-used-above-the-fold") return "fonts";
-  if (result.rating != null) return "cwv";
+  // A metric has a value to rate; an audit such as Script-Loading has a rating and no value
+  if (result.rating != null && typeof result.value === "number") return "cwv";
   if (Array.isArray(result.issues) || Array.isArray(result.items)) return "audit";
   return "raw";
 }
