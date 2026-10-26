@@ -6,6 +6,7 @@ import { buildRegistry } from '../lib/webmcp-registry.mjs'
 import { isTrackingSnippet } from '../cli/src/tracking.js'
 import { snippetExpression } from '../lib/snippet-expression.mjs'
 import { auditWorkflow } from '../cli/src/workflows/audit.js'
+import { cliCommand, cliVersion } from '../lib/snippet-prompt.mjs'
 
 // Writes extension/snippets.json, the snippets the extension runs, and copies the view of their results
 // to extension/lib/view/. The Chrome Web Store does not allow
@@ -19,6 +20,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const auditOrder = new Map(auditWorkflow.steps.map((step, index) => [step.path, index]))
 const auditIds = new Map(auditWorkflow.steps.map((step) => [step.path, step.id]))
 const registry = buildRegistry(ROOT)
+const version = cliVersion()
 const missing = [...auditOrder.keys()].filter((path) => !registry.some((s) => s.path === path))
 if (missing.length) throw new Error(`The audit workflow names snippets that do not exist: ${missing.join(', ')}`)
 const snippets = registry
@@ -39,6 +41,8 @@ const snippets = registry
   auditId: auditIds.get(path) ?? null,
   // The Copy prompt of the site, to run the snippet on the inspected page with the CLI from an agent
   prompt,
+  // The command of that prompt, without its output option, for the prompt to fix (lib/fix-prompt.js)
+  command: cliCommand({ path, source: code, cliVersion: version }),
 }))
 writeFileSync(join(ROOT, 'extension', 'snippets.json'), JSON.stringify(snippets))
 // The view of the results (labels, formats, order), shared with the CLI and the site; the extension

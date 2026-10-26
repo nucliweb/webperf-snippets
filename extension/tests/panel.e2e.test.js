@@ -50,11 +50,13 @@ before(async () => {
       return [undefined, { isException: true, value: error.message }]
     }
   })
-  await panel.addInitScript(() => {
+  await panel.addInitScript((manifest) => {
     // What the copy buttons write
     window.__copied = []
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (text) => window.__copied.push(text) } })
     window.chrome = {
+      // The version the prompt to fix names
+      runtime: { getManifest: () => manifest },
       devtools: {
         // openResource records what it would open in Sources
         panels: { themeName: 'default', openResource: (url) => (window.__opened ??= []).push(url) },
@@ -83,7 +85,7 @@ before(async () => {
         ])
       ),
     }
-  })
+  }, JSON.parse(readFileSync(join(EXTENSION, 'manifest.json'), 'utf8')))
   await panel.goto(`http://127.0.0.1:${extension.address().port}/panel.html`)
   await panel.waitForSelector('#list button')
 })
@@ -129,6 +131,31 @@ test('Copy JSON copies the result, and Copy prompt the prompt with the inspected
   assert.ok(prompt.includes(`webperf-snippets '${servers.base}/seeded' --snippet LCP --json`), 'the command has the inspected page')
   assert.ok(!prompt.includes('<url>'))
   assert.ok(prompt.endsWith(`\nPage to measure: ${servers.base}/seeded\n`), prompt.slice(-120))
+})
+
+test('Prompt to measure is always there, and Prompt to fix only with errors or warnings, with what the result found', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="TTFB"]')
+  assert.equal(await panel.textContent('#copy-prompt'), 'Prompt to measure')
+  await resultOf('#run')
+  assert.equal(await panel.locator('#copy-fix-prompt').isVisible(), false, 'a good TTFB has nothing to fix')
+
+  await panel.click('#list button[data-id="Oversized-Images"]')
+  assert.equal(await panel.locator('#copy-fix-prompt').isVisible(), false, 'nothing to fix before it runs')
+  const result = await resultOf('#run')
+  assert.ok(result.issues.some((i) => i.severity === 'warning'), 'the seeded page has undersized images')
+  await panel.evaluate(() => (window.__copied.length = 0))
+  await panel.click('#copy-fix-prompt')
+  await panel.waitForFunction(() => window.__copied.length === 1)
+  const prompt = await panel.evaluate(() => window.__copied[0])
+  assert.ok(prompt.startsWith(`# Fix the issues WebPerf Snippets found on ${servers.base}/seeded\n`), prompt.slice(0, 120))
+  assert.match(prompt, /^- warning `undersized` \(/m)
+  assert.match(prompt, /--snippet Oversized-Images --json > before\.json/)
+  const { version } = JSON.parse(readFileSync(join(EXTENSION, 'manifest.json'), 'utf8'))
+  assert.ok(prompt.includes(` with the WebPerf Snippets extension ${version}\n`), 'the version of the extension')
+
+  await panel.click('#clear')
+  assert.equal(await panel.locator('#copy-fix-prompt').isVisible(), false, 'no result, nothing to fix')
 })
 
 test('a navigation hides Read result, since it clears what a tracking snippet recorded', async () => {
