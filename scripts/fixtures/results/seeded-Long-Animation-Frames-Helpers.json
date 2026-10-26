@@ -1,0 +1,24 @@
+{
+  "script": "Long-Animation-Frames-Helpers",
+  "status": "ok",
+  "count": 2,
+  "details": {
+    "withBlockingTime": 2,
+    "totalBlockingTimeMs": 112,
+    "worstBlockingMs": 70
+  },
+  "items": [
+    {
+      "startTimeMs": 513,
+      "durationMs": 120,
+      "blockingDurationMs": 70,
+      "scriptCount": 1
+    },
+    {
+      "startTimeMs": 873,
+      "durationMs": 92,
+      "blockingDurationMs": 41,
+      "scriptCount": 1
+    }
+  ]
+}

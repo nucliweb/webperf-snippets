@@ -1,0 +1,110 @@
+{
+  "script": "Cache-Strategy-Analysis",
+  "status": "ok",
+  "count": 10,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "totalResources": 10,
+    "actionableCount": 7,
+    "headersAnalyzed": 7,
+    "corsRestricted": 0,
+    "excludedFromHeaders": 3,
+    "headerCoveragePercent": 70,
+    "cacheEfficiencyPercent": 0,
+    "cacheEfficiencyRating": "poor",
+    "cacheEfficiencyResources": 7,
+    "bandwidthSavedBytes": 0,
+    "strategyDistribution": {
+      "none": 7,
+      "unknown": 3
+    },
+    "cdnDetected": false,
+    "cdnHitRate": null,
+    "cdnHitRateRating": null,
+    "antiPatternCount": 0,
+    "duplicatesCostlyCount": 0,
+    "uncompressedCount": 0,
+    "protocolDistribution": {
+      "http/1.1": 8,
+      "unknown": 2
+    }
+  },
+  "items": [
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "app.js",
+      "host": "127.0.0.1",
+      "type": "script",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 20,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "async.js",
+      "host": "127.0.0.1",
+      "type": "script",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 20,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "style.css",
+      "host": "127.0.0.1",
+      "type": "style",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 14,
+      "isCached": false,
+      "antiPatterns": []
+    }
+  ],
+  "issues": [],
+  "recommendations": [
+    "🔴 Add Cache-Control headers to static assets (JS, CSS, fonts, images). Start with max-age=86400 and move to immutable for versioned files.",
+    "🔴 Cache efficiency is low (0%, measured on the 7 resources whose cache headers could be read). Review caching strategy for those static assets.",
+    "🟡 8 resources still use HTTP/1.1. Consider upgrading to HTTP/2 for better multiplexing."
+  ]
+}

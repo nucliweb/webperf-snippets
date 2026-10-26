@@ -1,0 +1,19 @@
+{
+  "script": "Back-Forward-Cache",
+  "status": "ok",
+  "details": {
+    "eligibility": "no-blockers-detected",
+    "wasRestored": false,
+    "supported": true,
+    "navigationType": "navigate",
+    "notRestoredReasons": null
+  },
+  "issues": [
+    {
+      "code": "iframes",
+      "severity": "info",
+      "message": "1 iframe(s) on the page"
+    }
+  ],
+  "message": "bfcache analysis complete. Call checkBfcache() to re-run analysis."
+}

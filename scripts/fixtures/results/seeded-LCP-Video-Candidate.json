@@ -1,0 +1,16 @@
+{
+  "script": "LCP-Video-Candidate",
+  "status": "ok",
+  "details": {
+    "isVideo": false,
+    "lcpElement": "body",
+    "lcpUrl": null
+  },
+  "issues": [
+    {
+      "code": "lcp-not-video",
+      "severity": "info",
+      "message": "The LCP element is <body>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases."
+    }
+  ]
+}

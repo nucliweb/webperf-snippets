@@ -1,0 +1,31 @@
+{
+  "script": "Find-non-Lazy-Loaded-Images-outside-of-the-viewport",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "belowFoldCount": 1,
+    "hiddenContainerCount": 0,
+    "totalSizeBytes": 30473,
+    "excluded": {
+      "inViewport": 0,
+      "lcpCandidate": "#hero",
+      "tooSmall": 1
+    }
+  },
+  "items": [
+    {
+      "selector": "html>body>img",
+      "src": "http://127.0.0.1:8000/hero.png?c",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1445
+    }
+  ],
+  "issues": [
+    {
+      "code": "eager-off-viewport",
+      "severity": "warning",
+      "message": "1 image(s) outside the viewport are missing loading=\"lazy\""
+    }
+  ]
+}

@@ -1,0 +1,297 @@
+{
+  "script": "Find-non-Lazy-Loaded-Images-outside-of-the-viewport",
+  "status": "ok",
+  "count": 39,
+  "details": {
+    "belowFoldCount": 39,
+    "hiddenContainerCount": 0,
+    "totalSizeBytes": 1188447,
+    "excluded": {
+      "inViewport": 5,
+      "lcpCandidate": "html>body>div.c0>img",
+      "tooSmall": 0
+    }
+  },
+  "items": [
+    {
+      "selector": "html>body>div.c8>img",
+      "src": "http://127.0.0.1:8000/hero.png?i88",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 4971
+    },
+    {
+      "selector": "html>body>div.c6>img",
+      "src": "http://127.0.0.1:8000/hero.png?i86",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 4843
+    },
+    {
+      "selector": "html>body>div.c4>img",
+      "src": "http://127.0.0.1:8000/hero.png?i84",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 4715
+    },
+    {
+      "selector": "html>body>div.c2>img",
+      "src": "http://127.0.0.1:8000/hero.png?i82",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 4587
+    },
+    {
+      "selector": "html>body>div.c0>img",
+      "src": "http://127.0.0.1:8000/hero.png?i80",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 4459
+    },
+    {
+      "selector": "html>body>div.c78>img",
+      "src": "http://127.0.0.1:8000/hero.png?i78",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 4331
+    },
+    {
+      "selector": "html>body>div.c76>img",
+      "src": "http://127.0.0.1:8000/hero.png?i76",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 4203
+    },
+    {
+      "selector": "html>body>div.c74>img",
+      "src": "http://127.0.0.1:8000/hero.png?i74",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 4075
+    },
+    {
+      "selector": "html>body>div.c72>img",
+      "src": "http://127.0.0.1:8000/hero.png?i72",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 3947
+    },
+    {
+      "selector": "html>body>div.c70>img",
+      "src": "http://127.0.0.1:8000/hero.png?i70",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 3819
+    },
+    {
+      "selector": "html>body>div.c68>img",
+      "src": "http://127.0.0.1:8000/hero.png?i68",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 3691
+    },
+    {
+      "selector": "html>body>div.c66>img",
+      "src": "http://127.0.0.1:8000/hero.png?i66",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 3563
+    },
+    {
+      "selector": "html>body>div.c64>img",
+      "src": "http://127.0.0.1:8000/hero.png?i64",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 3435
+    },
+    {
+      "selector": "html>body>div.c62>img",
+      "src": "http://127.0.0.1:8000/hero.png?i62",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 3307
+    },
+    {
+      "selector": "html>body>div.c60>img",
+      "src": "http://127.0.0.1:8000/hero.png?i60",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 3179
+    },
+    {
+      "selector": "html>body>div.c58>img",
+      "src": "http://127.0.0.1:8000/hero.png?i58",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 3051
+    },
+    {
+      "selector": "html>body>div.c56>img",
+      "src": "http://127.0.0.1:8000/hero.png?i56",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 2923
+    },
+    {
+      "selector": "html>body>div.c54>img",
+      "src": "http://127.0.0.1:8000/hero.png?i54",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 2795
+    },
+    {
+      "selector": "html>body>div.c52>img",
+      "src": "http://127.0.0.1:8000/hero.png?i52",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 2667
+    },
+    {
+      "selector": "html>body>div.c50>img",
+      "src": "http://127.0.0.1:8000/hero.png?i50",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 2539
+    },
+    {
+      "selector": "html>body>div.c48>img",
+      "src": "http://127.0.0.1:8000/hero.png?i48",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 2411
+    },
+    {
+      "selector": "html>body>div.c46>img",
+      "src": "http://127.0.0.1:8000/hero.png?i46",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 2283
+    },
+    {
+      "selector": "html>body>div.c44>img",
+      "src": "http://127.0.0.1:8000/hero.png?i44",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 2155
+    },
+    {
+      "selector": "html>body>div.c42>img",
+      "src": "http://127.0.0.1:8000/hero.png?i42",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 2027
+    },
+    {
+      "selector": "html>body>div.c40>img",
+      "src": "http://127.0.0.1:8000/hero.png?i40",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1899
+    },
+    {
+      "selector": "html>body>div.c38>img",
+      "src": "http://127.0.0.1:8000/hero.png?i38",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1771
+    },
+    {
+      "selector": "html>body>div.c36>img",
+      "src": "http://127.0.0.1:8000/hero.png?i36",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1643
+    },
+    {
+      "selector": "html>body>div.c34>img",
+      "src": "http://127.0.0.1:8000/hero.png?i34",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1515
+    },
+    {
+      "selector": "html>body>div.c32>img",
+      "src": "http://127.0.0.1:8000/hero.png?i32",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1387
+    },
+    {
+      "selector": "html>body>div.c30>img",
+      "src": "http://127.0.0.1:8000/hero.png?i30",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1259
+    },
+    {
+      "selector": "html>body>div.c28>img",
+      "src": "http://127.0.0.1:8000/hero.png?i28",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1131
+    },
+    {
+      "selector": "html>body>div.c26>img",
+      "src": "http://127.0.0.1:8000/hero.png?i26",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 1003
+    },
+    {
+      "selector": "html>body>div.c24>img",
+      "src": "http://127.0.0.1:8000/hero.png?i24",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 875
+    },
+    {
+      "selector": "html>body>div.c22>img",
+      "src": "http://127.0.0.1:8000/hero.png?i22",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 747
+    },
+    {
+      "selector": "html>body>div.c20>img",
+      "src": "http://127.0.0.1:8000/hero.png?i20",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 619
+    },
+    {
+      "selector": "html>body>div.c18>img",
+      "src": "http://127.0.0.1:8000/hero.png?i18",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 491
+    },
+    {
+      "selector": "html>body>div.c16>img",
+      "src": "http://127.0.0.1:8000/hero.png?i16",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 363
+    },
+    {
+      "selector": "html>body>div.c14>img",
+      "src": "http://127.0.0.1:8000/hero.png?i14",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 235
+    },
+    {
+      "selector": "html>body>div.c12>img",
+      "src": "http://127.0.0.1:8000/hero.png?i12",
+      "sizeBytes": 30473,
+      "category": "below-fold",
+      "distancePx": 107
+    }
+  ],
+  "issues": [
+    {
+      "code": "eager-off-viewport",
+      "severity": "warning",
+      "message": "39 image(s) outside the viewport are missing loading=\"lazy\""
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "script": "Resource-Hints",
+  "status": "ok",
+  "count": 2,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "sizeUnknownCount": 0,
+    "byType": {
+      "preload": 1,
+      "modulepreload": 0,
+      "preconnect": 1,
+      "dns-prefetch": 0,
+      "prefetch": 0,
+      "prerender": 0
+    },
+    "missingPreconnectsCount": 0,
+    "missingPreconnects": []
+  },
+  "items": [
+    {
+      "rel": "preconnect",
+      "href": "http://127.0.0.1:8001/",
+      "as": "",
+      "crossorigin": "",
+      "fetchpriority": "auto"
+    },
+    {
+      "rel": "preload",
+      "href": "http://127.0.0.1:8000/app.js",
+      "as": "script",
+      "crossorigin": "",
+      "fetchpriority": "auto"
+    }
+  ],
+  "issues": [
+    {
+      "code": "preconnect-no-crossorigin",
+      "severity": "warning",
+      "message": "preconnect: Preconnect may need crossorigin for CORS resources. Fix: Consider adding crossorigin=\"anonymous\"",
+      "target": "http://127.0.0.1:8001/"
+    }
+  ]
+}

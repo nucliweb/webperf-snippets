@@ -1,0 +1,24 @@
+{
+  "script": "CSS-Media-Queries-Analysis",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "minWidth": 768,
+    "rules": 0,
+    "totalUnique": 0,
+    "uniquenessRatio": 0,
+    "classes": 0,
+    "properties": 0,
+    "bytes": 0,
+    "bySource": [],
+    "corsBlockedCount": 0
+  },
+  "items": [],
+  "issues": [
+    {
+      "code": "no-wide-rules",
+      "severity": "info",
+      "message": "No @media rules for viewports wider than 768px"
+    }
+  ]
+}

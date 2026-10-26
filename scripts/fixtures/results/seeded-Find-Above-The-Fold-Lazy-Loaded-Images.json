@@ -1,0 +1,34 @@
+{
+  "script": "Find-Above-The-Fold-Lazy-Loaded-Images",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "total": 1,
+    "withLoadingLazy": 1,
+    "withDataSrc": 0,
+    "lcpAffected": false
+  },
+  "items": [
+    {
+      "selector": "html>body>img",
+      "lazyType": "loading-lazy",
+      "dimensions": "300×200",
+      "position": "441px, 604px",
+      "distanceFromEdge": "59px",
+      "src": "http://127.0.0.1:8000/hero.png?b",
+      "srcset": null,
+      "sizes": null,
+      "alt": "lazy",
+      "fetchPriority": "high",
+      "fileSize": "29.8 KB",
+      "isLcpCandidate": false
+    }
+  ],
+  "issues": [
+    {
+      "code": "lazy-above-fold",
+      "severity": "warning",
+      "message": "1 above-fold image(s) have lazy loading: remove loading=\"lazy\""
+    }
+  ]
+}

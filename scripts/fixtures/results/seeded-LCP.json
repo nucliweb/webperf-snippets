@@ -1,0 +1,18 @@
+{
+  "script": "LCP",
+  "status": "ok",
+  "metric": "LCP",
+  "value": 28,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 2500,
+    "needsImprovement": 4000
+  },
+  "details": {
+    "element": "body",
+    "elementType": "body",
+    "url": null,
+    "sizePixels": 57436
+  }
+}

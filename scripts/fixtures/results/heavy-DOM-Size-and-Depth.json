@@ -1,0 +1,78 @@
+{
+  "script": "DOM-Size-and-Depth",
+  "status": "ok",
+  "count": 10,
+  "issues": [
+    {
+      "code": "too-many-children",
+      "severity": "warning",
+      "message": "html > body has 183 children, above 60; consider virtualizing or paginating the list"
+    }
+  ],
+  "items": [
+    {
+      "selector": "html > body",
+      "children": 183,
+      "depth": 2
+    },
+    {
+      "selector": "html > head",
+      "children": 145,
+      "depth": 2
+    },
+    {
+      "selector": "html",
+      "children": 2,
+      "depth": 1
+    },
+    {
+      "selector": "html > body > div.c0",
+      "children": 1,
+      "depth": 3
+    },
+    {
+      "selector": "html > body > div.c1",
+      "children": 1,
+      "depth": 3
+    },
+    {
+      "selector": "html > body > div.c2",
+      "children": 1,
+      "depth": 3
+    },
+    {
+      "selector": "html > body > div.c3",
+      "children": 1,
+      "depth": 3
+    },
+    {
+      "selector": "html > body > div.c4",
+      "children": 1,
+      "depth": 3
+    },
+    {
+      "selector": "html > body > div.c5",
+      "children": 1,
+      "depth": 3
+    },
+    {
+      "selector": "html > body > div.c6",
+      "children": 1,
+      "depth": 3
+    }
+  ],
+  "details": {
+    "totalElements": 421,
+    "maxDepth": 4,
+    "maxChildren": 183,
+    "widestParent": "html > body",
+    "deepestElement": "html > body > div.c0 > img",
+    "shadowRoots": 0,
+    "thresholds": {
+      "warnNodes": 800,
+      "errorNodes": 1400,
+      "maxDepth": 32,
+      "maxChildren": 60
+    }
+  }
+}

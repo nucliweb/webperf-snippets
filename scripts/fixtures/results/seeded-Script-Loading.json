@@ -1,0 +1,67 @@
+{
+  "script": "Script-Loading",
+  "status": "ok",
+  "count": 3,
+  "corsLimitedAnalysis": true,
+  "rating": "needs-improvement",
+  "details": {
+    "totalSizeBytes": 320,
+    "sizeUnknownCount": 2,
+    "byStrategy": {
+      "blocking": 1,
+      "async": 1,
+      "defer": 1,
+      "module": 0,
+      "nomodule": 0
+    },
+    "byParty": {
+      "firstParty": 3,
+      "thirdParty": 0
+    },
+    "thirdPartyBlockingCount": 0
+  },
+  "items": [
+    {
+      "url": "http://127.0.0.1:8001/third.js",
+      "shortName": "third.js",
+      "strategy": "blocking",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 0,
+      "sizeKnown": false,
+      "durationMs": 5
+    },
+    {
+      "url": "http://127.0.0.1:8000/async.js",
+      "shortName": "async.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 6
+    },
+    {
+      "url": "http://127.0.0.1:8000/app.js",
+      "shortName": "app.js",
+      "strategy": "defer",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 0,
+      "sizeKnown": false,
+      "durationMs": 0
+    }
+  ],
+  "issues": [
+    {
+      "code": "blocking-in-head",
+      "severity": "error",
+      "message": "1 blocking script(s) in <head>"
+    },
+    {
+      "code": "unknown-size",
+      "severity": "info",
+      "message": "2 script(s) have an unknown size (missing Timing-Allow-Origin); total size is a lower bound"
+    }
+  ]
+}

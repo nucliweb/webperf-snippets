@@ -1,0 +1,39 @@
+{
+  "script": "LCP-Subparts",
+  "status": "ok",
+  "metric": "LCP",
+  "value": 28,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 2500,
+    "needsImprovement": 4000
+  },
+  "details": {
+    "element": "body",
+    "url": null,
+    "subParts": {
+      "ttfb": {
+        "value": 1,
+        "percent": 4,
+        "overTarget": false
+      },
+      "resourceLoadDelay": {
+        "value": 0,
+        "percent": 0,
+        "overTarget": false
+      },
+      "resourceLoadTime": {
+        "value": 0,
+        "percent": 0,
+        "overTarget": false
+      },
+      "elementRenderDelay": {
+        "value": 27,
+        "percent": 96,
+        "overTarget": true
+      }
+    },
+    "slowestPhase": "elementRenderDelay"
+  }
+}

@@ -1,0 +1,276 @@
+{
+  "script": "Scroll-Performance",
+  "status": "ok",
+  "details": {
+    "nonPassiveListeners": 0,
+    "cssAudit": {
+      "smoothScrollElements": 0,
+      "willChangeElements": 120,
+      "contentVisibilityElements": 0,
+      "overscrollElements": 90
+    },
+    "sessionCount": 1,
+    "avgFps": 60,
+    "worstSessionFps": 60,
+    "totalDrops": 0
+  },
+  "items": [
+    {
+      "kind": "will-change",
+      "target": "div.c0",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c1",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c2",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c3",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c4",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c5",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c6",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c7",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c8",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c9",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c10",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c11",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c12",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c13",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c14",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c15",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c16",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c17",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c18",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c19",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c20",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c21",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c22",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c23",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c24",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c25",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c26",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c27",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c28",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c29",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c30",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c31",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c32",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c33",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c34",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c35",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c36",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c37",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c38",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c39",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c40",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c41",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c42",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c43",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c44",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c45",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c46",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c47",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c48",
+      "detail": "transform"
+    },
+    {
+      "kind": "will-change",
+      "target": "div.c49",
+      "detail": "transform"
+    }
+  ],
+  "issues": [
+    {
+      "code": "will-change",
+      "severity": "info",
+      "message": "will-change is set on 120 element(s). Remove it from elements that do not animate, since each one keeps a compositor layer."
+    }
+  ]
+}

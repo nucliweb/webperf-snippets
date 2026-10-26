@@ -1,0 +1,53 @@
+{
+  "script": "Long-Animation-Frames",
+  "status": "ok",
+  "count": 2,
+  "details": {
+    "totalLoAFs": 2,
+    "withBlockingTime": 2,
+    "totalBlockingTimeMs": 111,
+    "worstBlockingMs": 70,
+    "topScripts": [
+      {
+        "invoker": "TimerHandler:setTimeout",
+        "source": "seeded",
+        "totalDurationMs": 120,
+        "count": 1
+      },
+      {
+        "invoker": "BUTTON#go.onclick",
+        "source": "seeded",
+        "totalDurationMs": 60,
+        "count": 1
+      }
+    ]
+  },
+  "items": [
+    {
+      "startTimeMs": 513,
+      "durationMs": 120,
+      "blockingDurationMs": 70,
+      "scripts": [
+        {
+          "invoker": "TimerHandler:setTimeout",
+          "source": "seeded",
+          "durationMs": 120,
+          "forcedStyleAndLayoutMs": 0
+        }
+      ]
+    },
+    {
+      "startTimeMs": 874,
+      "durationMs": 91,
+      "blockingDurationMs": 41,
+      "scripts": [
+        {
+          "invoker": "BUTTON#go.onclick",
+          "source": "seeded",
+          "durationMs": 60,
+          "forcedStyleAndLayoutMs": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "script": "JS-Execution-Time-Breakdown",
+  "status": "ok",
+  "count": 2,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "blockingCount": 1,
+    "nonBlockingCount": 1,
+    "totalTransferBytes": 320,
+    "totalDecodedBytes": 20,
+    "totalDownloadMs": 11,
+    "totalEstParseMobileMs": 0,
+    "splitCandidatesCount": 0,
+    "domInteractiveMs": 21,
+    "domContentLoadedMs": 21,
+    "loadEventMs": 23,
+    "criticalBundles": []
+  },
+  "items": [
+    {
+      "shortName": "async.js",
+      "isBlocking": false,
+      "downloadMs": 6,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "third.js",
+      "isBlocking": true,
+      "downloadMs": 5,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 0,
+      "decodedBytes": 0,
+      "corsRestricted": true
+    }
+  ],
+  "issues": [
+    {
+      "code": "render-blocking",
+      "severity": "error",
+      "message": "1 render-blocking script(s) delay HTML parsing"
+    }
+  ]
+}

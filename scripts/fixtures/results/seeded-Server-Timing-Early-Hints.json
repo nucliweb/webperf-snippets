@@ -1,0 +1,36 @@
+{
+  "script": "Server-Timing-Early-Hints",
+  "status": "ok",
+  "count": 0,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "navigation": {
+      "responseStartMs": 4.4,
+      "firstInterimResponseStartMs": 0,
+      "finalResponseHeadersStartMs": 4.4,
+      "earlyHintsReceived": false,
+      "earlyHintsLeadMs": 0,
+      "serverTimingCount": 0
+    },
+    "resourcesWithServerTiming": 0,
+    "corsRestrictedCount": 2
+  },
+  "items": [],
+  "issues": [
+    {
+      "code": "no-server-timing",
+      "severity": "info",
+      "message": "The document response sends no Server-Timing header. Add one, for example Server-Timing: db;dur=53, to expose backend timings in DevTools and in the Performance API."
+    },
+    {
+      "code": "timing-hidden",
+      "severity": "info",
+      "message": "2 cross-origin resource(s) hide their timing because they lack Timing-Allow-Origin, so their Server-Timing cannot be read. Add Timing-Allow-Origin to expose it."
+    },
+    {
+      "code": "no-early-hints",
+      "severity": "info",
+      "message": "No 103 Early Hints response was observed for the document. If the server can send Link preload or preconnect headers before the final response, Early Hints lets the browser start those fetches earlier."
+    }
+  ]
+}

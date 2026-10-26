@@ -1,0 +1,17 @@
+{
+  "script": "Content-Visibility",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "autoCount": 0,
+    "hiddenCount": 0
+  },
+  "items": [],
+  "issues": [
+    {
+      "code": "not-used",
+      "severity": "info",
+      "message": "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost."
+    }
+  ]
+}

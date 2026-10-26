@@ -1,0 +1,26 @@
+{
+  "script": "Validate-Preload-Async-Defer-Scripts",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "validCount": 0,
+    "issueCount": 1
+  },
+  "items": [
+    {
+      "url": "app.js",
+      "type": "issue",
+      "strategy": "defer",
+      "location": "head",
+      "reviewNote": "Remove the preload, OR add fetchpriority=\"low\" to the <script> tag to keep early discovery without priority escalation"
+    }
+  ],
+  "issues": [
+    {
+      "code": "async-defer-preload",
+      "severity": "error",
+      "message": "Script has defer but is also preloaded. Fix: Remove the preload, OR add fetchpriority=\"low\" to the <script> tag to keep early discovery without priority escalation",
+      "target": "http://127.0.0.1:8000/app.js"
+    }
+  ]
+}

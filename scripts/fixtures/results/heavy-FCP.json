@@ -1,0 +1,20 @@
+{
+  "script": "FCP",
+  "status": "ok",
+  "metric": "FCP",
+  "value": 24,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 1800,
+    "needsImprovement": 3000
+  },
+  "details": {
+    "ttfbMs": 1,
+    "renderBlockingLoadMs": 0,
+    "renderDelayMs": 23,
+    "blockingResourceCount": 0,
+    "renderBlockingSupported": true
+  },
+  "items": []
+}

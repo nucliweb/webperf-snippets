@@ -2,16 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { formatValue, renderResult } from './render.js'
 
-test('formatValue writes each unit of the contract', () => {
-  assert.equal(formatValue(450, 'ms'), '450 ms')
+test('formatValue is the one of the view, which the audit summary uses too', () => {
   assert.equal(formatValue(2448, 'ms'), '2,448 ms')
-  assert.equal(formatValue(0.7606, 'score'), '0.761')
-  assert.equal(formatValue(12, 'count'), '12')
-  assert.equal(formatValue(2048, 'bytes'), '2.0 KB')
-  assert.equal(formatValue(3 * 1024 * 1024, 'bytes'), '3.0 MB')
   assert.equal(formatValue(0.0512, 'bpp'), '0.051 bpp')
-  assert.equal(formatValue(58.4, 'fps'), '58 fps')
-  assert.equal(formatValue(7, undefined), '7')
 })
 
 test('a metric shows its value, rating and thresholds', () => {
@@ -44,7 +37,7 @@ test('issues are listed by severity', () => {
   assert.deepEqual(order, ['error', 'warning', 'info'])
 })
 
-test('items become a table with a column per field, and nested values as JSON', () => {
+test('items become a table with a labelled column per field, and nested values as JSON', () => {
   const html = renderResult({
     script: 'X',
     status: 'ok',
@@ -54,16 +47,38 @@ test('items become a table with a column per field, and nested values as JSON', 
       { url: 'https://a/y.js', position: { top: 10 } },
     ],
   })
-  assert.match(html, /<th>url<\/th><th>size<\/th><th>position<\/th>/)
+  assert.match(html, /<h3>Items<\/h3>/)
+  assert.match(html, /<th>URL<\/th><th>Size<\/th><th>Position<\/th>/)
   assert.match(html, /<td>https:\/\/a\/x\.js<\/td><td class="num">120<\/td><td><\/td>/)
   assert.match(html, /<td>\{&quot;top&quot;:10\}<\/td>/)
   assert.match(html, /2 of 3 items/)
 })
 
-test('details become a list of fields', () => {
+test('details become a list of labelled fields', () => {
   const html = renderResult({ script: 'X', status: 'ok', details: { totalInteractions: 2, phases: { inputDelay: 7 } } })
-  assert.match(html, /<dt>totalInteractions<\/dt><dd>2<\/dd>/)
-  assert.match(html, /<dt>phases<\/dt><dd>\{&quot;inputDelay&quot;:7\}<\/dd>/)
+  assert.match(html, /<dt>Total interactions<\/dt><dd>2<\/dd>/)
+  assert.match(html, /<dt>Phases<\/dt><dd>\{&quot;inputDelay&quot;:7\}<\/dd>/)
+})
+
+test('a field and a column show their value in the format of their unit', () => {
+  const html = renderResult({ script: 'X', status: 'ok', details: { totalSizeBytes: 17625 }, items: [{ name: 'a', durationMs: 1200.4 }] })
+  assert.match(html, /<dt>Total size<\/dt><dd>17.2 KB<\/dd>/)
+  assert.match(html, /<th>Name<\/th><th>Duration<\/th>/)
+  assert.match(html, /<td class="num">1,200 ms<\/td>/)
+})
+
+test('a snippet with its own entries shows the title of its table and reads a field as a sentence', () => {
+  const html = renderResult({
+    script: 'Find-render-blocking-resources',
+    status: 'ok',
+    count: 1,
+    details: { totalBlockingUntilMs: 532, totalSizeBytes: 314 },
+    items: [{ type: 'link', url: 'https://example.com/style.css', shortName: 'style.css', responseEndMs: 532, durationMs: 120, sizeBytes: 314 }],
+  })
+  assert.match(html, /<h3>Render-blocking resources<\/h3>/)
+  assert.match(html, /<p class="phrase">Rendering blocked until <strong>532 ms<\/strong><\/p>/)
+  assert.match(html, /<dl class="details"><dt>Total size<\/dt><dd>314 B<\/dd><\/dl>/)
+  assert.match(html, /<th>File<\/th><th>Type<\/th><th>Response end<\/th>/)
 })
 
 test('an error or an unsupported result shows its message', () => {
@@ -142,16 +157,16 @@ test('empty fields and columns are left out', () => {
     ],
     details: { element: 'p', url: '', preloaded: [], none: null, count: 0 },
   })
-  assert.match(html, /<th>family<\/th><th>note<\/th><\/tr>/)
-  assert.doesNotMatch(html, /<th>unicodeRange/)
-  assert.match(html, /<dt>element<\/dt>/)
-  assert.match(html, /<dt>count<\/dt><dd>0<\/dd>/)
-  assert.doesNotMatch(html, /<dt>(url|preloaded|none)<\/dt>/)
+  assert.match(html, /<th>Family<\/th><th>Note<\/th><\/tr>/)
+  assert.doesNotMatch(html, /<th>Unicode range/)
+  assert.match(html, /<dt>Element<\/dt>/)
+  assert.match(html, /<dt>Count<\/dt><dd>0<\/dd>/)
+  assert.doesNotMatch(html, /<dt>(URL|Preloaded|None)<\/dt>/)
 })
 
 test('numbers in the items table are aligned to the right', () => {
   const html = renderResult({ script: 'X', status: 'ok', items: [{ name: 'a', bytes: 1200 }] })
-  assert.match(html, /<td>a<\/td><td class="num">1200<\/td>/)
+  assert.match(html, /<td>a<\/td><td class="num">1,200<\/td>/)
 })
 
 test('a selector in the items or the details is a button that inspects the element', () => {
@@ -162,6 +177,12 @@ test('a selector in the items or the details is a button that inspects the eleme
     details: { element: 'p.intro', elementType: 'Text block' },
   })
   assert.match(html, /<td><button type="button" class="inspect" data-selector="img#hero" title="Inspect in Elements">img#hero<\/button><\/td>/)
-  assert.match(html, /<dt>element<\/dt><dd><button type="button" class="inspect" data-selector="p.intro" title="Inspect in Elements">p.intro<\/button><\/dd>/)
-  assert.match(html, /<dt>elementType<\/dt><dd>Text block<\/dd>/)
+  assert.match(html, /<dt>Element<\/dt><dd><button type="button" class="inspect" data-selector="p.intro" title="Inspect in Elements">p.intro<\/button><\/dd>/)
+  assert.match(html, /<dt>Element type<\/dt><dd>Text block<\/dd>/)
+})
+
+test('a long selector wraps like any long value, so the table does not scroll sideways', () => {
+  const selector = 'html.js-ready > body.logged-in > div.layout > div.layout-main > div.content > ul#list'
+  const html = renderResult({ script: 'X', status: 'ok', items: [{ selector, children: 120 }] })
+  assert.match(html, /<td class="long"><button type="button" class="inspect"/)
 })

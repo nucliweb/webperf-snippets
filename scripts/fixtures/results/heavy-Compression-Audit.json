@@ -1,0 +1,42 @@
+{
+  "script": "Compression-Audit",
+  "status": "ok",
+  "count": 1,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "totalTextResources": 83,
+    "compressedCount": 0,
+    "uncompressedCount": 1,
+    "sizeUnknownCount": 12,
+    "skippedSmallCount": 70,
+    "totalUncompressedBytes": 21416,
+    "estimatedSavingsBytes": 14991,
+    "byEncoding": {
+      "none": 1
+    },
+    "contentEncodingSupported": true
+  },
+  "items": [
+    {
+      "url": "http://127.0.0.1:8000/heavy",
+      "shortName": "heavy",
+      "type": "html",
+      "encoding": "none",
+      "encodedBytes": 21416,
+      "decodedBytes": 21416,
+      "estimatedSavingsBytes": 14991
+    }
+  ],
+  "issues": [
+    {
+      "code": "uncompressed",
+      "severity": "warning",
+      "message": "1 text resource(s) served without compression; enabling gzip or brotli could save about 14.6 KB"
+    },
+    {
+      "code": "unknown-size",
+      "severity": "info",
+      "message": "12 cross-origin text resource(s) without Timing-Allow-Origin report zero sizes, so their compression is unknown"
+    }
+  ]
+}

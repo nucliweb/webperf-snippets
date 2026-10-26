@@ -2,53 +2,33 @@
 // its rating, the issues, the items as a table, the details, and the whole result as JSON. Every
 // value comes from the inspected page, so all of it is escaped.
 
+import { describeResult, formatValue } from './view/index.js'
+
+// The labels, formats and order of the fields come from the view of the result (snippets/_view/,
+// copied to lib/view/ by npm run extension:build)
+export { formatValue }
+
 const escape = (value) =>
   String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
-
-const number = (value, digits = 0) => value.toLocaleString('en-US', { maximumFractionDigits: digits, minimumFractionDigits: 0 })
-
-export function formatValue(value, unit) {
-  if (typeof value !== 'number') return String(value)
-  switch (unit) {
-    case 'ms':
-      return `${number(Math.round(value))} ms`
-    case 'score':
-      return value.toFixed(3)
-    case 'bytes':
-      return value >= 1024 * 1024 ? `${(value / 1024 / 1024).toFixed(1)} MB` : `${(value / 1024).toFixed(1)} KB`
-    case 'bpp':
-      return `${value.toFixed(3)} bpp`
-    case 'fps':
-      return `${Math.round(value)} fps`
-    default:
-      return number(value, 3)
-  }
-}
 
 const RATING = { good: 'Good', 'needs-improvement': 'Needs improvement', poor: 'Poor' }
 const STATUS = { ok: 'OK', tracking: 'Tracking', error: 'Error', unsupported: 'Unsupported' }
 const SEVERITY = ['error', 'warning', 'info']
-
-// A cell or a field: text as it is, and an object or a list as compact JSON
-const text = (value) => (value === undefined || value === null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value))
-const cell = (value) => escape(text(value))
-
-// A field with nothing to show: no value, an empty string, or an empty list or object
-const isEmpty = (value) =>
-  value === undefined || value === null || value === '' || (typeof value === 'object' && Object.keys(value).length === 0)
 
 // Table cells do not wrap, so a column is as wide as its values; only long ones, such as URLs, wrap
 const LONG = 40
 // The fields that hold a CSS selector of an element of the page, which the panel can inspect
 const SELECTOR_FIELDS = new Set(['selector', 'element', 'lcpElement', 'finalElement'])
 const isSelector = (key, value) => SELECTOR_FIELDS.has(key) && typeof value === 'string' && value.trim() !== ''
-const field = (key, value) =>
+// A cell or a field of the view, with the text of its format
+const field = ({ key, value, text }) =>
   isSelector(key, value)
     ? `<button type="button" class="inspect" data-selector="${escape(value)}" title="Inspect in Elements">${escape(value)}</button>`
-    : cell(value)
+    : escape(text)
 
-const cellClass = (value) => (typeof value === 'number' ? ' class="num"' : text(value).length > LONG ? ' class="long"' : '')
-const td = (value, key) => `<td${isSelector(key, value) ? '' : cellClass(value)}>${field(key, value)}</td>`
+// A selector is text too, and a long one wraps like a URL
+const cellClass = ({ value, text }) => (typeof value === 'number' ? ' class="num"' : text.length > LONG ? ' class="long"' : '')
+const td = (cell) => `<td${cellClass(cell)}>${field(cell)}</td>`
 
 function metric(result) {
   if (typeof result.value !== 'number') return ''
@@ -73,23 +53,26 @@ function issues(list) {
   return `<section><h3>Issues <span class="count">${escape(count)}</span></h3><ul class="issues">${items}</ul></section>`
 }
 
-function items(result) {
-  if (!Array.isArray(result.items) || result.items.length === 0) return ''
-  const rows = result.items.map((item) => (item && typeof item === 'object' ? item : { value: item }))
-  // A column empty in every row says nothing
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))].filter((c) => rows.some((row) => !isEmpty(row[c])))
-  const head = columns.map((c) => `<th>${escape(c)}</th>`).join('')
-  const body = rows.map((row) => `<tr>${columns.map((c) => td(row[c], c)).join('')}</tr>`).join('')
-  const total = typeof result.count === 'number' && result.count > rows.length ? `<p class="note">${rows.length} of ${result.count} items</p>` : ''
-  return `<section><h3>Items</h3>${total}<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></section>`
+function items(result, view) {
+  if (view.rows.length === 0) return ''
+  const head = view.columns.map((c) => `<th>${escape(c.label)}</th>`).join('')
+  const body = view.rows.map((row) => `<tr>${row.cells.map(td).join('')}</tr>`).join('')
+  const total = typeof result.count === 'number' && result.count > view.rows.length ? `<p class="note">${view.rows.length} of ${result.count} items</p>` : ''
+  return `<section><h3>${escape(view.title)}</h3>${total}<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></section>`
 }
 
-function details(object) {
-  if (!object || typeof object !== 'object') return ''
-  const fields = Object.entries(object)
-    .filter(([, value]) => !isEmpty(value))
-    .map(([key, value]) => `<dt>${escape(key)}</dt><dd>${field(key, value)}</dd>`).join('')
-  return `<section><h3>Details</h3><dl class="details">${fields}</dl></section>`
+// A field with a phrase reads as a sentence, before the list of the others
+function details(view) {
+  if (view.details.length === 0) return ''
+  const phrases = view.details
+    .filter((f) => f.phrase)
+    .map((f) => `<p class="phrase">${escape(f.phrase.before)}<strong>${field(f)}</strong>${escape(f.phrase.after)}</p>`)
+    .join('')
+  const fields = view.details
+    .filter((f) => !f.phrase)
+    .map((f) => `<dt>${escape(f.label)}</dt><dd>${field(f)}</dd>`)
+    .join('')
+  return `<section><h3>Details</h3>${phrases}${fields ? `<dl class="details">${fields}</dl>` : ''}</section>`
 }
 
 export function renderResult(result) {
@@ -116,5 +99,6 @@ export function renderResult(result) {
     ? '<p class="note">Some cross-origin resources hide their sizes and timings, so these are lower bounds.</p>'
     : ''
 
-  return [status, metric(result), clean, cors, issues(result.issues), items(result), details(result.details), json].join('')
+  const view = describeResult(result)
+  return [status, metric(result), clean, cors, issues(result.issues), items(result, view), details(view), json].join('')
 }

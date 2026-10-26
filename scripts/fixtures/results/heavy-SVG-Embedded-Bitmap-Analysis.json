@@ -1,0 +1,14 @@
+{
+  "script": "SVG-Embedded-Bitmap-Analysis",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "externalSvgCount": 0,
+    "inlineSvgTotal": 0,
+    "svgsWithUse": 0,
+    "standaloneInlineSvgs": 0,
+    "spriteOpportunity": false
+  },
+  "items": [],
+  "issues": []
+}

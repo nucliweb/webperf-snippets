@@ -1,0 +1,25 @@
+{
+  "script": "Priority-Hints-Audit",
+  "status": "ok",
+  "count": 2,
+  "details": {
+    "highCount": 2,
+    "lowCount": 0,
+    "autoCount": 0,
+    "preloadsWithPriorityCount": 0,
+    "lcpCandidateHasFetchpriority": true
+  },
+  "items": [
+    {
+      "tag": "img",
+      "fetchpriority": "high",
+      "resource": "hero.png"
+    },
+    {
+      "tag": "img",
+      "fetchpriority": "high",
+      "resource": "hero.png"
+    }
+  ],
+  "issues": []
+}

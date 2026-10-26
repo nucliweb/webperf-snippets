@@ -1,0 +1,37 @@
+{
+  "script": "Inline-Script-Info-and-Size",
+  "status": "ok",
+  "count": 3,
+  "details": {
+    "executableCount": 2,
+    "jsonLdCount": 0,
+    "otherCount": 1,
+    "totalSizeBytes": 243,
+    "parserBlockingCount": 2,
+    "parserBlockingInHeadCount": 0,
+    "dataPayloadCount": 1
+  },
+  "items": [
+    {
+      "index": 3,
+      "sizeBytes": 193,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": false,
+      "isDataPayload": false
+    },
+    {
+      "index": 1,
+      "sizeBytes": 50,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": false,
+      "isDataPayload": false
+    }
+  ],
+  "issues": []
+}

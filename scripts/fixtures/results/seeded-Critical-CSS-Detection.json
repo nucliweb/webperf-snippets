@@ -1,0 +1,27 @@
+{
+  "script": "Critical-CSS-Detection",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "renderBlockingCount": 1,
+    "nonBlockingCount": 0,
+    "inlineCount": 1,
+    "totalExternalTransferBytes": 314,
+    "renderBlockingDecodedBytes": 14,
+    "inlineBytes": 65,
+    "criticalBudgetBytes": 14336
+  },
+  "items": [
+    {
+      "filename": "style.css",
+      "media": "all",
+      "isRenderBlocking": true,
+      "transferBytes": 314,
+      "decodedBytes": 14,
+      "ruleCount": 1,
+      "preloaded": false,
+      "corsBlocked": false
+    }
+  ],
+  "issues": []
+}

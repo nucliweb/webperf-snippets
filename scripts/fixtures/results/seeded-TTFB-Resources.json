@@ -1,0 +1,72 @@
+{
+  "script": "TTFB-Resources",
+  "status": "ok",
+  "count": 8,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "avgTtfbMs": 1,
+    "maxTtfbMs": 1,
+    "minTtfbMs": 0,
+    "thirdPartyCount": 0,
+    "slowCount": 0,
+    "corsRestrictedCount": 2
+  },
+  "items": [
+    {
+      "url": "http://127.0.0.1:8000/hero.png",
+      "ttfbMs": 1,
+      "durationMs": 5,
+      "type": "img",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?c",
+      "ttfbMs": 1,
+      "durationMs": 6,
+      "type": "img",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?v",
+      "ttfbMs": 1,
+      "durationMs": 6,
+      "type": "video",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?b",
+      "ttfbMs": 1,
+      "durationMs": 1,
+      "type": "img",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/app.js",
+      "ttfbMs": 0,
+      "durationMs": 4,
+      "type": "link",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/style.css",
+      "ttfbMs": 0,
+      "durationMs": 5,
+      "type": "link",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/async.js",
+      "ttfbMs": 0,
+      "durationMs": 6,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/frame",
+      "ttfbMs": 0,
+      "durationMs": 1,
+      "type": "iframe",
+      "isThirdParty": false
+    }
+  ]
+}

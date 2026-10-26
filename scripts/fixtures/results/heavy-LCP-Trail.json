@@ -1,0 +1,31 @@
+{
+  "script": "LCP-Trail",
+  "status": "ok",
+  "metric": "LCP",
+  "value": 32,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 2500,
+    "needsImprovement": 4000
+  },
+  "details": {
+    "candidateCount": 2,
+    "finalElement": "div.c4:nth-of-type(6) > img",
+    "candidates": [
+      {
+        "index": 1,
+        "selector": "#go",
+        "time": 24,
+        "elementType": "button"
+      },
+      {
+        "index": 2,
+        "selector": "div.c4:nth-of-type(6) > img",
+        "time": 32,
+        "elementType": "Image",
+        "url": "hero.png"
+      }
+    ]
+  }
+}

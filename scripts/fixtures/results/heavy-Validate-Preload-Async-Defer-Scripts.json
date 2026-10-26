@@ -1,0 +1,7 @@
+{
+  "script": "Validate-Preload-Async-Defer-Scripts",
+  "status": "ok",
+  "count": 0,
+  "items": [],
+  "issues": []
+}

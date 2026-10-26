@@ -1,0 +1,378 @@
+{
+  "script": "Resource-Hints-Validation",
+  "status": "ok",
+  "count": 60,
+  "details": {
+    "preloadCount": 0,
+    "preconnectCount": 60,
+    "dnsPrefetchCount": 0,
+    "totalResourcesLoaded": 156,
+    "unusedHints": 60,
+    "missingPreconnects": 1,
+    "redundantHints": 0
+  },
+  "items": [
+    {
+      "domain": "http://127.0.0.2:90",
+      "href": "http://127.0.0.2:90/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.3:91",
+      "href": "http://127.0.0.3:91/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.4:92",
+      "href": "http://127.0.0.4:92/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.5:93",
+      "href": "http://127.0.0.5:93/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.6:94",
+      "href": "http://127.0.0.6:94/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.7:95",
+      "href": "http://127.0.0.7:95/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.8:96",
+      "href": "http://127.0.0.8:96/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.9:97",
+      "href": "http://127.0.0.9:97/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.10:98",
+      "href": "http://127.0.0.10:98/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.11:99",
+      "href": "http://127.0.0.11:99/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.12:910",
+      "href": "http://127.0.0.12:910/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.13:911",
+      "href": "http://127.0.0.13:911/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.14:912",
+      "href": "http://127.0.0.14:912/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.15:913",
+      "href": "http://127.0.0.15:913/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.16:914",
+      "href": "http://127.0.0.16:914/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.17:915",
+      "href": "http://127.0.0.17:915/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.18:916",
+      "href": "http://127.0.0.18:916/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.19:917",
+      "href": "http://127.0.0.19:917/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.20:918",
+      "href": "http://127.0.0.20:918/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.21:919",
+      "href": "http://127.0.0.21:919/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.22:920",
+      "href": "http://127.0.0.22:920/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.23:921",
+      "href": "http://127.0.0.23:921/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.24:922",
+      "href": "http://127.0.0.24:922/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.25:923",
+      "href": "http://127.0.0.25:923/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.26:924",
+      "href": "http://127.0.0.26:924/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.27:925",
+      "href": "http://127.0.0.27:925/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.28:926",
+      "href": "http://127.0.0.28:926/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.29:927",
+      "href": "http://127.0.0.29:927/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.30:928",
+      "href": "http://127.0.0.30:928/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.31:929",
+      "href": "http://127.0.0.31:929/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.32:930",
+      "href": "http://127.0.0.32:930/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.33:931",
+      "href": "http://127.0.0.33:931/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.34:932",
+      "href": "http://127.0.0.34:932/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.35:933",
+      "href": "http://127.0.0.35:933/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.36:934",
+      "href": "http://127.0.0.36:934/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.37:935",
+      "href": "http://127.0.0.37:935/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.38:936",
+      "href": "http://127.0.0.38:936/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.39:937",
+      "href": "http://127.0.0.39:937/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.40:938",
+      "href": "http://127.0.0.40:938/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.41:939",
+      "href": "http://127.0.0.41:939/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.42:940",
+      "href": "http://127.0.0.42:940/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.43:941",
+      "href": "http://127.0.0.43:941/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.44:942",
+      "href": "http://127.0.0.44:942/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.45:943",
+      "href": "http://127.0.0.45:943/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.46:944",
+      "href": "http://127.0.0.46:944/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.47:945",
+      "href": "http://127.0.0.47:945/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.48:946",
+      "href": "http://127.0.0.48:946/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.49:947",
+      "href": "http://127.0.0.49:947/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.50:948",
+      "href": "http://127.0.0.50:948/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    },
+    {
+      "domain": "http://127.0.0.51:949",
+      "href": "http://127.0.0.51:949/",
+      "requestCount": 0,
+      "action": "remove-unused-preconnect",
+      "recommendedHint": null
+    }
+  ],
+  "issues": [
+    {
+      "code": "unused-hints",
+      "severity": "warning",
+      "message": "60 unused hint(s) waste bandwidth"
+    },
+    {
+      "code": "missing-connection-hints",
+      "severity": "info",
+      "message": "1 domain(s) could benefit from connection hints"
+    }
+  ]
+}

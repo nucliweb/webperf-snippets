@@ -1,0 +1,90 @@
+{
+  "script": "Find-Above-The-Fold-Lazy-Loaded-Images",
+  "status": "ok",
+  "count": 5,
+  "details": {
+    "total": 5,
+    "withLoadingLazy": 5,
+    "withDataSrc": 0,
+    "lcpAffected": false
+  },
+  "items": [
+    {
+      "selector": "html>body>div.c1>img",
+      "lazyType": "loading-lazy",
+      "dimensions": "100×60",
+      "position": "103px, 8px",
+      "distanceFromEdge": "8px",
+      "src": "http://127.0.0.1:8000/hero.png?i1",
+      "srcset": null,
+      "sizes": null,
+      "alt": "i1",
+      "fetchPriority": "auto",
+      "fileSize": "29.8 KB",
+      "isLcpCandidate": false
+    },
+    {
+      "selector": "html>body>div.c3>img",
+      "lazyType": "loading-lazy",
+      "dimensions": "100×60",
+      "position": "231px, 8px",
+      "distanceFromEdge": "8px",
+      "src": "http://127.0.0.1:8000/hero.png?i3",
+      "srcset": null,
+      "sizes": null,
+      "alt": "i3",
+      "fetchPriority": "auto",
+      "fileSize": "29.8 KB",
+      "isLcpCandidate": false
+    },
+    {
+      "selector": "html>body>div.c5>img",
+      "lazyType": "loading-lazy",
+      "dimensions": "100×60",
+      "position": "359px, 8px",
+      "distanceFromEdge": "8px",
+      "src": "http://127.0.0.1:8000/hero.png?i5",
+      "srcset": null,
+      "sizes": null,
+      "alt": "i5",
+      "fetchPriority": "auto",
+      "fileSize": "29.8 KB",
+      "isLcpCandidate": false
+    },
+    {
+      "selector": "html>body>div.c7>img",
+      "lazyType": "loading-lazy",
+      "dimensions": "100×60",
+      "position": "487px, 8px",
+      "distanceFromEdge": "8px",
+      "src": "http://127.0.0.1:8000/hero.png?i7",
+      "srcset": null,
+      "sizes": null,
+      "alt": "i7",
+      "fetchPriority": "auto",
+      "fileSize": "29.8 KB",
+      "isLcpCandidate": false
+    },
+    {
+      "selector": "html>body>div.c9>img",
+      "lazyType": "loading-lazy",
+      "dimensions": "100×60",
+      "position": "615px, 8px",
+      "distanceFromEdge": "8px",
+      "src": "http://127.0.0.1:8000/hero.png?i9",
+      "srcset": null,
+      "sizes": null,
+      "alt": "i9",
+      "fetchPriority": "auto",
+      "fileSize": "29.8 KB",
+      "isLcpCandidate": false
+    }
+  ],
+  "issues": [
+    {
+      "code": "lazy-above-fold",
+      "severity": "warning",
+      "message": "5 above-fold image(s) have lazy loading: remove loading=\"lazy\""
+    }
+  ]
+}

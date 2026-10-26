@@ -1,0 +1,28 @@
+{
+  "script": "Service-Worker-Analysis",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "controlled": false,
+    "controllerState": null,
+    "swOverheadMs": null,
+    "totalResources": 10,
+    "swIntercepted": 0,
+    "notIntercepted": 10,
+    "fromCache": 0,
+    "fromNetwork": 0,
+    "fromUnknown": 0,
+    "cacheHitRate": null,
+    "savedBytes": 0,
+    "cacheStorageCount": 0,
+    "cacheStorage": []
+  },
+  "items": [],
+  "issues": [
+    {
+      "code": "no-service-worker",
+      "severity": "info",
+      "message": "No Service Workers registered"
+    }
+  ]
+}

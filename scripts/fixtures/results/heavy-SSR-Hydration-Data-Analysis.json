@@ -1,0 +1,12 @@
+{
+  "script": "SSR-Hydration-Data-Analysis",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "frameworksFound": 0,
+    "totalHydrationBytes": 0,
+    "otherInlineBytes": 1121
+  },
+  "items": [],
+  "issues": []
+}

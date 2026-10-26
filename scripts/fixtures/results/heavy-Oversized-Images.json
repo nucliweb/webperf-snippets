@@ -1,0 +1,19 @@
+{
+  "script": "Oversized-Images",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "devicePixelRatio": 1,
+    "totalImages": 90,
+    "imagesChecked": 74,
+    "oversized": 0,
+    "undersized": 0,
+    "wastedPixels": 0,
+    "wastedBytes": 0,
+    "skippedHidden": 0,
+    "skippedNotLoaded": 16,
+    "skippedVector": 0
+  },
+  "items": [],
+  "issues": []
+}

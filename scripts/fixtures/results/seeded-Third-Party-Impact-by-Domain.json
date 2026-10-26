@@ -1,0 +1,20 @@
+{
+  "script": "Third-Party-Impact-by-Domain",
+  "status": "ok",
+  "count": 0,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "thirdPartyRequests": 0,
+    "thirdPartyBytes": 0,
+    "thirdPartyLoafMs": 0,
+    "longFrames": 1,
+    "unattributedLoafMs": 120,
+    "firstPartyRequests": 10,
+    "blockingDomains": 0,
+    "renderBlockingSupported": true,
+    "loafSupported": true,
+    "sizeUnknownCount": 0
+  },
+  "items": [],
+  "issues": []
+}

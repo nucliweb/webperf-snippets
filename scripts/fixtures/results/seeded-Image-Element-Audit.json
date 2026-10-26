@@ -1,0 +1,162 @@
+{
+  "script": "Image-Element-Audit",
+  "status": "ok",
+  "count": 4,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "totalImages": 4,
+    "formatGuessedCount": 0,
+    "inViewport": 2,
+    "offViewport": 2,
+    "totalErrors": 1,
+    "totalWarnings": 3,
+    "totalInfos": 3,
+    "lcpCandidate": null
+  },
+  "items": [
+    {
+      "url": "http://127.0.0.1:8000/hero.png?b",
+      "format": "png",
+      "inViewport": true,
+      "isLCP": false,
+      "loading": "lazy",
+      "decoding": "(not set)",
+      "fetchpriority": "high",
+      "hasDimensions": true,
+      "hasSrcset": false,
+      "hasSizes": false,
+      "inPicture": false,
+      "issues": [
+        {
+          "code": "lazy-in-viewport",
+          "severity": "warning",
+          "message": "Remove loading=\"lazy\" (image is above the fold)"
+        },
+        {
+          "code": "lazy-and-high-priority",
+          "severity": "error",
+          "message": "Conflict: loading=\"lazy\" + fetchpriority=\"high\""
+        },
+        {
+          "code": "no-modern-format",
+          "severity": "info",
+          "message": "No modern format detected (WebP / AVIF / JXL)"
+        }
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?c",
+      "format": "png",
+      "inViewport": false,
+      "isLCP": false,
+      "loading": "(not set)",
+      "decoding": "(not set)",
+      "fetchpriority": "(not set)",
+      "hasDimensions": true,
+      "hasSrcset": false,
+      "hasSizes": false,
+      "inPicture": false,
+      "issues": [
+        {
+          "code": "eager-off-viewport",
+          "severity": "warning",
+          "message": "Add loading=\"lazy\" (image is off-viewport)"
+        },
+        {
+          "code": "no-modern-format",
+          "severity": "info",
+          "message": "No modern format detected (WebP / AVIF / JXL)"
+        }
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:8001/bitmap.svg",
+      "format": "svg",
+      "inViewport": false,
+      "isLCP": false,
+      "loading": "(not set)",
+      "decoding": "(not set)",
+      "fetchpriority": "(not set)",
+      "hasDimensions": true,
+      "hasSrcset": false,
+      "hasSizes": false,
+      "inPicture": false,
+      "issues": [
+        {
+          "code": "eager-off-viewport",
+          "severity": "warning",
+          "message": "Add loading=\"lazy\" (image is off-viewport)"
+        }
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png",
+      "format": "png",
+      "inViewport": true,
+      "isLCP": false,
+      "loading": "(not set)",
+      "decoding": "(not set)",
+      "fetchpriority": "high",
+      "hasDimensions": true,
+      "hasSrcset": false,
+      "hasSizes": false,
+      "inPicture": false,
+      "issues": [
+        {
+          "code": "no-modern-format",
+          "severity": "info",
+          "message": "No modern format detected (WebP / AVIF / JXL)"
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "code": "lcp-not-img",
+      "severity": "info",
+      "message": "The LCP element is not an <img> (BODY), so no image is audited as the LCP"
+    },
+    {
+      "code": "no-modern-format",
+      "severity": "info",
+      "message": "hero.png: No modern format detected (WebP / AVIF / JXL)",
+      "target": "http://127.0.0.1:8000/hero.png"
+    },
+    {
+      "code": "lazy-in-viewport",
+      "severity": "warning",
+      "message": "hero.png: Remove loading=\"lazy\" (image is above the fold)",
+      "target": "http://127.0.0.1:8000/hero.png?b"
+    },
+    {
+      "code": "lazy-and-high-priority",
+      "severity": "error",
+      "message": "hero.png: Conflict: loading=\"lazy\" + fetchpriority=\"high\"",
+      "target": "http://127.0.0.1:8000/hero.png?b"
+    },
+    {
+      "code": "no-modern-format",
+      "severity": "info",
+      "message": "hero.png: No modern format detected (WebP / AVIF / JXL)",
+      "target": "http://127.0.0.1:8000/hero.png?b"
+    },
+    {
+      "code": "eager-off-viewport",
+      "severity": "warning",
+      "message": "hero.png: Add loading=\"lazy\" (image is off-viewport)",
+      "target": "http://127.0.0.1:8000/hero.png?c"
+    },
+    {
+      "code": "no-modern-format",
+      "severity": "info",
+      "message": "hero.png: No modern format detected (WebP / AVIF / JXL)",
+      "target": "http://127.0.0.1:8000/hero.png?c"
+    },
+    {
+      "code": "eager-off-viewport",
+      "severity": "warning",
+      "message": "bitmap.svg: Add loading=\"lazy\" (image is off-viewport)",
+      "target": "http://127.0.0.1:8001/bitmap.svg"
+    }
+  ]
+}

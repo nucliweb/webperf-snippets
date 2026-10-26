@@ -1,0 +1,39 @@
+{
+  "script": "First-And-Third-Party-Script-Timings",
+  "status": "ok",
+  "count": 2,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "firstPartyCount": 2,
+    "thirdPartyCount": 0,
+    "corsRestrictedCount": 0,
+    "slowScriptCount": 0,
+    "firstPartyAvgTotalMs": 7,
+    "thirdPartyAvgTotalMs": 0
+  },
+  "items": [
+    {
+      "shortName": "async.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "totalMs": 7,
+      "dnsMs": 0,
+      "tcpMs": 0,
+      "requestMs": 0,
+      "responseMs": 0,
+      "hasTiming": true
+    },
+    {
+      "shortName": "third.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "totalMs": 5,
+      "dnsMs": null,
+      "tcpMs": null,
+      "requestMs": null,
+      "responseMs": null,
+      "hasTiming": false
+    }
+  ],
+  "issues": []
+}

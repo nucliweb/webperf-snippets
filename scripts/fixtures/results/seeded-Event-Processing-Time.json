@@ -1,0 +1,61 @@
+{
+  "script": "Event-Processing-Time",
+  "status": "ok",
+  "value": 23,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 2500,
+    "needsImprovement": 4000
+  },
+  "details": {
+    "networkTimeMs": 1,
+    "processingTimeMs": 22,
+    "ttfbMs": 1,
+    "domContentLoadedMs": 20,
+    "loadCompleteMs": 23,
+    "phases": {
+      "redirect": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "dnsLookup": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "tcpConnection": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "sslTls": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "request": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "response": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "domProcessing": {
+        "value": 19,
+        "unit": "ms"
+      },
+      "domContentLoaded": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "resourceLoading": {
+        "value": 3,
+        "unit": "ms"
+      },
+      "loadEvent": {
+        "value": 0,
+        "unit": "ms"
+      }
+    },
+    "slowestPhase": "domProcessing"
+  }
+}

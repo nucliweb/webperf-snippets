@@ -1,0 +1,38 @@
+{
+  "script": "Find-render-blocking-resources",
+  "status": "ok",
+  "count": 2,
+  "details": {
+    "totalBlockingUntilMs": 8,
+    "totalSizeBytes": 314,
+    "byType": {
+      "script": 1,
+      "link": 1
+    }
+  },
+  "items": [
+    {
+      "type": "script",
+      "url": "http://127.0.0.1:8001/third.js",
+      "shortName": "third.js",
+      "responseEndMs": 8,
+      "durationMs": 5,
+      "sizeBytes": 0
+    },
+    {
+      "type": "link",
+      "url": "http://127.0.0.1:8000/style.css",
+      "shortName": "style.css",
+      "responseEndMs": 8,
+      "durationMs": 5,
+      "sizeBytes": 314
+    }
+  ],
+  "issues": [
+    {
+      "code": "render-blocking",
+      "severity": "error",
+      "message": "2 render-blocking resource(s) delay rendering until 8ms"
+    }
+  ]
+}

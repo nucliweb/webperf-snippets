@@ -1,0 +1,38 @@
+{
+  "script": "SSR-Hydration-Data-Analysis",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "frameworksFound": 1,
+    "totalHydrationBytes": 86,
+    "otherInlineBytes": 243,
+    "hasExceedingThreshold": false,
+    "frameworks": [
+      {
+        "name": "Next.js",
+        "sizeBytes": 86,
+        "thresholdBytes": 131072,
+        "exceedsThreshold": false
+      }
+    ]
+  },
+  "items": [
+    {
+      "framework": "Next.js",
+      "kind": "prop",
+      "name": "user",
+      "sizeBytes": 12,
+      "flags": [],
+      "detail": null
+    },
+    {
+      "framework": "Next.js",
+      "kind": "prop",
+      "name": "items",
+      "sizeBytes": 7,
+      "flags": [],
+      "detail": null
+    }
+  ],
+  "issues": []
+}

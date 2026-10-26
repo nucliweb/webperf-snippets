@@ -1,0 +1,41 @@
+{
+  "script": "LCP-Subparts",
+  "status": "ok",
+  "metric": "LCP",
+  "value": 44,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 2500,
+    "needsImprovement": 4000
+  },
+  "details": {
+    "element": "div.c0:nth-of-type(2) > img",
+    "url": "hero.png",
+    "subParts": {
+      "ttfb": {
+        "value": 1,
+        "percent": 2,
+        "overTarget": false
+      },
+      "resourceLoadDelay": {
+        "value": 26,
+        "percent": 59,
+        "overTarget": true
+      },
+      "resourceLoadTime": {
+        "value": 2,
+        "percent": 5,
+        "overTarget": false,
+        "waiting": 1,
+        "download": 1
+      },
+      "elementRenderDelay": {
+        "value": 14,
+        "percent": 32,
+        "overTarget": true
+      }
+    },
+    "slowestPhase": "resourceLoadDelay"
+  }
+}

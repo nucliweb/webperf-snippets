@@ -26,6 +26,7 @@ mdx-components.js       MDX components of the theme, with the external link labe
 snippets/               The snippet sources (*.js), same categories as content/
   SCHEMA.md             Return-value contract every snippet must follow
   _shared/              Helpers marked with `// @shared`
+  _view/                The view of a result (labels, formats, order) for the extension, the CLI and the site
 components/             Snippet (code block), Callout, Icon, Demo, SnippetVisualizer, diagrams/
 components/diagrams/    Own SVG diagrams (Flow, Sequence, custom), styled with --dg-* tokens
 lib/                    remark/rehype plugins: browser support, icons, emoji stripping
@@ -62,6 +63,8 @@ npm run test:icons           # emoji to icon plugins
 npm run test:support         # browser support plugin
 npm run test:prompt          # agent prompt of each snippet (lib/snippet-prompt.mjs)
 npm run extension:build      # extension/snippets.json, then load extension/ unpacked in chrome://extensions
+npm run test:view            # view of the results (snippets/_view/), on the fixtures of every snippet
+npm run view:fixtures        # regenerate scripts/fixtures/results/ after changing what a snippet returns
 npm run test:extension       # DevTools extension: runner, result rendering, catalog
 npm run test:extension:e2e   # every snippet through the real panel, on the seeded page of the CLI tests
 npm run eval:prompts         # an agent runs the prompts on local pages, graded from its transcript (eval-prompts.yml: on demand and on PRs that change the prompt)

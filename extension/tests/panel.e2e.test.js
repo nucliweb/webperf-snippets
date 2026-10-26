@@ -461,6 +461,20 @@ test('a snippet the CLI cannot run has no Copy prompt', async () => {
   assert.equal(await panel.locator('#copy-prompt').count(), 0)
 })
 
+test('a result reads with the labels, formats and table title of its view', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="Find-render-blocking-resources"]')
+  const result = await resultOf('#run')
+  assert.ok(result.items.length > 0, 'the seeded page has render-blocking resources')
+  assert.equal(await panel.textContent('#result section h3 >> text=Render-blocking resources'), 'Render-blocking resources')
+  assert.equal(await panel.textContent('#result .phrase'), `Rendering blocked until ${result.details.totalBlockingUntilMs} ms`)
+  const head = await panel.locator('#result thead th').allTextContents()
+  assert.deepEqual(head.slice(0, 3), ['File', 'Type', 'Response end'])
+  // Only the JSON keeps the keys
+  const shown = (await panel.locator('#result > section').allTextContents()).join(' ')
+  assert.doesNotMatch(shown, /totalBlockingUntilMs|responseEndMs|sizeBytes/)
+})
+
 test('the panel lists every snippet, and each category says how many it has', async () => {
   assert.equal(await panel.locator('#list button').count(), snippets.length)
   const counts = await panel.locator('#list h2 .count').allTextContents()

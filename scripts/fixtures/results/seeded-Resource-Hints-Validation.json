@@ -1,0 +1,16 @@
+{
+  "script": "Resource-Hints-Validation",
+  "status": "ok",
+  "count": 2,
+  "details": {
+    "preloadCount": 1,
+    "preconnectCount": 1,
+    "dnsPrefetchCount": 0,
+    "totalResourcesLoaded": 10,
+    "unusedHints": 0,
+    "missingPreconnects": 0,
+    "redundantHints": 0
+  },
+  "items": [],
+  "issues": []
+}

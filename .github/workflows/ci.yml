@@ -70,6 +70,9 @@ jobs:
       - name: Run snippet prompt tests
         run: npm run test:prompt
 
+      - name: Run result view tests
+        run: npm run test:view
+
       - name: Run extension tests
         run: npm run test:extension
 
