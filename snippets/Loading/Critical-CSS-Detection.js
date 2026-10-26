@@ -24,9 +24,10 @@
   const criticalBudget = 14 * 1024; // 14 KB (first TCP round-trip)
 
   // --- External stylesheets ---
+  // A link without href or disabled loads nothing and blocks nothing, so it is not a stylesheet of the page
   const linkStylesheets = Array.from(
     document.querySelectorAll('link[rel="stylesheet"]')
-  );
+  ).filter((link) => link.href && !link.disabled);
 
   const perfEntries = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
 

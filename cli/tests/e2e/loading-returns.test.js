@@ -445,6 +445,22 @@ describe("Critical-CSS-Detection", () => {
     expect(r.issues.some((i) => /No critical CSS inlined/.test(i.message))).toBe(true);
     expect(JSON.stringify(r)).not.toContain(" — ");
   }, 30000);
+
+  it("leaves out the stylesheet links that load nothing: without href, or disabled", async () => {
+    const run = (extra) =>
+      onPage("/mq", (page) =>
+        page.evaluate(([code, extra]) => {
+          // Pages add them to fill in later or to switch themes; none is requested or blocks rendering
+          document.head.insertAdjacentHTML("beforeend", extra);
+          return (0, eval)(code);
+        }, [source("Loading/Critical-CSS-Detection"), extra])
+      );
+    const clean = await run("");
+    const r = await run('<link rel="stylesheet"><link rel="stylesheet"><link rel="stylesheet" href="/dark.css" disabled>');
+    expect(r.items).toEqual(clean.items);
+    expect(r.details).toEqual(clean.details);
+    expect(r.issues).toEqual(clean.issues);
+  }, 30000);
 });
 
 describe("Client-Side-Redirect-Detection", () => {

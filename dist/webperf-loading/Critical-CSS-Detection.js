@@ -10,7 +10,7 @@
     return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
   const criticalBudget = 14 * 1024;
-  const linkStylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+  const linkStylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).filter(link => link.href && !link.disabled);
   const perfEntries = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const externalCSSData = linkStylesheets.map(link => {
     const href = link.href;
