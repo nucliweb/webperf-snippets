@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - A long view of the extension, such as a result or an audit, has a Top button in its corner once it is half a screen down.
+- The comparison of an audit in the extension is a table per kind of change, and a changed issue shows its text as it is now and only the numbers that moved (`1759 → 1745`, `706 KB → 679 KB`). Compared with picks any earlier audit of the same page, the one just before by default, and the choice stays while that audit is open.
 
 ### Fixed
 - A result opened from the audit of the extension shows at its top, instead of as far down as the audit was, and ← Audit comes back to the audit where it was.

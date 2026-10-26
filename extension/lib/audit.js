@@ -165,5 +165,22 @@ export function compare(after, before) {
   return { since: before.date, added, resolved, changed, unchanged, counts, metrics }
 }
 
-// The audit of the same page that came just before, in a history that is newest first
-export const previousOf = (history, saved) => history.find((r) => r !== saved && r.url === saved.url && r.date < saved.date)
+// The audits of the same page that came before, in a history that is newest first, so the one just
+// before is the first
+export const earlierOf = (history, saved) => history.filter((r) => r !== saved && r.url === saved.url && r.date < saved.date)
+export const previousOf = (history, saved) => earlierOf(history, saved)[0]
+
+// A number in the text of an issue, with its unit when it has one: 706 KB, 1543ms, 12%, 1,200
+const NUMBER = /\d[\d,]*(?:\.\d+)?(?:\s?(?:KB|MB|GB|kB|B|ms|s|px|x|%)(?![A-Za-z]))?/g
+
+// What moved between two texts of the same issue, as the numbers before and after: "1759 nodes
+// exceeds 1400" and "1745 nodes exceeds 1400" is 1759 → 1745. Nothing when the words changed too, or
+// nothing did, so the texts themselves say what changed
+export function changeOf(before, after) {
+  const words = (text) => String(text).replace(NUMBER, '#')
+  if (words(before) !== words(after)) return null
+  const was = String(before).match(NUMBER) ?? []
+  const is = String(after).match(NUMBER) ?? []
+  const moved = was.flatMap((n, i) => (n === is[i] ? [] : [`${n} → ${is[i]}`]))
+  return moved.length ? moved.join(' · ') : null
+}

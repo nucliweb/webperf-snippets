@@ -3,7 +3,7 @@ import { renderResult } from './lib/render.js'
 import { readTrackingData, reloadPage, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
 import { createSettings } from './lib/settings.js'
-import { addToHistory, bySeverity, compare, filterCounts, filterRows, fromReport, overview, previousOf, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
+import { addToHistory, bySeverity, changeOf, compare, earlierOf, filterCounts, filterRows, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
@@ -180,6 +180,8 @@ const EMPTY_FOR = { errors: 'No snippet has errors.', issues: 'No snippet has er
 let auditFilter = FILTERS[saved.auditFilter] ? saved.auditFilter : 'issues'
 // Where the audit was when a result of it opened, to come back to the same row
 let auditScroll = 0
+// The earlier audit the one shown is compared with, when it is not the one just before
+let compareWith = {}
 
 function auditList() {
   if (audits.length === 0) return ''
@@ -257,6 +259,12 @@ function showAudit() {
   document.getElementById('download-audit').addEventListener('click', () =>
     downloadReport(report({ url: audit.url, date: audit.date, rows: audit.rows }))
   )
+  document.getElementById('audit').addEventListener('change', (event) => {
+    if (event.target.id !== 'compare-with') return
+    compareWith = { audit: audit.date, before: event.target.value }
+    renderAudit()
+    document.getElementById('compare-with')?.focus()
+  })
   document.getElementById('audit').addEventListener('click', (event) => {
     const filter = event.target.closest('button[data-filter]')
     if (filter) {
@@ -275,33 +283,53 @@ function showAudit() {
   renderAudit()
 }
 
-// What changed since the last audit of the same page, if there is one
+// What changed since an earlier audit of the same page, the one just before unless another is chosen,
+// as a table per kind of change
 function comparison() {
   const saved = audits.find((r) => r.date === audit.date)
-  const before = saved && previousOf(audits, saved)
-  if (!before) return ''
+  const earlier = saved ? earlierOf(audits, saved) : []
+  if (earlier.length === 0) return ''
+  const before = (compareWith.audit === audit.date && earlier.find((r) => r.date === compareWith.before)) || earlier[0]
   const c = compare(saved, before)
-  const since = escape(new Date(c.since).toLocaleString())
   const title = (id) => snippets.find((s) => s.auditId === id)?.title ?? id
-  const list = (items, kind) =>
-    items.length
-      ? `<ul class="${kind}">${items.map((i) => `<li><span class="sev sev-${escape(i.severity)}">${escape(i.severity)}</span> <strong>${escape(title(i.id))}</strong>: ${escape(i.message)}</li>`).join('')}</ul>`
-      : ''
+  const sev = (severity) => `<span class="sev sev-${escape(severity)}">${escape(severity)}</span>`
+  const table = (kind, head, rows) =>
+    `<div class="table"><table class="${kind}"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`
+  const issues = (items, kind) =>
+    table(
+      kind,
+      ['Severity', 'Snippet', 'Issue'],
+      items.map((i) => `<tr><td>${sev(i.severity)}</td><td>${escape(title(i.id))}</td><td class="long">${escape(i.message)}</td></tr>`)
+    )
+  // The issue as it is now, and only the numbers that moved; the text before when its words changed
+  const changed = table(
+    'changed',
+    ['Severity', 'Snippet', 'Issue', 'Change'],
+    c.changed.map((i) => {
+      const severity = i.severityBefore ? `${sev(i.severityBefore)} → ${sev(i.severity)}` : sev(i.severity)
+      const moved = i.before === i.after ? '' : (changeOf(i.before, i.after) ?? `Was: ${i.before}`)
+      return `<tr><td>${severity}</td><td>${escape(title(i.id))}</td><td class="long">${escape(i.after)}</td><td${moved.length > 40 ? ' class="long"' : ''}>${escape(moved)}</td></tr>`
+    })
+  )
+  const metrics = table(
+    'metrics',
+    ['Snippet', 'Before', 'Now'],
+    c.metrics.map((m) => `<tr><td>${escape(title(m.id))}</td><td>${escape(m.before)}</td><td>${escape(m.after)}</td></tr>`)
+  )
   const moved = ({ errors, warnings, infos }) =>
     [['Errors', errors], ['Warnings', warnings], ['Info', infos]].map(([label, [b, a]]) => `${label} ${b} → ${a}`).join(' · ')
-  const metrics = c.metrics.map((m) => `<li><strong>${escape(title(m.id))}</strong>: ${escape(m.before)} → ${escape(m.after)}</li>`).join('')
-  const changed = c.changed
-    .map((i) => `<li>${i.severityBefore ? `<span class="sev sev-${escape(i.severityBefore)}">${escape(i.severityBefore)}</span> → ` : ''}<span class="sev sev-${escape(i.severity)}">${escape(i.severity)}</span> <strong>${escape(title(i.id))}</strong>: ${escape(i.before)} → ${escape(i.after)}</li>`)
-    .join('')
   const section = (heading, count, html) => (count ? `<h4>${heading} <span class="count">${count}</span></h4>${html}` : '')
   const body =
     c.added.length || c.resolved.length || c.changed.length || c.metrics.length
-      ? section('Metrics', c.metrics.length, `<ul class="metrics">${metrics}</ul>`) +
-        section('New issues', c.added.length, list(c.added, 'added')) +
-        section('Changed', c.changed.length, `<ul class="changed">${changed}</ul>`) +
-        section('Resolved', c.resolved.length, list(c.resolved, 'resolved'))
+      ? section('Metrics', c.metrics.length, metrics) +
+        section('New issues', c.added.length, issues(c.added, 'added')) +
+        section('Changed', c.changed.length, changed) +
+        section('Resolved', c.resolved.length, issues(c.resolved, 'resolved'))
       : '<p class="note">No issue appeared, changed or went away.</p>'
-  return `<section class="comparison"><h3>Since ${since} <span class="count">${escape(moved(c.counts))}</span></h3><div class="comparison-body">${body}</div></section>`
+  const options = earlier
+    .map((r, i) => `<option value="${escape(r.date)}"${r === before ? ' selected' : ''}>${escape(new Date(r.date).toLocaleString())}${i === 0 ? ' (previous)' : ''}</option>`)
+    .join('')
+  return `<section class="comparison"><h3><label>Compared with <select id="compare-with">${options}</select></label> <span class="count">${escape(moved(c.counts))}</span></h3><div class="comparison-body">${body}</div></section>`
 }
 
 function renderAudit() {
@@ -347,7 +375,7 @@ function renderAudit() {
     .join('')
   view.innerHTML = `${status}${audit.done ? comparison() : ''}${filters}${
     shown.length
-      ? `<section><div class="table"><table><thead><tr><th>Snippet</th><th>Result</th><th>Errors</th><th>Warnings</th><th>Info</th><th>Main issue</th></tr></thead><tbody>${body}</tbody></table></div></section>`
+      ? `<section><div class="table"><table class="audit-rows"><thead><tr><th>Snippet</th><th>Result</th><th>Errors</th><th>Warnings</th><th>Info</th><th>Main issue</th></tr></thead><tbody>${body}</tbody></table></div></section>`
       : rows.length
         ? `<p class="clean empty-filter">${EMPTY_FOR[auditFilter]}</p>`
         : ''

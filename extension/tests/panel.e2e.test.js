@@ -305,36 +305,36 @@ test('the audit runs the snippets of the audit of the CLI, sums them up and open
   await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
   assert.match(await panel.textContent('#audit .overview'), new RegExp(`^${auditWorkflow.steps.length} snippets: `))
   // The table opens on the snippets with errors or warnings, and says how many it leaves out
-  const shownRows = () => panel.locator('#audit tbody tr').count()
+  const shownRows = () => panel.locator('#audit .audit-rows tbody tr').count()
   const pressed = () => panel.getAttribute('#audit .filter [aria-pressed="true"]', 'data-filter')
   assert.equal(await pressed(), 'issues')
   const withIssues = await shownRows()
   assert.ok(withIssues > 0 && withIssues < auditWorkflow.steps.length, `${withIssues} rows with errors or warnings`)
-  assert.equal(await panel.locator('#audit tbody tr:not(:has(.tally-error)):not(:has(.tally-warning))').count(), 0)
+  assert.equal(await panel.locator('#audit .audit-rows tbody tr:not(:has(.tally-error)):not(:has(.tally-warning))').count(), 0)
   assert.match(await panel.textContent('#audit .hidden-rows'), new RegExp(`^${auditWorkflow.steps.length - withIssues} more snippets? with info only or nothing to fix`))
   assert.match(await panel.textContent('#audit .filter [data-filter="all"]'), new RegExp(`All ${auditWorkflow.steps.length}`))
   // Errors keeps the snippets with errors only
   await panel.click('#audit .filter [data-filter="errors"]')
   assert.equal(await pressed(), 'errors')
-  assert.equal(await panel.locator('#audit tbody tr:not(:has(.tally-error))').count(), 0)
+  assert.equal(await panel.locator('#audit .audit-rows tbody tr:not(:has(.tally-error))').count(), 0)
   // Show all lists every snippet
   await panel.click('#audit .hidden-rows button')
   assert.equal(await pressed(), 'all')
   assert.equal(await shownRows(), auditWorkflow.steps.length)
   assert.equal(await panel.locator('#audit .hidden-rows').count(), 0)
   // A snippet with nothing to fix says so, and a metric shows its value and rating
-  const rows = await panel.locator('#audit tbody tr').evaluateAll((trs) => trs.map((tr) => tr.textContent.replace(/\s+/g, ' ').trim()))
+  const rows = await panel.locator('#audit .audit-rows tbody tr').evaluateAll((trs) => trs.map((tr) => tr.textContent.replace(/\s+/g, ' ').trim()))
   assert.ok(rows.some((r) => r.includes('No issues found')), 'no row says it has no issues')
-  assert.ok(await panel.locator('#audit tbody .clean').count() > 0)
+  assert.ok(await panel.locator('#audit .audit-rows tbody .clean').count() > 0)
   const ttfb = rows.find((r) => r.startsWith('TTFB Sub Parts'))
   assert.match(ttfb, /\d+ ms · (good|needs improvement|poor)/)
   // Each row opens the result it got, and the way back keeps the audit
-  const title = await panel.textContent('#audit tbody tr >> nth=0 >> button')
-  await panel.click('#audit tbody tr >> nth=0 >> button')
+  const title = await panel.textContent('#audit .audit-rows tbody tr >> nth=0 >> button')
+  await panel.click('#audit .audit-rows tbody tr >> nth=0 >> button')
   assert.equal(await panel.textContent('main h1'), title)
   await panel.waitForSelector('#result .raw pre', { state: 'attached' })
   await panel.click('#back-to-audit')
-  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+  assert.equal(await panel.locator('#audit .audit-rows tbody tr').count(), auditWorkflow.steps.length)
 
   // The home page keeps the last audit, also after closing DevTools, and opens it again with its results
   await panel.click('#go-home')
@@ -344,11 +344,11 @@ test('the audit runs the snippets of the audit of the CLI, sums them up and open
   await panel.click('main .audits li >> nth=0 >> .open-audit')
   // The panel remembers the filter after closing DevTools
   assert.equal(await pressed(), 'all')
-  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
-  await panel.click('#audit tbody tr >> nth=0 >> button')
+  assert.equal(await panel.locator('#audit .audit-rows tbody tr').count(), auditWorkflow.steps.length)
+  await panel.click('#audit .audit-rows tbody tr >> nth=0 >> button')
   await panel.waitForSelector('#result .raw pre', { state: 'attached' })
   await panel.click('#back-to-audit')
-  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+  assert.equal(await panel.locator('#audit .audit-rows tbody tr').count(), auditWorkflow.steps.length)
 
   // Copy JSON and Download JSON give the audit in the shape of the CLI, with every snippet whatever the filter
   await panel.click('#audit .filter [data-filter="issues"]')
@@ -385,7 +385,7 @@ test('the home page lists the audits, opens and deletes them, and keeps them aft
   // The newest opens with its results, every one of them under All
   await entries.nth(0).locator('.open-audit').click()
   await panel.click('#audit .filter [data-filter="all"]')
-  assert.equal(await panel.locator('#audit tbody tr').count(), auditWorkflow.steps.length)
+  assert.equal(await panel.locator('#audit .audit-rows tbody tr').count(), auditWorkflow.steps.length)
   await panel.click('#audit .filter [data-filter="issues"]')
   await panel.click('#go-home')
   const [download] = await Promise.all([panel.waitForEvent('download'), entries.nth(0).locator('.download-audit').click()])
@@ -444,6 +444,45 @@ test('a result opens at its top, the audit comes back where it was, and a long v
   await reopenPanel()
 })
 
+test('the comparison of an audit is a table, with the earlier audit of the page to compare with', async () => {
+  // Three saved audits of a page, where a warning of the first snippet goes from 125 to 120 to 110
+  const [first] = auditWorkflow.steps
+  const audits = [['09', 125], ['10', 120], ['11', 110]].map(([hour, children]) => ({
+    workflow: 'audit',
+    url: 'https://example.test/compare',
+    date: `2026-01-02T${hour}:00:00.000Z`,
+    overview: {},
+    issues: [],
+    results: auditWorkflow.steps.map(({ id, path }) => {
+      const result = JSON.parse(readFileSync(join(EXTENSION, `../scripts/fixtures/results/seeded-${path.split('/').pop()}.json`), 'utf8'))
+      const issue = { severity: 'warning', code: 'test-children', target: 'head', message: `html > head has ${children} children, above 60` }
+      return { id, path, ...result, ...(id === first.id ? { issues: [...(result.issues ?? []), issue] } : {}) }
+    }),
+  }))
+  const before = await panel.evaluate(() => localStorage.getItem('local:audits'))
+  await panel.evaluate((list) => localStorage.setItem('local:audits', JSON.stringify(list)), audits.toReversed())
+  await reopenPanel()
+  await panel.click('#go-home')
+  await panel.click('main .open-audit[data-date="2026-01-02T11:00:00.000Z"]')
+  const comparison = panel.locator('#audit .comparison')
+  const changes = () => comparison.locator('.changed tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.cells].map((td) => td.textContent.trim())))
+  assert.deepEqual(await comparison.locator('.changed thead th').allTextContents(), ['Severity', 'Snippet', 'Issue', 'Change'])
+  assert.deepEqual((await changes()).map(([severity, , issue, change]) => [severity, issue, change]), [['warning', 'html > head has 110 children, above 60', '120 → 110']])
+
+  // The previous audit by default, and any earlier one of the same page on request
+  const options = await comparison.locator('#compare-with option').evaluateAll((os) => os.map((o) => [o.value, o.textContent.includes('(previous)')]))
+  assert.deepEqual(options, [['2026-01-02T10:00:00.000Z', true], ['2026-01-02T09:00:00.000Z', false]])
+  await comparison.locator('#compare-with').selectOption('2026-01-02T09:00:00.000Z')
+  assert.equal((await changes())[0][3], '125 → 110')
+  // The choice stays for this audit, also after opening one of its results
+  await panel.locator('#audit .audit-rows tbody tr button').first().click()
+  await panel.click('#back-to-audit')
+  assert.equal(await panel.inputValue('#compare-with'), '2026-01-02T09:00:00.000Z')
+
+  await panel.evaluate((saved) => (saved === null ? localStorage.removeItem('local:audits') : localStorage.setItem('local:audits', saved)), before)
+  await reopenPanel()
+})
+
 test('an audit says what changed since the last audit of the same page', async () => {
   const audit = async () => {
     await panel.click('#go-home')
@@ -463,12 +502,16 @@ test('an audit says what changed since the last audit of the same page', async (
   })
   await audit()
   const comparison = panel.locator('#audit .comparison')
-  assert.match(await comparison.textContent(), /Since /)
-  const added = await comparison.locator('.added li').allTextContents()
+  assert.match(await comparison.textContent(), /Compared with/)
+  const added = await comparison.locator('.added tbody tr').allTextContents()
   assert.ok(added.some((text) => /lazy/i.test(text)), `no new lazy issue in ${JSON.stringify(added)}`)
-  // From 1 to 2 conflicting images: the same issue of Find-Images-With-Lazy-and-Fetchpriority, changed
-  const changed = await comparison.locator('.changed li').allTextContents()
-  assert.ok(changed.some((text) => /1 element.*→.*2 element/s.test(text)), `no changed count in ${JSON.stringify(changed)}`)
+  // From 1 to 2 conflicting images: the same issue of Find-Images-With-Lazy-and-Fetchpriority, changed,
+  // with the issue as it is now and the number that moved
+  const changed = await comparison.locator('.changed tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.cells].map((td) => td.textContent.trim())))
+  assert.ok(
+    changed.some(([, , issue, change]) => /^2 element/.test(issue) && change === '1 → 2'),
+    `no changed count in ${JSON.stringify(changed)}`
+  )
   await panel.click('#go-home')
   await panel.check('#reload-before-audit')
 })
