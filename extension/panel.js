@@ -2,7 +2,7 @@ import { filterSnippets, groupByCategory } from './lib/catalog.js'
 import { renderResult } from './lib/render.js'
 import { readTrackingData, reloadPage, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
-import { fixPrompt, hasIssuesToFix } from './lib/fix-prompt.js'
+import { auditFixPrompt, fixPrompt, hasIssuesToFix } from './lib/fix-prompt.js'
 import { createSettings } from './lib/settings.js'
 import { addToHistory, bySeverity, changeOf, compare, earlierOf, filterCounts, filterRows, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
 
@@ -256,11 +256,15 @@ function showAudit() {
       <button type="button" id="rerun-audit">Run again</button>
       <button type="button" id="copy-audit" class="secondary" title="Copy the audit as JSON, in the shape of the CLI">Copy JSON</button>
       <button type="button" id="download-audit" class="secondary" title="Save the audit as a JSON file">Download JSON</button>
+      <button type="button" id="fix-audit" class="secondary" hidden title="Copy a prompt to fix the errors and warnings of the audit in the code of the site, for an AI agent. It carries URLs and selectors of the inspected page">Prompt to fix</button>
     </div>
     <div id="audit" aria-live="polite"></div>`
   document.getElementById('rerun-audit').addEventListener('click', runAudit)
   const json = () => JSON.stringify(report({ url: audit.url, date: audit.date, rows: audit.rows }), null, 2)
   document.getElementById('copy-audit').addEventListener('click', (event) => copyFrom(event.currentTarget, json()))
+  document.getElementById('fix-audit').addEventListener('click', (event) =>
+    copyFrom(event.currentTarget, auditFixPrompt({ rows: audit.rows, url: audit.url, date: audit.date, extensionVersion }))
+  )
   document.getElementById('download-audit').addEventListener('click', () =>
     downloadReport(report({ url: audit.url, date: audit.date, rows: audit.rows }))
   )
@@ -343,6 +347,8 @@ function renderAudit() {
   view.dataset.done = String(audit.done)
   document.getElementById('rerun-audit').disabled = !audit.done
   for (const id of ['copy-audit', 'download-audit']) document.getElementById(id).disabled = !audit.done || Boolean(audit.error)
+  // Once it is done, and only with something to fix
+  document.getElementById('fix-audit').hidden = !audit.done || !audit.rows.some((r) => hasIssuesToFix(r.result))
   const rows = audit.done ? [...audit.rows].sort(bySeverity) : audit.rows
   // The step that runs now; none once the last row is in, before the audit is marked done
   const next = audit.done || audit.reloading ? undefined : audit.steps[audit.rows.length]

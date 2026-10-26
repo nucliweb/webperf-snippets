@@ -510,6 +510,43 @@ test('the comparison of an audit is a table, with the earlier audit of the page 
   await reopenPanel()
 })
 
+test('a done audit with errors or warnings has a Prompt to fix with the issues of every snippet', async () => {
+  // Two saved audits of the seeded page: as measured, and with only the info of each snippet
+  const audit = (date, keep) => ({
+    workflow: 'audit',
+    url: 'https://example.test/fix',
+    date,
+    overview: {},
+    issues: [],
+    results: auditWorkflow.steps.map(({ id, path }) => {
+      const result = JSON.parse(readFileSync(join(EXTENSION, `../scripts/fixtures/results/seeded-${path.split('/').pop()}.json`), 'utf8'))
+      return { id, path, ...result, issues: (result.issues ?? []).filter(keep) }
+    }),
+  })
+  const found = audit('2026-01-03T10:00:00.000Z', () => true)
+  const clean = audit('2026-01-03T09:00:00.000Z', (i) => i.severity === 'info')
+  const before = await panel.evaluate(() => localStorage.getItem('local:audits'))
+  await panel.evaluate((list) => localStorage.setItem('local:audits', JSON.stringify(list)), [found, clean])
+  await reopenPanel()
+
+  await panel.click('#go-home')
+  await panel.click(`main .open-audit[data-date="${clean.date}"]`)
+  assert.equal(await panel.locator('#fix-audit').isVisible(), false, 'nothing to fix')
+
+  await panel.click('#go-home')
+  await panel.click(`main .open-audit[data-date="${found.date}"]`)
+  await panel.evaluate(() => (window.__copied.length = 0))
+  await panel.click('#fix-audit')
+  await panel.waitForFunction(() => window.__copied.length === 1)
+  const prompt = await panel.evaluate(() => window.__copied[0])
+  assert.ok(prompt.startsWith('# Fix the issues WebPerf Snippets found on https://example.test/fix\n'), prompt.slice(0, 120))
+  assert.match(prompt, /^### .+ \(step `render-blocking`\)/m)
+  assert.match(prompt, /--workflow audit --json > before\.json/)
+
+  await panel.evaluate((saved) => (saved === null ? localStorage.removeItem('local:audits') : localStorage.setItem('local:audits', saved)), before)
+  await reopenPanel()
+})
+
 test('an audit says what changed since the last audit of the same page', async () => {
   const audit = async () => {
     await panel.click('#go-home')

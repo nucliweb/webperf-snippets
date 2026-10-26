@@ -12,6 +12,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A long view of the extension, such as a result or an audit, has a Top button in its corner once it is half a screen down.
 - The comparison of an audit in the extension is a table per kind of change, and a changed issue shows its text as it is now and only the numbers that moved (`1759 → 1745`, `706 KB → 679 KB`). Compared with picks any earlier audit of the same page, the one just before by default, and the choice stays while that audit is open.
 - A result of the extension with errors or warnings has a Prompt to fix button. It copies a prompt for an agent that works in the repository of the site, with the issues and their code and target, the details of the result and the rows the issues point to, and how to check the fix with the CLI: a run before the change and one after it with `--baseline`, on a URL where the change can be tested. Copy prompt is now Prompt to measure, which says what it is for.
+- A done audit of the extension with errors or warnings has a Prompt to fix button too, with the errors and warnings of every snippet, the errors first, under the title of each snippet and the id of its step, checked with `--workflow audit` before and after the change.
 
 ### Fixed
 - A result opened from the audit of the extension shows at its top, instead of as far down as the audit was, and ← Audit comes back to the audit where it was.
