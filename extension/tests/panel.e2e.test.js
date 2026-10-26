@@ -489,6 +489,19 @@ test('the phases of LCP are a chart with a row per phase, and no value is shown 
   assert.doesNotMatch(shown, /[{[]"/)
 })
 
+test('an issue about a row leads to it, and the row shows its issues as dots', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="Image-Element-Audit"]')
+  const result = await resultOf('#run')
+  const issue = result.issues.find((i) => i.target && result.items.some((item) => Object.values(item).includes(i.target)))
+  assert.ok(issue, 'the seeded page has an issue about one image')
+  const row = result.items.findIndex((item) => Object.values(item).includes(issue.target))
+  assert.ok(await panel.locator(`#result tr[data-row="${row}"] .dot`).count() > 0, 'the row has its dots')
+  await panel.click(`#result .to-row[data-row="${row}"] >> nth=0`)
+  assert.equal(await panel.getAttribute(`#result tr[data-row="${row}"]`, 'class'), 'highlight')
+  assert.equal(await panel.evaluate(() => document.activeElement?.dataset.row), String(row))
+})
+
 test('the panel lists every snippet, and each category says how many it has', async () => {
   assert.equal(await panel.locator('#list button').count(), snippets.length)
   const counts = await panel.locator('#list h2 .count').allTextContents()
