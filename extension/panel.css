@@ -124,12 +124,17 @@ section h3 .count { font-weight: 400; color: var(--muted); }
 section .note { padding: 6px 12px 0; }
 .table { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 11px; }
-th, td { padding: 4px 12px; text-align: left; vertical-align: top; white-space: nowrap; border-bottom: 1px solid var(--border); }
+th, td { padding: 4px 8px; text-align: left; vertical-align: top; white-space: nowrap; border-bottom: 1px solid var(--border); }
+/* The table lines up with the section around it */
+th:first-child, td:first-child { padding-left: 12px; }
+th:last-child, td:last-child { padding-right: 12px; }
+/* A header wraps between its words, so a long name does not widen a column of short values */
+th { white-space: normal; min-width: 48px; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:nth-child(even) { background: var(--surface); }
 tbody tr:hover { background: var(--hover); }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
-td.long { min-width: 240px; max-width: 420px; white-space: normal; overflow-wrap: anywhere; }
+td.long { min-width: 112px; max-width: 360px; white-space: normal; overflow-wrap: anywhere; }
 td.long .inspect { white-space: normal; overflow-wrap: anywhere; }
 th { position: sticky; top: 0; font-weight: 600; color: var(--muted); background: var(--surface); }
 
@@ -174,9 +179,22 @@ th { position: sticky; top: 0; font-weight: 600; color: var(--muted); background
 /* A list of objects inside a field or a cell: a table folded under its number of rows */
 .nested summary { color: var(--accent); cursor: pointer; }
 .nested .table { margin-top: 4px; border: 1px solid var(--border); border-radius: 4px; }
+/* A table inside a cell wraps its values, so it takes the width the cell has */
+td:has(> .nested) { white-space: normal; }
+.nested th, .nested td { white-space: normal; overflow-wrap: anywhere; }
+.nested td.long { min-width: 0; }
 dl.nested { padding: 0; }
 td.mark { text-align: center; color: var(--good); }
+/* The booleans of a row, as small labels in one column */
+td.flags { white-space: normal; }
+.flag { display: inline-block; margin: 0 4px 2px 0; padding: 0 6px; font-size: 10px; color: var(--muted); background: var(--hover); border-radius: 8px; }
+/* The columns with the same value in every row */
+.constants { margin: 0; padding: 6px 12px; color: var(--muted); border-bottom: 1px solid var(--border); }
+.constants b { font-weight: 600; color: var(--fg); }
+.nested .constants { padding: 4px 0; border-bottom: 0; }
 .url { cursor: help; }
+/* The file of a URL can be long, with a hash: it wraps anywhere */
+td.url { min-width: 80px; max-width: 280px; white-space: normal; overflow-wrap: anywhere; }
 .raw pre { overflow: auto; padding: 8px; background: var(--hover); border-radius: 4px; }
 .inspect { padding: 0; font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); text-align: left; background: none; border: 0; cursor: pointer; }
 .inspect:hover, .inspect:focus-visible { text-decoration: underline; }

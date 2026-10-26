@@ -16,6 +16,7 @@ const FORMATS = {
   score: (value, locale) => number(value, locale, 3, 3),
   bpp: (value, locale) => `${number(value, locale, 3, 3)} bpp`,
   fps: (value, locale) => `${number(Math.round(value), locale)} fps`,
+  px: (value, locale) => `${number(Math.round(value), locale)} px`,
 }
 
 // The suffixes that name a unit, and the format each one gives
@@ -24,6 +25,7 @@ export const SUFFIXES = [
   ['Bytes', 'bytes'],
   ['Percent', 'percent'],
   ['Count', 'count'],
+  ['Px', 'px'],
 ]
 
 export const formatOfKey = (key) => SUFFIXES.find(([suffix]) => key.endsWith(suffix) && key !== suffix)?.[1]

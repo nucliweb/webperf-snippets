@@ -19,9 +19,9 @@ const ACRONYMS = new Set(
 const CAPITALS = { bfcache: 'bfcache', loaf: 'LoAF', loafs: 'LoAFs', urls: 'URLs' }
 
 // A key in words, without the unit its suffix names, since the value shows it: totalBlockingUntilMs is
-// "Total blocking until", isLCP "Is LCP"
+// "Total blocking until", isLCP "Is LCP". A count is not a unit, so imageCount is "Image count"
 export function words(key) {
-  const suffix = SUFFIXES.find(([s]) => key.endsWith(s) && key !== s)?.[0]
+  const suffix = SUFFIXES.find(([s, format]) => format !== 'count' && key.endsWith(s) && key !== s)?.[0]
   const stem = suffix ? key.slice(0, -suffix.length) : key
   const parts = stem
     // Words in mixed case that the split by capitals would break
@@ -138,19 +138,86 @@ function phases(value, d, result) {
   return { parts, scale, text }
 }
 
-// A list of objects as a table: its columns, each with its label, and a row of cells per object
+// A width and a height of the same thing, as one value of its size: naturalWidth and naturalHeight are
+// naturalSize, 1,200×900
+function joinSizes(rows, locale) {
+  const keys = new Set(rows.flatMap((row) => Object.keys(row)))
+  const heightOf = (width) => width.replace(/^width/, 'height').replace(/Width(Px)?$/, 'Height$1')
+  const pairs = [...keys]
+    .filter((key) => /^(width|.+Width)(Px)?$/.test(key) && keys.has(heightOf(key)))
+    .map((width) => [width, heightOf(width), width.replace(/^width/, 'size').replace(/Width(Px)?$/, 'Size$1')])
+    .filter(([, , size]) => !keys.has(size))
+  if (pairs.length === 0) return rows
+  const number = (n) => formatValue(n, 'count', locale)
+  return rows.map((row) =>
+    Object.fromEntries(
+      Object.entries(row).flatMap(([key, value]) => {
+        const pair = pairs.find(([width, height]) => key === width || key === height)
+        if (!pair) return [[key, value]]
+        if (key === pair[1]) return []
+        const [width, height, size] = pair
+        const both = typeof row[width] === 'number' && typeof row[height] === 'number'
+        const unit = size.endsWith('Px') ? ' px' : ''
+        return [[size, both ? `${number(row[width])}×${number(row[height])}${unit}` : undefined]]
+      })
+    )
+  )
+}
+
+const sameValue = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+
+// A list of objects as a table: its columns, each with its label, and a row of cells per object. A
+// column with the same value in every row is a constant, a line above the table; a column with the
+// file of a URL column gives that one its place and label; and two or more columns of booleans are
+// one column of marks
 function table(items, d) {
-  const rows = items.map((item) => (isObject(item) ? item : { value: item }))
+  const rows = joinSizes(
+    items.map((item) => (isObject(item) ? item : { value: item })),
+    d.locale
+  )
   // A column empty in every row says nothing
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))]
+  let columns = [...new Set(rows.flatMap((row) => Object.keys(row)))]
     .filter((key) => rows.some((row) => !isEmpty(row[key])))
     .map((key) => describeField(key, d))
     .filter((c) => !c.hidden)
     .sort(byOrder)
-    .map(({ key, label, format }) => ({ key, label, format }))
+  const cells = rows.map((row) => Object.fromEntries(columns.map(({ key }) => [key, describeValue(key, row[key], d, { inTable: true })])))
+
+  const same = (key) => rows.length > 1 && rows.every((row) => sameValue(row[key], rows[0][key]))
+  // Rows that are all the same keep their columns: a table without any says nothing of how many there are
+  const allSame = columns.every(({ key }) => same(key))
+  const constant = (key) => !allSame && same(key)
+  const constants = columns
+    .filter(({ key }) => constant(key))
+    .map(({ key }) => {
+      const { label, text } = describeValue(key, rows[0][key], d)
+      return { key, label, text }
+    })
+  columns = columns.filter(({ key }) => !constant(key))
+
+  for (const url of columns.filter(({ key }) => cells.every((c) => c[key].format === 'url' || c[key].text === ''))) {
+    const short = columns.find(
+      (c) => c !== url && cells.every((row) => (row[url.key].text === '' ? row[c.key].text === '' : row[c.key].value === row[url.key].text))
+    )
+    if (!short) continue
+    columns = columns.filter((c) => c !== url).map((c) => (c === short ? { ...url, label: short.label } : c))
+  }
+
+  const booleans = columns.filter(({ key }) => rows.every((row) => row[key] === undefined || typeof row[key] === 'boolean'))
+  const flagged = booleans.length > 1
+  if (flagged) columns = [...columns.filter((c) => !booleans.includes(c)), { key: 'flags', label: d.ui('flags'), format: 'flags' }]
+  const flagLabel = (c) => inLine(c.label.replace(/^(Is|Has) /, ''))
+
   return {
-    columns,
-    rows: rows.map((row) => ({ cells: columns.map(({ key }) => describeValue(key, row[key], d, { inTable: true })) })),
+    columns: columns.map(({ key, label, format }) => ({ key, label, format })),
+    constants,
+    rows: cells.map((row, i) => ({
+      cells: columns.map(({ key }) => {
+        if (key !== 'flags' || !flagged) return row[key]
+        const flags = booleans.filter((c) => rows[i][c.key] === true).map(flagLabel)
+        return { key, format: 'flags', value: booleans.filter((c) => rows[i][c.key] === true).map((c) => c.key), flags, text: flags.join(' · ') }
+      }),
+    })),
   }
 }
 
@@ -206,6 +273,6 @@ export function describeResult(result, options = {}) {
       ...(field.phrase ? { phrase: splitPhrase(field.phrase) } : {}),
     }))
 
-  const { columns, rows } = table(Array.isArray(result?.items) ? result.items : [], d)
-  return { title: d.title, details, columns, rows }
+  const { columns, constants, rows } = table(Array.isArray(result?.items) ? result.items : [], d)
+  return { title: d.title, details, columns, constants, rows }
 }

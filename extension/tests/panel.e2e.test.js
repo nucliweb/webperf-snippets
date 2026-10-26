@@ -469,7 +469,10 @@ test('a result reads with the labels, formats and table title of its view', asyn
   assert.equal(await panel.textContent('#result section h3 >> text=Render-blocking resources'), 'Render-blocking resources')
   assert.equal(await panel.textContent('#result .phrase'), `Rendering blocked until ${result.details.totalBlockingUntilMs} ms`)
   const head = await panel.locator('#result thead th').allTextContents()
-  assert.deepEqual(head.slice(0, 3), ['File', 'Type', 'Response end'])
+  assert.deepEqual(head.slice(0, 2), ['File', 'Type'])
+  // A column, or the line above the table when both resources end in the same millisecond
+  const constants = (await panel.locator('#result .constants').allTextContents()).join(' ')
+  assert.ok(head.includes('Response end') || constants.includes('Response end'), head.join(', '))
   // Only the JSON keeps the keys
   const shown = (await panel.locator('#result > section').allTextContents()).join(' ')
   assert.doesNotMatch(shown, /totalBlockingUntilMs|responseEndMs|sizeBytes/)

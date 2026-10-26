@@ -49,7 +49,7 @@ test('items become a table with a labelled column per field, each value in its f
   })
   assert.match(html, /<h3>Items<\/h3>/)
   assert.match(html, /<th>URL<\/th><th>Size<\/th><th>Position<\/th>/)
-  assert.match(html, /<td><span class="url" title="https:\/\/a\/x\.js">x\.js<\/span><\/td><td class="num">120<\/td><td><\/td>/)
+  assert.match(html, /<td class="url"><span class="url" title="https:\/\/a\/x\.js">x\.js<\/span><\/td><td class="num">120<\/td><td><\/td>/)
   assert.match(html, /<td>top <b>10<\/b><\/td>/)
   assert.match(html, /2 of 3 items/)
 })
@@ -225,6 +225,25 @@ test('an object of an element is a nested list of its fields', () => {
 
 test('a URL shows its file, with the whole URL as its title', () => {
   const html = renderResult({ script: 'X', status: 'ok', items: [{ url: 'https://example.com/assets/app.js?v=3', cached: true }, { url: 'https://example.com/b.js', cached: false }] })
-  assert.match(html, /<td><span class="url" title="https:\/\/example.com\/assets\/app.js\?v=3">app.js<\/span><\/td><td class="mark">✓<\/td>/)
+  assert.match(html, /<td class="url"><span class="url" title="https:\/\/example.com\/assets\/app.js\?v=3">app.js<\/span><\/td><td class="mark">✓<\/td>/)
   assert.match(html, /<td class="mark"><\/td>/)
+})
+
+test('the columns with the same value in every row are a line above the table', () => {
+  const html = renderResult({ script: 'X', status: 'ok', items: [{ file: 'a.js', host: '127.0.0.1' }, { file: 'b.js', host: '127.0.0.1' }] })
+  assert.match(html, /<p class="constants">Host <b>127\.0\.0\.1<\/b><\/p><div class="table"><table><thead><tr><th>File<\/th><\/tr>/)
+})
+
+test('the booleans of a row are marks in one column', () => {
+  const html = renderResult({
+    script: 'X',
+    status: 'ok',
+    items: [
+      { name: 'a', isLCP: true, inViewport: true },
+      { name: 'b', isLCP: false, inViewport: false },
+    ],
+  })
+  assert.match(html, /<th>Flags<\/th>/)
+  assert.match(html, /<td class="flags"><span class="flag">LCP<\/span><span class="flag">in viewport<\/span><\/td>/)
+  assert.match(html, /<td class="flags"><\/td>/)
 })
