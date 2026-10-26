@@ -31,6 +31,7 @@ test('each format writes its unit', () => {
   assert.equal(formatValue(0.1, 'score'), '0.100')
   assert.equal(formatValue(0.0512, 'bpp'), '0.051 bpp')
   assert.equal(formatValue(58.4, 'fps'), '58 fps')
+  assert.equal(formatValue(1200, 'px'), '1,200 px')
   assert.equal(formatValue(7, undefined), '7')
   assert.equal(formatValue(0.12345, undefined), '0.123')
   assert.equal(formatValue('defer', undefined), 'defer')
@@ -47,7 +48,8 @@ test('a key becomes words, without its unit and with its acronyms in capitals', 
   assert.equal(words('totalBlockingUntilMs'), 'Total blocking until')
   assert.equal(words('sizeBytes'), 'Size')
   assert.equal(words('headerCoveragePercent'), 'Header coverage')
-  assert.equal(words('imageCount'), 'Image')
+  // A count is not a unit the value shows, so it stays in the label
+  assert.equal(words('imageCount'), 'Image count')
   assert.equal(words('count'), 'Count')
   assert.equal(words('isLCP'), 'Is LCP')
   assert.equal(words('lcpElement'), 'LCP element')
@@ -66,7 +68,7 @@ test('a field without an entry takes its format from its suffix', () => {
       ['Wait', '12 ms'],
       ['Transfer', '2.0 KB'],
       ['Hit', '40%'],
-      ['Node', '1,500'],
+      ['Node count', '1,500'],
       ['Name', 'a'],
     ]
   )
@@ -87,15 +89,11 @@ test('the columns have labels and formats, in the order of the snippet entry', (
   const view = describeResult(sample)
   assert.deepEqual(
     view.columns.map((c) => c.key),
-    ['shortName', 'type', 'responseEndMs', 'durationMs', 'sizeBytes', 'url']
-  )
-  assert.deepEqual(
-    view.columns.map((c) => c.label),
-    ['File', 'Type', 'Response end', 'Duration', 'Size', 'URL']
+    ['url', 'type', 'responseEndMs', 'durationMs', 'sizeBytes']
   )
   assert.deepEqual(
     view.rows[1].cells.map((c) => c.text),
-    ['style.css', 'link', '401 ms', '120 ms', '17.2 KB', 'style.css']
+    ['style.css', 'link', '401 ms', '120 ms', '17.2 KB']
   )
 })
 
@@ -138,7 +136,7 @@ test('a list of values becomes rows of one value', () => {
 
 test('a result without details or items has an empty view', () => {
   const view = describeResult({ script: 'X', status: 'ok' })
-  assert.deepEqual([view.details, view.columns, view.rows], [[], [], []])
+  assert.deepEqual([view.details, view.columns, view.constants, view.rows], [[], [], [], []])
 })
 
 const detail = (result, key, options) => describeResult(result, options).details.find((d) => d.key === key)
@@ -308,6 +306,84 @@ test('the issues of a row are not a column, since the issues section lists them'
   assert.deepEqual(view.columns.map((c) => c.key), ['src'])
 })
 
+test('a column with the same value in every row is a line above the table', () => {
+  const view = describeResult({
+    script: 'X',
+    status: 'ok',
+    items: [
+      { file: 'a.js', host: '127.0.0.1', cached: false, sizeBytes: 10 },
+      { file: 'b.js', host: '127.0.0.1', cached: false, sizeBytes: 20 },
+    ],
+  })
+  assert.deepEqual(view.columns.map((c) => c.key), ['file', 'sizeBytes'])
+  assert.deepEqual(view.constants.map(({ label, text }) => [label, text]), [['Host', '127.0.0.1'], ['Cached', 'No']])
+  // With one row every column is the same in every row, so none is a constant
+  const one = describeResult({ script: 'X', status: 'ok', items: [{ file: 'a.js', host: '127.0.0.1' }] })
+  assert.deepEqual([one.columns.length, one.constants], [2, []])
+})
+
+test('rows that are all the same keep their columns, so the table does not lose them all', () => {
+  const view = describeResult({ script: 'X', status: 'ok', items: [{ file: 'a.png', host: 'h' }, { file: 'a.png', host: 'h' }] })
+  assert.deepEqual([view.columns.map((c) => c.key), view.constants], [['file', 'host'], []])
+})
+
+test('the booleans of a row are one column of marks, named without Is or Has', () => {
+  const view = describeResult({
+    script: 'X',
+    status: 'ok',
+    items: [
+      { url: 'https://example.com/a.png', isLCP: true, inViewport: true, hasSrcset: false },
+      { url: 'https://example.com/b.png', isLCP: false, inViewport: true, hasSrcset: true },
+      { url: 'https://example.com/c.png', isLCP: false, inViewport: false, hasSrcset: false },
+    ],
+  })
+  assert.deepEqual(view.columns.map((c) => [c.key, c.label]), [['url', 'URL'], ['flags', 'Flags']])
+  assert.deepEqual(view.rows.map((r) => r.cells[1].text), ['LCP · in viewport', 'in viewport · srcset', ''])
+  assert.deepEqual(view.rows[0].cells[1].flags, ['LCP', 'in viewport'])
+})
+
+test('a single boolean column stays a column of marks', () => {
+  const view = describeResult({ script: 'X', status: 'ok', items: [{ name: 'a', cached: true }, { name: 'b', cached: false }] })
+  assert.deepEqual(view.columns.map((c) => c.key), ['name', 'cached'])
+})
+
+test('a short name that is the file of the URL is one column, the URL in its place and with its label', () => {
+  const view = describeResult(sample)
+  assert.deepEqual(view.columns.map((c) => c.label), ['File', 'Type', 'Response end', 'Duration', 'Size'])
+  assert.equal(view.columns[0].key, 'url')
+  assert.deepEqual(view.rows.map((r) => [r.cells[0].text, r.cells[0].href]), [
+    ['third.js', 'https://example.com/third.js'],
+    ['style.css', 'https://example.com/style.css'],
+  ])
+})
+
+test('a width and a height are one column of their size', () => {
+  const view = describeResult({
+    script: 'X',
+    status: 'ok',
+    items: [
+      { src: 'a.png', naturalWidth: 100, naturalHeight: 80, width: 600, height: 400 },
+      { src: 'b.png', naturalWidth: 1200, naturalHeight: 900, width: 300, height: 200 },
+    ],
+  })
+  assert.deepEqual(view.columns.map((c) => [c.key, c.label]), [['src', 'Src'], ['naturalSize', 'Natural size'], ['size', 'Size']])
+  assert.deepEqual(view.rows[1].cells.map((c) => c.text), ['b.png', '1,200×900', '300×200'])
+  // In px when the keys say so
+  const px = describeResult({ script: 'X', status: 'ok', items: [{ widthPx: 300, heightPx: 200, distancePx: 59 }] })
+  assert.deepEqual(px.columns.map((c) => c.label), ['Size', 'Distance'])
+  assert.deepEqual(px.rows[0].cells.map((c) => c.text), ['300×200 px', '59 px'])
+})
+
+test('a nested table follows the same rules', () => {
+  const nested = describeResult({
+    script: 'X',
+    status: 'ok',
+    details: { scripts: [{ invoker: 'a', source: 'page', durationMs: 10 }, { invoker: 'b', source: 'page', durationMs: 20 }] },
+  }).details[0]
+  assert.deepEqual(nested.columns.map((c) => c.key), ['invoker', 'durationMs'])
+  assert.deepEqual(nested.constants.map((c) => [c.label, c.text]), [['Source', 'page']])
+})
+
 // The results of every snippet on the seeded and the heavy pages of the CLI contract tests, written by
 // scripts/capture-result-fixtures.mjs
 const FIXTURES = new URL('./fixtures/results/', import.meta.url)
@@ -347,6 +423,21 @@ test('no value of any snippet is shown as JSON', () => {
     return [...view.details.flatMap(textsOf), ...view.rows.flatMap((r) => r.cells.flatMap(textsOf))]
       .filter((text) => /^[[{]/.test(text))
       .map((text) => `${file}: ${text.slice(0, 60)}`)
+  })
+  assert.deepEqual(found, [])
+})
+
+// An early warning: what matters is that every table fits a panel of 1,000 px, which the width test of
+// the extension checks (extension/tests/width.e2e.test.js)
+const MAX_COLUMNS = 9
+
+test(`no table of any snippet has more than ${MAX_COLUMNS} columns`, () => {
+  const tables = (field) => [...(field.columns ? [field] : []), ...(field.fields ?? []).flatMap(tables), ...(field.rows ?? []).flatMap((r) => r.cells.flatMap(tables))]
+  const found = fixtures.flatMap(([file, result]) => {
+    const view = describeResult(result)
+    return [view, ...view.details.flatMap(tables), ...view.rows.flatMap((r) => r.cells.flatMap(tables))]
+      .filter((t) => t.columns.length > MAX_COLUMNS)
+      .map((t) => `${file}: ${t.columns.length} columns (${t.columns.map((c) => c.key).join(', ')})`)
   })
   assert.deepEqual(found, [])
 })

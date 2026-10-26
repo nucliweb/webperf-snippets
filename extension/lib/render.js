@@ -55,8 +55,7 @@ function phasesOf(f) {
   return `<div class="phases"><p class="phases-label">${escape(f.label)}</p><div class="phase-bar" role="img" aria-label="${escape(f.text)}">${zones}${segments}</div>${ticks}<ul class="phase-list">${rows}</ul></div>`
 }
 
-const nestedTable = (f) =>
-  `<details class="nested"><summary>${escape(f.text)}</summary>${tableOf(f.columns, f.rows)}</details>`
+const nestedTable = (f) => `<details class="nested"><summary>${escape(f.text)}</summary>${tableOf(f)}</details>`
 
 // A cell or a field of the view in its format
 function field(f) {
@@ -69,6 +68,8 @@ function field(f) {
       return f.parts.length ? f.parts.map((p) => `${escape(p.label)} <b>${escape(p.text)}</b>`).join(' · ') : escape(f.text)
     case 'table':
       return nestedTable(f)
+    case 'flags':
+      return f.flags.map((flag) => `<span class="flag">${escape(flag)}</span>`).join('')
     case 'fields':
       return `<dl class="details nested">${f.fields.map((n) => `<dt>${escape(n.label)}</dt><dd>${field(n)}</dd>`).join('')}</dl>`
     default:
@@ -78,13 +79,27 @@ function field(f) {
 
 // A number aligns to the right, a mark is centred, and a long text, a selector among them, wraps
 const cellClass = (cell) =>
-  typeof cell.value === 'number' ? ' class="num"' : cell.format === 'boolean' ? ' class="mark"' : cell.text.length > LONG ? ' class="long"' : ''
+  typeof cell.value === 'number'
+    ? ' class="num"'
+    : cell.format === 'boolean'
+      ? ' class="mark"'
+      : cell.format === 'flags'
+        ? ' class="flags"'
+        : cell.format === 'url'
+          ? ' class="url"'
+        : cell.text.length > LONG
+          ? ' class="long"'
+          : ''
 const td = (cell) => `<td${cellClass(cell)}>${field(cell)}</td>`
 
-function tableOf(columns, rows) {
+// The columns with the same value in every row, as a line above the table
+const constantsOf = (constants) =>
+  constants.length ? `<p class="constants">${constants.map((c) => `${escape(c.label)} <b>${escape(c.text)}</b>`).join(' · ')}</p>` : ''
+
+function tableOf({ columns, constants, rows }) {
   const head = columns.map((c) => `<th>${escape(c.label)}</th>`).join('')
   const body = rows.map((row) => `<tr>${row.cells.map(td).join('')}</tr>`).join('')
-  return `<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`
+  return `${constantsOf(constants)}<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`
 }
 
 function metric(result) {
@@ -113,7 +128,7 @@ function issues(list) {
 function items(result, view) {
   if (view.rows.length === 0) return ''
   const total = typeof result.count === 'number' && result.count > view.rows.length ? `<p class="note">${view.rows.length} of ${result.count} items</p>` : ''
-  return `<section><h3>${escape(view.title)}</h3>${total}${tableOf(view.columns, view.rows)}</section>`
+  return `<section><h3>${escape(view.title)}</h3>${total}${tableOf(view)}</section>`
 }
 
 // A field with a phrase reads as a sentence and the phases of a metric are a chart, both before the

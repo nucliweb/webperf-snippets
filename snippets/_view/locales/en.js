@@ -15,6 +15,7 @@ export default {
       yes: 'Yes',
       no: 'No',
       none: 'none',
+      flags: 'Flags',
       rows: { one: '{n} row', other: '{n} rows' },
     },
   },

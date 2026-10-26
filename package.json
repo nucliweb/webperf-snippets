@@ -24,7 +24,7 @@
     "test:extension": "node scripts/build-extension.mjs && node --test extension/lib/*.test.js lib/snippet-expression.test.mjs",
     "test:view": "node --test scripts/view.test.mjs",
     "view:fixtures": "node scripts/capture-result-fixtures.mjs",
-    "test:extension:e2e": "node scripts/build-extension.mjs && node --test --test-concurrency=1 extension/tests/panel.e2e.test.js extension/tests/package.test.js",
+    "test:extension:e2e": "node scripts/build-extension.mjs && node --test --test-concurrency=1 extension/tests/panel.e2e.test.js extension/tests/width.e2e.test.js extension/tests/package.test.js",
     "test:ci": "node --test scripts/ci-skip-slow-steps.test.js scripts/check-tag-version.test.js",
     "test:diagrams": "vitest run components/diagrams",
     "test:components": "vitest run components lib/page-metadata.test.js lib/analytics.test.js lib/webmcp.test.js",
