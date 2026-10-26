@@ -79,7 +79,12 @@ body { margin: 0; display: flex; height: 100vh; font: 12px/1.5 system-ui, sans-s
 #list button { display: block; width: 100%; padding: 4px 12px 4px 9px; font: inherit; color: inherit; text-align: left; background: none; border: 0; border-left: 3px solid transparent; cursor: pointer; }
 #list button:hover, #list button:focus-visible { background: var(--hover); }
 #list button[aria-current="true"] { color: var(--accent); font-weight: 600; background: var(--accent-bg); border-left-color: var(--accent); }
-main { flex: 1; overflow: auto; padding: 16px 20px; }
+/* The views scroll in main; the button that goes back to the top stays over its corner */
+.content { position: relative; flex: 1; min-width: 0; display: flex; }
+main { flex: 1; min-width: 0; overflow: auto; padding: 16px 20px; }
+#to-top { position: absolute; right: 20px; bottom: 16px; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font: inherit; color: var(--accent); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 1px 4px rgb(0 0 0 / 0.2); cursor: pointer; }
+#to-top:hover, #to-top:focus-visible { background: var(--hover); }
+#to-top[hidden] { display: none; }
 .empty, .note, .thresholds { color: var(--muted); }
 h1 { margin: 0 0 4px; font-size: 16px; }
 .actions { display: flex; gap: 8px; align-items: center; margin: 8px 0 16px; }
