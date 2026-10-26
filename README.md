@@ -18,7 +18,7 @@ AI agents are good at interpreting performance data and unreliable when they wri
 
 | You want to                                           | Use                                                              |
 | ----------------------------------------------------- | ---------------------------------------------------------------- |
-| Audit a URL with any agent that has a terminal        | The [Copy prompt](#copy-prompt) button on each snippet page      |
+| Audit a URL with any agent that has a terminal        | The [Copy prompt to measure](#copy-prompt-to-measure) button on each snippet page |
 | Give an agent the snippets as tools                   | The [MCP server](#mcp-server)                                    |
 | Let the agent drive your Chrome (login, interactions) | The [Agent Skills](#agent-skills) with Chrome DevTools MCP       |
 | Run snippets from scripts or CI                       | The [CLI](#cli)                                                  |
@@ -26,9 +26,9 @@ AI agents are good at interpreting performance data and unreliable when they wri
 
 Not sure which snippet to run? Start from the symptom in [Which snippet should I use?](https://webperf-snippets.net/which-snippet)
 
-### Copy prompt
+### Copy prompt to measure
 
-Snippet pages have a **Copy prompt** button above the code. It copies a prompt that asks any AI agent with a terminal to run that snippet with the [CLI](#cli) on the URL you give it, and to report the value, the cause and the issues. The agent runs the published snippet instead of rewriting it or estimating the result.
+Snippet pages have a **Copy prompt to measure** button above the code. It copies a prompt that asks any AI agent with a terminal to run that snippet with the [CLI](#cli) on the URL you give it, and to report the value, the cause and the issues. The agent runs the published snippet instead of rewriting it or estimating the result.
 
 ### MCP server
 

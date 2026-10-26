@@ -6,9 +6,10 @@ const CODE = "(() => ({ script: 'Demo', status: 'ok' }))()";
 const PROMPT = "# Run the Demo snippet with webperf-snippets\n\nRun this measurement with the CLI.";
 
 describe("Snippet", () => {
-  it("shows a visible Copy prompt button when the snippet has a prompt", () => {
+  it("shows a visible Copy prompt to measure button when the snippet has a prompt", () => {
     const html = renderToStaticMarkup(<Snippet code={CODE} prompt={PROMPT} />);
-    expect(html).toMatch(/<button[^>]*class="wp-snippet-prompt"[^>]*>.*?Copy prompt<\/button>/);
+    // It says what the prompt is for: to measure, not to fix, which only the extension can offer
+    expect(html).toMatch(/<button[^>]*class="wp-snippet-prompt"[^>]*>.*?Copy prompt to measure<\/button>/);
   });
 
   it("explains in a visible sentence what the prompt is for", () => {
