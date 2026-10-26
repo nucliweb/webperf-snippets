@@ -384,7 +384,23 @@ function showSnippet(snippet, { result: given, fromAudit = false } = {}) {
     if (selector) inspectElement(selector)
     const issue = event.target.closest('.to-row')
     if (issue) showRow(issue.dataset.row)
+    const source = event.target.closest('.open-source')
+    if (source) chrome.devtools.panels.openResource?.(source.dataset.url)
+    const url = event.target.closest('.copy-url')
+    if (url) copyUrl(url)
   })
+}
+
+// Copies the URL of a resource, to paste it in the filter of Network; the button says so for a moment
+async function copyUrl(button) {
+  const title = button.title
+  await copyText(button.dataset.url)
+  button.title = 'Copied'
+  button.classList.add('copied')
+  setTimeout(() => {
+    button.title = title
+    button.classList.remove('copied')
+  }, 2000)
 }
 
 // Brings the row of an issue into view, marked and focused, so the keyboard stays with it
