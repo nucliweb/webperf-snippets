@@ -14,6 +14,7 @@ const escape = (value) =>
 const RATING = { good: 'Good', 'needs-improvement': 'Needs improvement', poor: 'Poor' }
 const STATUS = { ok: 'OK', tracking: 'Tracking', error: 'Error', unsupported: 'Unsupported' }
 const SEVERITY = ['error', 'warning', 'info']
+const bySeverity = (list) => [...list].sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity))
 
 // Table cells do not wrap, so a column is as wide as its values; only long ones, such as URLs, wrap
 const LONG = 40
@@ -90,7 +91,11 @@ const cellClass = (cell) =>
         : cell.text.length > LONG
           ? ' class="long"'
           : ''
-const td = (cell) => `<td${cellClass(cell)}>${field(cell)}</td>`
+const td = (cell, before = '') => `<td${cellClass(cell)}>${before}${field(cell)}</td>`
+
+// The issues of a row, as dots of their severity at the start of its first cell
+const dotsOf = (issues) =>
+  issues?.length ? `<span class="dots">${bySeverity(issues).map((i) => `<span class="dot dot-${escape(i.severity)}" title="${escape(i.message)}"></span>`).join('')}</span>` : ''
 
 // The columns with the same value in every row, as a line above the table
 const constantsOf = (constants) =>
@@ -98,7 +103,10 @@ const constantsOf = (constants) =>
 
 function tableOf({ columns, constants, rows }) {
   const head = columns.map((c) => `<th>${escape(c.label)}</th>`).join('')
-  const body = rows.map((row) => `<tr>${row.cells.map(td).join('')}</tr>`).join('')
+  // The rows of the table of the result know their place, which an issue about one of them leads to
+  const body = rows
+    .map((row, i) => `<tr${row.issues ? ` data-row="${i}"` : ''}>${row.cells.map((cell, c) => td(cell, c === 0 ? dotsOf(row.issues) : '')).join('')}</tr>`)
+    .join('')
   return `${constantsOf(constants)}<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`
 }
 
@@ -116,8 +124,16 @@ const plural = (n, word) => `${n} ${word}${n === 1 || word === 'info' ? '' : 's'
 
 function issues(list) {
   if (!Array.isArray(list) || list.length === 0) return ''
-  const sorted = [...list].sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity))
-  const items = sorted.map((i) => `<li class="issue issue-${escape(i.severity)}">${escape(i.message)}</li>`).join('')
+  const sorted = bySeverity(list)
+  // An issue about a row of the table leads to it (panel.js)
+  const items = sorted
+    .map(
+      (i) =>
+        `<li class="issue issue-${escape(i.severity)}">${
+          i.row === undefined ? escape(i.message) : `<button type="button" class="to-row" data-row="${i.row}" title="Show its row">${escape(i.message)}</button>`
+        }</li>`
+    )
+    .join('')
   const count = SEVERITY.map((s) => [s, list.filter((i) => i.severity === s).length])
     .filter(([, n]) => n > 0)
     .map(([s, n]) => plural(n, s))
@@ -172,5 +188,5 @@ export function renderResult(result) {
     : ''
 
   const view = describeResult(result)
-  return [status, metric(result), clean, cors, issues(result.issues), items(result, view), details(view), json].join('')
+  return [status, metric(result), clean, cors, issues(view.issues), items(result, view), details(view), json].join('')
 }

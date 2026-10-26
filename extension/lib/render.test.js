@@ -247,3 +247,36 @@ test('the booleans of a row are marks in one column', () => {
   assert.match(html, /<td class="flags"><span class="flag">LCP<\/span><span class="flag">in viewport<\/span><\/td>/)
   assert.match(html, /<td class="flags"><\/td>/)
 })
+
+const withRows = {
+  script: 'X',
+  status: 'ok',
+  items: [
+    { url: 'https://example.com/a.png', format: 'png' },
+    { url: 'https://example.com/b.png', format: 'png' },
+  ],
+  issues: [
+    { code: 'lcp-not-img', severity: 'info', message: 'The LCP element is not an image' },
+    { code: 'lazy-in-viewport', severity: 'warning', message: 'b.png: remove loading=lazy', target: 'https://example.com/b.png' },
+  ],
+}
+
+test('an issue about a row is a button that leads to it', () => {
+  const html = renderResult(withRows)
+  assert.match(html, /<li class="issue issue-warning"><button type="button" class="to-row" data-row="1" title="Show its row">b\.png: remove loading=lazy<\/button><\/li>/)
+  assert.match(html, /<li class="issue issue-info">The LCP element is not an image<\/li>/)
+})
+
+test('a row shows its issues as dots of their severity, and knows its place', () => {
+  const html = renderResult(withRows)
+  assert.match(html, /<tr data-row="0"><td class="url"><span class="url"/)
+  assert.match(html, /<tr data-row="1"><td class="url"><span class="dots"><span class="dot dot-warning" title="b\.png: remove loading=lazy"><\/span><\/span><span class="url"/)
+})
+
+test('the dots of a row go by severity, errors first', () => {
+  const html = renderResult({
+    ...withRows,
+    issues: [...withRows.issues, { code: 'conflict', severity: 'error', message: 'b.png: conflict', target: 'https://example.com/b.png' }],
+  })
+  assert.match(html, /<span class="dots"><span class="dot dot-error" title="b\.png: conflict"><\/span><span class="dot dot-warning"/)
+})

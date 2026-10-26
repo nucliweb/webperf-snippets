@@ -273,6 +273,28 @@ export function describeResult(result, options = {}) {
       ...(field.phrase ? { phrase: splitPhrase(field.phrase) } : {}),
     }))
 
-  const { columns, constants, rows } = table(Array.isArray(result?.items) ? result.items : [], d)
-  return { title: d.title, details, columns, constants, rows }
+  const items = Array.isArray(result?.items) ? result.items : []
+  const { columns, constants, rows } = table(items, d)
+
+  // An issue with a target belongs to the row that has that URL, selector or name in one of its fields
+  const rowOf = (target) => {
+    const index = target === undefined ? -1 : items.findIndex((item) => isObject(item) && Object.values(item).includes(target))
+    return index < 0 ? undefined : index
+  }
+  const issues = (Array.isArray(result?.issues) ? result.issues : []).map(({ severity, code, message, target }) => ({
+    severity,
+    code,
+    message,
+    target,
+    row: rowOf(target),
+  }))
+
+  return {
+    title: d.title,
+    details,
+    columns,
+    constants,
+    rows: rows.map((row, i) => ({ ...row, issues: issues.filter((issue) => issue.row === i) })),
+    issues,
+  }
 }

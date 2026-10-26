@@ -136,7 +136,7 @@ test('a list of values becomes rows of one value', () => {
 
 test('a result without details or items has an empty view', () => {
   const view = describeResult({ script: 'X', status: 'ok' })
-  assert.deepEqual([view.details, view.columns, view.constants, view.rows], [[], [], [], []])
+  assert.deepEqual([view.details, view.columns, view.constants, view.rows, view.issues], [[], [], [], [], []])
 })
 
 const detail = (result, key, options) => describeResult(result, options).details.find((d) => d.key === key)
@@ -382,6 +382,35 @@ test('a nested table follows the same rules', () => {
   }).details[0]
   assert.deepEqual(nested.columns.map((c) => c.key), ['invoker', 'durationMs'])
   assert.deepEqual(nested.constants.map((c) => [c.label, c.text]), [['Source', 'page']])
+})
+
+test('an issue with a target knows its row, and a row its issues', () => {
+  const view = describeResult({
+    script: 'X',
+    status: 'ok',
+    items: [
+      { url: 'https://example.com/a.png', format: 'png' },
+      { url: 'https://example.com/b.png?v=2', format: 'png' },
+    ],
+    issues: [
+      { code: 'lcp-not-img', severity: 'info', message: 'The LCP element is not an image' },
+      { code: 'lazy-in-viewport', severity: 'warning', message: 'b.png: remove loading=lazy', target: 'https://example.com/b.png?v=2' },
+      { code: 'no-modern-format', severity: 'info', message: 'b.png: no modern format', target: 'https://example.com/b.png?v=2' },
+      { code: 'gone', severity: 'error', message: 'Not in the table', target: 'https://example.com/c.png' },
+    ],
+  })
+  assert.deepEqual(view.issues.map((i) => [i.code, i.row]), [['lcp-not-img', undefined], ['lazy-in-viewport', 1], ['no-modern-format', 1], ['gone', undefined]])
+  assert.deepEqual(view.rows.map((r) => r.issues.map((i) => i.code)), [[], ['lazy-in-viewport', 'no-modern-format']])
+})
+
+test('a target matches the row that has it in any of its fields, such as a selector', () => {
+  const view = describeResult({
+    script: 'X',
+    status: 'ok',
+    items: [{ selector: 'div#a', detail: 'x' }, { selector: 'div#b', detail: 'y' }],
+    issues: [{ code: 'missing-intrinsic-size', severity: 'warning', message: 'div#b has no size', target: 'div#b' }],
+  })
+  assert.equal(view.issues[0].row, 1)
 })
 
 // The results of every snippet on the seeded and the heavy pages of the CLI contract tests, written by

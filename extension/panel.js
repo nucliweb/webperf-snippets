@@ -382,7 +382,21 @@ function showSnippet(snippet, { result: given, fromAudit = false } = {}) {
     if (button) copyFrom(button, JSON.stringify(lastResult, null, 2))
     const selector = event.target.closest('.inspect')
     if (selector) inspectElement(selector)
+    const issue = event.target.closest('.to-row')
+    if (issue) showRow(issue.dataset.row)
   })
+}
+
+// Brings the row of an issue into view, marked and focused, so the keyboard stays with it
+function showRow(index) {
+  const result = document.getElementById('result')
+  const row = result.querySelector(`tr[data-row="${CSS.escape(index)}"]`)
+  if (!row) return
+  result.querySelector('tr.highlight')?.classList.remove('highlight')
+  row.classList.add('highlight')
+  row.tabIndex = -1
+  row.focus({ preventScroll: true })
+  row.scrollIntoView({ block: 'center', behavior: 'smooth' })
 }
 
 // Selects the element of a selector in the Elements panel, with inspect() of the DevTools console
