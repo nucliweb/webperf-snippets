@@ -4,6 +4,7 @@ import { describeThrottling } from "../throttling.js";
 import { describeRuns } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
 import { baselineView } from "./baseline-view.js";
+import { budgetRows, matrixBudgetFailures } from "./budgets-view.js";
 
 const RATING_ICON = {
   good: "🟢",
@@ -223,6 +224,16 @@ function renderRuns(runs) {
 
 const VERDICT_STYLE = { regressed: "red", improved: "green", unchanged: "dim", "not measured": "dim", new: "cyan" };
 
+// Every budget the run was given, passed or not, so the report says which one decided the exit code
+function renderBudgets(budgets) {
+  const lines = ["", styleText("bold", "Budgets")];
+  for (const row of budgetRows(budgets, formatValue)) {
+    const mark = row.passed ? styleText("green", "✓") : styleText("red", "✗");
+    lines.push(`  ${mark} ${pad(row.metric, 6)}${pad(row.value, 10)}${pad(`budget ${row.budget}`, 18)}${styleText(row.passed ? "green" : "red", row.verdict)}`);
+  }
+  return lines;
+}
+
 // The comparison with --baseline, after the report: its warnings first, since they say how far to
 // trust the table, then a row per metric and the errors that appeared or went away
 function renderBaseline(comparison) {
@@ -240,7 +251,7 @@ function renderBaseline(comparison) {
   return lines;
 }
 
-export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling, runs, baseline, title = `WebPerf Snippets — ${url}` }) {
+export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling, runs, baseline, budgets, title = `WebPerf Snippets — ${url}` }) {
   const lines = [];
   lines.push(styleText(["bold"], title));
   lines.push(styleText("dim", `Navigated in ${navMs}ms`));
@@ -257,6 +268,7 @@ export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, th
     lines.push(styleText("yellow", "Page errors during run:"));
     for (const err of pageErrors) lines.push(`  ${styleText("dim", err)}`);
   }
+  if (budgets?.length) lines.push(...renderBudgets(budgets));
   if (baseline) lines.push(...renderBaseline(baseline));
   return lines.join("\n");
 }
@@ -292,6 +304,13 @@ export function reportMatrixHuman(report) {
     lines.push("");
     lines.push(styleText("red", "Errors:"));
     for (const e of errors) lines.push(`  ${styleText("red", "✗")} ${e}`);
+  }
+
+  const budgetFailures = matrixBudgetFailures(report.combinations, formatValue);
+  if (budgetFailures) {
+    lines.push("", styleText("bold", "Budgets"));
+    for (const f of budgetFailures) lines.push(`  ${styleText("red", "✗")} ${f}`);
+    if (!budgetFailures.length) lines.push(`  ${styleText("green", "✓ Every budget passed")}`);
   }
 
   if (comparison) {

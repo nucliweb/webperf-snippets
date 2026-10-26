@@ -612,3 +612,52 @@ describe("the human report for the Interaction snippets", () => {
     expect(output).not.toMatch(/·\s*$/m);
   });
 });
+
+describe("the budgets in the reports", () => {
+  const budgets = [
+    { metric: "LCP", budget: 2500, value: 1980, unit: "ms", verdict: "passed" },
+    { metric: "INP", budget: 200, value: 260, unit: "ms", verdict: "exceeded" },
+    { metric: "CLS", budget: 0.1, value: 0.12, unit: "score", verdict: "exceeded" },
+    { metric: "TTFB", budget: 800, value: null, unit: "ms", verdict: "not measured", note: "No navigation entry" },
+  ];
+  const withBudgets = { ...samplePayload, budgets };
+
+  it("lists every budget in the human report, passed or not, with by how much it was exceeded or why it was not measured", () => {
+    const output = reportHuman(withBudgets);
+    expect(output).toContain("Budgets");
+    expect(output).toMatch(/LCP\s+1\.98s\s+budget 2\.50s\s+passed/);
+    expect(output).toMatch(/INP\s+260ms\s+budget 200ms\s+exceeded by 60ms/);
+    expect(output).toMatch(/CLS\s+0\.1200\s+budget 0\.1000\s+exceeded by 0\.0200/);
+    expect(output).toMatch(/TTFB\s+·\s+budget 800ms\s+not measured: No navigation entry/);
+  });
+
+  it("gives the markdown report a table of the budgets, for the comment of a pull request", () => {
+    const output = reportMarkdown(withBudgets);
+    expect(output).toContain("### Budgets");
+    expect(output).toContain("| Metric | Value | Budget | Verdict |");
+    expect(output).toContain("| LCP | 1.98s | 2.50s | ✅ passed |");
+    expect(output).toContain("| INP | 260ms | 200ms | ❌ exceeded by 60ms |");
+    expect(output).toContain("| TTFB | · | 800ms | ❌ not measured: No navigation entry |");
+  });
+
+  it("adds no section without budgets", () => {
+    expect(reportHuman(samplePayload)).not.toContain("Budgets");
+    expect(reportMarkdown(samplePayload)).not.toContain("Budgets");
+  });
+
+  it("keeps the budgets in the JSON report", () => {
+    expect(JSON.parse(reportJson(withBudgets)).budgets).toEqual(budgets);
+  });
+
+  it("names the combination of each failed budget in a matrix, or says that every budget passed", () => {
+    const lcp = (value, verdict) => [{ metric: "LCP", budget: 2500, value, unit: "ms", verdict }];
+    const [first, second, failed] = matrix.combinations;
+    const failing = { ...matrix, combinations: [{ ...first, budgets: lcp(1980, "passed") }, { ...second, budgets: lcp(2710, "exceeded") }, failed] };
+    expect(reportMatrixHuman(failing)).toMatch(/Budgets[\s\S]*home · mobile · consent: LCP 2\.71s exceeds budget 2\.50s/);
+    expect(reportMatrixMarkdown(failing)).toMatch(/### Budgets\n- ❌ home · mobile · consent: LCP 2\.71s exceeds budget 2\.50s/);
+    const passing = { ...matrix, combinations: [{ ...first, budgets: lcp(1980, "passed") }, failed] };
+    expect(reportMatrixHuman(passing)).toMatch(/Budgets[\s\S]*Every budget passed/);
+    expect(reportMatrixMarkdown(passing)).toContain("✅ Every budget passed");
+    expect(reportMatrixMarkdown(matrix)).not.toContain("Budgets");
+  });
+});
