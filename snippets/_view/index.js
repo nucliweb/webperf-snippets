@@ -178,10 +178,8 @@ function describeValue(key, value, d, { inTable = false, result } = {}) {
     }
     case 'fields': {
       const fields = Object.entries(value)
-        .filter(([, v]) => !isEmpty(v))
-        .map(([k, v]) => ({ ...describeValue(k, v, d), hidden: describeField(k, d).hidden }))
-        .filter((f) => !f.hidden)
-        .map(({ hidden, ...f }) => f)
+        .filter(([k, v]) => !isEmpty(v) && !describeField(k, d).hidden)
+        .map(([k, v]) => describeValue(k, v, d))
       return { ...base, fields, text: fields.map((f) => `${f.label} ${f.text}`).join(' · ') }
     }
     case 'list':
