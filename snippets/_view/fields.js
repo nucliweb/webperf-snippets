@@ -19,6 +19,10 @@ export default {
     // Its top and left in px: the distance from the edge of the viewport says what matters
     position: { hidden: true },
   },
+  'Input-Latency-Breakdown': {
+    // The same as its rows, one per event type
+    eventTypes: { hidden: true },
+  },
   INP: {
     phases: { format: 'phases' },
   },

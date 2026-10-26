@@ -86,9 +86,15 @@ test('an error or an unsupported result shows its message', () => {
   assert.match(renderResult({ script: 'X', status: 'unsupported', error: 'Not in this browser' }), /class="status status-unsupported".*Not in this browser/s)
 })
 
-test('a tracking result shows its message', () => {
-  const html = renderResult({ script: 'INP', status: 'tracking', message: 'Interact with the page', getDataFn: 'getINP' })
-  assert.match(html, /class="status status-tracking".*Interact with the page/s)
+test('a tracking result says what to do in the panel, not the message for the console', () => {
+  const html = renderResult({ script: 'INP', status: 'tracking', message: 'Interact with the page, then call getINP()', getDataFn: 'getINP' })
+  assert.match(html, /class="status status-tracking">Tracking\. Nothing recorded yet\. Use the page, then read the result\.<\/p>/)
+  assert.doesNotMatch(html.replace(/<details class="raw">.*<\/details>/s, ''), /getINP/)
+})
+
+test('the recommendations of a result are a list of their own', () => {
+  const html = renderResult({ script: 'X', status: 'ok', recommendations: ['Add Cache-Control headers', 'Use HTTP/2'] })
+  assert.match(html, /<section><h3>Recommendations<\/h3><ol class="recommendations"><li>Add Cache-Control headers<\/li><li>Use HTTP\/2<\/li><\/ol><\/section>/)
 })
 
 test('a result limited by CORS says that its sizes and timings are lower bounds', () => {

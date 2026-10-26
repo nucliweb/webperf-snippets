@@ -118,6 +118,9 @@ section h3 .count { font-weight: 400; color: var(--muted); }
 .issue-error::before { content: "Error"; color: var(--poor); background: var(--poor-bg); }
 .issue-warning::before { content: "Warning"; color: var(--ni); background: var(--ni-bg); }
 .issue-info::before { content: "Info"; color: var(--muted); background: var(--hover); }
+/* The next steps of a result, numbered in their order */
+.recommendations { margin: 0; padding: 8px 12px 8px 32px; }
+.recommendations li + li { margin-top: 4px; }
 /* An issue about a row of the table: it leads to it */
 .to-row { padding: 0; font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; }
 .to-row:hover, .to-row:focus-visible { color: var(--accent); text-decoration: underline; }

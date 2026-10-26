@@ -413,6 +413,24 @@ test('a target matches the row that has it in any of its fields, such as a selec
   assert.equal(view.issues[0].row, 1)
 })
 
+test('the recommendations of a result are in its view, in their order', () => {
+  assert.deepEqual(describeResult({ script: 'X', status: 'ok', recommendations: ['Add Cache-Control', 'Use HTTP/2'] }).recommendations, ['Add Cache-Control', 'Use HTTP/2'])
+  assert.deepEqual(describeResult({ script: 'X', status: 'ok' }).recommendations, [])
+})
+
+test('a snippet that records says what to do in the words of the view, not of the console', () => {
+  const tracking = describeResult({ script: 'INP', status: 'tracking', message: 'No interactions yet: click, tap or type on the page, then call getINP() again.', getDataFn: 'getINP' })
+  assert.equal(tracking.message, 'Nothing recorded yet. Use the page, then read the result.')
+  // A message with no getter to read, or of another state, stays the one of the snippet
+  assert.equal(describeResult({ script: 'X', status: 'tracking', message: 'The page is still loading.' }).message, 'The page is still loading.')
+  assert.equal(describeResult({ script: 'X', status: 'ok', message: 'Done' }).message, 'Done')
+})
+
+test('the event types of Input-Latency-Breakdown are not a detail, since its rows are the same', () => {
+  const view = describeResult({ script: 'Input-Latency-Breakdown', status: 'ok', items: [{ type: 'click', count: 1 }], details: { totalEvents: 1, eventTypes: { click: { count: 1 } } } })
+  assert.deepEqual(view.details.map((d) => d.key), ['totalEvents'])
+})
+
 // The results of every snippet on the seeded and the heavy pages of the CLI contract tests, written by
 // scripts/capture-result-fixtures.mjs
 const FIXTURES = new URL('./fixtures/results/', import.meta.url)

@@ -332,6 +332,12 @@ export function checkResult(name, inspected, prefix = "") {
     }
   }
 
+  // Recommendations are plain text for any reader: no emoji standing for a priority, which the order gives
+  if ("recommendations" in result) {
+    if (!Array.isArray(result.recommendations) || result.recommendations.some((r) => typeof r !== "string")) add("recommendations-not-text");
+    else if (result.recommendations.some((r) => /\p{Extended_Pictographic}/u.test(r))) add("recommendation-with-emoji");
+  }
+
   if (Array.isArray(result.items)) {
     if (result.items.length > MAX_ITEMS) add("items-uncapped");
     const shapes = new Set(
