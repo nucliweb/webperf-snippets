@@ -234,7 +234,9 @@ describe("--matrix with the other reports", () => {
     expect(code, output).toBe(0);
     expect(stdout).toContain("## WebPerf Results — matrix.json");
     expect(stdout).toContain("| Page | Device | Variant | LCP | CLS |");
-    expect(stdout.match(/<details><summary>/g)).toHaveLength(8);
+    // One block per combination, and inside each one the details of its results, folded too
+    expect(stdout.match(/<details><summary>[^<]+ · [^<]+ · [^<]+<\/summary>/g)).toHaveLength(8);
+    expect(stdout.match(/<details><summary>/g).length).toBeGreaterThan(8);
     expect(stdout).toContain("<details><summary>article · wide · consent</summary>");
   }, 120000);
 

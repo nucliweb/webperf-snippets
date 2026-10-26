@@ -1,4 +1,6 @@
 import { styleText } from "node:util";
+import { describeResult } from "../view.js";
+import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { fieldDataView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
 import { describeRuns } from "../runs.js";
@@ -103,12 +105,12 @@ function renderAuditResult(r, verbose) {
   const items = r.items ?? [];
   if (items.length > 0 && (!isGreen || verbose)) {
     lines.push("");
-    const shown = items.slice(0, MAX_ITEMS);
-    for (const item of shown) {
-      const name = item.shortName ?? item.resource ?? item.url ?? item.src ?? item.selector ?? item.filename ?? item.target ?? "";
-      const tag = item.type ?? item.tag ?? item.strategy ?? item.media ?? item.kind ?? "";
-      const timing = item.responseEndMs != null ? `${item.responseEndMs}ms` : item.durationMs != null ? `${item.durationMs}ms` : "";
-      const cols = [tag, name, item.detail, timing].filter(Boolean).join("  ");
+    // The cells of each row as the view gives them: the file of a URL, the values in their units
+    const { rows, constants } = describeResult(r);
+    // The values that are the same in every row, once above them, as in the extension
+    if (constants.length) lines.push(`     ${styleText("dim", constants.map((c) => `${c.label} ${c.text}`).join(" · "))}`);
+    for (const row of rows.slice(0, MAX_ITEMS)) {
+      const cols = row.cells.map((c) => c.text).filter(Boolean).join("  ");
       if (cols) lines.push(`     ${styleText("dim", `· ${cols}`)}`);
     }
     if (items.length > MAX_ITEMS) {
@@ -126,10 +128,7 @@ function renderAuditResult(r, verbose) {
 // A result with a count and details but no value and no issues, such as the long tasks: the count,
 // then the first numbers of its details.
 function renderSummaryResult(r) {
-  const numbers = Object.entries(r.details ?? {})
-    .filter(([, value]) => typeof value === "number")
-    .slice(0, 3)
-    .map(([key, value]) => `${key} ${value}`);
+  const numbers = summaryNumbers(r);
   const summary = [r.count !== undefined ? String(r.count) : null, ...numbers].filter(Boolean).join("  ·  ");
   return `  ${RATING_ICON[r.rating] ?? "·"} ${pad(r.id, 16)} ${styleText("dim", summary)}`;
 }
@@ -156,7 +155,7 @@ function renderResult(r, verbose) {
     return renderAuditResult(r, verbose);
   }
 
-  if (r.value === undefined && (r.count !== undefined || r.details)) {
+  if (isSummaryResult(r)) {
     return renderSummaryResult(r);
   }
 
@@ -169,12 +168,10 @@ function renderResult(r, verbose) {
 
   if (r.metric === "LCP" && r.details?.subParts) {
     const sp = r.details.subParts;
-    const rows = [
-      ["TTFB", sp.ttfb],
-      ["Resource Load Delay", sp.resourceLoadDelay],
-      ["Resource Load Time", sp.resourceLoadTime],
-      ["Element Render Delay", sp.elementRenderDelay],
-    ];
+    const view = describeResult(r);
+    // The phases with the labels of the view, and the slowest one by its label, not its key
+    const phases = view.details.find((d) => d.key === "subParts" && d.format === "phases");
+    const rows = (phases?.parts ?? []).map((p) => [p.label, sp[p.key]]);
     out += "\n";
     out += rows
       .map(([name, info]) => {
@@ -186,8 +183,9 @@ function renderResult(r, verbose) {
           : `${row}\n         ${styleText("dim", `${info.waiting}ms waiting for the server, ${info.download}ms downloading`)}`;
       })
       .join("\n");
-    if (r.details.slowestPhase) {
-      out += `\n       ${styleText("blue", "→ Slowest:")} ${r.details.slowestPhase}`;
+    const slowest = view.details.find((d) => d.key === "slowestPhase");
+    if (slowest) {
+      out += `\n       ${styleText("blue", "→ Slowest:")} ${slowest.text}`;
     }
   }
 

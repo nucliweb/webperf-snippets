@@ -1,4 +1,6 @@
 import { fieldDataView } from "../crux.js";
+import { describeResult } from "../view.js";
+import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { describeThrottling } from "../throttling.js";
 import { describeRuns } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
@@ -45,11 +47,17 @@ function renderNotMeasuredRow(r) {
   return `| ${r.id} | · not measured | ${r.message ?? "nothing recorded"} |`;
 }
 
+// A result with a count and no value: its count, and its first numbers as the human report gives them
+function renderSummaryRow(r) {
+  return `| ${r.id} | · ${r.count ?? ""} | ${summaryNumbers(r).join(" · ")} |`;
+}
+
 function renderRow(r) {
   if (r.status === "skipped") return renderSkippedRow(r);
   if (r.status === "error") return renderErrorRow(r);
   if (r.status === "tracking") return renderNotMeasuredRow(r);
   if (Array.isArray(r.issues)) return renderAuditRow(r);
+  if (isSummaryResult(r)) return renderSummaryRow(r);
   return renderMetricRow(r);
 }
 
@@ -60,11 +68,36 @@ function sectionHeader(results) {
   return ["| Metric | Value | Status |", "|--------|-------|--------|"];
 }
 
+// Text from the page in a list item: the characters that markdown reads as emphasis or code, escaped
+const md = (text) => String(text).replace(/[\\`*_[\]]/g, "\\$&");
+
+// A field of the view as a list item, with the labels and formats of the extension: a nested table is
+// a line per row, and the fields of an object are items under it
+function detailLines(field, indent = "") {
+  if (field.format === "table") {
+    return [`${indent}- **${md(field.label)}**:`, ...field.rows.map((row) => `${indent}  - ${row.cells.map((c) => md(c.text)).filter(Boolean).join(" · ")}`)];
+  }
+  if (field.format === "fields") {
+    return [`${indent}- **${md(field.label)}**:`, ...field.fields.flatMap((f) => detailLines(f, `${indent}  `))];
+  }
+  return [`${indent}- **${md(field.label)}**: ${md(field.text)}`];
+}
+
+// The details of each result, folded under its id, so the comment of a pull request stays short
+function renderDetails(results) {
+  return results.flatMap((r) => {
+    const { details } = describeResult(r);
+    if (details.length === 0) return [];
+    return ["", `<details><summary>${r.id}</summary>`, "", ...details.flatMap((f) => detailLines(f)), "", "</details>"];
+  });
+}
+
 function renderSection(title, results) {
   return [
     `### ${title}`,
     ...sectionHeader(results),
     ...results.map(renderRow),
+    ...renderDetails(results),
   ].join("\n");
 }
 
