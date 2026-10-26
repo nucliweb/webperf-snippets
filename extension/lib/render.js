@@ -176,21 +176,27 @@ function details(view) {
   return `<section><h3>Details</h3>${phrases}${charts}${fields ? `<dl class="details">${fields}</dl>` : ''}</section>`
 }
 
+// The next steps of a result, the most important first
+const recommendations = (list) =>
+  list.length ? `<section><h3>Recommendations</h3><ol class="recommendations">${list.map((r) => `<li>${escape(r)}</li>`).join('')}</ol></section>` : ''
+
 export function renderResult(result) {
   if (result === undefined) return '<p class="status status-error">The snippet returned nothing.</p>'
   // panel.js gives the button its action
   const json = `<div class="raw-actions"><button type="button" class="copy-json">Copy JSON</button></div><details class="raw"><summary>JSON</summary><pre>${escape(JSON.stringify(result, null, 2))}</pre></details>`
   if (!result || typeof result !== 'object') return json
 
-  // "ok" means the snippet ran, not that the page is fine, so it shows nothing; the other states matter
+  const view = describeResult(result)
+  // "ok" means the snippet ran, not that the page is fine, so it shows nothing; the other states matter.
+  // The message is the one of the view, which speaks to the panel rather than to the console
   const status =
     result.status === 'ok'
-      ? result.message
-        ? `<p class="note">${escape(result.message)}</p>`
+      ? view.message
+        ? `<p class="note">${escape(view.message)}</p>`
         : ''
       : `<p class="status status-${escape(result.status)}">${escape(STATUS[result.status] ?? result.status ?? '')}${
           result.error ? `: ${escape(result.error)}` : ''
-        }${result.message ? `. ${escape(result.message)}` : ''}</p>`
+        }${view.message ? `. ${escape(view.message)}` : ''}</p>`
   // An audit without findings says so; a metric speaks through its value and rating
   const clean =
     result.status === 'ok' && typeof result.value !== 'number' && !(Array.isArray(result.issues) && result.issues.length > 0)
@@ -200,6 +206,5 @@ export function renderResult(result) {
     ? '<p class="note">Some cross-origin resources hide their sizes and timings, so these are lower bounds.</p>'
     : ''
 
-  const view = describeResult(result)
-  return [status, metric(result), clean, cors, issues(view.issues), items(result, view), details(view), json].join('')
+  return [status, metric(result), clean, cors, issues(view.issues), items(result, view), details(view), recommendations(view.recommendations), json].join('')
 }

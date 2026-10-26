@@ -8,10 +8,15 @@ import { loadSnippet } from '../cli/src/load-snippet.js'
 // Writes scripts/fixtures/results/: the result of every snippet on the seeded and the heavy pages of
 // the CLI contract tests, which scripts/view.test.mjs reads to check the view of real results. A
 // tracking snippet gets clicks and a scroll, and then its getter is read, as in the panel. Run it
-// after changing what a snippet returns: npm run view:fixtures
+// after changing what a snippet returns: npm run view:fixtures, or npm run view:fixtures -- <snippet> for
+// the fixtures of one snippet, such as Cache-Strategy-Analysis
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'results')
 const PAGES = ['seeded', 'heavy']
+// One snippet, by its name, or all of them
+const only = process.argv[2]
+const names = listSnippets().filter((name) => !only || name.endsWith(`/${only}`))
+if (names.length === 0) throw new Error(`No snippet named ${only}`)
 
 const servers = await startContractServers()
 const browser = await launch()
@@ -19,10 +24,10 @@ const browser = await launch()
 const fixPorts = (json) => json.replaceAll(servers.base, 'http://127.0.0.1:8000').replaceAll(servers.otherBase, 'http://127.0.0.1:8001')
 
 try {
-  rmSync(OUT, { recursive: true, force: true })
+  if (!only) rmSync(OUT, { recursive: true, force: true })
   mkdirSync(OUT, { recursive: true })
   for (const pageName of PAGES) {
-    for (const name of listSnippets()) {
+    for (const name of names) {
       const page = await browser.newPage({ viewport: { width: 1000, height: 700 } })
       try {
         await page.goto(`${servers.base}/${pageName}`, { waitUntil: 'load' })
@@ -43,7 +48,7 @@ try {
       }
     }
   }
-  console.log(`Wrote ${PAGES.length * listSnippets().length} results to ${OUT}`)
+  console.log(`Wrote ${PAGES.length * names.length} results to ${OUT}`)
 } finally {
   await browser.close()
   await servers.close()

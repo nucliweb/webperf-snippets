@@ -6,7 +6,8 @@ import { loadSnippet } from "../../src/load-snippet.js";
 // its getDataFn returns when it tracks, and the value of every other getter it exposes on
 // window (getINPDetails(), checkBfcache()...) must be a JSON-serializable object with a valid
 // `script` and `status`, numbers as numbers, homogeneous items capped at 50, under 50 KB, and
-// no spaced em-dash in any returned text, and issues with a kebab-case code and a string target.
+// no spaced em-dash in any returned text, issues with a kebab-case code and a string target, and
+// recommendations as plain text without emoji.
 //
 // KNOWN_VIOLATIONS lists what is still broken, per snippet. It can only shrink: a listed
 // violation that no longer happens fails the test, so the entry has to be removed.

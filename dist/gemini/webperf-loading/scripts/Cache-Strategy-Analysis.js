@@ -378,16 +378,21 @@
   }
   if (cachedDuplicates.length > 0) {
   }
+  const PRIORITY = [ "🔴", "🟡", "ℹ️" ];
   const recommendations = [];
-  if (noCacheEntries.filter(e => isStaticAsset(e.type)).length > 0) recommendations.push("🔴 Add Cache-Control headers to static assets (JS, CSS, fonts, images). Start with max-age=86400 and move to immutable for versioned files.");
-  if (shortCacheEntries.filter(e => e.hasHash).length > 0) recommendations.push("🟡 Versioned files (with content hash) should use long cache or Cache-Control: immutable; they can be cached indefinitely since the URL changes on update.");
-  if (allAntiPatterns.some(p => p.id === "expires-without-cc")) recommendations.push("🟡 Replace Expires headers with Cache-Control: max-age. Expires is an outdated mechanism and less reliable.");
-  if (cacheEfficiencyPercent !== null && cacheEfficiencyPercent < 50) recommendations.push(`🔴 Cache efficiency is low (${cacheEfficiencyPercent}%, measured on the ${analyzableEntries.length} resources whose cache headers could be read). Review caching strategy for those static assets.`);
-  if (cdnHitRate !== null && cdnHitRate < 70) recommendations.push(`🟡 CDN hit rate is ${cdnHitRate}%. Check CDN cache rules and ensure static assets have appropriate TTLs.`);
-  if (protocolDistribution["http/1.1"] > 0) recommendations.push(`🟡 ${protocolDistribution["http/1.1"]} resources still use HTTP/1.1. Consider upgrading to HTTP/2 for better multiplexing.`);
-  if (uncompressedResources.length > 0) recommendations.push(`🟡 ${uncompressedResources.length} text resources appear uncompressed. Enable Brotli or gzip compression on your server.`);
-  if (costlyDuplicates.length > 0) recommendations.push(`🟡 ${costlyDuplicates.length} resources are loaded multiple times with uncached network requests. Check for duplicate script, stylesheet, or fetch includes.`); else if (cachedDuplicates.length > 0) recommendations.push(`ℹ️ ${cachedDuplicates.length} resources are requested multiple times but served from cache; low performance impact, but worth reviewing for correctness.`);
-  if (corsRestricted > 0 && headersAnalyzed === 0) recommendations.push(`ℹ️ All resources are cross-origin CORS-restricted, so header analysis was limited. Add Timing-Allow-Origin for more insights.`);
+  const recommend = (icon, text) => recommendations.push({
+    icon: icon,
+    text: text
+  });
+  if (noCacheEntries.filter(e => isStaticAsset(e.type)).length > 0) recommend("🔴", "Add Cache-Control headers to static assets (JS, CSS, fonts, images). Start with max-age=86400 and move to immutable for versioned files.");
+  if (shortCacheEntries.filter(e => e.hasHash).length > 0) recommend("🟡", "Versioned files (with content hash) should use long cache or Cache-Control: immutable; they can be cached indefinitely since the URL changes on update.");
+  if (allAntiPatterns.some(p => p.id === "expires-without-cc")) recommend("🟡", "Replace Expires headers with Cache-Control: max-age. Expires is an outdated mechanism and less reliable.");
+  if (cacheEfficiencyPercent !== null && cacheEfficiencyPercent < 50) recommend("🔴", `Cache efficiency is low (${cacheEfficiencyPercent}%, measured on the ${analyzableEntries.length} resources whose cache headers could be read). Review caching strategy for those static assets.`);
+  if (cdnHitRate !== null && cdnHitRate < 70) recommend("🟡", `CDN hit rate is ${cdnHitRate}%. Check CDN cache rules and ensure static assets have appropriate TTLs.`);
+  if (protocolDistribution["http/1.1"] > 0) recommend("🟡", `${protocolDistribution["http/1.1"]} resources still use HTTP/1.1. Consider upgrading to HTTP/2 for better multiplexing.`);
+  if (uncompressedResources.length > 0) recommend("🟡", `${uncompressedResources.length} text resources appear uncompressed. Enable Brotli or gzip compression on your server.`);
+  if (costlyDuplicates.length > 0) recommend("🟡", `${costlyDuplicates.length} resources are loaded multiple times with uncached network requests. Check for duplicate script, stylesheet, or fetch includes.`); else if (cachedDuplicates.length > 0) recommend("ℹ️", `${cachedDuplicates.length} resources are requested multiple times but served from cache; low performance impact, but worth reviewing for correctness.`);
+  if (corsRestricted > 0 && headersAnalyzed === 0) recommend("ℹ️", `All resources are cross-origin CORS-restricted, so header analysis was limited. Add Timing-Allow-Origin for more insights.`);
   if (recommendations.length > 0) {
     for (const rec of recommendations) void 0;
   }
@@ -438,6 +443,6 @@
       message: p.message,
       target: p.url
     })), ...coverageIssue ? [ coverageIssue ] : [] ],
-    recommendations: recommendations
+    recommendations: [ ...recommendations ].sort((a, b) => PRIORITY.indexOf(a.icon) - PRIORITY.indexOf(b.icon)).map(r => r.text)
   };
 })();

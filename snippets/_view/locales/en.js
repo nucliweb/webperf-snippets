@@ -16,6 +16,7 @@ export default {
       no: 'No',
       none: 'none',
       flags: 'Flags',
+      tracking: 'Nothing recorded yet. Use the page, then read the result.',
       rows: { one: '{n} row', other: '{n} rows' },
     },
   },

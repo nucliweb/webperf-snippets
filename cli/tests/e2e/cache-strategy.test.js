@@ -102,6 +102,17 @@ describe("Cache-Strategy-Analysis, what it already reports", () => {
   }, 30000);
 });
 
+describe("Cache-Strategy-Analysis, recommendations", () => {
+  it("returns them as plain text, the most important first, and keeps the marks of priority in the console", async () => {
+    const { result, lines } = await run("/");
+    expect(result.recommendations.length).toBeGreaterThan(1);
+    expect(result.recommendations.join(" ")).not.toMatch(/\p{Extended_Pictographic}/u);
+    // The page has static assets without cache headers, the first thing to fix
+    expect(result.recommendations[0]).toMatch(/^Add Cache-Control headers to static assets/);
+    expect(lines.some((l) => l.includes("🔴 Add Cache-Control headers"))).toBe(true);
+  }, 30000);
+});
+
 describe("Cache-Strategy-Analysis, findings that need no cache headers", () => {
   it("lists a resource loaded several times from the network as duplicate-uncached", async () => {
     const { result } = await run("/");

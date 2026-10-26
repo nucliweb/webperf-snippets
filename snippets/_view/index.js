@@ -296,5 +296,9 @@ export function describeResult(result, options = {}) {
     constants,
     rows: rows.map((row, i) => ({ ...row, issues: issues.filter((issue) => issue.row === i) })),
     issues,
+    recommendations: Array.isArray(result?.recommendations) ? result.recommendations.filter((r) => typeof r === 'string') : [],
+    // The message of a snippet that records is written for the console (call getINP() again); the view
+    // says what to do in its own words
+    message: result?.status === 'tracking' && result.getDataFn ? d.ui('tracking') : result?.message,
   }
 }

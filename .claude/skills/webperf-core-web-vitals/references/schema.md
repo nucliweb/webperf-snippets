@@ -59,6 +59,9 @@ Every script must return an object matching this shape:
     target?: string;   // The URL, selector or name the issue is about, when there is one issue per thing
   }>;
 
+  // Next steps in plain text, most important first, without emoji (Cache-Strategy-Analysis)
+  recommendations?: string[];
+
   // Tracking scripts (status: "tracking")
   message?: string;      // Human-readable status message
   getDataFn?: string;    // window function to call for data: evaluate_script(`${getDataFn}()`). May be a dotted path such as "loafHelpers.getData"
@@ -1398,7 +1401,7 @@ Each issue names the preloaded script in `target`.
 
 ### Cache-Strategy-Analysis
 
-Each issue names its resource in `target`, except `header-coverage`. `id` repeats the code, as before the codes.
+Each issue names its resource in `target`, except `header-coverage`. `id` repeats the code, as before the codes. `recommendations` lists the next steps in plain text, the most important first; the console marks their priority with 🔴, 🟡 and ℹ️.
 
 | Code | Severity | When |
 |------|----------|------|
