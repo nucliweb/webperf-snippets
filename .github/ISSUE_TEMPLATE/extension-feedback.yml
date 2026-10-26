@@ -49,7 +49,7 @@ body:
     attributes:
       label: Extension version
       description: In chrome://extensions, next to the name.
-      placeholder: 0.3.0
+      placeholder: 0.4.0
     validations:
       required: true
   - type: input

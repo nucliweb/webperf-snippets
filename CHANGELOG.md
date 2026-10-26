@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.3.0] — 2026-10-26
+
+No snippet returns anything different, and the CLI stays at 1.6.0. The extension reaches version 0.4.0: a prompt to fix what a result or an audit found, for an agent that works in the repository of the site, and the comparison of audits in tables. The prompt of a snippet page is Copy prompt to measure, and the section of the home page and the README that describes it moves from `#copy-prompt` to `#copy-prompt-to-measure`.
+
 ### Added
 - A long view of the extension, such as a result or an audit, has a Top button in its corner once it is half a screen down.
 - The comparison of an audit in the extension is a table per kind of change, and a changed issue shows its text as it is now and only the numbers that moved (`1759 → 1745`, `706 KB → 679 KB`). Compared with picks any earlier audit of the same page, the one just before by default, and the choice stays while that audit is open.
@@ -247,7 +253,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.0...v2.0.1
