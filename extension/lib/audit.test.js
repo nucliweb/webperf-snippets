@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { summarize, bySeverity, overview, report, reportFileName, fromReport, addToHistory, removeFromHistory, compare, previousOf, filterRows, filterCounts } from './audit.js'
+import { summarize, bySeverity, overview, report, reportFileName, fromReport, addToHistory, removeFromHistory, compare, previousOf, earlierOf, changeOf, filterRows, filterCounts } from './audit.js'
 
 test('summarize counts the issues of a result by severity and names the worst one', () => {
   const s = summarize({
@@ -224,6 +224,42 @@ test('previousOf finds the last audit of the same page before an audit', () => {
   assert.equal(previousOf(history, history[2]).date, '2026-10-13T09:00:00.000Z')
   assert.equal(previousOf(history, history[3]), undefined)
   assert.equal(previousOf(history, history[1]), undefined)
+})
+
+test('earlierOf lists the earlier audits of the same page, newest first, and previousOf is the first of them', () => {
+  const history = [
+    saved('2026-10-13T12:00:00.000Z', 'https://example.com/', []),
+    saved('2026-10-13T11:00:00.000Z', 'https://example.com/other', []),
+    saved('2026-10-13T10:00:00.000Z', 'https://example.com/', []),
+    saved('2026-10-13T09:00:00.000Z', 'https://example.com/', []),
+  ]
+  assert.deepEqual(
+    earlierOf(history, history[0]).map((r) => r.date),
+    ['2026-10-13T10:00:00.000Z', '2026-10-13T09:00:00.000Z']
+  )
+  assert.deepEqual(earlierOf(history, history[3]), [])
+  assert.equal(previousOf(history, history[0]), earlierOf(history, history[0])[0])
+})
+
+test('changeOf gives the numbers that moved between two texts of an issue, with their units', () => {
+  assert.equal(changeOf('Third-party scripts total 706 KB', 'Third-party scripts total 679 KB'), '706 KB → 679 KB')
+  assert.equal(
+    changeOf(
+      '1759 nodes exceeds 1400; a large DOM slows style recalculation and layout on every interaction',
+      '1745 nodes exceeds 1400; a large DOM slows style recalculation and layout on every interaction'
+    ),
+    '1759 → 1745'
+  )
+  assert.equal(changeOf('html > head has 125 children, above 60', 'html > head has 120 children, above 60'), '125 → 120')
+  // Each number that moved, in its order
+  assert.equal(changeOf('7 resources delay rendering until 1543ms', '6 resources delay rendering until 1210ms'), '7 → 6 · 1543ms → 1210ms')
+  assert.equal(changeOf('Saves 1.2 MB of 3,400 KB', 'Saves 0.9 MB of 3,400 KB'), '1.2 MB → 0.9 MB')
+})
+
+test('changeOf gives nothing when more than the numbers changed, or nothing did', () => {
+  assert.equal(changeOf('hero.png is lazy', 'logo.png is lazy'), null)
+  assert.equal(changeOf('3 images', '3 images and 1 video'), null)
+  assert.equal(changeOf('3 images', '3 images'), null)
 })
 
 test('the report keeps the code and the target of each issue', () => {

@@ -299,11 +299,13 @@ fieldset label { display: flex; gap: 6px; align-items: center; padding: 2px 0; c
 .comparison-body { padding: 4px 12px 8px; }
 .comparison h4 { margin: 8px 0 4px; font-size: 12px; }
 .comparison h4 .count { font-weight: 400; color: var(--muted); }
-.comparison ul { margin: 0; padding: 0; list-style: none; }
-.comparison li { padding: 2px 0; }
-.comparison .added li { border-left: 3px solid var(--poor); padding-left: 8px; }
-.comparison .changed li { border-left: 3px solid var(--ni); padding-left: 8px; }
-.comparison .resolved li { border-left: 3px solid var(--good); padding-left: 8px; color: var(--muted); }
+.comparison h3 select { font: inherit; color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; }
+.comparison .table { border: 1px solid var(--border); border-radius: 4px; }
+.comparison tbody td:first-child { white-space: nowrap; }
+.comparison .added td:first-child { box-shadow: inset 3px 0 var(--poor); }
+.comparison .changed td:first-child { box-shadow: inset 3px 0 var(--ni); }
+.comparison .resolved td:first-child { box-shadow: inset 3px 0 var(--good); }
+.comparison .resolved td { color: var(--muted); }
 .sev { display: inline-block; padding: 0 6px; font-size: 10px; font-weight: 600; text-transform: uppercase; border-radius: 4px; }
 .sev-error { color: var(--poor); background: var(--poor-bg); }
 .sev-warning { color: var(--ni); background: var(--ni-bg); }
