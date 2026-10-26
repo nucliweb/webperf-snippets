@@ -207,6 +207,13 @@ describe("reportHuman", () => {
       const output = reportHuman(subParts({ value: 2004, percent: 98, overTarget: true }));
       expect(output).not.toContain("waiting for the server");
     });
+
+    it("name each phase and the slowest one with the labels of the view, not their keys", () => {
+      const output = reportHuman(subParts({ value: 2004, percent: 98, overTarget: true })).replace(/\x1b\[[0-9;]*m/g, "");
+      expect(output).toContain("Resource load delay");
+      expect(output).toMatch(/→ Slowest: Resource load time/);
+      expect(output).not.toContain("resourceLoadTime");
+    });
   });
 });
 
@@ -581,8 +588,10 @@ describe("the human report for the Interaction snippets", () => {
     );
     expect(output).not.toContain("undefined");
     expect(output).toMatch(/long-tasks\s+4/);
-    expect(output).toContain("totalBlockingTimeMs 36");
-    expect(output).toContain("worstTaskMs 77");
+    // The labels and formats of the view, as in the extension
+    expect(output).toContain("Total blocking time 36 ms");
+    expect(output).toContain("Worst task 77 ms");
+    expect(output).not.toContain("totalBlockingTimeMs");
     expect(output).not.toContain("bySeverity");
   });
 
@@ -659,5 +668,113 @@ describe("the budgets in the reports", () => {
     expect(reportMatrixHuman(passing)).toMatch(/Budgets[\s\S]*Every budget passed/);
     expect(reportMatrixMarkdown(passing)).toContain("✅ Every budget passed");
     expect(reportMatrixMarkdown(matrix)).not.toContain("Budgets");
+  });
+});
+
+describe("the rows of an audit in the human report", () => {
+  const strip = (text) => text.replace(/\x1b\[[0-9;]*m/g, "");
+  it("show the cells of the view: the file of a URL and the values in their units", () => {
+    const output = strip(
+      reportHuman({
+        url: "https://example.com",
+        navMs: 100,
+        pageErrors: [],
+        results: [
+          {
+            id: "render-blocking",
+            script: "Find-render-blocking-resources",
+            status: "ok",
+            count: 2,
+            details: { totalBlockingUntilMs: 532, totalSizeBytes: 17625 },
+            items: [
+              { type: "script", url: "https://example.com/assets/third.js", shortName: "third.js", responseEndMs: 532, durationMs: 210, sizeBytes: 0 },
+              { type: "link", url: "https://example.com/assets/style.css", shortName: "style.css", responseEndMs: 401, durationMs: 120, sizeBytes: 17625 },
+            ],
+            issues: [{ code: "render-blocking", severity: "error", message: "2 render-blocking resource(s) delay rendering until 532ms" }],
+          },
+        ],
+      })
+    );
+    expect(output).toMatch(/· style\.css\s+link\s+401 ms\s+120 ms\s+17\.2 KB/);
+    expect(output).not.toContain("https://example.com/assets/style.css");
+  });
+
+  it("say above the rows the values that are the same in all of them", () => {
+    const output = strip(
+      reportHuman({
+        url: "https://example.com",
+        navMs: 100,
+        pageErrors: [],
+        results: [
+          {
+            id: "render-blocking",
+            script: "Find-render-blocking-resources",
+            status: "ok",
+            items: [
+              { type: "script", url: "https://example.com/third.js", responseEndMs: 30, durationMs: 2 },
+              { type: "link", url: "https://example.com/style.css", responseEndMs: 28, durationMs: 2 },
+            ],
+            issues: [{ code: "render-blocking", severity: "error", message: "2 render-blocking resource(s)" }],
+          },
+        ],
+      })
+    );
+    expect(output).toMatch(/Duration 2 ms\n\s+· script\s+30 ms\s+third\.js\n/);
+  });
+});
+
+describe("the details of each result in the markdown report", () => {
+  const payload = (results) => ({ url: "https://example.com", navMs: 100, pageErrors: [], results });
+  const longTasks = {
+    id: "long-tasks",
+    script: "LongTask",
+    status: "ok",
+    count: 4,
+    details: { totalBlockingTimeMs: 36, worstTaskMs: 77, bySeverity: { low: 4, high: 0 } },
+    items: [],
+  };
+
+  it("fold under the id of each result, with the labels and formats of the view", () => {
+    const output = reportMarkdown(payload([longTasks]));
+    expect(output).toContain("<details><summary>long-tasks</summary>");
+    expect(output).toContain("- **Total blocking time**: 36 ms");
+    expect(output).toContain("- **By severity**: low 4");
+    expect(output).not.toContain("totalBlockingTimeMs");
+  });
+
+  it("list the rows of a nested table, one per line", () => {
+    const loaf = {
+      id: "loaf",
+      script: "Long-Animation-Frames",
+      status: "ok",
+      details: { totalLoAFs: 2, topScripts: [{ invoker: "TimerHandler:setTimeout", totalDurationMs: 120 }, { invoker: "BUTTON#go.onclick", totalDurationMs: 60 }] },
+    };
+    const output = reportMarkdown(payload([loaf]));
+    expect(output).toContain("- **Total LoAFs**: 2");
+    expect(output).toContain("- **Top scripts**:\n  - TimerHandler:setTimeout · 120 ms\n  - BUTTON#go.onclick · 60 ms");
+  });
+
+  it("fold inside the block of each combination of a matrix", () => {
+    const output = reportMatrixMarkdown({
+      matrix: "work/matrix.json",
+      runs: 1,
+      combinations: [combination("home", "mobile", "consent", 1980, 0.02, [longTasks])],
+    });
+    const combinationBlock = output.indexOf("<details><summary>home · mobile · consent</summary>");
+    const resultBlock = output.indexOf("<details><summary>long-tasks</summary>");
+    expect(combinationBlock).toBeGreaterThan(-1);
+    expect(resultBlock).toBeGreaterThan(combinationBlock);
+    expect(output.slice(resultBlock)).toContain("- **Worst task**: 77 ms");
+  });
+
+  it("give a result with a count and no value a row with its count and first numbers, not undefined", () => {
+    const output = reportMarkdown(payload([longTasks, { id: "scroll", status: "ok", issues: [] }]));
+    expect(output).toContain("| long-tasks | · 4 | Total blocking time 36 ms · Worst task 77 ms |");
+    expect(output).not.toContain("undefined");
+  });
+
+  it("leave out a result without details", () => {
+    const output = reportMarkdown(payload([{ id: "LCP", status: "ok", metric: "LCP", value: 1200, unit: "ms", rating: "good" }]));
+    expect(output).not.toContain("<details>");
   });
 });

@@ -11,11 +11,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ### Added
 - The reports list every budget with its value and verdict (`passed`, `exceeded` with by how much, or `not measured` with why): a Budgets section in the human and markdown reports, and `budgets` in the JSON output, in each combination of a matrix and in the body of `--report-to`. A matrix lists the failed budgets with their combination under its table. A pull request comment says which budget failed, which only stderr said before.
 - `--budget-fcp`, `--budget-ttfb` and `--budget-inp`, next to `--budget-lcp` and `--budget-cls`: a budget for each metric the CLI measures. The interaction workflow measures INP, in a step `INP` that needs a click or a key press like `interactions` and `input-latency`. The GitHub Action takes `budget-fcp`, `budget-ttfb` and `budget-inp`.
+- The markdown report folds the details of each result under its id, below the table of its section and inside the block of each combination of a matrix: one item per field with the labels and units of the extension (`- **Total blocking time**: 70 ms`), a nested list for a nested table, and no block for a result without details.
 
 ### Changed
 - A budget never passes unchecked. One whose metric the run does not measure, such as `--budget-lcp` with `--workflow audit`, exits with `2` before the page loads, naming the workflow or snippet that measures it; one whose metric was not measured, such as INP without interactions or an LCP that failed, exits with `1`. A value that is not a number of 0 or more exits with `2`; it passed before. Each failed budget goes to stderr also with `--json`.
 - The `budget-lcp` and `budget-cls` inputs of the GitHub Action default to `auto`: 2500 and 0.1 with the `core-web-vitals` workflow, and no budget with the others, which do not measure LCP or CLS. An empty value still disables the check.
 - A tracking snippet with nothing recorded, such as INP without interactions, is reported as `not measured` with its message, and no longer counts as a failed snippet: the command exits with `0` for it. After a click or a key press the CLI reads it again while it is still tracking, as it did while it returned an error.
+- The human report reads the details of a result with the labels and units of the extension, from the shared view of `snippets/_view/`: `Total blocking time 36 ms` instead of `totalBlockingTimeMs 36`, the phases of LCP and the slowest one by their names (`Resource load delay`), and the rows of an audit as their cells, the file of a URL and each value in its unit, with the values that are the same in every row once above them.
+
+### Fixed
+- The markdown report gives a result with a count and no value, such as the long tasks, a row with its count and its first numbers, where it said `undefined`.
 
 ---
 
