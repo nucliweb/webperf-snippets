@@ -1,0 +1,29 @@
+{
+  "script": "Long-Animation-Frames-Script-Attribution",
+  "status": "ok",
+  "details": {
+    "frameCount": 1,
+    "totalBlockingMs": 70,
+    "byCategory": {
+      "first-party": {
+        "durationMs": 120,
+        "count": 1
+      }
+    }
+  },
+  "items": [
+    {
+      "file": "seeded",
+      "category": "first-party",
+      "durationMs": 120,
+      "count": 1,
+      "functions": [
+        {
+          "name": "anonymous",
+          "invoker": "TimerHandler:setTimeout",
+          "durationMs": 120
+        }
+      ]
+    }
+  ]
+}

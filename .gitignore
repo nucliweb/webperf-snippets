@@ -20,7 +20,8 @@ public/_pagefind
 # Registry of the WebMCP tools, generated before the build (scripts/generate-webmcp-registry.mjs)
 /public/webmcp/
 
-# Snippets of the extension, built by npm run extension:build
+# Snippets of the extension and the view of their results, built by npm run extension:build
 /extension/snippets.json
+/extension/lib/view/
 # Zip of the extension, written by npm run extension:zip
 /webperf-snippets-extension-*.zip

@@ -1,0 +1,31 @@
+{
+  "script": "Scroll-Performance",
+  "status": "ok",
+  "details": {
+    "nonPassiveListeners": 0,
+    "cssAudit": {
+      "smoothScrollElements": 0,
+      "willChangeElements": 1,
+      "contentVisibilityElements": 0,
+      "overscrollElements": 0
+    },
+    "sessionCount": 1,
+    "avgFps": 60,
+    "worstSessionFps": 60,
+    "totalDrops": 0
+  },
+  "items": [
+    {
+      "kind": "will-change",
+      "target": "div.box",
+      "detail": "transform"
+    }
+  ],
+  "issues": [
+    {
+      "code": "will-change",
+      "severity": "info",
+      "message": "will-change is set on 1 element(s). Remove it from elements that do not animate, since each one keeps a compositor layer."
+    }
+  ]
+}

@@ -10,9 +10,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - The audit table of the extension opens on the snippets with errors or warnings, with the number of the others and a link to show them. Errors, Errors and warnings, and All change the rows it shows, each with its count; the panel remembers the choice, and Copy JSON and Download JSON keep every snippet.
+- The extension shows each result with readable labels and units: `totalBlockingUntilMs 532` reads "Rendering blocked until 532 ms", `sizeBytes 17625` reads "Size 17.2 KB", and the table of a snippet has its own title instead of "Items". The labels, formats and order come from `snippets/_view/`, a module meant for the extension, the reports of the CLI and the visualizer of the site; a field without an entry takes its unit from the suffix of its key (`Ms`, `Bytes`, `Percent`, `Count`) and its label from the key in words. Find-render-blocking-resources is the first snippet with its own entries.
 
 ### Changed
 - INP (`getINP()` and `getINPDetails()`), Interactions and Input-Latency-Breakdown return `status: "tracking"` with a `message` and their `getDataFn` before any interaction, instead of `status: "error"`: nothing failed, someone has to use the page first. Code or agents that retried on `error` need to retry on `tracking`. The extension shows that state as information, not as a warning.
+
+### Fixed
+- A long CSS selector in a table of the extension wraps like a long URL, instead of widening the table until it scrolls sideways (DOM-Size-and-Depth on a large page).
 
 ---
 

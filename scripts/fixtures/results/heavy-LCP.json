@@ -1,0 +1,18 @@
+{
+  "script": "LCP",
+  "status": "ok",
+  "metric": "LCP",
+  "value": 44,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 2500,
+    "needsImprovement": 4000
+  },
+  "details": {
+    "element": "div.c0:nth-of-type(2) > img",
+    "elementType": "Image",
+    "url": "http://127.0.0.1:8000/hero.png?i0",
+    "sizePixels": 6000
+  }
+}

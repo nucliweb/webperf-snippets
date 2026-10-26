@@ -1,0 +1,12 @@
+{
+  "script": "Network-Bandwidth-Connection-Quality",
+  "status": "ok",
+  "rating": "good",
+  "details": {
+    "effectiveType": "4g",
+    "downlink": 9.8,
+    "rtt": 0,
+    "saveData": false,
+    "type": "unknown"
+  }
+}

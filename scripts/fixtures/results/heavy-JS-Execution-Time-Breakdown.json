@@ -1,0 +1,478 @@
+{
+  "script": "JS-Execution-Time-Breakdown",
+  "status": "ok",
+  "count": 82,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "blockingCount": 0,
+    "nonBlockingCount": 82,
+    "totalTransferBytes": 22400,
+    "totalDecodedBytes": 1400,
+    "totalDownloadMs": 2090,
+    "totalEstParseMobileMs": 0,
+    "splitCandidatesCount": 0,
+    "domInteractiveMs": 13,
+    "domContentLoadedMs": 13,
+    "loadEventMs": 54,
+    "criticalBundles": []
+  },
+  "items": [
+    {
+      "shortName": "s65.js",
+      "isBlocking": false,
+      "downloadMs": 37,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s66.js",
+      "isBlocking": false,
+      "downloadMs": 37,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s67.js",
+      "isBlocking": false,
+      "downloadMs": 37,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s68.js",
+      "isBlocking": false,
+      "downloadMs": 37,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s69.js",
+      "isBlocking": false,
+      "downloadMs": 37,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s62.js",
+      "isBlocking": false,
+      "downloadMs": 36,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s63.js",
+      "isBlocking": false,
+      "downloadMs": 36,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s64.js",
+      "isBlocking": false,
+      "downloadMs": 36,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s58.js",
+      "isBlocking": false,
+      "downloadMs": 35,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s59.js",
+      "isBlocking": false,
+      "downloadMs": 35,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s60.js",
+      "isBlocking": false,
+      "downloadMs": 35,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s61.js",
+      "isBlocking": false,
+      "downloadMs": 35,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s54.js",
+      "isBlocking": false,
+      "downloadMs": 34,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s55.js",
+      "isBlocking": false,
+      "downloadMs": 34,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s56.js",
+      "isBlocking": false,
+      "downloadMs": 34,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s57.js",
+      "isBlocking": false,
+      "downloadMs": 34,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s51.js",
+      "isBlocking": false,
+      "downloadMs": 33,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s52.js",
+      "isBlocking": false,
+      "downloadMs": 33,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s53.js",
+      "isBlocking": false,
+      "downloadMs": 33,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s46.js",
+      "isBlocking": false,
+      "downloadMs": 32,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s47.js",
+      "isBlocking": false,
+      "downloadMs": 32,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s48.js",
+      "isBlocking": false,
+      "downloadMs": 32,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s49.js",
+      "isBlocking": false,
+      "downloadMs": 32,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s50.js",
+      "isBlocking": false,
+      "downloadMs": 32,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s41.js",
+      "isBlocking": false,
+      "downloadMs": 31,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s42.js",
+      "isBlocking": false,
+      "downloadMs": 31,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s43.js",
+      "isBlocking": false,
+      "downloadMs": 31,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s44.js",
+      "isBlocking": false,
+      "downloadMs": 31,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s45.js",
+      "isBlocking": false,
+      "downloadMs": 31,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s37.js",
+      "isBlocking": false,
+      "downloadMs": 30,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s38.js",
+      "isBlocking": false,
+      "downloadMs": 30,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s39.js",
+      "isBlocking": false,
+      "downloadMs": 30,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s40.js",
+      "isBlocking": false,
+      "downloadMs": 30,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s32.js",
+      "isBlocking": false,
+      "downloadMs": 29,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s33.js",
+      "isBlocking": false,
+      "downloadMs": 29,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s34.js",
+      "isBlocking": false,
+      "downloadMs": 29,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s35.js",
+      "isBlocking": false,
+      "downloadMs": 29,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s36.js",
+      "isBlocking": false,
+      "downloadMs": 29,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s28.js",
+      "isBlocking": false,
+      "downloadMs": 28,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s29.js",
+      "isBlocking": false,
+      "downloadMs": 28,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s30.js",
+      "isBlocking": false,
+      "downloadMs": 28,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s31.js",
+      "isBlocking": false,
+      "downloadMs": 28,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "t10.js",
+      "isBlocking": false,
+      "downloadMs": 26,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 0,
+      "decodedBytes": 0,
+      "corsRestricted": true
+    },
+    {
+      "shortName": "t11.js",
+      "isBlocking": false,
+      "downloadMs": 26,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 0,
+      "decodedBytes": 0,
+      "corsRestricted": true
+    },
+    {
+      "shortName": "s25.js",
+      "isBlocking": false,
+      "downloadMs": 25,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s26.js",
+      "isBlocking": false,
+      "downloadMs": 25,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "s27.js",
+      "isBlocking": false,
+      "downloadMs": 25,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    },
+    {
+      "shortName": "t8.js",
+      "isBlocking": false,
+      "downloadMs": 25,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 0,
+      "decodedBytes": 0,
+      "corsRestricted": true
+    },
+    {
+      "shortName": "t9.js",
+      "isBlocking": false,
+      "downloadMs": 25,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 0,
+      "decodedBytes": 0,
+      "corsRestricted": true
+    },
+    {
+      "shortName": "s24.js",
+      "isBlocking": false,
+      "downloadMs": 24,
+      "estimatedParseMobileMs": 0,
+      "transferBytes": 320,
+      "decodedBytes": 20,
+      "corsRestricted": false
+    }
+  ],
+  "issues": [
+    {
+      "code": "low-compression",
+      "severity": "warning",
+      "message": "Low compression ratio (0.1x). Enable Brotli or gzip."
+    }
+  ]
+}

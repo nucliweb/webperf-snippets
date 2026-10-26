@@ -1,0 +1,16 @@
+{
+  "script": "Critical-CSS-Detection",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "renderBlockingCount": 0,
+    "nonBlockingCount": 0,
+    "inlineCount": 1,
+    "totalExternalTransferBytes": 0,
+    "renderBlockingDecodedBytes": 0,
+    "inlineBytes": 4390,
+    "criticalBudgetBytes": 14336
+  },
+  "items": [],
+  "issues": []
+}

@@ -1,0 +1,45 @@
+{
+  "script": "Layout-Shift-Loading-and-Interaction",
+  "status": "ok",
+  "metric": "CLS",
+  "value": 0.0638,
+  "unit": "score",
+  "rating": "good",
+  "thresholds": {
+    "good": 0.1,
+    "needsImprovement": 0.25
+  },
+  "details": {
+    "currentCLS": 0.0638,
+    "shiftCount": 2,
+    "countedShifts": 1,
+    "excludedShifts": 1,
+    "topElements": [
+      {
+        "selector": "#hero",
+        "shiftCount": 2,
+        "totalImpact": 0.1137
+      },
+      {
+        "selector": "img",
+        "shiftCount": 2,
+        "totalImpact": 0.1137
+      },
+      {
+        "selector": "h1",
+        "shiftCount": 2,
+        "totalImpact": 0.1137
+      },
+      {
+        "selector": "div.box",
+        "shiftCount": 2,
+        "totalImpact": 0.1137
+      },
+      {
+        "selector": "#go",
+        "shiftCount": 2,
+        "totalImpact": 0.1137
+      }
+    ]
+  }
+}

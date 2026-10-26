@@ -1,0 +1,29 @@
+{
+  "script": "SVG-Embedded-Bitmap-Analysis",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "externalSvgCount": 1,
+    "inlineSvgTotal": 0,
+    "svgsWithUse": 0,
+    "standaloneInlineSvgs": 0,
+    "spriteOpportunity": false
+  },
+  "items": [
+    {
+      "url": "http://127.0.0.1:8001/bitmap.svg",
+      "name": "bitmap.svg",
+      "hasBitmap": true,
+      "bitmapCount": 1,
+      "bitmapTypes": "png",
+      "sizeBytes": 0
+    }
+  ],
+  "issues": [
+    {
+      "code": "embedded-bitmaps",
+      "severity": "warning",
+      "message": "1 SVG file(s) contain embedded bitmaps"
+    }
+  ]
+}

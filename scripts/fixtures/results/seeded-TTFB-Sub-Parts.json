@@ -1,0 +1,42 @@
+{
+  "script": "TTFB-Sub-Parts",
+  "status": "ok",
+  "metric": "TTFB",
+  "value": 2,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 800,
+    "needsImprovement": 1800
+  },
+  "details": {
+    "subParts": {
+      "redirectWait": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "serviceWorkerCache": {
+        "value": 1,
+        "unit": "ms"
+      },
+      "dnsLookup": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "tcpConnection": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "sslTls": {
+        "value": 0,
+        "unit": "ms"
+      },
+      "serverResponse": {
+        "value": 0,
+        "unit": "ms"
+      }
+    },
+    "slowestPhase": "serviceWorkerCache"
+  },
+  "issues": []
+}

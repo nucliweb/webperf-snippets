@@ -1,0 +1,532 @@
+{
+  "script": "Script-Loading",
+  "status": "ok",
+  "count": 82,
+  "corsLimitedAnalysis": true,
+  "rating": "good",
+  "details": {
+    "totalSizeBytes": 22400,
+    "sizeUnknownCount": 12,
+    "byStrategy": {
+      "blocking": 0,
+      "async": 82,
+      "defer": 0,
+      "module": 0,
+      "nomodule": 0
+    },
+    "byParty": {
+      "firstParty": 82,
+      "thirdParty": 0
+    },
+    "thirdPartyBlockingCount": 0
+  },
+  "items": [
+    {
+      "url": "http://127.0.0.1:8000/s0.js",
+      "shortName": "s0.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 4
+    },
+    {
+      "url": "http://127.0.0.1:8000/s1.js",
+      "shortName": "s1.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 4
+    },
+    {
+      "url": "http://127.0.0.1:8000/s2.js",
+      "shortName": "s2.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 9
+    },
+    {
+      "url": "http://127.0.0.1:8000/s3.js",
+      "shortName": "s3.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 9
+    },
+    {
+      "url": "http://127.0.0.1:8000/s4.js",
+      "shortName": "s4.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 11
+    },
+    {
+      "url": "http://127.0.0.1:8000/s5.js",
+      "shortName": "s5.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 11
+    },
+    {
+      "url": "http://127.0.0.1:8000/s6.js",
+      "shortName": "s6.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 12
+    },
+    {
+      "url": "http://127.0.0.1:8000/s7.js",
+      "shortName": "s7.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 12
+    },
+    {
+      "url": "http://127.0.0.1:8000/s8.js",
+      "shortName": "s8.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 12
+    },
+    {
+      "url": "http://127.0.0.1:8000/s9.js",
+      "shortName": "s9.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 12
+    },
+    {
+      "url": "http://127.0.0.1:8000/s10.js",
+      "shortName": "s10.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 14
+    },
+    {
+      "url": "http://127.0.0.1:8000/s11.js",
+      "shortName": "s11.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 15
+    },
+    {
+      "url": "http://127.0.0.1:8000/s12.js",
+      "shortName": "s12.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 16
+    },
+    {
+      "url": "http://127.0.0.1:8000/s13.js",
+      "shortName": "s13.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 16
+    },
+    {
+      "url": "http://127.0.0.1:8000/s14.js",
+      "shortName": "s14.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 17
+    },
+    {
+      "url": "http://127.0.0.1:8000/s15.js",
+      "shortName": "s15.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 17
+    },
+    {
+      "url": "http://127.0.0.1:8000/s16.js",
+      "shortName": "s16.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 20
+    },
+    {
+      "url": "http://127.0.0.1:8000/s17.js",
+      "shortName": "s17.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 20
+    },
+    {
+      "url": "http://127.0.0.1:8000/s18.js",
+      "shortName": "s18.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 22
+    },
+    {
+      "url": "http://127.0.0.1:8000/s19.js",
+      "shortName": "s19.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 22
+    },
+    {
+      "url": "http://127.0.0.1:8000/s20.js",
+      "shortName": "s20.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 22
+    },
+    {
+      "url": "http://127.0.0.1:8000/s21.js",
+      "shortName": "s21.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 22
+    },
+    {
+      "url": "http://127.0.0.1:8000/s22.js",
+      "shortName": "s22.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 24
+    },
+    {
+      "url": "http://127.0.0.1:8000/s23.js",
+      "shortName": "s23.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 24
+    },
+    {
+      "url": "http://127.0.0.1:8000/s24.js",
+      "shortName": "s24.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 25
+    },
+    {
+      "url": "http://127.0.0.1:8000/s25.js",
+      "shortName": "s25.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 26
+    },
+    {
+      "url": "http://127.0.0.1:8000/s26.js",
+      "shortName": "s26.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 26
+    },
+    {
+      "url": "http://127.0.0.1:8000/s27.js",
+      "shortName": "s27.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 26
+    },
+    {
+      "url": "http://127.0.0.1:8000/s28.js",
+      "shortName": "s28.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 29
+    },
+    {
+      "url": "http://127.0.0.1:8000/s29.js",
+      "shortName": "s29.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 29
+    },
+    {
+      "url": "http://127.0.0.1:8000/s30.js",
+      "shortName": "s30.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30
+    },
+    {
+      "url": "http://127.0.0.1:8000/s31.js",
+      "shortName": "s31.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30
+    },
+    {
+      "url": "http://127.0.0.1:8000/s32.js",
+      "shortName": "s32.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30
+    },
+    {
+      "url": "http://127.0.0.1:8000/s33.js",
+      "shortName": "s33.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30
+    },
+    {
+      "url": "http://127.0.0.1:8000/s34.js",
+      "shortName": "s34.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 31
+    },
+    {
+      "url": "http://127.0.0.1:8000/s35.js",
+      "shortName": "s35.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 31
+    },
+    {
+      "url": "http://127.0.0.1:8000/s36.js",
+      "shortName": "s36.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 31
+    },
+    {
+      "url": "http://127.0.0.1:8000/s37.js",
+      "shortName": "s37.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30
+    },
+    {
+      "url": "http://127.0.0.1:8000/s38.js",
+      "shortName": "s38.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 32
+    },
+    {
+      "url": "http://127.0.0.1:8000/s39.js",
+      "shortName": "s39.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 33
+    },
+    {
+      "url": "http://127.0.0.1:8000/s40.js",
+      "shortName": "s40.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 32
+    },
+    {
+      "url": "http://127.0.0.1:8000/s41.js",
+      "shortName": "s41.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 32
+    },
+    {
+      "url": "http://127.0.0.1:8000/s42.js",
+      "shortName": "s42.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 32
+    },
+    {
+      "url": "http://127.0.0.1:8000/s43.js",
+      "shortName": "s43.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 32
+    },
+    {
+      "url": "http://127.0.0.1:8000/s44.js",
+      "shortName": "s44.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 33
+    },
+    {
+      "url": "http://127.0.0.1:8000/s45.js",
+      "shortName": "s45.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 33
+    },
+    {
+      "url": "http://127.0.0.1:8000/s46.js",
+      "shortName": "s46.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 33
+    },
+    {
+      "url": "http://127.0.0.1:8000/s47.js",
+      "shortName": "s47.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 34
+    },
+    {
+      "url": "http://127.0.0.1:8000/s48.js",
+      "shortName": "s48.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 35
+    },
+    {
+      "url": "http://127.0.0.1:8000/s49.js",
+      "shortName": "s49.js",
+      "strategy": "async",
+      "location": "head",
+      "party": "first",
+      "sizeBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 35
+    }
+  ],
+  "issues": [
+    {
+      "code": "unknown-size",
+      "severity": "info",
+      "message": "12 script(s) have an unknown size (missing Timing-Allow-Origin); total size is a lower bound"
+    }
+  ]
+}

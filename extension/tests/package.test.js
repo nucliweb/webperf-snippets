@@ -18,8 +18,8 @@ test('the zip is named after the version of the manifest', () => {
   assert.equal(basename(zip), `webperf-snippets-extension-${version}.zip`)
 })
 
-test('the zip has the manifest at its root, the built snippets and the icons', () => {
-  for (const file of ['manifest.json', 'devtools.html', 'panel.html', 'panel.js', 'snippets.json', 'icons/icon-128.png', 'lib/run.js']) {
+test('the zip has the manifest at its root, the built snippets, the view of the results and the icons', () => {
+  for (const file of ['manifest.json', 'devtools.html', 'panel.html', 'panel.js', 'snippets.json', 'icons/icon-128.png', 'lib/run.js', 'lib/view/index.js', 'lib/view/locales/en.js']) {
     assert.ok(files.includes(file), `${file} is not in the zip`)
   }
 })

@@ -1,0 +1,366 @@
+{
+  "script": "TTFB-Resources",
+  "status": "ok",
+  "count": 144,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "avgTtfbMs": 1,
+    "maxTtfbMs": 5,
+    "minTtfbMs": 0,
+    "thirdPartyCount": 0,
+    "slowCount": 0,
+    "corsRestrictedCount": 12
+  },
+  "items": [
+    {
+      "url": "http://127.0.0.1:8000/s41.js",
+      "ttfbMs": 5,
+      "durationMs": 38,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s42.js",
+      "ttfbMs": 5,
+      "durationMs": 38,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s37.js",
+      "ttfbMs": 3,
+      "durationMs": 35,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s43.js",
+      "ttfbMs": 3,
+      "durationMs": 39,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s45.js",
+      "ttfbMs": 3,
+      "durationMs": 39,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s44.js",
+      "ttfbMs": 3,
+      "durationMs": 39,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s46.js",
+      "ttfbMs": 3,
+      "durationMs": 39,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s16.js",
+      "ttfbMs": 2,
+      "durationMs": 20,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s17.js",
+      "ttfbMs": 2,
+      "durationMs": 21,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s19.js",
+      "ttfbMs": 2,
+      "durationMs": 22,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s29.js",
+      "ttfbMs": 2,
+      "durationMs": 31,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s30.js",
+      "ttfbMs": 2,
+      "durationMs": 31,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s35.js",
+      "ttfbMs": 2,
+      "durationMs": 35,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s36.js",
+      "ttfbMs": 2,
+      "durationMs": 35,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?i10",
+      "ttfbMs": 2,
+      "durationMs": 29,
+      "type": "img",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s1.js",
+      "ttfbMs": 1,
+      "durationMs": 4,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s2.js",
+      "ttfbMs": 1,
+      "durationMs": 8,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s3.js",
+      "ttfbMs": 1,
+      "durationMs": 9,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s6.js",
+      "ttfbMs": 1,
+      "durationMs": 12,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s7.js",
+      "ttfbMs": 1,
+      "durationMs": 13,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s8.js",
+      "ttfbMs": 1,
+      "durationMs": 13,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s15.js",
+      "ttfbMs": 1,
+      "durationMs": 17,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s18.js",
+      "ttfbMs": 1,
+      "durationMs": 21,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s20.js",
+      "ttfbMs": 1,
+      "durationMs": 22,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s21.js",
+      "ttfbMs": 1,
+      "durationMs": 23,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s23.js",
+      "ttfbMs": 1,
+      "durationMs": 25,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s28.js",
+      "ttfbMs": 1,
+      "durationMs": 30,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s31.js",
+      "ttfbMs": 1,
+      "durationMs": 31,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s32.js",
+      "ttfbMs": 1,
+      "durationMs": 32,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s33.js",
+      "ttfbMs": 1,
+      "durationMs": 32,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s34.js",
+      "ttfbMs": 1,
+      "durationMs": 32,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s38.js",
+      "ttfbMs": 1,
+      "durationMs": 33,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s39.js",
+      "ttfbMs": 1,
+      "durationMs": 33,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s40.js",
+      "ttfbMs": 1,
+      "durationMs": 34,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s48.js",
+      "ttfbMs": 1,
+      "durationMs": 40,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s49.js",
+      "ttfbMs": 1,
+      "durationMs": 40,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s50.js",
+      "ttfbMs": 1,
+      "durationMs": 41,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s51.js",
+      "ttfbMs": 1,
+      "durationMs": 41,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s54.js",
+      "ttfbMs": 1,
+      "durationMs": 41,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s52.js",
+      "ttfbMs": 1,
+      "durationMs": 41,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s53.js",
+      "ttfbMs": 1,
+      "durationMs": 42,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s55.js",
+      "ttfbMs": 1,
+      "durationMs": 42,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s64.js",
+      "ttfbMs": 1,
+      "durationMs": 44,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s65.js",
+      "ttfbMs": 1,
+      "durationMs": 45,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s66.js",
+      "ttfbMs": 1,
+      "durationMs": 45,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/s67.js",
+      "ttfbMs": 1,
+      "durationMs": 45,
+      "type": "script",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?i2",
+      "ttfbMs": 1,
+      "durationMs": 27,
+      "type": "img",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?i0",
+      "ttfbMs": 1,
+      "durationMs": 29,
+      "type": "img",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?i6",
+      "ttfbMs": 1,
+      "durationMs": 27,
+      "type": "img",
+      "isThirdParty": false
+    },
+    {
+      "url": "http://127.0.0.1:8000/hero.png?i8",
+      "ttfbMs": 1,
+      "durationMs": 29,
+      "type": "img",
+      "isThirdParty": false
+    }
+  ]
+}

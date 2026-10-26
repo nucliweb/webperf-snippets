@@ -1,0 +1,21 @@
+{
+  "script": "Priority-Hints-Audit",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "highCount": 0,
+    "lowCount": 0,
+    "autoCount": 0,
+    "preloadsWithPriorityCount": 0,
+    "lcpCandidateHasFetchpriority": false
+  },
+  "items": [],
+  "issues": [
+    {
+      "code": "lcp-no-fetchpriority",
+      "severity": "warning",
+      "message": "LCP candidate image has no fetchpriority set. Fix: Add fetchpriority=\"high\" to the LCP image to improve Largest Contentful Paint",
+      "target": "http://127.0.0.1:8000/hero.png?i0"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "script": "Prefetch-Resource-Validation",
+  "status": "ok",
+  "count": 0,
+  "items": [],
+  "issues": [
+    {
+      "code": "no-prefetch",
+      "severity": "info",
+      "message": "No prefetch hints on this page (rel=\"prefetch\"), so there was nothing to validate."
+    }
+  ]
+}

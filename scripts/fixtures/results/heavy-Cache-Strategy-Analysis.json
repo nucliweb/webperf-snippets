@@ -1,0 +1,540 @@
+{
+  "script": "Cache-Strategy-Analysis",
+  "status": "ok",
+  "count": 156,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "totalResources": 156,
+    "actionableCount": 144,
+    "headersAnalyzed": 144,
+    "corsRestricted": 0,
+    "excludedFromHeaders": 12,
+    "headerCoveragePercent": 92,
+    "cacheEfficiencyPercent": 0,
+    "cacheEfficiencyRating": "poor",
+    "cacheEfficiencyResources": 144,
+    "bandwidthSavedBytes": 0,
+    "strategyDistribution": {
+      "none": 144,
+      "unknown": 12
+    },
+    "cdnDetected": false,
+    "cdnHitRate": null,
+    "cdnHitRateRating": null,
+    "antiPatternCount": 0,
+    "duplicatesCostlyCount": 0,
+    "uncompressedCount": 0,
+    "protocolDistribution": {
+      "http/1.1": 144,
+      "unknown": 12
+    }
+  },
+  "items": [
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    },
+    {
+      "shortName": "hero.png",
+      "host": "127.0.0.1",
+      "type": "image",
+      "firstParty": true,
+      "cacheStrategy": "none",
+      "sizeBytes": 30173,
+      "isCached": false,
+      "antiPatterns": []
+    }
+  ],
+  "issues": [],
+  "recommendations": [
+    "🔴 Add Cache-Control headers to static assets (JS, CSS, fonts, images). Start with max-age=86400 and move to immutable for versioned files.",
+    "🔴 Cache efficiency is low (0%, measured on the 144 resources whose cache headers could be read). Review caching strategy for those static assets.",
+    "🟡 144 resources still use HTTP/1.1. Consider upgrading to HTTP/2 for better multiplexing."
+  ]
+}

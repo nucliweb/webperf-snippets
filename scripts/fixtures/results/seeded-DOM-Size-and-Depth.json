@@ -1,0 +1,37 @@
+{
+  "script": "DOM-Size-and-Depth",
+  "status": "ok",
+  "count": 3,
+  "issues": [],
+  "items": [
+    {
+      "selector": "html > body",
+      "children": 14,
+      "depth": 2
+    },
+    {
+      "selector": "html > head",
+      "children": 9,
+      "depth": 2
+    },
+    {
+      "selector": "html",
+      "children": 2,
+      "depth": 1
+    }
+  ],
+  "details": {
+    "totalElements": 26,
+    "maxDepth": 3,
+    "maxChildren": 14,
+    "widestParent": "html > body",
+    "deepestElement": "html > head > meta",
+    "shadowRoots": 0,
+    "thresholds": {
+      "warnNodes": 800,
+      "errorNodes": 1400,
+      "maxDepth": 32,
+      "maxChildren": 60
+    }
+  }
+}

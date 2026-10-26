@@ -1,0 +1,90 @@
+{
+  "script": "Oversized-Images",
+  "status": "ok",
+  "count": 3,
+  "details": {
+    "devicePixelRatio": 1,
+    "totalImages": 4,
+    "imagesChecked": 3,
+    "oversized": 0,
+    "undersized": 3,
+    "wastedPixels": 0,
+    "wastedBytes": 0,
+    "skippedHidden": 0,
+    "skippedNotLoaded": 0,
+    "skippedVector": 1
+  },
+  "items": [
+    {
+      "selector": "img#hero",
+      "url": "http://127.0.0.1:8000/hero.png",
+      "verdict": "undersized",
+      "naturalWidth": 100,
+      "naturalHeight": 100,
+      "renderedWidth": 600,
+      "renderedHeight": 400,
+      "neededWidth": 600,
+      "neededHeight": 400,
+      "ratio": 0.17,
+      "wastedPixels": 0,
+      "transferBytes": 30473,
+      "wastedBytes": 0,
+      "hasSrcset": false,
+      "hasSizes": false
+    },
+    {
+      "selector": "img",
+      "url": "http://127.0.0.1:8000/hero.png?b",
+      "verdict": "undersized",
+      "naturalWidth": 100,
+      "naturalHeight": 100,
+      "renderedWidth": 300,
+      "renderedHeight": 200,
+      "neededWidth": 300,
+      "neededHeight": 200,
+      "ratio": 0.33,
+      "wastedPixels": 0,
+      "transferBytes": 30473,
+      "wastedBytes": 0,
+      "hasSrcset": false,
+      "hasSizes": false
+    },
+    {
+      "selector": "img",
+      "url": "http://127.0.0.1:8000/hero.png?c",
+      "verdict": "undersized",
+      "naturalWidth": 100,
+      "naturalHeight": 100,
+      "renderedWidth": 300,
+      "renderedHeight": 200,
+      "neededWidth": 300,
+      "neededHeight": 200,
+      "ratio": 0.33,
+      "wastedPixels": 0,
+      "transferBytes": 30473,
+      "wastedBytes": 0,
+      "hasSrcset": false,
+      "hasSizes": false
+    }
+  ],
+  "issues": [
+    {
+      "code": "undersized",
+      "severity": "warning",
+      "message": "hero.png: 100x100 file for a 600x400 slot at 1x (blurry, needs 5.88x more pixels)",
+      "target": "http://127.0.0.1:8000/hero.png"
+    },
+    {
+      "code": "undersized",
+      "severity": "warning",
+      "message": "hero.png: 100x100 file for a 300x200 slot at 1x (blurry, needs 3.03x more pixels)",
+      "target": "http://127.0.0.1:8000/hero.png?b"
+    },
+    {
+      "code": "undersized",
+      "severity": "warning",
+      "message": "hero.png: 100x100 file for a 300x200 slot at 1x (blurry, needs 3.03x more pixels)",
+      "target": "http://127.0.0.1:8000/hero.png?c"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "script": "Interactions",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "totalInteractions": 1,
+    "worstMs": 96,
+    "avgMs": 96,
+    "p75Ms": 96,
+    "byRating": {
+      "good": 1,
+      "needs-improvement": 0,
+      "poor": 0
+    }
+  },
+  "items": [
+    {
+      "type": "click",
+      "durationMs": 96,
+      "rating": "good"
+    }
+  ],
+  "issues": []
+}

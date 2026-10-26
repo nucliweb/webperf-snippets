@@ -1,0 +1,35 @@
+{
+  "script": "Fonts-Preloaded-Loaded-and-used-above-the-fold",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "preloadedCount": 0,
+    "loadedCount": 0,
+    "usedAboveFoldCount": 3,
+    "preloadedNotUsedCount": 0,
+    "usedNotPreloadedCount": 0,
+    "preloadedFonts": []
+  },
+  "items": [],
+  "usedFonts": [
+    {
+      "family": "Times",
+      "weight": "400",
+      "style": "normal",
+      "elements": 5
+    },
+    {
+      "family": "Times",
+      "weight": "700",
+      "style": "normal",
+      "elements": 1
+    },
+    {
+      "family": "Arial",
+      "weight": "400",
+      "style": "normal",
+      "elements": 1
+    }
+  ],
+  "issues": []
+}

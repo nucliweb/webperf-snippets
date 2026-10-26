@@ -1,0 +1,28 @@
+{
+  "script": "Input-Latency-Breakdown",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "eventTypes": {
+      "click": {
+        "count": 1,
+        "p75Ms": 48,
+        "inputDelayMs": 1,
+        "processingMs": 4,
+        "presentationMs": 44
+      }
+    }
+  },
+  "items": [
+    {
+      "type": "click",
+      "count": 1,
+      "p75Ms": 48,
+      "inputDelayMs": 1,
+      "processingMs": 4,
+      "presentationMs": 44,
+      "rating": "good"
+    }
+  ],
+  "issues": []
+}

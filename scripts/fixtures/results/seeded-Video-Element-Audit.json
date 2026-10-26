@@ -1,0 +1,53 @@
+{
+  "script": "Video-Element-Audit",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "totalVideos": 1,
+    "inViewport": 0,
+    "offViewport": 1,
+    "totalErrors": 0,
+    "totalWarnings": 1,
+    "totalInfos": 1
+  },
+  "items": [
+    {
+      "src": "",
+      "codec": "no source",
+      "inViewport": false,
+      "preload": "(not set)",
+      "autoplay": false,
+      "muted": false,
+      "playsinline": false,
+      "loop": false,
+      "controls": false,
+      "hasPoster": true,
+      "hasDimensions": true,
+      "sourceCount": 0,
+      "issues": [
+        {
+          "code": "off-viewport-preload",
+          "severity": "warning",
+          "message": "Off-viewport video without preload=\"none\": set preload=\"none\" to avoid unnecessary loading"
+        },
+        {
+          "code": "no-controls",
+          "severity": "info",
+          "message": "No controls attribute and no autoplay, so users may not be able to play the video"
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "code": "off-viewport-preload",
+      "severity": "warning",
+      "message": "(no src): Off-viewport video without preload=\"none\": set preload=\"none\" to avoid unnecessary loading"
+    },
+    {
+      "code": "no-controls",
+      "severity": "info",
+      "message": "(no src): No controls attribute and no autoplay, so users may not be able to play the video"
+    }
+  ]
+}

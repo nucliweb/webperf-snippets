@@ -1,0 +1,57 @@
+{
+  "script": "LCP-Image-Entropy",
+  "status": "ok",
+  "count": 3,
+  "details": {
+    "totalImages": 3,
+    "lowEntropyCount": 0,
+    "lcpElement": "body",
+    "lcpImageEligible": null,
+    "lcpImage": null
+  },
+  "items": [
+    {
+      "url": "hero.png",
+      "width": 100,
+      "height": 100,
+      "displayedWidth": 600,
+      "displayedHeight": 400,
+      "fileSizeBytes": 30173,
+      "bpp": 24.1384,
+      "isLowEntropy": false,
+      "lcpEligible": true,
+      "isLCP": false
+    },
+    {
+      "url": "hero.png",
+      "width": 100,
+      "height": 100,
+      "displayedWidth": 300,
+      "displayedHeight": 200,
+      "fileSizeBytes": 30173,
+      "bpp": 24.1384,
+      "isLowEntropy": false,
+      "lcpEligible": true,
+      "isLCP": false
+    },
+    {
+      "url": "hero.png",
+      "width": 100,
+      "height": 100,
+      "displayedWidth": 300,
+      "displayedHeight": 200,
+      "fileSizeBytes": 30173,
+      "bpp": 24.1384,
+      "isLowEntropy": false,
+      "lcpEligible": true,
+      "isLCP": false
+    }
+  ],
+  "issues": [
+    {
+      "code": "lcp-is-text",
+      "severity": "info",
+      "message": "The LCP element is <body>, text and not an image, so its entropy does not apply. Run the LCP snippet to measure it."
+    }
+  ]
+}

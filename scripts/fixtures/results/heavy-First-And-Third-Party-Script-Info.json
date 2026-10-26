@@ -1,0 +1,476 @@
+{
+  "script": "First-And-Third-Party-Script-Info",
+  "status": "ok",
+  "count": 82,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "firstPartyCount": 82,
+    "thirdPartyCount": 0,
+    "thirdPartyPercent": 0,
+    "firstPartySizeBytes": 22400,
+    "thirdPartySizeBytes": 0,
+    "thirdPartyBlockingCount": 0,
+    "thirdPartyHostCount": 0,
+    "sizeUnknownCount": 12,
+    "renderBlockingSupported": true
+  },
+  "items": [
+    {
+      "shortName": "s0.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 4,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s1.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 4,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s2.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 9,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s3.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 9,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s4.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 10,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s5.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 10,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s6.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 10,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s7.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 11,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s8.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 12,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s9.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 12,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s10.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 13,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s11.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 13,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s12.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 13,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s13.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 14,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s14.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 15,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s15.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 16,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s16.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 17,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s17.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 18,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s18.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 18,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s19.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 19,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s20.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 20,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s21.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 20,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s22.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 21,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s23.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 21,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s24.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 22,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s25.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 23,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s26.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 23,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s27.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 27,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s28.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 27,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s29.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 27,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s30.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 27,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s31.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 28,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s32.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 28,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s33.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 28,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s34.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 28,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s35.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 28,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s36.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 29,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s37.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 29,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s38.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 29,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s42.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 29,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s39.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s40.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s41.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s43.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 31,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s44.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 31,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s45.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 30,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s49.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 31,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s46.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 32,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s47.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 32,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "s48.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 32,
+      "renderBlocking": false
+    }
+  ],
+  "issues": [
+    {
+      "code": "unknown-size",
+      "severity": "info",
+      "message": "12 script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound"
+    }
+  ]
+}

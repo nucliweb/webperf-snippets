@@ -109,12 +109,18 @@ tbody tr:nth-child(even) { background: var(--surface); }
 tbody tr:hover { background: var(--hover); }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.long { min-width: 240px; max-width: 420px; white-space: normal; overflow-wrap: anywhere; }
+td.long .inspect { white-space: normal; overflow-wrap: anywhere; }
 th { position: sticky; top: 0; font-weight: 600; color: var(--muted); background: var(--surface); }
 
 /* Details */
 .details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; padding: 8px 12px; }
 .details dt { color: var(--muted); }
 .details dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+/* A field that reads as a sentence, before the list of the others */
+.phrase { margin: 0; padding: 8px 12px 0; }
+.phrase + .phrase { padding-top: 4px; }
+.phrase:last-child { padding-bottom: 8px; }
+.phrase strong { font-variant-numeric: tabular-nums; }
 .raw pre { overflow: auto; padding: 8px; background: var(--hover); border-radius: 4px; }
 .inspect { padding: 0; font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); text-align: left; background: none; border: 0; cursor: pointer; }
 .inspect:hover, .inspect:focus-visible { text-decoration: underline; }

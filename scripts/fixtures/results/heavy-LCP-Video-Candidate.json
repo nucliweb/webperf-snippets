@@ -1,0 +1,16 @@
+{
+  "script": "LCP-Video-Candidate",
+  "status": "ok",
+  "details": {
+    "isVideo": false,
+    "lcpElement": "img",
+    "lcpUrl": "http://127.0.0.1:8000/hero.png?i0"
+  },
+  "issues": [
+    {
+      "code": "lcp-not-video",
+      "severity": "info",
+      "message": "The LCP element is <img>, not a <video>. Run the LCP snippet to measure it, and LCP Subparts to see its phases."
+    }
+  ]
+}

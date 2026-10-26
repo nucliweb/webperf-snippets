@@ -1,0 +1,13 @@
+{
+  "script": "Long-Animation-Frames",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "totalLoAFs": 0,
+    "withBlockingTime": 0,
+    "totalBlockingTimeMs": 0,
+    "worstBlockingMs": 0,
+    "topScripts": []
+  },
+  "items": []
+}

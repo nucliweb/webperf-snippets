@@ -1,0 +1,24 @@
+{
+  "script": "Inline-CSS-Info-and-Size",
+  "status": "ok",
+  "count": 1,
+  "details": {
+    "totalSizeBytes": 65,
+    "totalRules": 2,
+    "criticalBudgetBytes": 14336,
+    "duplicateBlocks": 0,
+    "bodyStyleBlocks": 0
+  },
+  "items": [
+    {
+      "index": 1,
+      "sizeBytes": 65,
+      "parent": "head",
+      "inHead": true,
+      "ruleCount": 2,
+      "hasMediaQueries": false,
+      "hasKeyframes": false
+    }
+  ],
+  "issues": []
+}

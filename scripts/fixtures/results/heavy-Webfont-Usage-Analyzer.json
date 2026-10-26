@@ -1,0 +1,25 @@
+{
+  "script": "Webfont-Usage-Analyzer",
+  "status": "ok",
+  "count": 0,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "declarationCount": 0,
+    "loadedCount": 0,
+    "usedCount": 0,
+    "loadedUnusedCount": 0,
+    "loadedUnusedBytes": 0,
+    "neverLoadedCount": 0,
+    "neverLoaded": [],
+    "errorCount": 0,
+    "fontFileCount": 0,
+    "totalFontBytes": 0,
+    "bytesReadable": true,
+    "fontDisplay": {},
+    "unicodeRangeFamilies": [],
+    "unreadableStylesheets": 0,
+    "elementsScanned": 274
+  },
+  "items": [],
+  "issues": []
+}

@@ -1,0 +1,22 @@
+{
+  "script": "Find-Images-With-Lazy-and-Fetchpriority",
+  "status": "ok",
+  "count": 1,
+  "items": [
+    {
+      "selector": "html>body>img",
+      "src": "http://127.0.0.1:8000/hero.png?b",
+      "inViewport": true,
+      "isLcpCandidate": false,
+      "widthPx": 300,
+      "heightPx": 200
+    }
+  ],
+  "issues": [
+    {
+      "code": "lazy-and-high-priority",
+      "severity": "error",
+      "message": "1 element(s) have conflicting loading=\"lazy\" and fetchpriority=\"high\""
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "script": "Find-render-blocking-resources",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "totalBlockingUntilMs": 0,
+    "totalSizeBytes": 0,
+    "byType": {}
+  },
+  "items": [],
+  "issues": []
+}

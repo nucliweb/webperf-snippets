@@ -1,0 +1,21 @@
+{
+  "script": "INP",
+  "status": "ok",
+  "metric": "INP",
+  "value": 104,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 200,
+    "needsImprovement": 500
+  },
+  "details": {
+    "totalInteractions": 1,
+    "worstEvent": "click → button#go",
+    "phases": {
+      "inputDelay": 7,
+      "processingTime": 63,
+      "presentationDelay": 35
+    }
+  }
+}

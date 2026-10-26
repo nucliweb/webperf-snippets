@@ -1,0 +1,53 @@
+{
+  "script": "First-And-Third-Party-Script-Info",
+  "status": "ok",
+  "count": 3,
+  "corsLimitedAnalysis": true,
+  "details": {
+    "firstPartyCount": 3,
+    "thirdPartyCount": 0,
+    "thirdPartyPercent": 0,
+    "firstPartySizeBytes": 640,
+    "thirdPartySizeBytes": 0,
+    "thirdPartyBlockingCount": 0,
+    "thirdPartyHostCount": 0,
+    "sizeUnknownCount": 1,
+    "renderBlockingSupported": true
+  },
+  "items": [
+    {
+      "shortName": "third.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 0,
+      "sizeKnown": false,
+      "durationMs": 5,
+      "renderBlocking": true
+    },
+    {
+      "shortName": "app.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 4,
+      "renderBlocking": false
+    },
+    {
+      "shortName": "async.js",
+      "host": "127.0.0.1",
+      "firstParty": true,
+      "transferBytes": 320,
+      "sizeKnown": true,
+      "durationMs": 6,
+      "renderBlocking": false
+    }
+  ],
+  "issues": [
+    {
+      "code": "unknown-size",
+      "severity": "info",
+      "message": "1 script(s) have an unknown size (missing Timing-Allow-Origin); size totals are a lower bound"
+    }
+  ]
+}

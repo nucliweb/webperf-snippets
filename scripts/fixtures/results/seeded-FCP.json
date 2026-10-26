@@ -1,0 +1,31 @@
+{
+  "script": "FCP",
+  "status": "ok",
+  "metric": "FCP",
+  "value": 28,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 1800,
+    "needsImprovement": 3000
+  },
+  "details": {
+    "ttfbMs": 1,
+    "renderBlockingLoadMs": 7,
+    "renderDelayMs": 20,
+    "blockingResourceCount": 2,
+    "renderBlockingSupported": true
+  },
+  "items": [
+    {
+      "url": "third.js",
+      "type": "JS",
+      "durationMs": 5
+    },
+    {
+      "url": "style.css",
+      "type": "CSS",
+      "durationMs": 5
+    }
+  ]
+}

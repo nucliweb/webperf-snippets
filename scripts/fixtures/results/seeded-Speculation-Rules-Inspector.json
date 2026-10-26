@@ -1,0 +1,23 @@
+{
+  "script": "Speculation-Rules-Inspector",
+  "status": "ok",
+  "count": 0,
+  "details": {
+    "supported": true,
+    "prerendering": false,
+    "activated": true,
+    "activatedAt": null,
+    "activationStart": 0,
+    "deliveryType": "",
+    "scriptCount": 0,
+    "actions": {}
+  },
+  "items": [],
+  "issues": [
+    {
+      "code": "no-rules",
+      "severity": "info",
+      "message": "No speculation rules found in the DOM. Rules delivered in the Speculation-Rules HTTP header are not readable from JavaScript."
+    }
+  ]
+}

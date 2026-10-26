@@ -1,0 +1,19 @@
+{
+  "script": "Layout-Shift-Loading-and-Interaction",
+  "status": "ok",
+  "metric": "CLS",
+  "value": 0,
+  "unit": "score",
+  "rating": "good",
+  "thresholds": {
+    "good": 0.1,
+    "needsImprovement": 0.25
+  },
+  "details": {
+    "currentCLS": 0,
+    "shiftCount": 0,
+    "countedShifts": 0,
+    "excludedShifts": 0,
+    "topElements": []
+  }
+}

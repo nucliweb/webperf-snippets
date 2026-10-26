@@ -1,0 +1,12 @@
+{
+  "script": "TTFB",
+  "status": "ok",
+  "metric": "TTFB",
+  "value": 1,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 800,
+    "needsImprovement": 1800
+  }
+}

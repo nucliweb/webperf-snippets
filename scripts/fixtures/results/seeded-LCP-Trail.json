@@ -1,0 +1,24 @@
+{
+  "script": "LCP-Trail",
+  "status": "ok",
+  "metric": "LCP",
+  "value": 28,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": {
+    "good": 2500,
+    "needsImprovement": 4000
+  },
+  "details": {
+    "candidateCount": 1,
+    "finalElement": "body",
+    "candidates": [
+      {
+        "index": 1,
+        "selector": "body",
+        "time": 28,
+        "elementType": "body"
+      }
+    ]
+  }
+}

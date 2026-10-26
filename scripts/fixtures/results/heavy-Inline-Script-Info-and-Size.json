@@ -1,0 +1,517 @@
+{
+  "script": "Inline-Script-Info-and-Size",
+  "status": "ok",
+  "count": 61,
+  "details": {
+    "executableCount": 61,
+    "jsonLdCount": 0,
+    "otherCount": 0,
+    "totalSizeBytes": 1121,
+    "parserBlockingCount": 61,
+    "parserBlockingInHeadCount": 0,
+    "dataPayloadCount": 0
+  },
+  "items": [
+    {
+      "index": 1,
+      "sizeBytes": 241,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 12,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 13,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 14,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 15,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 16,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 17,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 18,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 19,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 20,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 21,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 22,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 23,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 24,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 25,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 26,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 27,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 28,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 29,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 30,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 31,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 32,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 33,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 34,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 35,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 36,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 37,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 38,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 39,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 40,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 41,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 42,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 43,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 44,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 45,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 46,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 47,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 48,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 49,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 50,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 51,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 52,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 53,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 54,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 55,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 56,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 57,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 58,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 59,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    },
+    {
+      "index": 60,
+      "sizeBytes": 15,
+      "category": "classic",
+      "inHead": false,
+      "isParserBlocking": true,
+      "isAnalytics": false,
+      "isConfig": true,
+      "isDataPayload": false
+    }
+  ],
+  "issues": []
+}

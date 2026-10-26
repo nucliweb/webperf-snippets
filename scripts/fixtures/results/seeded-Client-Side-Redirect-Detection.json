@@ -1,0 +1,15 @@
+{
+  "script": "Client-Side-Redirect-Detection",
+  "status": "ok",
+  "details": {
+    "serverRedirects": 0,
+    "redirectTimeMs": 0,
+    "clientRedirectIndicators": 0,
+    "documentNavigations": 0,
+    "hasSPARouter": false,
+    "historyLength": 2,
+    "currentPath": "/seeded",
+    "referrerPath": ""
+  },
+  "issues": []
+}
