@@ -49,7 +49,7 @@ test('items become a table with a labelled column per field, each value in its f
   })
   assert.match(html, /<h3>Items<\/h3>/)
   assert.match(html, /<th>URL<\/th><th>Size<\/th><th>Position<\/th>/)
-  assert.match(html, /<td class="url"><span class="url" title="https:\/\/a\/x\.js">x\.js<\/span><\/td><td class="num">120<\/td><td><\/td>/)
+  assert.match(html, /<td class="url"><span class="resource"><span class="url" title="https:\/\/a\/x\.js">x\.js<\/span>.*?<\/span><\/span><\/td><td class="num">120<\/td><td><\/td>/)
   assert.match(html, /<td>top <b>10<\/b><\/td>/)
   assert.match(html, /2 of 3 items/)
 })
@@ -225,13 +225,13 @@ test('a list of objects in the details is a folded table', () => {
 
 test('an object of an element is a nested list of its fields', () => {
   const html = renderResult({ script: 'X', status: 'ok', details: { lcpImage: { url: 'https://example.com/hero.png', bpp: 0.5, isLowEntropy: false } } })
-  assert.match(html, /<dt>LCP image<\/dt><dd><dl class="details nested"><dt>URL<\/dt><dd><span class="url" title="https:\/\/example.com\/hero.png">hero.png<\/span><\/dd>/)
+  assert.match(html, /<dt>LCP image<\/dt><dd><dl class="details nested"><dt>URL<\/dt><dd><span class="resource"><span class="url" title="https:\/\/example.com\/hero.png">hero.png<\/span>/)
   assert.match(html, /<dt>Is low entropy<\/dt><dd>No<\/dd>/)
 })
 
 test('a URL shows its file, with the whole URL as its title', () => {
   const html = renderResult({ script: 'X', status: 'ok', items: [{ url: 'https://example.com/assets/app.js?v=3', cached: true }, { url: 'https://example.com/b.js', cached: false }] })
-  assert.match(html, /<td class="url"><span class="url" title="https:\/\/example.com\/assets\/app.js\?v=3">app.js<\/span><\/td><td class="mark">✓<\/td>/)
+  assert.match(html, /<td class="url"><span class="resource"><span class="url" title="https:\/\/example.com\/assets\/app.js\?v=3">app.js<\/span>.*?<\/span><\/span><\/td><td class="mark">✓<\/td>/)
   assert.match(html, /<td class="mark"><\/td>/)
 })
 
@@ -275,8 +275,8 @@ test('an issue about a row is a button that leads to it', () => {
 
 test('a row shows its issues as dots of their severity, and knows its place', () => {
   const html = renderResult(withRows)
-  assert.match(html, /<tr data-row="0"><td class="url"><span class="url"/)
-  assert.match(html, /<tr data-row="1"><td class="url"><span class="dots"><span class="dot dot-warning" title="b\.png: remove loading=lazy"><\/span><\/span><span class="url"/)
+  assert.match(html, /<tr data-row="0"><td class="url"><span class="resource"><span class="url"/)
+  assert.match(html, /<tr data-row="1"><td class="url"><span class="dots"><span class="dot dot-warning" title="b\.png: remove loading=lazy"><\/span><\/span><span class="resource"><span class="url"/)
 })
 
 test('the dots of a row go by severity, errors first', () => {
@@ -285,4 +285,13 @@ test('the dots of a row go by severity, errors first', () => {
     issues: [...withRows.issues, { code: 'conflict', severity: 'error', message: 'b.png: conflict', target: 'https://example.com/b.png' }],
   })
   assert.match(html, /<span class="dots"><span class="dot dot-error" title="b\.png: conflict"><\/span><span class="dot dot-warning"/)
+})
+
+test('a URL comes with Open in Sources and Copy URL, which panel.js gives their action', () => {
+  const html = renderResult({ script: 'X', status: 'ok', items: [{ url: 'https://example.com/assets/app.js?v=3', sizeBytes: 10 }] })
+  assert.match(
+    html,
+    /<span class="resource"><span class="url" title="https:\/\/example.com\/assets\/app.js\?v=3">app.js<\/span><span class="resource-actions"><button type="button" class="open-source" data-url="https:\/\/example.com\/assets\/app.js\?v=3" title="Open in Sources" aria-label="Open app.js in Sources">/
+  )
+  assert.match(html, /<button type="button" class="copy-url" data-url="https:\/\/example.com\/assets\/app.js\?v=3" title="Copy URL, to filter Network by it" aria-label="Copy the URL of app.js">/)
 })

@@ -58,13 +58,26 @@ function phasesOf(f) {
 
 const nestedTable = (f) => `<details class="nested"><summary>${escape(f.text)}</summary>${tableOf(f)}</details>`
 
+// The icons of the actions of a resource
+const SOURCES_ICON = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M5.5 4 2 8l3.5 4M10.5 4 14 8l-3.5 4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+const COPY_ICON = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M10.5 3.5v-.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>'
+
+// A URL as its file, with the whole URL as its title, and two actions that panel.js gives their work:
+// open it in Sources, and copy it to filter Network by it, since DevTools lets no extension open
+// Network on a request. The actions sit over the end of the text, so they take no width of a column.
+const resource = (f) =>
+  `<span class="resource"><span class="url" title="${escape(f.href)}">${escape(f.text)}</span><span class="resource-actions">` +
+  `<button type="button" class="open-source" data-url="${escape(f.href)}" title="Open in Sources" aria-label="Open ${escape(f.text)} in Sources">${SOURCES_ICON}</button>` +
+  `<button type="button" class="copy-url" data-url="${escape(f.href)}" title="Copy URL, to filter Network by it" aria-label="Copy the URL of ${escape(f.text)}">${COPY_ICON}</button>` +
+  `</span></span>`
+
 // A cell or a field of the view in its format
 function field(f) {
   switch (f.format) {
     case 'selector':
       return typeof f.value === 'string' && f.value.trim() !== '' ? inspect(f.value) : escape(f.text)
     case 'url':
-      return `<span class="url" title="${escape(f.href)}">${escape(f.text)}</span>`
+      return resource(f)
     case 'distribution':
       return f.parts.length ? f.parts.map((p) => `${escape(p.label)} <b>${escape(p.text)}</b>`).join(' · ') : escape(f.text)
     case 'table':
