@@ -4,7 +4,7 @@ description: Intelligent network quality analysis with adaptive loading strategi
 license: MIT
 metadata:
   author: Joan Leon | @nucliweb
-  version: 2.1.0
+  version: 2.2.0
   mcp-server: chrome-devtools
   category: web-performance
   repository: https://github.com/nucliweb/webperf-snippets

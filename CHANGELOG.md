@@ -8,7 +8,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.2.0] — 2026-10-26
+
+Two changes break code or agents that read a result, both listed first under Changed: the recommendations of Cache-Strategy-Analysis carry no emoji, so their priority is their order, and INP, Interactions and Input-Latency-Breakdown return `tracking` instead of `error` before any interaction. The results read with labels and units in the extension, at version 0.3.0, in the reports of the CLI and in the visualizer of the site, from one shared view in `snippets/_view/`.
+
 ### Added
+- The CLI reaches version 1.6.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): a budget for every metric it measures, the budgets with their verdicts in every report, and the details of each result with the labels and units of the extension in the human and markdown reports.
 - The audit table of the extension opens on the snippets with errors or warnings, with the number of the others and a link to show them. Errors, Errors and warnings, and All change the rows it shows, each with its count; the panel remembers the choice, and Copy JSON and Download JSON keep every snippet.
 - The extension shows each result with readable labels and units: `totalBlockingUntilMs 532` reads "Rendering blocked until 532 ms", `sizeBytes 17625` reads "Size 17.2 KB", and the table of a snippet has its own title instead of "Items". The labels, formats and order come from `snippets/_view/`, a module meant for the extension, the reports of the CLI and the visualizer of the site; a field without an entry takes its unit from the suffix of its key (`Ms`, `Bytes`, `Percent`, `Count`) and its label from the key in words. Find-render-blocking-resources is the first snippet with its own entries.
 - The extension shows no value of a result as JSON: a distribution reads as a line (`async 82 · defer 3`, without the zeros), the phases of TTFB-Sub-Parts, LCP-Subparts, INP and Event-Processing-Time are a chart on the scale of the thresholds of the metric with a row per phase and the slowest one marked, a list of objects is a folded table, the object of an element a nested list of its fields, a boolean Yes or No (a mark in a table), and a URL its file name with the whole URL as its title. The issues of a row are no longer a column, since the Issues section lists them.
@@ -228,7 +235,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/nucliweb/webperf-snippets/compare/v1.3.0...v2.0.0
