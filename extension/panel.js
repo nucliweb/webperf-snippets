@@ -2,6 +2,7 @@ import { filterSnippets, groupByCategory } from './lib/catalog.js'
 import { renderResult } from './lib/render.js'
 import { readTrackingData, reloadPage, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
+import { fixPrompt, hasIssuesToFix } from './lib/fix-prompt.js'
 import { createSettings } from './lib/settings.js'
 import { addToHistory, bySeverity, changeOf, compare, earlierOf, filterCounts, filterRows, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
 
@@ -25,6 +26,10 @@ const toTop = document.getElementById('to-top')
 let snippets = []
 let current = null
 let lastResult
+// The page and time of the result shown, which the prompt to fix names
+let lastMeasured
+// The version of the extension, which the prompt to fix names; the test harness has no chrome.runtime
+const extensionVersion = chrome.runtime?.getManifest?.().version
 
 // What the panel remembers between openings of DevTools (lib/settings.js). The panel stays hidden
 // until they are read, so it does not show the default theme or side first
@@ -277,7 +282,7 @@ function showAudit() {
     if (button) {
       const row = audit.rows.find((r) => r.snippet.id === button.dataset.row)
       auditScroll = main.scrollTop
-      showSnippet(row.snippet, { result: row.result, fromAudit: true })
+      showSnippet(row.snippet, { result: row.result, fromAudit: true, measured: { url: audit.url, date: audit.date } })
     }
   })
   renderAudit()
@@ -382,7 +387,7 @@ function renderAudit() {
   }${more}`
 }
 
-function showSnippet(snippet, { result: given, fromAudit = false } = {}) {
+function showSnippet(snippet, { result: given, fromAudit = false, measured } = {}) {
   current = snippet
   remember('snippet', snippet.id)
   showList()
@@ -394,7 +399,11 @@ function showSnippet(snippet, { result: given, fromAudit = false } = {}) {
     <div class="actions">${fromAudit ? '<button type="button" id="back-to-audit" class="secondary">← Audit</button>' : ''}
       <button type="button" id="run">Run</button>
       <button type="button" id="read" hidden>Read result</button>
-      <button type="button" id="clear" class="secondary" hidden>Clear</button>${snippet.prompt ? '<button type="button" id="copy-prompt" class="secondary" title="Copy a prompt that runs this snippet on the inspected page with the CLI, for an AI agent">Copy prompt</button>' : ''}
+      <button type="button" id="clear" class="secondary" hidden>Clear</button>${snippet.prompt ? '<button type="button" id="copy-prompt" class="secondary" title="Copy a prompt that runs this snippet on the inspected page with the CLI, for an AI agent">Prompt to measure</button>' : ''}${
+        snippet.command
+          ? '<button type="button" id="copy-fix-prompt" class="secondary" hidden title="Copy a prompt to fix these issues in the code of the site, with what this result found, for an AI agent. It carries URLs and selectors of the inspected page">Prompt to fix</button>'
+          : ''
+      }
       <a href="${escape(snippet.url)}" target="_blank" rel="noopener">Documentation</a>
     </div>
     <div id="result" aria-live="polite"></div>`
@@ -405,17 +414,14 @@ function showSnippet(snippet, { result: given, fromAudit = false } = {}) {
     showAudit()
     main.scrollTop = auditScroll
   })
-  if (given !== undefined) {
-    lastResult = given
-    document.getElementById('result').innerHTML = renderResult(given)
-    document.getElementById('clear').hidden = false
-  }
+  if (given !== undefined) showResult(given, measured)
   document.getElementById('clear').addEventListener('click', () => {
-    document.getElementById('result').innerHTML = ''
     document.getElementById('read').hidden = true
-    document.getElementById('clear').hidden = true
-    lastResult = undefined
+    showResult(undefined)
   })
+  document.getElementById('copy-fix-prompt')?.addEventListener('click', (event) =>
+    copyFrom(event.currentTarget, fixPrompt({ snippet, result: lastResult, ...lastMeasured, extensionVersion }))
+  )
   document.getElementById('copy-prompt')?.addEventListener('click', async (event) => {
     // event.currentTarget is null once the handler awaits
     const button = event.currentTarget
@@ -482,10 +488,20 @@ async function show(snippet, work, button) {
   // The user may have chosen another snippet meanwhile
   if (current !== snippet) return
   button.disabled = false
-  lastResult = value
-  result.innerHTML = renderResult(value)
-  document.getElementById('clear').hidden = false
+  const url = await evaluate('location.href').catch(() => undefined)
+  if (current !== snippet) return
+  showResult(value, { url, date: new Date().toISOString() })
   return value
+}
+
+// The result of the snippet shown, or none; Clear and Prompt to fix follow it
+function showResult(value, measured) {
+  lastResult = value
+  lastMeasured = measured
+  document.getElementById('result').innerHTML = value === undefined ? '' : renderResult(value)
+  document.getElementById('clear').hidden = value === undefined
+  const fix = document.getElementById('copy-fix-prompt')
+  if (fix) fix.hidden = !hasIssuesToFix(value)
 }
 
 async function run(snippet) {
