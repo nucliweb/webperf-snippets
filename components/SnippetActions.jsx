@@ -59,7 +59,7 @@ export function CopyPromptButton({ prompt, snippet }) {
           <polyline points="4 17 10 11 4 5" />
           <line x1="12" y1="19" x2="20" y2="19" />
         </svg>
-        {copied ? "Prompt copied" : "Copy prompt"}
+        {copied ? "Prompt copied" : "Copy prompt to measure"}
       </button>
       <span className="wp-sr-only" aria-live="polite">
         {copied ? "Prompt copied to the clipboard" : ""}

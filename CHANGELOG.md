@@ -14,6 +14,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A result of the extension with errors or warnings has a Prompt to fix button. It copies a prompt for an agent that works in the repository of the site, with the issues and their code and target, the details of the result and the rows the issues point to, and how to check the fix with the CLI: a run before the change and one after it with `--baseline`, on a URL where the change can be tested. Copy prompt is now Prompt to measure, which says what it is for.
 - A done audit of the extension with errors or warnings has a Prompt to fix button too, with the errors and warnings of every snippet, the errors first, under the title of each snippet and the id of its step, checked with `--workflow audit` before and after the change.
 
+### Changed
+- The Copy prompt button of the snippet pages is Copy prompt to measure, like Prompt to measure in the extension: it runs the snippet with the CLI and reports, while fixing what a result found takes the data only the extension has, in its Prompt to fix. The section of the home page and the README that describes it is at `#copy-prompt-to-measure`.
+
 ### Fixed
 - A result opened from the audit of the extension shows at its top, instead of as far down as the audit was, and ← Audit comes back to the audit where it was.
 

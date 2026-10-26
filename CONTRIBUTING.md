@@ -138,11 +138,11 @@ People, agents and the CLI read the same sources to know what a snippet returns 
 - `snippets/<Category>/WORKFLOWS.md`: add an `### After My-New-Snippet.js` section to the decision tree, and the snippet to the workflows where it belongs (see [Improving workflows and decision trees](#improving-workflows-and-decision-trees)).
 - `content/which-snippet.mdx`: add a row for the symptom the snippet answers.
 
-### 6. Make it available to the CLI and Copy prompt
+### 6. Make it available to the CLI and Copy prompt to measure
 
 Every snippet runs in the CLI by its name (`--snippet My-New-Snippet` or `--snippet Loading/My-New-Snippet`). A short alias, for the snippets people run most, goes in `SNIPPET_ALIASES` of `cli/src/snippet-names.js`.
 
-Every snippet page gets a Copy prompt button. If the CLI cannot run the snippet in a meaningful way (it is pasted into DevTools by hand, or it reads something a headless browser does not have), add it to `EXCLUDED` in `lib/snippet-prompt.mjs`. A tracking snippet that only records something after a click or a key press goes in `NEEDS_INPUT` of the same file.
+Every snippet page gets a Copy prompt to measure button. If the CLI cannot run the snippet in a meaningful way (it is pasted into DevTools by hand, or it reads something a headless browser does not have), add it to `EXCLUDED` in `lib/snippet-prompt.mjs`. A tracking snippet that only records something after a click or a key press goes in `NEEDS_INPUT` of the same file.
 
 ### 7. Regenerate the generated files
 
