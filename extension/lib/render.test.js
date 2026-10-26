@@ -37,7 +37,7 @@ test('issues are listed by severity', () => {
   assert.deepEqual(order, ['error', 'warning', 'info'])
 })
 
-test('items become a table with a labelled column per field, and nested values as JSON', () => {
+test('items become a table with a labelled column per field, each value in its format', () => {
   const html = renderResult({
     script: 'X',
     status: 'ok',
@@ -49,15 +49,15 @@ test('items become a table with a labelled column per field, and nested values a
   })
   assert.match(html, /<h3>Items<\/h3>/)
   assert.match(html, /<th>URL<\/th><th>Size<\/th><th>Position<\/th>/)
-  assert.match(html, /<td>https:\/\/a\/x\.js<\/td><td class="num">120<\/td><td><\/td>/)
-  assert.match(html, /<td>\{&quot;top&quot;:10\}<\/td>/)
+  assert.match(html, /<td><span class="url" title="https:\/\/a\/x\.js">x\.js<\/span><\/td><td class="num">120<\/td><td><\/td>/)
+  assert.match(html, /<td>top <b>10<\/b><\/td>/)
   assert.match(html, /2 of 3 items/)
 })
 
 test('details become a list of labelled fields', () => {
   const html = renderResult({ script: 'X', status: 'ok', details: { totalInteractions: 2, phases: { inputDelay: 7 } } })
   assert.match(html, /<dt>Total interactions<\/dt><dd>2<\/dd>/)
-  assert.match(html, /<dt>Phases<\/dt><dd>\{&quot;inputDelay&quot;:7\}<\/dd>/)
+  assert.match(html, /<dt>Phases<\/dt><dd>input delay <b>7<\/b><\/dd>/)
 })
 
 test('a field and a column show their value in the format of their unit', () => {
@@ -115,11 +115,11 @@ test('the JSON comes with a button to copy it', () => {
 })
 
 test('only long values wrap in the items table', () => {
-  const url = 'https://www.example.com/assets/fonts/Example-Sans-Regular-Latin.woff2'
-  const html = renderResult({ script: 'X', status: 'ok', items: [{ status: 'loaded', used: false, url }] })
+  const family = 'Example Sans Regular Latin Extended, Example Fallback, system-ui'
+  const html = renderResult({ script: 'X', status: 'ok', items: [{ status: 'loaded', used: false, family }] })
   assert.match(html, /<td>loaded<\/td>/)
-  assert.match(html, /<td>false<\/td>/)
-  assert.match(html, new RegExp(`<td class="long">${url}</td>`))
+  assert.match(html, /<td class="mark"><\/td>/)
+  assert.match(html, new RegExp(`<td class="long">${family}</td>`))
 })
 
 test('an ok result shows no status, since ok means the snippet ran, not that the page is fine', () => {
@@ -185,4 +185,46 @@ test('a long selector wraps like any long value, so the table does not scroll si
   const selector = 'html.js-ready > body.logged-in > div.layout > div.layout-main > div.content > ul#list'
   const html = renderResult({ script: 'X', status: 'ok', items: [{ selector, children: 120 }] })
   assert.match(html, /<td class="long"><button type="button" class="inspect"/)
+})
+
+test('a distribution reads as a line of its parts, with the numbers in bold', () => {
+  const html = renderResult({ script: 'X', status: 'ok', details: { byStrategy: { blocking: 0, async: 82, defer: 3 } } })
+  assert.match(html, /<dt>By strategy<\/dt><dd>async <b>82<\/b> · defer <b>3<\/b><\/dd>/)
+})
+
+test('the phases of a metric are a bar on the scale of its thresholds, and a row each', () => {
+  const html = renderResult({
+    script: 'TTFB-Sub-Parts',
+    status: 'ok',
+    metric: 'TTFB',
+    value: 1324,
+    unit: 'ms',
+    thresholds: { good: 800, needsImprovement: 1800 },
+    details: { subParts: { redirectWait: { value: 32, unit: 'ms' }, dnsLookup: { value: 0, unit: 'ms' }, serverResponse: { value: 1292, unit: 'ms' } } },
+  })
+  assert.match(html, /<div class="phases"><p class="phases-label">Subparts<\/p>/)
+  // A segment for each phase that took time, in the colour of its place
+  assert.equal([...html.matchAll(/<span class="phase phase-\d"/g)].length, 2)
+  assert.match(html, /<span class="zone zone-good" style="width:40%"><\/span>/)
+  assert.match(html, /<li class="phase-row"><span class="swatch phase-0"><\/span><span class="phase-name">Redirect<\/span><span class="phase-value">32 ms<\/span><span class="phase-percent">2%<\/span><\/li>/)
+  assert.match(html, /<li class="phase-row slowest"><span class="swatch phase-2"><\/span><span class="phase-name">Request<\/span>/)
+  // Phases are not one more field of the list
+  assert.doesNotMatch(html, /<dt>Subparts<\/dt>/)
+})
+
+test('a list of objects in the details is a folded table', () => {
+  const html = renderResult({ script: 'X', status: 'ok', details: { candidates: [{ index: 1, time: 24 }, { index: 2, time: 32 }] } })
+  assert.match(html, /<dt>Candidates<\/dt><dd><details class="nested"><summary>2 rows<\/summary><div class="table"><table><thead><tr><th>Index<\/th><th>Time<\/th><\/tr>/)
+})
+
+test('an object of an element is a nested list of its fields', () => {
+  const html = renderResult({ script: 'X', status: 'ok', details: { lcpImage: { url: 'https://example.com/hero.png', bpp: 0.5, isLowEntropy: false } } })
+  assert.match(html, /<dt>LCP image<\/dt><dd><dl class="details nested"><dt>URL<\/dt><dd><span class="url" title="https:\/\/example.com\/hero.png">hero.png<\/span><\/dd>/)
+  assert.match(html, /<dt>Is low entropy<\/dt><dd>No<\/dd>/)
+})
+
+test('a URL shows its file, with the whole URL as its title', () => {
+  const html = renderResult({ script: 'X', status: 'ok', items: [{ url: 'https://example.com/assets/app.js?v=3', cached: true }, { url: 'https://example.com/b.js', cached: false }] })
+  assert.match(html, /<td><span class="url" title="https:\/\/example.com\/assets\/app.js\?v=3">app.js<\/span><\/td><td class="mark">✓<\/td>/)
+  assert.match(html, /<td class="mark"><\/td>/)
 })

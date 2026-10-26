@@ -17,18 +17,75 @@ const SEVERITY = ['error', 'warning', 'info']
 
 // Table cells do not wrap, so a column is as wide as its values; only long ones, such as URLs, wrap
 const LONG = 40
-// The fields that hold a CSS selector of an element of the page, which the panel can inspect
-const SELECTOR_FIELDS = new Set(['selector', 'element', 'lcpElement', 'finalElement'])
-const isSelector = (key, value) => SELECTOR_FIELDS.has(key) && typeof value === 'string' && value.trim() !== ''
-// A cell or a field of the view, with the text of its format
-const field = ({ key, value, text }) =>
-  isSelector(key, value)
-    ? `<button type="button" class="inspect" data-selector="${escape(value)}" title="Inspect in Elements">${escape(value)}</button>`
-    : escape(text)
+// The colours of the phases, in order, as the diagrams of the documentation draw them
+const PHASE_COLORS = 10
 
-// A selector is text too, and a long one wraps like a URL
-const cellClass = ({ value, text }) => (typeof value === 'number' ? ' class="num"' : text.length > LONG ? ' class="long"' : '')
+const inspect = (selector) =>
+  `<button type="button" class="inspect" data-selector="${escape(selector)}" title="Inspect in Elements">${escape(selector)}</button>`
+
+const percentOf = (value, max) => `${Math.round((value / max) * 1000) / 10}%`
+
+// The phases of a metric: a bar with a segment per phase over the zones of its thresholds, and a row
+// per phase with its colour, name, value and share, the slowest one marked
+function phasesOf(f) {
+  const { scale, parts } = f
+  const sum = parts.reduce((total, p) => total + p.value, 0)
+  // The poor threshold at 90% of the width, as in the documentation: 0 to 2000 ms for TTFB
+  const max = Math.max(scale.total, sum, scale.poor ? scale.poor / 0.9 : 0) || 1
+  const zones = scale.good
+    ? `<span class="zone zone-good" style="width:${percentOf(scale.good, max)}"></span><span class="zone zone-ni" style="width:${percentOf(scale.poor - scale.good, max)}"></span><span class="zone zone-poor"></span>`
+    : ''
+  let start = 0
+  const segments = parts
+    .map((p, i) => {
+      const segment = p.value > 0 ? `<span class="phase phase-${i % PHASE_COLORS}" style="left:${percentOf(start, max)};width:${percentOf(p.value, max)}" title="${escape(p.label)} ${escape(p.text)}"></span>` : ''
+      start += p.value
+      return segment
+    })
+    .join('')
+  const ticks = scale.good
+    ? `<div class="phase-ticks"><span style="left:${percentOf(scale.good, max)}">${escape(formatValue(scale.good, 'ms'))}</span><span style="left:${percentOf(scale.poor, max)}">${escape(formatValue(scale.poor, 'ms'))}</span></div>`
+    : ''
+  const rows = parts
+    .map(
+      (p, i) =>
+        `<li class="phase-row${p.slowest ? ' slowest' : ''}${p.overTarget ? ' over' : ''}"><span class="swatch phase-${i % PHASE_COLORS}"></span><span class="phase-name">${escape(p.label)}</span><span class="phase-value">${escape(p.text)}</span><span class="phase-percent">${escape(formatValue(p.percent, 'percent'))}</span></li>`
+    )
+    .join('')
+  return `<div class="phases"><p class="phases-label">${escape(f.label)}</p><div class="phase-bar" role="img" aria-label="${escape(f.text)}">${zones}${segments}</div>${ticks}<ul class="phase-list">${rows}</ul></div>`
+}
+
+const nestedTable = (f) =>
+  `<details class="nested"><summary>${escape(f.text)}</summary>${tableOf(f.columns, f.rows)}</details>`
+
+// A cell or a field of the view in its format
+function field(f) {
+  switch (f.format) {
+    case 'selector':
+      return typeof f.value === 'string' && f.value.trim() !== '' ? inspect(f.value) : escape(f.text)
+    case 'url':
+      return `<span class="url" title="${escape(f.href)}">${escape(f.text)}</span>`
+    case 'distribution':
+      return f.parts.length ? f.parts.map((p) => `${escape(p.label)} <b>${escape(p.text)}</b>`).join(' · ') : escape(f.text)
+    case 'table':
+      return nestedTable(f)
+    case 'fields':
+      return `<dl class="details nested">${f.fields.map((n) => `<dt>${escape(n.label)}</dt><dd>${field(n)}</dd>`).join('')}</dl>`
+    default:
+      return escape(f.text)
+  }
+}
+
+// A number aligns to the right, a mark is centred, and a long text, a selector among them, wraps
+const cellClass = (cell) =>
+  typeof cell.value === 'number' ? ' class="num"' : cell.format === 'boolean' ? ' class="mark"' : cell.text.length > LONG ? ' class="long"' : ''
 const td = (cell) => `<td${cellClass(cell)}>${field(cell)}</td>`
+
+function tableOf(columns, rows) {
+  const head = columns.map((c) => `<th>${escape(c.label)}</th>`).join('')
+  const body = rows.map((row) => `<tr>${row.cells.map(td).join('')}</tr>`).join('')
+  return `<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`
+}
 
 function metric(result) {
   if (typeof result.value !== 'number') return ''
@@ -55,24 +112,24 @@ function issues(list) {
 
 function items(result, view) {
   if (view.rows.length === 0) return ''
-  const head = view.columns.map((c) => `<th>${escape(c.label)}</th>`).join('')
-  const body = view.rows.map((row) => `<tr>${row.cells.map(td).join('')}</tr>`).join('')
   const total = typeof result.count === 'number' && result.count > view.rows.length ? `<p class="note">${view.rows.length} of ${result.count} items</p>` : ''
-  return `<section><h3>${escape(view.title)}</h3>${total}<div class="table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></section>`
+  return `<section><h3>${escape(view.title)}</h3>${total}${tableOf(view.columns, view.rows)}</section>`
 }
 
-// A field with a phrase reads as a sentence, before the list of the others
+// A field with a phrase reads as a sentence and the phases of a metric are a chart, both before the
+// list of the others
 function details(view) {
   if (view.details.length === 0) return ''
   const phrases = view.details
     .filter((f) => f.phrase)
     .map((f) => `<p class="phrase">${escape(f.phrase.before)}<strong>${field(f)}</strong>${escape(f.phrase.after)}</p>`)
     .join('')
+  const charts = view.details.filter((f) => !f.phrase && f.format === 'phases').map(phasesOf).join('')
   const fields = view.details
-    .filter((f) => !f.phrase)
+    .filter((f) => !f.phrase && f.format !== 'phases')
     .map((f) => `<dt>${escape(f.label)}</dt><dd>${field(f)}</dd>`)
     .join('')
-  return `<section><h3>Details</h3>${phrases}${fields ? `<dl class="details">${fields}</dl>` : ''}</section>`
+  return `<section><h3>Details</h3>${phrases}${charts}${fields ? `<dl class="details">${fields}</dl>` : ''}</section>`
 }
 
 export function renderResult(result) {
