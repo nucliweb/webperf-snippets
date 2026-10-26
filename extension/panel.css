@@ -204,6 +204,18 @@ td.flags { white-space: normal; }
 .constants b { font-weight: 600; color: var(--fg); }
 .nested .constants { padding: 4px 0; border-bottom: 0; }
 .url { cursor: help; }
+/* A resource: its actions sit at the right of its cell, or over the end of its text in a field, seen on
+   hover or focus, so they take no width */
+.resource { position: relative; }
+td.url { position: relative; }
+td .resource { position: static; }
+.resource-actions { margin-right: 4px; }
+.resource-actions { position: absolute; top: 50%; right: 0; display: inline-flex; gap: 2px; padding-left: 8px; background: linear-gradient(to right, transparent, var(--bg) 8px); transform: translateY(-50%); opacity: 0; }
+tr:hover .resource-actions, dd:hover .resource-actions, .resource:focus-within .resource-actions { opacity: 1; }
+tr.highlight .resource-actions, tr:nth-child(even) .resource-actions { background: linear-gradient(to right, transparent, var(--surface) 8px); }
+.resource-actions button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.resource-actions button:hover, .resource-actions button:focus-visible { color: var(--accent); border-color: var(--accent); }
+.resource-actions .copied { color: var(--good); border-color: var(--good); }
 /* The file of a URL can be long, with a hash: it wraps anywhere */
 td.url { min-width: 80px; max-width: 280px; white-space: normal; overflow-wrap: anywhere; }
 .raw pre { overflow: auto; padding: 8px; background: var(--hover); border-radius: 4px; }

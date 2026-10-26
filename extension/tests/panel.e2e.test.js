@@ -56,7 +56,8 @@ before(async () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (text) => window.__copied.push(text) } })
     window.chrome = {
       devtools: {
-        panels: { themeName: 'default' },
+        // openResource records what it would open in Sources
+        panels: { themeName: 'default', openResource: (url) => (window.__opened ??= []).push(url) },
         inspectedWindow: {
           eval: (e, callback) => window.__inspect(e).then(([value, exception]) => callback(value, exception)),
           reload: () => window.__reloadTarget(),
@@ -500,6 +501,19 @@ test('an issue about a row leads to it, and the row shows its issues as dots', a
   await panel.click(`#result .to-row[data-row="${row}"] >> nth=0`)
   assert.equal(await panel.getAttribute(`#result tr[data-row="${row}"]`, 'class'), 'highlight')
   assert.equal(await panel.evaluate(() => document.activeElement?.dataset.row), String(row))
+})
+
+test('a resource opens in Sources, and its URL copies to filter Network by it', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="Find-render-blocking-resources"]')
+  const result = await resultOf('#run')
+  const url = await panel.getAttribute('#result tbody tr >> nth=0 >> .open-source', 'data-url')
+  assert.ok(result.items.some((item) => item.url === url), url)
+  await panel.click('#result tbody tr >> nth=0 >> .open-source')
+  assert.deepEqual(await panel.evaluate(() => window.__opened), [url])
+  await panel.click('#result tbody tr >> nth=0 >> .copy-url')
+  assert.equal(await panel.evaluate(() => window.__copied.at(-1)), url)
+  assert.equal(await panel.getAttribute('#result tbody tr >> nth=0 >> .copy-url', 'title'), 'Copied')
 })
 
 test('the panel lists every snippet, and each category says how many it has', async () => {
