@@ -645,3 +645,51 @@ table td:first-child > code {
 .wp-support-item { --c: color-mix(in srgb, var(--ic-good) 45%, transparent); }
 .wp-support-partial { --c: color-mix(in srgb, var(--ic-mid) 55%, transparent); }
 .wp-support-no { --c: color-mix(in srgb, var(--ic-poor) 45%, transparent); }
+
+/* A snippet result read through its view in the visualizer (components/SnippetVisualizer/AuditRenderer.jsx).
+   The tones are the ones of the icons, so they follow the dark theme. */
+.wp-viz { --viz-border: rgba(128, 128, 128, 0.2); --viz-row: rgba(128, 128, 128, 0.1); font-size: 0.875rem; }
+.wp-viz h3 { margin: 0 0 0.5rem; font-size: 0.875rem; font-weight: 600; }
+.wp-viz-head { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; }
+.wp-viz-head-icon { font-size: 1.5rem; }
+.wp-viz-script { font-weight: 600; }
+.wp-viz-caption, .wp-viz-count, .wp-viz-note { color: var(--wp-caption-fg); }
+.wp-viz-count { font-weight: normal; }
+.wp-viz-reason { margin-top: 12px; font-size: 0.8rem; }
+.wp-viz-section { margin-bottom: 24px; }
+.wp-viz-status { margin: 0 0 16px; color: var(--ic-mid); }
+.wp-viz-status-error { color: var(--ic-poor); }
+.wp-viz-cors { margin: 0 0 16px; color: var(--ic-mid); }
+.wp-viz-clean { margin: 0 0 24px; color: var(--ic-good); }
+.wp-viz-issues { margin: 0; padding: 0; list-style: none; }
+.wp-viz-issues li { padding: 4px 0; }
+.wp-viz-issue-error { color: var(--ic-poor); }
+.wp-viz-issue-warning { color: var(--ic-mid); }
+.wp-viz-issue-info { color: var(--ic-info); }
+.wp-viz-issues a { color: inherit; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.wp-viz-constants { margin: 0 0 6px; color: var(--wp-caption-fg); font-size: 0.8rem; }
+.wp-viz-constants b, .wp-viz-fields b { font-weight: 600; color: var(--wp-button-fg-hover); }
+.wp-viz-table { overflow-x: auto; }
+.wp-viz table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.wp-viz th { padding: 6px; text-align: left; font-weight: normal; color: var(--wp-caption-fg); border-bottom: 1px solid var(--viz-border); }
+.wp-viz td { padding: 6px; vertical-align: top; white-space: nowrap; border-bottom: 1px solid var(--viz-row); }
+.wp-viz td.wp-viz-num { text-align: right; font-variant-numeric: tabular-nums; }
+.wp-viz td.wp-viz-long { min-width: 8ch; white-space: normal; overflow-wrap: anywhere; }
+/* The row an issue leads to */
+.wp-viz tr { scroll-margin-top: 96px; }
+.wp-viz tr:target { background: color-mix(in srgb, var(--ic-info) 12%, transparent); }
+.wp-viz-dots { display: inline-flex; gap: 2px; margin-right: 6px; vertical-align: middle; }
+.wp-viz-dot { width: 7px; height: 7px; border-radius: 50%; }
+.wp-viz-dot-error { background: var(--ic-poor); }
+.wp-viz-dot-warning { background: var(--ic-mid); }
+.wp-viz-dot-info { background: var(--ic-neutral); }
+.wp-viz-selector { font-family: var(--wp-font-mono); font-size: 0.75rem; }
+.wp-viz-flag { display: inline-block; margin: 0 4px 2px 0; padding: 0 6px; border: 1px solid var(--viz-border); border-radius: 4px; }
+.wp-viz-fields { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+.wp-viz-fields dt { color: var(--wp-caption-fg); }
+.wp-viz-fields dd { margin: 0; overflow-wrap: anywhere; }
+.wp-viz-phrase { margin: 0 0 8px; }
+.wp-viz-nested summary { color: var(--wp-link); cursor: pointer; }
+.wp-viz-nested .wp-viz-table { margin-top: 4px; }
+.wp-viz-recommendations { margin: 0; padding-left: 1.25rem; }
+.wp-viz-recommendations li { padding: 2px 0; }
