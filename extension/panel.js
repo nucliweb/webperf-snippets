@@ -21,6 +21,7 @@ const escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp
 const list = document.getElementById('list')
 const main = document.getElementById('main')
 const search = document.getElementById('search')
+const toTop = document.getElementById('to-top')
 let snippets = []
 let current = null
 let lastResult
@@ -160,6 +161,13 @@ function showHome() {
   })
 }
 
+// A long view has a button back to its top, once it is half a screen down
+main.addEventListener('scroll', () => (toTop.hidden = main.scrollTop < main.clientHeight / 2), { passive: true })
+toTop.addEventListener('click', () => {
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+  main.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' })
+})
+
 // The audits the panel keeps (lib/audit.js), newest first, and the one it shows. An audit keeps running
 // when another view is shown, and its rows stay, so a result can be opened and the audit found again
 let audits = []
@@ -170,6 +178,8 @@ const FILTERS = { errors: 'Errors', issues: 'Errors and warnings', all: 'All' }
 const HIDDEN_BY = { errors: 'without errors', issues: 'with info only or nothing to fix' }
 const EMPTY_FOR = { errors: 'No snippet has errors.', issues: 'No snippet has errors or warnings.' }
 let auditFilter = FILTERS[saved.auditFilter] ? saved.auditFilter : 'issues'
+// Where the audit was when a result of it opened, to come back to the same row
+let auditScroll = 0
 
 function auditList() {
   if (audits.length === 0) return ''
@@ -232,6 +242,7 @@ async function runAudit() {
 function showAudit() {
   current = null
   showList()
+  main.scrollTop = 0
   main.innerHTML = `<h1>Structural audit</h1>
     <p>The snippets of the audit of the CLI, run on the inspected page. Open a row for its whole result.</p>
     <div class="actions">
@@ -257,6 +268,7 @@ function showAudit() {
     const button = event.target.closest('button[data-row]')
     if (button) {
       const row = audit.rows.find((r) => r.snippet.id === button.dataset.row)
+      auditScroll = main.scrollTop
       showSnippet(row.snippet, { result: row.result, fromAudit: true })
     }
   })
@@ -358,8 +370,13 @@ function showSnippet(snippet, { result: given, fromAudit = false } = {}) {
       <a href="${escape(snippet.url)}" target="_blank" rel="noopener">Documentation</a>
     </div>
     <div id="result" aria-live="polite"></div>`
+  // A result opens at its top, wherever the view before it was
+  main.scrollTop = 0
   document.getElementById('run').addEventListener('click', () => run(snippet))
-  document.getElementById('back-to-audit')?.addEventListener('click', showAudit)
+  document.getElementById('back-to-audit')?.addEventListener('click', () => {
+    showAudit()
+    main.scrollTop = auditScroll
+  })
   if (given !== undefined) {
     lastResult = given
     document.getElementById('result').innerHTML = renderResult(given)

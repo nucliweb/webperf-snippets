@@ -397,6 +397,53 @@ test('the home page lists the audits, opens and deletes them, and keeps them aft
   assert.equal(await entries.count(), before)
 })
 
+test('a result opens at its top, the audit comes back where it was, and a long view has a button to go up', async () => {
+  // A saved audit of the large page of the fixtures, long enough to scroll
+  const results = auditWorkflow.steps.map(({ id, path }) => ({
+    id,
+    path,
+    ...JSON.parse(readFileSync(join(EXTENSION, `../scripts/fixtures/results/heavy-${path.split('/').pop()}.json`), 'utf8')),
+  }))
+  const saved = { workflow: 'audit', url: 'https://example.test/', date: '2026-01-01T00:00:00.000Z', overview: {}, issues: [], results }
+  await panel.evaluate((s) => localStorage.setItem('local:audits', JSON.stringify([...JSON.parse(localStorage.getItem('local:audits') ?? '[]'), s])), saved)
+  // DevTools docked at the bottom of the window
+  await panel.setViewportSize({ width: 1280, height: 400 })
+  await reopenPanel()
+  await panel.click('#go-home')
+  await panel.click(`main .open-audit[data-date="${saved.date}"]`)
+  await panel.click('#audit .filter [data-filter="all"]')
+  const scrollTop = () => panel.evaluate(() => document.getElementById('main').scrollTop)
+  const toTop = panel.locator('#to-top')
+  assert.equal(await toTop.isVisible(), false, 'no button at the top of a view')
+
+  // From the bottom of the audit, a result opens at its top
+  await panel.evaluate(() => document.getElementById('main').scrollTo(0, 1e6))
+  const auditScroll = await scrollTop()
+  assert.ok(auditScroll > 0, 'the audit scrolls')
+  await toTop.waitFor()
+  // A long result without issues, so near the bottom; clicked where it is, without scrolling to it
+  await panel.evaluate(() => document.querySelector('#audit button[data-row="Inline-Script-Info-and-Size"]').click())
+  await panel.waitForSelector('#back-to-audit')
+  assert.equal(await scrollTop(), 0)
+  // The scroll event that hides it comes a frame later
+  await toTop.waitFor({ state: 'hidden' })
+
+  // Further down a long result, the button goes up
+  await panel.evaluate(() => document.getElementById('main').scrollTo(0, 1e6))
+  await toTop.waitFor()
+  await toTop.click()
+  await panel.waitForFunction(() => document.getElementById('main').scrollTop === 0)
+  await toTop.waitFor({ state: 'hidden' })
+
+  // The way back finds the audit where it was
+  await panel.click('#back-to-audit')
+  assert.equal(await scrollTop(), auditScroll)
+
+  await panel.evaluate((date) => localStorage.setItem('local:audits', JSON.stringify(JSON.parse(localStorage.getItem('local:audits')).filter((a) => a.date !== date))), saved.date)
+  await panel.setViewportSize({ width: 1280, height: 720 })
+  await reopenPanel()
+})
+
 test('an audit says what changed since the last audit of the same page', async () => {
   const audit = async () => {
     await panel.click('#go-home')

@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- A long view of the extension, such as a result or an audit, has a Top button in its corner once it is half a screen down.
+
+### Fixed
+- A result opened from the audit of the extension shows at its top, instead of as far down as the audit was, and ← Audit comes back to the audit where it was.
+
 ---
 
 ## [2.2.0] — 2026-10-26
