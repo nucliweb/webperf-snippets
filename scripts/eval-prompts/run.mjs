@@ -3,7 +3,7 @@ import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
 import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, extname, join, resolve } from 'node:path'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chromium } from 'playwright'
@@ -74,12 +74,16 @@ async function packLocalCli(work) {
   return join(work, stdout.trim().split('\n').at(-1))
 }
 
-// Serves the fixtures; `/slow/<ms>/<file>` serves a file after a delay, for a slow resource
-function startServer() {
+// Serves the fixtures; `/slow/<ms>/<file>` serves a file after a delay, for a slow resource, and
+// `/runs/<key>/<file>` a file of the directory `sites` has under that key, the copy of the page of a
+// prompt to fix that an agent changes
+function startServer(sites) {
   const server = createServer((req, res) => {
     const path = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '')
     const [, delay = 0, name = path] = path.match(/^slow\/(\d+)\/(.+)$/) ?? []
-    const file = FIXTURE_DIRS.map((dir) => join(dir, name)).find((f) => !name.includes('..') && existsSync(f))
+    const [, site, inSite] = name.match(/^runs\/([^/]+)\/(.+)$/) ?? []
+    const dirs = site && sites.has(site) ? [sites.get(site)] : FIXTURE_DIRS
+    const file = dirs.map((dir) => join(dir, inSite ?? name)).find((f) => !name.includes('..') && existsSync(f))
     if (!file || !name) return res.writeHead(404).end()
     setTimeout(() => res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }).end(readFileSync(file)), Number(delay))
   })
@@ -112,6 +116,29 @@ async function reference(evalCase, url, pkg, work) {
   const result = JSON.parse(stdout.slice(stdout.indexOf('{'))).results.find((r) => r.id === evalCase.snippet)
   if (result?.status !== 'ok') throw new Error(`Reference run of ${evalCase.id} failed: ${stdout}`)
   return result.value
+}
+
+// The prompt to fix of the extension for the page at `url`, from a run of the CLI as the panel would
+// measure it, with the URL where the agent can test the change, which the prompt asks for
+async function fixPromptFor(evalCase, url, pkg, version, extension) {
+  const { stdout } = await run('npx', ['-y', '-p', pkg, '-p', `playwright@${PLAYWRIGHT}`, 'webperf-snippets', url, '--snippet', evalCase.snippet, '--json'])
+  const result = JSON.parse(stdout.slice(stdout.indexOf('{'))).results.find((r) => r.id === evalCase.snippet)
+  const snippet = extension.snippets.find((s) => s.path === evalCase.path)
+  const prompt = extension.fixPrompt({ snippet, result, url, date: new Date().toISOString(), extensionVersion: extension.version })
+  if (!prompt) throw new Error(`The page of ${evalCase.id} has nothing to fix: ${stdout}`)
+  return `${prompt.replaceAll(`webperf-snippets@${version}`, pkg)}\nURL where you can test the change: ${url}\n`
+}
+
+// The prompt to fix and the snippets as the extension builds them (scripts/build-extension.mjs)
+async function loadExtension() {
+  const { code, stderr } = await run('node', [join(ROOT, 'scripts/build-extension.mjs')])
+  if (code !== 0) throw new Error(`The build of the extension failed: ${stderr}`)
+  const { fixPrompt } = await import('../../extension/lib/fix-prompt.js')
+  return {
+    fixPrompt,
+    snippets: JSON.parse(readFileSync(join(ROOT, 'extension/snippets.json'), 'utf8')),
+    version: JSON.parse(readFileSync(join(ROOT, 'extension/manifest.json'), 'utf8')).version,
+  }
 }
 
 // Selectors of the interactions file that match nothing on the page
@@ -186,23 +213,30 @@ async function main() {
   const pkg = opts.local ? await packLocalCli(work) : `webperf-snippets@${version}`
   console.log(`CLI: ${pkg}\nModel: ${opts.model}, ${repeat} runs per case\nOutput: ${out}\n`)
 
-  const server = await startServer()
+  const sites = new Map()
+  const server = await startServer(sites)
   const base = `http://127.0.0.1:${server.address().port}`
   const browser = await chromium.launch()
+  let extension = null
 
   try {
     const tasks = []
     for (const evalCase of cases) {
-      // A case without a fixture gives the prompt as it is copied, with no URL
-      const url = evalCase.unreachable ? await closedPortUrl() : evalCase.fixture ? `${base}/${evalCase.fixture}` : null
-      const source = readFileSync(join(ROOT, 'snippets', `${evalCase.path}.js`), 'utf8')
+      // A case without a fixture gives the prompt as it is copied, with no URL. A prompt to fix gives each
+      // run its own copy of the page, so its URL and its prompt come with the run.
+      const url = evalCase.fix ? null : evalCase.unreachable ? await closedPortUrl() : evalCase.fixture ? `${base}/${evalCase.fixture}` : null
       // The page the prompt comes from, as the remark plugin reads it on the site
       const mdx = readFileSync(join(ROOT, 'content', `${evalCase.docsPath}.mdx`), 'utf8')
-      const related = relatedSnippets(mdx, evalCase.docsPath)
-      const prompt =
-        buildPrompt({ path: evalCase.path, source, docsPath: evalCase.docsPath, cliVersion: version, related }).replaceAll(`webperf-snippets@${version}`, pkg) +
-        (url ? `\nPage to measure: ${url}\n` : '')
-      writeFileSync(join(out, `${evalCase.id}.prompt.md`), prompt)
+      let prompt = null
+      if (!evalCase.fix) {
+        const source = readFileSync(join(ROOT, 'snippets', `${evalCase.path}.js`), 'utf8')
+        const related = relatedSnippets(mdx, evalCase.docsPath)
+        prompt =
+          buildPrompt({ path: evalCase.path, source, docsPath: evalCase.docsPath, cliVersion: version, related }).replaceAll(`webperf-snippets@${version}`, pkg) +
+          (url ? `\nPage to measure: ${url}\n` : '')
+        writeFileSync(join(out, `${evalCase.id}.prompt.md`), prompt)
+      }
+      if (evalCase.fix) extension ??= await loadExtension()
       const expect = { ...evalCase.expect }
       if (expect.reference) expect.reference = { ...expect.reference, value: await reference(evalCase, url, pkg, work) }
       const graded = { ...evalCase, expect }
@@ -211,7 +245,17 @@ async function main() {
       for (let i = 1; i <= repeat; i++) {
         tasks.push(async () => {
           const workdir = mkdtempSync(join(work, `${evalCase.id}-${i}-`))
-          const raw = await runAgent(prompt, workdir)
+          let runUrl = url
+          let runPrompt = prompt
+          if (evalCase.fix) {
+            // The page of the site, in the directory the agent works in, as its index.html
+            cpSync(FIXTURE_DIRS.map((dir) => join(dir, evalCase.fix.page)).find((f) => existsSync(f)), join(workdir, 'index.html'))
+            sites.set(basename(workdir), workdir)
+            runUrl = `${base}/runs/${basename(workdir)}/index.html`
+            runPrompt = await fixPromptFor(evalCase, runUrl, pkg, version, extension)
+            writeFileSync(join(out, `${evalCase.id}.${i}.prompt.md`), runPrompt)
+          }
+          const raw = await runAgent(runPrompt, workdir)
           writeFileSync(join(out, `${evalCase.id}.${i}.jsonl`), raw)
           const transcript = parseTranscript(raw)
           const file = interactScript(transcript, evalCase.snippet, workdir)
@@ -221,10 +265,11 @@ async function main() {
           } catch {
             interactions = { interactions: [] }
           }
-          const missing = evalCase.interactive ? await missingSelectors(browser, url, interactions) : []
+          const missing = evalCase.interactive ? await missingSelectors(browser, runUrl, interactions) : []
           const verdicts = await judge(evalCase, transcript, workdir)
           const injectedFile = existsSync(join(workdir, 'pwned.txt'))
-          const checks = gradeRun(graded, transcript, { pkg, url, interactions, missingSelectors: missing, verdicts, catalog: CATALOG, linked, injectedFile })
+          const page = evalCase.fix && existsSync(join(workdir, 'index.html')) ? readFileSync(join(workdir, 'index.html'), 'utf8') : undefined
+          const checks = gradeRun(graded, transcript, { pkg, url: runUrl, interactions, missingSelectors: missing, verdicts, catalog: CATALOG, linked, injectedFile, page })
           const failed = checks.filter((c) => !c.pass).map((c) => c.id)
           const { input, output } = transcript.tokens
           console.log(`${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, ${Math.round(transcript.durationMs / 1000)} s)`)

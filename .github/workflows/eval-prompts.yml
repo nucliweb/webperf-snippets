@@ -1,9 +1,9 @@
 name: Copy prompt evals
 
-# An agent runs the Copy prompt of several snippets on local pages, and the run fails when a check
-# of a case passes in fewer than 2 of 3 runs (scripts/eval-prompts). It costs tokens and agents are
-# not deterministic, so it runs on demand and on the pull requests that change the prompt or the evals,
-# not in CI.
+# An agent runs the Copy prompt of several snippets, and the prompt to fix of the extension, on local
+# pages, and the run fails when a check of a case passes in fewer than 2 of 3 runs (scripts/eval-prompts).
+# It costs tokens and agents are not deterministic, so it runs on demand and on the pull requests that
+# change the prompts or the evals, not in CI.
 #
 # Needs the CLAUDE_CODE_OAUTH_TOKEN secret, from `claude setup-token` (a Claude subscription: the runs
 # count toward its usage limits). Pull requests from forks get no secrets, so the job is skipped there.
@@ -31,6 +31,7 @@ on:
     paths:
       - 'lib/snippet-prompt.mjs'
       - 'lib/remark-snippet-prompt.mjs'
+      - 'extension/lib/fix-prompt.js'
       - 'scripts/eval-prompts/**'
       - '.github/workflows/eval-prompts.yml'
 
