@@ -53,6 +53,7 @@ test('interactScript finds the file the agent passed to the CLI, wherever it sav
   assert.equal(interactScript(run(`${cli} --interact-script "my steps.json" --json`), 'INP', '/work'), '/work/my steps.json')
   assert.equal(interactScript(run(`cd /tmp/wps && ${cli} --interact-script interactions.json --json`), 'INP', '/work'), '/tmp/wps/interactions.json')
   assert.equal(interactScript(run(`cd steps; ${cli} --interact-script interactions.json --json`), 'INP', '/work'), '/work/steps/interactions.json')
+  assert.equal(interactScript(run(`cat > /tmp/wps/interactions.json <<'EOF'\n{}\nEOF\ncd /tmp/wps && ${cli} --interact-script interactions.json --json`), 'INP', '/work'), '/tmp/wps/interactions.json')
   assert.equal(interactScript(run(`${cli} --json`), 'INP', '/work'), null)
 })
 

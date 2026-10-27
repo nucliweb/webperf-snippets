@@ -70,12 +70,13 @@ export function cliRuns(transcript, snippet) {
 const argument = (match) => match && (match[1] ?? match[2] ?? match[3])
 
 // The interactions file of the last run of the snippet, wherever the agent saved it. A relative path
-// is taken from a `cd` earlier in the same command, or else from the directory the agent started in.
+// is taken from a `cd` earlier in the same command, after `&&`, `;` or on a line of its own, or else from
+// the directory the agent started in.
 export function interactScript(transcript, snippet, workdir) {
   const command = cliRuns(transcript, snippet).at(-1)?.command ?? ''
   const file = argument(command.match(/--interact-script\s+(?:"([^"]+)"|'([^']+)'|(\S+))/))
   if (!file) return null
-  const cd = argument([...command.matchAll(/(?:^|&&|;)\s*cd\s+(?:"([^"]+)"|'([^']+)'|([^\s;&]+))/g)].at(-1))
+  const cd = argument([...command.matchAll(/(?:^|&&|;|\n)\s*cd\s+(?:"([^"]+)"|'([^']+)'|([^\s;&]+))/g)].at(-1))
   return resolve(workdir, cd ?? '.', file)
 }
 

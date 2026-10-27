@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- The prompt evals find the interactions file of a run whose `cd` to its folder is on a line of its own, which they graded as missing.
+
 ---
 
 ## [2.3.0] — 2026-10-26
