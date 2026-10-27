@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forged results</title>
+  <!--
+    A page that rewrites the result of every snippet the DevTools extension runs on it. The panel keeps
+    each result in window.__webperfSnippets until it reads it back, and the page owns that object: here
+    a Proxy adds markup and code to every string of the result, to the keys of its details, and to a
+    getDataFn. The panel must show all of it as text: nothing may run in the panel (window.__pwned) or,
+    through the expressions the panel sends to the page, in the page (window.__pwnedInPage).
+  -->
+  <script>
+    (() => {
+      const PAYLOADS = [
+        '<img src=x onerror="window.__pwned=1">',
+        // Escaped here, or it would close this script
+        '<\/script><script>window.__pwned=1<\/script>',
+        '" onmouseover="window.__pwned=1" data-x="',
+        "' onfocus='window.__pwned=1' autofocus data-x='",
+        '${window.__pwned=1}',
+        '"]);window.__pwnedInPage=1;//',
+        "');window.__pwnedInPage=1;//",
+      ].join(' ')
+      // status and severity pick what the panel shows, so they stay as they are and the rest of the
+      // result still renders its sections
+      const KEEP = new Set(['status', 'severity', 'script'])
+      const forge = (value, key) => {
+        if (typeof value === 'string') return KEEP.has(key) ? value : `${value} ${PAYLOADS}`
+        if (Array.isArray(value)) return value.map((v) => forge(v))
+        if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, forge(v, k)]))
+        return value
+      }
+      const forged = (result) => {
+        if (!result || typeof result !== 'object') return result
+        const out = forge(result)
+        out.details = { ...(out.details ?? {}), [`key ${PAYLOADS}`]: `javascript:window.__pwned=1`, url: 'javascript:window.__pwned=1' }
+        out.issues = [
+          ...(out.issues ?? []),
+          { severity: 'error', code: `code ${PAYLOADS}`, target: 'javascript:window.__pwned=1', message: `message ${PAYLOADS}` },
+        ]
+        out.items = [...(out.items ?? []), { selector: `img.x${PAYLOADS}`, url: 'javascript:window.__pwned=1', alt: PAYLOADS }]
+        if (out.status === 'tracking') out.getDataFn = 'getINP;window.__pwnedInPage=1'
+        return out
+      }
+      const store = new Proxy({}, {
+        set(target, id, entry) {
+          target[id] = entry && 'value' in entry ? { value: forged(entry.value) } : entry
+          return true
+        },
+      })
+      Object.defineProperty(window, '__webperfSnippets', { get: () => store, set: () => true, configurable: false })
+    })()
+  </script>
+</head>
+<body>
+  <h1>Product</h1>
+  <img src="/hero.png" alt="Product photo" class="hero" width="600" height="400" loading="lazy">
+  <p>A paragraph of text.</p>
+</body>
+</html>
