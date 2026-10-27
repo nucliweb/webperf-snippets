@@ -107,7 +107,8 @@ describe("a click whose handler runs for 250 ms", () => {
 const RECORD_EVENTS = () => {
   window.__events = [];
   new PerformanceObserver((list) => {
-    for (const e of list.getEntries()) if (e.interactionId) window.__events.push({ id: e.interactionId, duration: e.duration });
+    for (const e of list.getEntries())
+      if (e.interactionId) window.__events.push({ id: e.interactionId, duration: e.duration, processing: e.processingEnd - e.processingStart });
   }).observe({ type: "event", durationThreshold: 16, buffered: true });
 };
 // The next frame after a click on #fast blocks for 250 ms: the click is presented late, as on a loaded
@@ -125,23 +126,37 @@ const rating = (ms) => (ms <= 200 ? "good" : ms <= 500 ? "needs-improvement" : "
 
 // The duration of a fast click depends on how fast the machine presents the next frame, so the test
 // compares the snippets with the entries of the page and checks what makes the click fast: its handler.
+// The handler of #fast does nothing, yet a CI runner once stalled while it ran, and the browser itself
+// reported 164 ms of processing: the click was no longer fast. When the entries of the page show a
+// handler of 50 ms or more, the page loads again, up to three times, so the assertions run on a click
+// the browser measured as fast.
+const STALLED_MS = 50;
 describe.each([
   ["a machine that presents on time", RECORD_EVENTS],
   ["a machine that presents late", `(${RECORD_EVENTS})(); (${PRESENT_LATE})();`],
 ])("fast clicks on %s", (_, init) => {
   it("are measured as the browser reports them, with a small processing time", async () => {
-    const { inp, interactions, breakdown, worst } = await withPage(
-      async (page) => {
-        await page.waitForTimeout(300);
-        await runAll(page);
-        for (let i = 0; i < 3; i++) await page.click("#fast");
-        await page.waitForFunction(() => window.getInteractionSummary().count >= 3, null, { timeout: 15000, polling: 100 });
-        await page.waitForTimeout(300);
-        const worst = await page.evaluate(() => Math.max(...window.__events.map((e) => e.duration)));
-        return { ...(await readAll(page)), worst };
-      },
-      { init }
-    );
+    let measured;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      measured = await withPage(
+        async (page) => {
+          await page.waitForTimeout(300);
+          await runAll(page);
+          for (let i = 0; i < 3; i++) await page.click("#fast");
+          await page.waitForFunction(() => window.getInteractionSummary().count >= 3, null, { timeout: 15000, polling: 100 });
+          await page.waitForTimeout(300);
+          const [worst, handlerMs] = await page.evaluate(() => [
+            Math.max(...window.__events.map((e) => e.duration)),
+            Math.max(...window.__events.map((e) => e.processing)),
+          ]);
+          return { ...(await readAll(page)), worst, handlerMs };
+        },
+        { init }
+      );
+      if (measured.handlerMs < STALLED_MS) break;
+    }
+    const { inp, interactions, breakdown, worst, handlerMs } = measured;
+    expect(handlerMs, "the browser measured the empty handler of #fast as slow on three loads").toBeLessThan(STALLED_MS);
     expect(inp.status).toBe("ok");
     expect(inp.value).toBe(worst);
     expect(inp.rating).toBe(rating(worst));
