@@ -97,9 +97,11 @@ function closedPortUrl() {
   })
 }
 
-// The value of the CLI on the fixture, with the interactions of the prompt for a tracking snippet
+// The value of the CLI on the fixture, with the interactions of the prompt for a tracking snippet. The
+// median of 3 runs: the first one on a fresh machine launches a cold Chromium, and one LCP of 400 ms
+// against the 36 ms of the agents failed every run of a case on GitHub.
 async function reference(evalCase, url, pkg, work) {
-  const args = ['-y', '-p', pkg, '-p', `playwright@${PLAYWRIGHT}`, 'webperf-snippets', url, '--snippet', evalCase.snippet, '--json']
+  const args = ['-y', '-p', pkg, '-p', `playwright@${PLAYWRIGHT}`, 'webperf-snippets', url, '--snippet', evalCase.snippet, '--json', '--runs', '3']
   const { interactions } = evalCase.expect.reference
   if (interactions) {
     const file = join(work, `${evalCase.id}.interactions.json`)

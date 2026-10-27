@@ -13,6 +13,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - The prompt evals find the interactions file of a run whose `cd` to its folder is on a line of its own, which they graded as missing.
+- The reference value of a prompt eval is the median of 3 runs of the CLI: a single run, the first on a fresh machine, could come out several times slower than the agents and fail every run of its case.
 
 ---
 
