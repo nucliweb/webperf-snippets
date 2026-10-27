@@ -150,6 +150,8 @@ test('Prompt to measure is always there, and Prompt to fix only with errors or w
   const prompt = await panel.evaluate(() => window.__copied[0])
   assert.ok(prompt.startsWith(`# Fix the issues WebPerf Snippets found on ${servers.base}/seeded\n`), prompt.slice(0, 120))
   assert.match(prompt, /^- warning `undersized` \(/m)
+  // What the page holds, in the block of page data
+  assert.match(prompt, /----- BEGIN PAGE DATA -----[\s\S]*^- warning `undersized` \([\s\S]*----- END PAGE DATA -----/m)
   assert.match(prompt, /--snippet Oversized-Images --json > before\.json/)
   const { version } = JSON.parse(readFileSync(join(EXTENSION, 'manifest.json'), 'utf8'))
   assert.ok(prompt.includes(` with the WebPerf Snippets extension ${version}\n`), 'the version of the extension')

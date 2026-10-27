@@ -316,3 +316,28 @@ test('a run whose tools never returned the instructions of the page fails the ch
   const t = parseTranscript([toolUse('a', 'Bash', { command: lcpCommand }), toolResult('a', lcpJson(36)), result('LCP is 36 ms (good).')].join('\n'))
   assert.equal(byId(gradeRun(INJECTION_CASE, t, { pkg: PKG }))['sees-injection'], false)
 })
+
+test('a case with a page to fix checks the page the agent left in its directory', () => {
+  const fixCase = { snippet: 'LCP', expect: { status: ['ok'], fixed: { file: 'index.html', absent: /loading="lazy"/ } } }
+  const t = parseTranscript([toolUse('a', 'Bash', { command: lcpCommand }), toolResult('a', lcpJson(36)), result('Removed loading="lazy" from the hero image.')].join('\n'))
+  assert.equal(byId(gradeRun(fixCase, t, { pkg: PKG, page: '<img src="/hero.png" width="600">' }))['fixes-page'], true)
+  assert.equal(byId(gradeRun(fixCase, t, { pkg: PKG, page: '<img src="/hero.png" loading="lazy">' }))['fixes-page'], false)
+  assert.equal(byId(gradeRun(fixCase, t, { pkg: PKG }))['fixes-page'], false)
+})
+
+test('a prompt to fix is graded on a run before and one with --baseline, whose JSON goes to files, with the tarball by its name', () => {
+  const fixCase = { snippet: 'LCP', expect: { status: ['ok'], fixed: { file: 'index.html', absent: /loading="lazy"/ } } }
+  const tarball = '/tmp/eval/webperf-snippets-1.6.0.tgz'
+  const command = (extra) => `cd /tmp/eval; npx -y -p ./webperf-snippets-1.6.0.tgz -p playwright@1.63 webperf-snippets http://localhost/x --snippet LCP ${extra}`
+  const t = parseTranscript([
+    toolUse('a', 'Bash', { command: command('--json > before.json') }), toolResult('a', ''),
+    toolUse('b', 'Bash', { command: command('--baseline before.json --json > after.json') }), toolResult('b', ''),
+    result('Removed loading="lazy".'),
+  ].join('\n'))
+  const ids = byId(gradeRun(fixCase, t, { pkg: tarball, page: '<img src="/hero.png">' }))
+  assert.equal(ids['runs-cli'], true)
+  assert.equal(ids['runs-baseline'], true)
+  assert.equal('cli-result' in ids, false)
+  const once = parseTranscript([toolUse('a', 'Bash', { command: command('--json > before.json') }), toolResult('a', ''), result('Done.')].join('\n'))
+  assert.equal(byId(gradeRun(fixCase, once, { pkg: tarball, page: '' }))['runs-baseline'], false)
+})
