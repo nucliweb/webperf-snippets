@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Security
+- An invalid `--header` is named by its position (`Invalid --header (number 2)`), not by its text, which may hold a token: `--header "Authorization Bearer <token>"`, without the colon, printed the token to stderr, and so to the log of a CI job. A test passes a value per secret (`--header`, `--storage-state`, `--api-key`, `--crux-key`) through every output of the CLI, the body of `--report-to` and its errors, and fails if one comes out.
+
 ---
 
 ## [1.6.0] — 2026-10-26

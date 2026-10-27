@@ -228,9 +228,10 @@ async function main() {
   }
 
   const headers = {};
-  for (const raw of values.header ?? []) {
+  for (const [i, raw] of (values.header ?? []).entries()) {
     const header = parseHeader(raw);
-    if (!header) fail(`Invalid header "${raw}". Use --header "Name: value"`);
+    // Without its text: a header usually carries a token, and stderr ends up in the log of a CI job
+    if (!header) fail(`Invalid --header (number ${i + 1}): use --header "Name: value". Its text is not shown, as it may hold a secret`);
     headers[header[0]] = header[1];
   }
 

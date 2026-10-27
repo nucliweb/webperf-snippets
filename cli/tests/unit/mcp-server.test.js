@@ -27,6 +27,16 @@ describe("the MCP server", () => {
   it("declares that it offers tools", () => {
     expect(client.getServerCapabilities()).toHaveProperty("tools");
   });
+
+  // The secrets of the CLI (--header, --storage-state, the keys) stay out of its outputs, which
+  // tests/e2e/secrets.test.js checks. An MCP client passes its arguments through the agent, so a
+  // tool that took one would put the secret in the conversation.
+  it("takes no headers, storage state or keys in any tool", async () => {
+    const { tools } = await client.listTools();
+    const inputs = tools.flatMap((t) => Object.keys(t.inputSchema.properties ?? {}).map((name) => `${t.name}.${name}`));
+    expect(inputs.length).toBeGreaterThan(0);
+    expect(inputs.filter((input) => /header|storage|cookie|key|token|secret/i.test(input))).toEqual([]);
+  });
 });
 
 describe("list_snippets", () => {
