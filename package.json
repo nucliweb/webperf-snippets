@@ -55,7 +55,7 @@
   "license": "MIT",
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",
-    "@mdn/browser-compat-data": "^8.1.6",
+    "@mdn/browser-compat-data": "^8.1.7",
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.12.0",
     "next": "^16.4.2",
@@ -65,7 +65,7 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "eslint": "^10.12.0",
+    "eslint": "^10.13.0",
     "terser": "^5.36.0",
     "pagefind": "^1.4.0"
   },
