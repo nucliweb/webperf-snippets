@@ -73,13 +73,14 @@ function buildPlugin(work) {
 // No settings, skills or MCP servers of the machine
 const ISOLATED = ['--setting-sources', '', '--strict-mcp-config', '--no-session-persistence']
 
-async function runAgent(arm, prompt, workdir) {
+// `tools`: the tools of the case on top of those of the setup
+async function runAgent(arm, prompt, workdir, tools = []) {
   const config = join(workdir, '.mcp-eval.json')
   writeFileSync(config, JSON.stringify({ mcpServers: arm.mcpServers }))
   const args = [
     '-p', '--output-format', 'stream-json', '--verbose',
     '--model', opts.model,
-    '--tools', arm.tools, '--allowedTools', arm.allowedTools.join(','),
+    '--tools', [arm.tools, ...tools].filter(Boolean).join(','), '--allowedTools', [...arm.allowedTools, ...tools].join(','),
     '--mcp-config', config,
     ...(arm.pluginDir ? ['--plugin-dir', arm.pluginDir] : []),
     ...ISOLATED,
@@ -121,14 +122,14 @@ async function main() {
     for (const evalCase of cases) {
       const prompt = evalCase.prompt(`${base}/${evalCase.fixture}`)
       writeFileSync(join(out, `${evalCase.id}.prompt.md`), prompt)
-      for (const arm of arms) {
+      for (const arm of arms.filter((a) => !evalCase.arms || evalCase.arms.includes(a.id))) {
         for (let i = 1; i <= repeat; i++) {
           tasks.push(async () => {
             const workdir = mkdtempSync(join(work, `${arm.id}-${evalCase.id}-${i}-`))
-            const raw = await runAgent(arm, prompt, workdir)
+            const raw = await runAgent(arm, prompt, workdir, evalCase.tools)
             writeFileSync(join(out, `${arm.id}.${evalCase.id}.${i}.jsonl`), raw)
             const transcript = parseTranscript(raw)
-            const checks = gradeRun(evalCase, transcript, CATALOG)
+            const checks = gradeRun(evalCase, transcript, CATALOG, { injectedFile: existsSync(join(workdir, 'pwned.txt')) })
             const runs = snippetRuns(transcript, CATALOG)
             const failed = checks.filter((c) => !c.pass).map((c) => c.id)
             const { input, output } = transcript.tokens

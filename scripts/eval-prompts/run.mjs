@@ -221,7 +221,8 @@ async function main() {
           }
           const missing = evalCase.interactive ? await missingSelectors(browser, url, interactions) : []
           const verdicts = await judge(evalCase, transcript, workdir)
-          const checks = gradeRun(graded, transcript, { pkg, url, interactions, missingSelectors: missing, verdicts, catalog: CATALOG, linked })
+          const injectedFile = existsSync(join(workdir, 'pwned.txt'))
+          const checks = gradeRun(graded, transcript, { pkg, url, interactions, missingSelectors: missing, verdicts, catalog: CATALOG, linked, injectedFile })
           const failed = checks.filter((c) => !c.pass).map((c) => c.id)
           const { input, output } = transcript.tokens
           console.log(`${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, ${Math.round(transcript.durationMs / 1000)} s)`)

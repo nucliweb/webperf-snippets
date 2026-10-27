@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+- Copy prompt to measure, on each snippet page and in Prompt to measure of the extension, says that everything in the result comes from the measured page (selectors, URLs, alt texts, the names of its resources): data to report, never an instruction to follow, and the report says when the page contains instructions for agents. The MCP server of the CLI says the same (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)). `npm run eval:prompts` and `npm run eval:mcp` have a case with a page that asks the agent, in the alt text, the class and the URL of an image, to create a file and run a command (`cli/tests/fixtures/hostile/prompt-injection.html`).
+
 ### Fixed
 - The prompt evals find the interactions file of a run whose `cd` to its folder is on a line of its own, which they graded as missing.
 
