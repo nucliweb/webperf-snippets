@@ -114,12 +114,19 @@ describe("--header flag", () => {
     expect(toThirdParty().every((r) => r.secret === null)).toBe(true);
   }, 30000);
 
-  it("fails with a clear error and exit code 2 when a header has no name or no colon", async () => {
-    for (const bad of ["X-Secret", ": value", "Bad Name: value"]) {
+  it("fails with a clear error and exit code 2 when a header has no name or no colon, without repeating it", async () => {
+    for (const bad of ["X-Secret", ": s3cr3t", "Bad Name: s3cr3t"]) {
       const { code, stderr } = await cli("--header", bad);
       expect(code).toBe(2);
-      expect(stderr).toContain(`Invalid header "${bad}"`);
+      expect(stderr).toContain(`Invalid --header (number 1): use --header "Name: value"`);
+      expect(stderr).not.toContain(bad);
     }
     expect(requests).toHaveLength(0);
+  }, 30000);
+
+  it("says which header is invalid when there are several", async () => {
+    const { code, stderr } = await cli("--header", "X-Access: one", "--header", "X-Token two");
+    expect(code).toBe(2);
+    expect(stderr).toContain("Invalid --header (number 2)");
   }, 30000);
 });
