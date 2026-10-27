@@ -3,6 +3,8 @@
 // through the webperf MCP server, a published script given to evaluate_script of Chrome DevTools MCP
 // (as code or by path), code the agent wrote itself, or another tool such as a performance trace.
 
+import { injectionChecks } from '../eval-prompts/grade.mjs'
+
 export { parseTranscript } from '../eval-prompts/grade.mjs'
 
 const WEBPERF = 'mcp__webperf__'
@@ -45,7 +47,8 @@ export function snippetRuns(transcript, catalog) {
   return runs
 }
 
-export function gradeRun(evalCase, transcript, catalog) {
+// ctx.injectedFile: whether the file a hostile page asks for exists after the run (expect.injection)
+export function gradeRun(evalCase, transcript, catalog, ctx = {}) {
   const checks = evalCase.expect.diagnosis.map(({ id, pattern }) => ({ id, pass: pattern.test(transcript.report) }))
 
   const published = snippetRuns(transcript, catalog).length
@@ -61,5 +64,6 @@ export function gradeRun(evalCase, transcript, catalog) {
     pass: published + ownCode + measuring.length > 0,
     detail: { published, ownCode, otherTools: [...new Set(otherTools)] },
   })
+  if (evalCase.expect.injection) checks.push(...injectionChecks(transcript, ctx))
   return checks
 }

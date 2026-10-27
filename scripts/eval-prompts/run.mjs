@@ -97,9 +97,11 @@ function closedPortUrl() {
   })
 }
 
-// The value of the CLI on the fixture, with the interactions of the prompt for a tracking snippet
+// The value of the CLI on the fixture, with the interactions of the prompt for a tracking snippet. The
+// median of 3 runs: the first one on a fresh machine launches a cold Chromium, and one LCP of 400 ms
+// against the 36 ms of the agents failed every run of a case on GitHub.
 async function reference(evalCase, url, pkg, work) {
-  const args = ['-y', '-p', pkg, '-p', `playwright@${PLAYWRIGHT}`, 'webperf-snippets', url, '--snippet', evalCase.snippet, '--json']
+  const args = ['-y', '-p', pkg, '-p', `playwright@${PLAYWRIGHT}`, 'webperf-snippets', url, '--snippet', evalCase.snippet, '--json', '--runs', '3']
   const { interactions } = evalCase.expect.reference
   if (interactions) {
     const file = join(work, `${evalCase.id}.interactions.json`)
@@ -221,7 +223,8 @@ async function main() {
           }
           const missing = evalCase.interactive ? await missingSelectors(browser, url, interactions) : []
           const verdicts = await judge(evalCase, transcript, workdir)
-          const checks = gradeRun(graded, transcript, { pkg, url, interactions, missingSelectors: missing, verdicts, catalog: CATALOG, linked })
+          const injectedFile = existsSync(join(workdir, 'pwned.txt'))
+          const checks = gradeRun(graded, transcript, { pkg, url, interactions, missingSelectors: missing, verdicts, catalog: CATALOG, linked, injectedFile })
           const failed = checks.filter((c) => !c.pass).map((c) => c.id)
           const { input, output } = transcript.tokens
           console.log(`${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, ${Math.round(transcript.durationMs / 1000)} s)`)
