@@ -31,7 +31,7 @@ test('the prompt says what is wrong, where and with which values, for an agent i
   assert.match(prompt, /^- Wasted: 0 B$/m)
   // The rows the issues point to, with the whole URL, which an agent can open
   assert.match(prompt, /^\| Selector \| URL \|/m)
-  assert.match(prompt, /^\| img#hero \| http:\/\/127\.0\.0\.1:8000\/hero\.png \|/m)
+  assert.match(prompt, /^\| #hero \| http:\/\/127\.0\.0\.1:8000\/hero\.png \|/m)
 })
 
 test('the prompt checks the fix with the CLI, before and after, on a URL where the change can be tested', () => {
