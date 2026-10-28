@@ -18,8 +18,12 @@ const EXTENSION = join(dirname(fileURLToPath(import.meta.url)), '..')
 const snippets = JSON.parse(readFileSync(join(EXTENSION, 'snippets.json'), 'utf8'))
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' }
 
-let browser, servers, extension, target, panel
+let browser, servers, extension, hostile, target, panel
 const pageErrors = []
+// Every expression the panel sends to the inspected page
+const evaluated = []
+// The pages of cli/tests/fixtures/hostile/, which attack the panel through what the snippets return
+const HOSTILE = join(EXTENSION, '../cli/tests/fixtures/hostile')
 
 before(async () => {
   servers = await startContractServers()
@@ -27,6 +31,16 @@ before(async () => {
     const server = createServer((req, res) => {
       const file = join(EXTENSION, decodeURIComponent(new URL(req.url, 'http://x').pathname))
       if (!file.startsWith(EXTENSION) || !existsSync(file)) return res.writeHead(404).end()
+      res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'text/plain' }).end(readFileSync(file))
+    })
+    server.listen(0, '127.0.0.1', () => done(server))
+  })
+  hostile = await new Promise((done) => {
+    const server = createServer((req, res) => {
+      const name = decodeURIComponent(new URL(req.url, 'http://x').pathname).slice(1)
+      if (name === 'hero.png') return res.writeHead(200, { 'content-type': 'image/png' }).end(readFileSync(join(HOSTILE, '../hero.png')))
+      const file = join(HOSTILE, name)
+      if (name.includes('..') || !existsSync(file)) return res.writeHead(404).end()
       res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'text/plain' }).end(readFileSync(file))
     })
     server.listen(0, '127.0.0.1', () => done(server))
@@ -40,6 +54,7 @@ before(async () => {
   // inspectedWindow.reload reloads the other tab, as the real one reloads the inspected page
   await panel.exposeFunction('__reloadTarget', () => target.reload({ waitUntil: 'commit' }).then(() => undefined))
   await panel.exposeFunction('__inspect', async (expression) => {
+    evaluated.push(expression)
     try {
       const value = await target.evaluate((e) => {
         const v = (0, eval)(e)
@@ -99,6 +114,7 @@ after(async () => {
   await browser?.close()
   await servers?.close()
   extension?.close()
+  hostile?.close()
 })
 
 // Clicks a button of the panel and reads the result it shows, from the JSON of the result
@@ -690,3 +706,90 @@ for (const snippet of snippets) {
     }
   })
 }
+
+// What a forged result could leave in the panel if a value reached its HTML unescaped: an element that
+// runs code, a handler, a javascript: URL, or an attribute the page broke out to (data-x). The icons of
+// the home page are the only images of the panel.
+const unsafeMarkup = () =>
+  panel.evaluate(() =>
+    [...document.querySelectorAll('body *')].flatMap((el) => {
+      const found = []
+      if (['SCRIPT', 'IFRAME', 'OBJECT', 'EMBED'].includes(el.tagName)) found.push(el.tagName)
+      if (el.tagName === 'IMG' && !/\/(icons\/icon|logo)\.svg$/.test(el.src)) found.push(`IMG ${el.getAttribute('src')}`)
+      for (const { name, value } of el.attributes) {
+        if (name.startsWith('on') || name === 'data-x' || name === 'autofocus') found.push(`${el.tagName} ${name}`)
+        if (['href', 'src', 'action', 'formaction'].includes(name) && /^\s*javascript:/i.test(value)) found.push(`${el.tagName} ${name}=${value}`)
+      }
+      return found
+    })
+  )
+
+async function assertNothingRan(where) {
+  assert.deepEqual(await unsafeMarkup(), [], `${where}: markup of the page in the panel`)
+  assert.equal(await panel.evaluate(() => window.__pwned), undefined, `${where}: code of the page ran in the panel`)
+  assert.equal(await target.evaluate(() => window.__pwnedInPage), undefined, `${where}: code of the result ran in the page`)
+  // A value of the page reaches the page again only as the string of a selector, in the expression
+  // that selects its element
+  const unexpected = evaluated.filter((e) => e.includes('pwned') && !e.startsWith('(() => { try { const el = document.querySelector("'))
+  assert.deepEqual(unexpected, [], `${where}: an expression with a value of the page`)
+}
+
+// Clicks every button of the result that acts on a value of the page, and hovers and focuses them
+async function useEveryButton() {
+  for (const selector of ['#result button.inspect', '#result .open-source', '#result .copy-url', '#result .to-row']) {
+    const buttons = panel.locator(selector)
+    for (let i = 0; i < Math.min(await buttons.count(), 5); i++) {
+      await buttons.nth(i).hover()
+      await buttons.nth(i).focus()
+      await buttons.nth(i).click()
+    }
+  }
+}
+
+test('a page that forges the results of the snippets gets them shown as text, and runs nothing in the panel or through it', async () => {
+  await target.addInitScript(() => (window.inspect = () => {}))
+  await target.goto(`http://127.0.0.1:${hostile.address().port}/forged-results.html`, { waitUntil: 'load' })
+  evaluated.length = 0
+  for (const id of ['LCP', 'Image-Element-Audit', 'Find-Above-The-Fold-Lazy-Loaded-Images', 'Find-render-blocking-resources', 'TTFB-Sub-Parts']) {
+    await panel.click(`#list button[data-id="${id}"]`)
+    const result = await resultOf('#run')
+    assert.ok(JSON.stringify(result).includes('window.__pwned=1'), `${id}: the page did not forge the result`)
+    // The markup of the page is there, as text
+    assert.ok((await panel.textContent('#result')).includes('<img src=x onerror="window.__pwned=1">'), `${id}: the forged values are not shown`)
+    await panel.click('#result details.raw summary')
+    await useEveryButton()
+    await panel.evaluate(() => (window.__copied.length = 0))
+    await panel.click('#copy-fix-prompt')
+    await assertNothingRan(id)
+  }
+})
+
+test('a tracking snippet whose result names code instead of a function does not run it in the page', async () => {
+  await target.goto(`http://127.0.0.1:${hostile.address().port}/forged-results.html`, { waitUntil: 'load' })
+  evaluated.length = 0
+  await panel.click('#list button[data-id="Input-Latency-Breakdown"]')
+  const result = await resultOf('#run')
+  assert.equal(result.getDataFn, 'getINP;window.__pwnedInPage=1')
+  await panel.click('#read')
+  await panel.waitForFunction(() => document.querySelector('#result').textContent.includes('is not a valid function name'))
+  await assertNothingRan('Read result')
+})
+
+test('an audit of a page that forges the results shows them as text, in its table, its rows and its comparison', async () => {
+  await target.goto(`http://127.0.0.1:${hostile.address().port}/forged-results.html`, { waitUntil: 'load' })
+  evaluated.length = 0
+  for (const round of ['first', 'second']) {
+    await panel.click('#go-home')
+    await panel.click('#run-audit')
+    await panel.waitForSelector('#audit[data-done="true"]', { timeout: 120000 })
+    if (await panel.locator('#audit .hidden-rows button').count()) await panel.click('#audit .hidden-rows button')
+    await assertNothingRan(`${round} audit`)
+  }
+  assert.ok((await panel.textContent('#audit')).includes('window.__pwned=1'), 'the comparison shows the forged issues')
+  await panel.click('#audit .audit-rows tbody tr >> nth=0 >> button')
+  await useEveryButton()
+  await panel.click('#back-to-audit')
+  await panel.click('#fix-audit')
+  await assertNothingRan('the rows of the audit')
+})
+
