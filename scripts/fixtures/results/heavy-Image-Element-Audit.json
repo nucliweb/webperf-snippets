@@ -12,7 +12,7 @@
     "totalWarnings": 46,
     "totalInfos": 90,
     "lcpCandidate": {
-      "selector": "hero.png",
+      "selector": "div.c0:nth-of-type(2) > img",
       "format": "png",
       "fetchpriority": "(not set)",
       "loading": "(not set)",
@@ -21,6 +21,7 @@
   },
   "items": [
     {
+      "selector": "div.c0:nth-of-type(2) > img",
       "url": "http://127.0.0.1:8000/hero.png?i0",
       "format": "png",
       "inViewport": true,
@@ -56,6 +57,7 @@
       ]
     },
     {
+      "selector": "div.c1:nth-of-type(3) > img",
       "url": "http://127.0.0.1:8000/hero.png?i1",
       "format": "png",
       "inViewport": true,
@@ -81,6 +83,7 @@
       ]
     },
     {
+      "selector": "div.c3:nth-of-type(5) > img",
       "url": "http://127.0.0.1:8000/hero.png?i3",
       "format": "png",
       "inViewport": true,
@@ -106,6 +109,7 @@
       ]
     },
     {
+      "selector": "div.c5:nth-of-type(7) > img",
       "url": "http://127.0.0.1:8000/hero.png?i5",
       "format": "png",
       "inViewport": true,
@@ -131,6 +135,7 @@
       ]
     },
     {
+      "selector": "div.c7:nth-of-type(9) > img",
       "url": "http://127.0.0.1:8000/hero.png?i7",
       "format": "png",
       "inViewport": true,
@@ -156,6 +161,7 @@
       ]
     },
     {
+      "selector": "div.c9:nth-of-type(11) > img",
       "url": "http://127.0.0.1:8000/hero.png?i9",
       "format": "png",
       "inViewport": true,
@@ -181,6 +187,7 @@
       ]
     },
     {
+      "selector": "div.c12 > img",
       "url": "http://127.0.0.1:8000/hero.png?i12",
       "format": "png",
       "inViewport": false,
@@ -206,6 +213,7 @@
       ]
     },
     {
+      "selector": "div.c14 > img",
       "url": "http://127.0.0.1:8000/hero.png?i14",
       "format": "png",
       "inViewport": false,
@@ -231,6 +239,7 @@
       ]
     },
     {
+      "selector": "div.c16 > img",
       "url": "http://127.0.0.1:8000/hero.png?i16",
       "format": "png",
       "inViewport": false,
@@ -256,6 +265,7 @@
       ]
     },
     {
+      "selector": "div.c18 > img",
       "url": "http://127.0.0.1:8000/hero.png?i18",
       "format": "png",
       "inViewport": false,
@@ -281,6 +291,7 @@
       ]
     },
     {
+      "selector": "div.c20 > img",
       "url": "http://127.0.0.1:8000/hero.png?i20",
       "format": "png",
       "inViewport": false,
@@ -306,6 +317,7 @@
       ]
     },
     {
+      "selector": "div.c22 > img",
       "url": "http://127.0.0.1:8000/hero.png?i22",
       "format": "png",
       "inViewport": false,
@@ -331,6 +343,7 @@
       ]
     },
     {
+      "selector": "div.c24 > img",
       "url": "http://127.0.0.1:8000/hero.png?i24",
       "format": "png",
       "inViewport": false,
@@ -356,6 +369,7 @@
       ]
     },
     {
+      "selector": "div.c26 > img",
       "url": "http://127.0.0.1:8000/hero.png?i26",
       "format": "png",
       "inViewport": false,
@@ -381,6 +395,7 @@
       ]
     },
     {
+      "selector": "div.c28 > img",
       "url": "http://127.0.0.1:8000/hero.png?i28",
       "format": "png",
       "inViewport": false,
@@ -406,6 +421,7 @@
       ]
     },
     {
+      "selector": "div.c30 > img",
       "url": "http://127.0.0.1:8000/hero.png?i30",
       "format": "png",
       "inViewport": false,
@@ -431,6 +447,7 @@
       ]
     },
     {
+      "selector": "div.c32 > img",
       "url": "http://127.0.0.1:8000/hero.png?i32",
       "format": "png",
       "inViewport": false,
@@ -456,6 +473,7 @@
       ]
     },
     {
+      "selector": "div.c34 > img",
       "url": "http://127.0.0.1:8000/hero.png?i34",
       "format": "png",
       "inViewport": false,
@@ -481,6 +499,7 @@
       ]
     },
     {
+      "selector": "div.c36 > img",
       "url": "http://127.0.0.1:8000/hero.png?i36",
       "format": "png",
       "inViewport": false,
@@ -506,6 +525,7 @@
       ]
     },
     {
+      "selector": "div.c38 > img",
       "url": "http://127.0.0.1:8000/hero.png?i38",
       "format": "png",
       "inViewport": false,
@@ -531,6 +551,7 @@
       ]
     },
     {
+      "selector": "div.c40 > img",
       "url": "http://127.0.0.1:8000/hero.png?i40",
       "format": "png",
       "inViewport": false,
@@ -556,6 +577,7 @@
       ]
     },
     {
+      "selector": "div.c42 > img",
       "url": "http://127.0.0.1:8000/hero.png?i42",
       "format": "png",
       "inViewport": false,
@@ -581,6 +603,7 @@
       ]
     },
     {
+      "selector": "div.c44 > img",
       "url": "http://127.0.0.1:8000/hero.png?i44",
       "format": "png",
       "inViewport": false,
@@ -606,6 +629,7 @@
       ]
     },
     {
+      "selector": "div.c46 > img",
       "url": "http://127.0.0.1:8000/hero.png?i46",
       "format": "png",
       "inViewport": false,
@@ -631,6 +655,7 @@
       ]
     },
     {
+      "selector": "div.c48 > img",
       "url": "http://127.0.0.1:8000/hero.png?i48",
       "format": "png",
       "inViewport": false,
@@ -656,6 +681,7 @@
       ]
     },
     {
+      "selector": "div.c50 > img",
       "url": "http://127.0.0.1:8000/hero.png?i50",
       "format": "png",
       "inViewport": false,
@@ -681,6 +707,7 @@
       ]
     },
     {
+      "selector": "div.c52 > img",
       "url": "http://127.0.0.1:8000/hero.png?i52",
       "format": "png",
       "inViewport": false,
@@ -706,6 +733,7 @@
       ]
     },
     {
+      "selector": "div.c54 > img",
       "url": "http://127.0.0.1:8000/hero.png?i54",
       "format": "png",
       "inViewport": false,
@@ -731,6 +759,7 @@
       ]
     },
     {
+      "selector": "div.c56 > img",
       "url": "http://127.0.0.1:8000/hero.png?i56",
       "format": "png",
       "inViewport": false,
@@ -756,6 +785,7 @@
       ]
     },
     {
+      "selector": "div.c58 > img",
       "url": "http://127.0.0.1:8000/hero.png?i58",
       "format": "png",
       "inViewport": false,
@@ -781,6 +811,7 @@
       ]
     },
     {
+      "selector": "div.c60 > img",
       "url": "http://127.0.0.1:8000/hero.png?i60",
       "format": "png",
       "inViewport": false,
@@ -806,6 +837,7 @@
       ]
     },
     {
+      "selector": "div.c62 > img",
       "url": "http://127.0.0.1:8000/hero.png?i62",
       "format": "png",
       "inViewport": false,
@@ -831,6 +863,7 @@
       ]
     },
     {
+      "selector": "div.c64 > img",
       "url": "http://127.0.0.1:8000/hero.png?i64",
       "format": "png",
       "inViewport": false,
@@ -856,6 +889,7 @@
       ]
     },
     {
+      "selector": "div.c66 > img",
       "url": "http://127.0.0.1:8000/hero.png?i66",
       "format": "png",
       "inViewport": false,
@@ -881,6 +915,7 @@
       ]
     },
     {
+      "selector": "div.c68 > img",
       "url": "http://127.0.0.1:8000/hero.png?i68",
       "format": "png",
       "inViewport": false,
@@ -906,6 +941,7 @@
       ]
     },
     {
+      "selector": "div.c70 > img",
       "url": "http://127.0.0.1:8000/hero.png?i70",
       "format": "png",
       "inViewport": false,
@@ -931,6 +967,7 @@
       ]
     },
     {
+      "selector": "div.c72 > img",
       "url": "http://127.0.0.1:8000/hero.png?i72",
       "format": "png",
       "inViewport": false,
@@ -956,6 +993,7 @@
       ]
     },
     {
+      "selector": "div.c74 > img",
       "url": "http://127.0.0.1:8000/hero.png?i74",
       "format": "png",
       "inViewport": false,
@@ -981,6 +1019,7 @@
       ]
     },
     {
+      "selector": "div.c76 > img",
       "url": "http://127.0.0.1:8000/hero.png?i76",
       "format": "png",
       "inViewport": false,
@@ -1006,6 +1045,7 @@
       ]
     },
     {
+      "selector": "div.c78 > img",
       "url": "http://127.0.0.1:8000/hero.png?i78",
       "format": "png",
       "inViewport": false,
@@ -1031,6 +1071,7 @@
       ]
     },
     {
+      "selector": "div.c0:nth-of-type(82) > img",
       "url": "http://127.0.0.1:8000/hero.png?i80",
       "format": "png",
       "inViewport": false,
@@ -1056,6 +1097,7 @@
       ]
     },
     {
+      "selector": "div.c2:nth-of-type(84) > img",
       "url": "http://127.0.0.1:8000/hero.png?i82",
       "format": "png",
       "inViewport": false,
@@ -1081,6 +1123,7 @@
       ]
     },
     {
+      "selector": "div.c4:nth-of-type(86) > img",
       "url": "http://127.0.0.1:8000/hero.png?i84",
       "format": "png",
       "inViewport": false,
@@ -1106,6 +1149,7 @@
       ]
     },
     {
+      "selector": "div.c6:nth-of-type(88) > img",
       "url": "http://127.0.0.1:8000/hero.png?i86",
       "format": "png",
       "inViewport": false,
@@ -1131,6 +1175,7 @@
       ]
     },
     {
+      "selector": "div.c8:nth-of-type(90) > img",
       "url": "http://127.0.0.1:8000/hero.png?i88",
       "format": "png",
       "inViewport": false,
@@ -1156,6 +1201,7 @@
       ]
     },
     {
+      "selector": "div.c2:nth-of-type(4) > img",
       "url": "http://127.0.0.1:8000/hero.png?i2",
       "format": "png",
       "inViewport": true,
@@ -1176,6 +1222,7 @@
       ]
     },
     {
+      "selector": "div.c4:nth-of-type(6) > img",
       "url": "http://127.0.0.1:8000/hero.png?i4",
       "format": "png",
       "inViewport": true,
@@ -1196,6 +1243,7 @@
       ]
     },
     {
+      "selector": "div.c6:nth-of-type(8) > img",
       "url": "http://127.0.0.1:8000/hero.png?i6",
       "format": "png",
       "inViewport": true,
@@ -1216,6 +1264,7 @@
       ]
     },
     {
+      "selector": "div.c8:nth-of-type(10) > img",
       "url": "http://127.0.0.1:8000/hero.png?i8",
       "format": "png",
       "inViewport": true,
@@ -1236,6 +1285,7 @@
       ]
     },
     {
+      "selector": "div.c10 > img",
       "url": "http://127.0.0.1:8000/hero.png?i10",
       "format": "png",
       "inViewport": true,

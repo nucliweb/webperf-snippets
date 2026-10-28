@@ -34,6 +34,33 @@
     }
     return (truncated ? "... > " : "") + parts.join(" > ").replace(/> >>> >/g, ">>>");
   };
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = selector => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map(c => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [ node ];
+      if (siblings.filter(s => s.matches(part)).length > 1) part += `:nth-of-type(${siblings.filter(s => s.localName === tag).indexOf(node) + 1})`;
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  const inspectableSelectorFor = el => el.getRootNode() === document ? uniqueSelector(el) : selectorFor(el);
   let totalElements = 0;
   let maxDepth = 0;
   let deepest = null;
@@ -66,9 +93,9 @@
   }
   const ranked = parents.sort((a, b) => b.children - a.children || a.depth - b.depth);
   const widest = ranked[0] ?? null;
-  const widestSelector = widest ? selectorFor(widest.el) + (widest.root !== widest.el ? " (shadow root)" : "") : null;
+  const widestSelector = widest ? inspectableSelectorFor(widest.el) + (widest.root !== widest.el ? " (shadow root)" : "") : null;
   const items = ranked.slice(0, 10).map(p => ({
-    selector: selectorFor(p.el) + (p.root !== p.el ? " (shadow root)" : ""),
+    selector: inspectableSelectorFor(p.el) + (p.root !== p.el ? " (shadow root)" : ""),
     children: p.children,
     depth: p.depth
   }));

@@ -4,7 +4,7 @@
   "count": 1,
   "items": [
     {
-      "selector": "html>body>img",
+      "selector": "img:nth-of-type(2)",
       "src": "http://127.0.0.1:8000/hero.png?b",
       "inViewport": true,
       "isLcpCandidate": false,

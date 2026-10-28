@@ -61,7 +61,7 @@ describe("DOM-Size-and-Depth", () => {
     // html(1) > body(2) > main(3) > #deep(4) > 40 levels
     expect(r.details.maxDepth).toBe(44);
     expect(r.details.maxChildren).toBe(80);
-    expect(r.details.widestParent).toBe("ul#wide");
+    expect(r.details.widestParent).toBe("#wide");
     expect(r.details.deepestElement).toContain("div.level");
   }, 30000);
 
@@ -81,7 +81,7 @@ describe("DOM-Size-and-Depth", () => {
     expect(r.items.length).toBeGreaterThan(0);
     expect(r.items.length).toBeLessThanOrEqual(50);
     expect(new Set(r.items.map((i) => Object.keys(i).sort().join(","))).size).toBe(1);
-    expect(r.items[0]).toMatchObject({ selector: "ul#wide", children: 80 });
+    expect(r.items[0]).toMatchObject({ selector: "#wide", children: 80 });
     expect(r.items.every((i, n) => n === 0 || r.items[n - 1].children >= i.children)).toBe(true);
     expect(JSON.parse(JSON.stringify(r))).toEqual(r);
   }, 30000);
