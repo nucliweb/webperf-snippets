@@ -13,6 +13,7 @@ import { createSessions, SessionError } from "./sessions.js";
 import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js";
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
+import { isHttpUrl } from "../url.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
 const STAGES = 3;
@@ -20,7 +21,7 @@ const NAV_TIMEOUT_MS = 30000;
 
 const HttpUrl = z
   .string()
-  .refine((url) => /^https?:\/\//i.test(url) && URL.canParse(url), "url must be an http or https URL")
+  .refine(isHttpUrl, "url must be an http or https URL")
   .describe("The page to measure; local development servers (http://localhost:3000) work too");
 
 // Free-form beyond script and status: each snippet has its own fields (snippets/SCHEMA.md). zod writes

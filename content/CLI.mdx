@@ -44,6 +44,8 @@ npx playwright install chromium
 npx webperf-snippets <url> [options]
 ```
 
+The URL must be `http` or `https`. A local or internal address, such as `http://localhost:3000` or a staging server of your network, is measured like any other page, since that is a normal use. The CLI loads the URL in a browser on your machine and returns what the snippets read from it, so give it only URLs you would open yourself; a `file://` URL, or any other protocol, exits with `2` before a browser opens.
+
 ### Examples
 
 Run the default Core Web Vitals workflow (LCP + CLS, plus LCP-Subparts when LCP exceeds 2.5s):
@@ -482,7 +484,7 @@ A follow-up informs: the `error` issues it reports appear in the report and do n
 | ---- | -------------------------------------------- |
 | `0`  | All checks passed.                           |
 | `1`  | Budget violation, a snippet errored, a step of the workflow reported an `error` issue, or, with `--fail-on-regression`, a regression against the baseline. |
-| `2`  | Usage error (missing URL, unknown workflow, a baseline or threshold that is not valid). |
+| `2`  | Usage error (missing URL or one that is not `http` or `https`, unknown workflow, a baseline or threshold that is not valid). |
 
 ## Run it from an AI agent
 
