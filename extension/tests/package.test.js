@@ -29,6 +29,34 @@ test('the zip leaves out the tests and the development files', () => {
   assert.deepEqual(extra, [])
 })
 
+// What the panel runs, and nothing else: a file that is not on this list, such as a source map, a key or
+// a stray folder, fails the test until it is added here on purpose
+const SHIPPED = [
+  /^(manifest\.json|devtools\.(html|js)|panel\.(html|js|css)|snippets\.json|logo\.svg)$/,
+  /^icons\/icon(-\d+\.png|\.svg)$/,
+  /^lib\/[a-z-]+\.js$/,
+  // The copy of snippets/_view/
+  /^lib\/view\/([a-z-]+\/)*[a-z-]+\.(js|json)$/,
+]
+
+test('the zip has only the files the panel runs', () => {
+  const unexpected = files.filter((f) => !f.endsWith('/') && !SHIPPED.some((pattern) => pattern.test(f)))
+  assert.deepEqual(unexpected, [])
+})
+
+// The extension can run code in any page DevTools inspects; what it asks Chrome for stays as small as it
+// is: storage for the settings and the audits, no access to sites, no scripts injected into pages and
+// the default Content Security Policy of Manifest V3 (no inline script, no eval in the panel). A new key
+// fails the test until it is added here on purpose.
+test('the manifest asks only for storage, with no host access, content scripts or own CSP', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'))
+  assert.deepEqual(Object.keys(manifest).sort(), [
+    'description', 'devtools_page', 'homepage_url', 'icons', 'manifest_version', 'minimum_chrome_version', 'name', 'permissions', 'version',
+  ])
+  assert.equal(manifest.manifest_version, 3)
+  assert.deepEqual(manifest.permissions, ['storage'])
+})
+
 test('Chrome loads the unzipped extension, and the panel loads all its files', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'extension-unzipped-'))
   execFileSync('unzip', ['-q', zip, '-d', dir])
