@@ -16,7 +16,7 @@
   },
   "items": [
     {
-      "selector": "img#hero",
+      "selector": "#hero",
       "url": "http://127.0.0.1:8000/hero.png",
       "verdict": "undersized",
       "naturalWidth": 100,
@@ -33,7 +33,7 @@
       "hasSizes": false
     },
     {
-      "selector": "img",
+      "selector": "img:nth-of-type(2)",
       "url": "http://127.0.0.1:8000/hero.png?b",
       "verdict": "undersized",
       "naturalWidth": 100,
@@ -50,7 +50,7 @@
       "hasSizes": false
     },
     {
-      "selector": "img",
+      "selector": "img:nth-of-type(3)",
       "url": "http://127.0.0.1:8000/hero.png?c",
       "verdict": "undersized",
       "naturalWidth": 100,

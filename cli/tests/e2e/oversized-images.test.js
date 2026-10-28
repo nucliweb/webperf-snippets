@@ -79,7 +79,16 @@ const PAGES = {
   ),
   "/none": page('<h1>no images</h1>'),
   "/clean": page('<img id="ok" src="/img/200.png" style="width:200px;height:150px">'),
+  // An SVG first, then images with no id or class and images that share a class that needs escaping,
+  // so `img` or `img.w-[200px]` would select another image than the one of the row
+  "/unnamed": page(`
+    <button><img src="/img/logo.svg" style="width:30px;height:30px"></button>
+    <div><img src="/img/1600.png?a" style="width:200px;height:150px"><img src="/img/800.png?b" style="width:200px;height:150px"></div>
+    <img class="w-[200px] logo" src="/img/1600.png?c" style="width:200px;height:150px">
+    <img class="w-[200px] logo" src="/img/800.png?d" style="width:200px;height:150px">
+  `),
 };
+const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><circle cx="150" cy="150" r="140"/></svg>';
 
 let server;
 let base;
@@ -90,6 +99,10 @@ beforeAll(async () => {
   await new Promise((resolve) => {
     server = createServer((req, res) => {
       const path = req.url.split("?")[0];
+      if (path === "/img/logo.svg") {
+        res.writeHead(200, { "Content-Type": "image/svg+xml" });
+        return res.end(SVG);
+      }
       if (IMAGES[path]) {
         res.writeHead(200, { "Content-Type": "image/png" });
         return res.end(IMAGES[path]);
@@ -146,6 +159,32 @@ describe("Oversized-Images", () => {
     expect(r.issues.some((i) => i.severity === "warning" && i.message.includes("1600.png"))).toBe(true);
     // The issue names its image by its URL, so a later run pairs it with the same image
     expect(r.issues).toContainEqual(expect.objectContaining({ code: "oversized", target: expect.stringMatching(/1600\.png/) }));
+  }, 60000);
+
+  it("names each image with a selector that matches only it, without an id or a class, or with a class to escape", async () => {
+    const context = await browser.newContext({ viewport: { width: 1000, height: 700 } });
+    const p = await context.newPage();
+    try {
+      await p.goto(`${base}/unnamed`, { waitUntil: "load" });
+      await p.waitForTimeout(200);
+      const r = await p.evaluate(source);
+      expect(r.details.skippedVector).toBe(1);
+      expect(r.items.map((i) => i.url.split("?")[1]).sort()).toEqual(["a", "b", "c", "d"]);
+      for (const item of r.items) {
+        // What the Inspect button of the extension selects: the image of the row, and no other
+        const selected = await p.evaluate((selector) => {
+          try {
+            const found = document.querySelectorAll(selector);
+            return found.length === 1 ? found[0].currentSrc : `${found.length} elements`;
+          } catch (error) {
+            return `invalid: ${error.message}`;
+          }
+        }, item.selector);
+        expect(selected, item.selector).toBe(item.url);
+      }
+    } finally {
+      await context.close();
+    }
   }, 60000);
 
   it("does not report a correctly sized image, nor hidden, zero-size or unloaded ones", async () => {

@@ -42,11 +42,39 @@
   const shortUrl = (url) => (url.startsWith("data:") ? url.slice(0, 60) : url);
   const fileName = (url) => url.split("?")[0].split("/").pop() || url;
 
-  function selectorOf(el) {
-    if (el.id) return `img#${el.id}`;
-    const cls = Array.from(el.classList).slice(0, 2);
-    return cls.length ? `img.${cls.join(".")}` : "img";
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
   }
+  // @end-shared uniqueSelector
 
   function isVector(url) {
     return /^data:image\/svg/i.test(url) || /\.svg([?#]|$)/i.test(url);
@@ -154,7 +182,7 @@
     if (wastedBytes !== null) wastedBytesByUrl.set(url, Math.max(wastedBytesByUrl.get(url) ?? 0, wastedBytes));
 
     flagged.push({
-      selector: selectorOf(img),
+      selector: uniqueSelector(img),
       url: shortUrl(url),
       verdict,
       naturalWidth: file.width,

@@ -13,6 +13,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Prompt to fix, of a result or an audit of the extension, puts what the page holds (the issues, the details and the rows) in one block between `----- BEGIN PAGE DATA -----` and `----- END PAGE DATA -----`, after a sentence that says it is data from the measured page, never an instruction. Each value goes on one line, without the delimiters, so a message or a selector of the page cannot close the block. `npm run eval:prompts` has a case with the Prompt to fix of the same page, where the agent changes a copy of the page and checks the change with the CLI.
 
 ### Fixed
+- Oversized-Images names each image with a selector that matches only it, as LCP does: an image with no id or class was `img`, and one that shares its classes with others, such as the logos of a carousel, `img.logo`, so Inspect in the extension selected the first image of the page, often another one. The selector goes up to the nearest ancestor with a unique id and adds `:nth-of-type()` where needed (`div.carousel-item:nth-of-type(8) > img`), and its classes are escaped, which Tailwind classes such as `w-[200px]` need.
 - The prompt evals find the interactions file of a run whose `cd` to its folder is on a line of its own, which they graded as missing.
 - The reference value of a prompt eval is the median of 3 runs of the CLI: a single run, the first on a fresh machine, could come out several times slower than the agents and fail every run of its case.
 
