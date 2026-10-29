@@ -20,6 +20,7 @@ import { resolveNetwork } from "./throttling.js";
 import { parseHeader } from "./headers.js";
 import { parseOwnDomains } from "./own-domains.js";
 import { MEDIAN_METRICS } from "./runs.js";
+import { isHttpUrl } from "./url.js";
 
 const KEYS = {
   matrix: ["urls", "devices", "variants", "runs", "medianBy"],
@@ -58,16 +59,8 @@ function readUrls(urls) {
   if (entries.length === 0) throw new MatrixError("urls has no URL");
 
   const parsed = entries.map(([at, url, name]) => {
-    let parsedUrl;
-    try {
-      parsedUrl = new URL(url);
-    } catch {
-      parsedUrl = null;
-    }
-    if (typeof url !== "string" || !parsedUrl || !["http:", "https:"].includes(parsedUrl.protocol)) {
-      throw new MatrixError(`urls${at} "${url}" is not an http or https URL`);
-    }
-    return { url, parsedUrl, name };
+    if (!isHttpUrl(url)) throw new MatrixError(`urls${at} "${url}" is not an http or https URL`);
+    return { url, parsedUrl: new URL(url), name };
   });
   if (!Array.isArray(urls)) return parsed.map(({ name, url }) => ({ name, url }));
 

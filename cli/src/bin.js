@@ -20,6 +20,7 @@ import { loadMatrix } from "./matrix.js";
 import { blockingErrors } from "./blocking.js";
 import { MEASURED_BY, checkBudgets, parseBudgets, unmeasuredMetrics, violationsOf } from "./budgets.js";
 import { measurementConditions } from "./conditions.js";
+import { isHttpUrl } from "./url.js";
 import { loadBaseline, parseThreshold, thresholdsWith, compareRun, compareMatrix } from "./baseline.js";
 import { describeRegressions, describeMatrixRegressions, matrixComparisonView } from "./reporters/baseline-view.js";
 
@@ -199,6 +200,8 @@ async function main() {
     process.stdout.write(USAGE);
     process.exit(2);
   }
+  // Without the URL itself, which can carry a token in its query, as a header can
+  if (url && !isHttpUrl(url)) fail("The URL must be an http or https URL, such as https://example.com or http://localhost:3000");
   if (matrixPath && values.viewport) fail("--viewport does not apply to --matrix: set the viewport of each device in the file");
 
   const waitMs = values.wait ? Number(values.wait) : 3000;
