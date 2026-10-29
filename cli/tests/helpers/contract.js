@@ -259,11 +259,26 @@ const HEAVY_PAGE = (other) => `<!DOCTYPE html>
 </body>
 </html>`;
 
-// Runs in the page: reports values that cannot travel as JSON and returns the JSON text.
+// Runs in the page: reports values that cannot travel as JSON and selectors that do not match one
+// element, and returns the JSON text. The keys of a selector are the ones the view of the results
+// (snippets/_view/fields.js) makes inspectable, so Inspect in the extension must select that element
+// and no other; a selector inside a shadow root (">>>", "(shadow root)") cannot be read from the
+// document and is left out.
 function inspectInPage(value) {
   const violations = new Set();
   const ancestors = new Set();
-  const walk = (v, depth) => {
+  const SELECTOR_KEYS = new Set(["selector", "element", "finalElement"]);
+  const matchesOne = (selector) => {
+    try {
+      return document.querySelectorAll(selector).length === 1;
+    } catch {
+      return false;
+    }
+  };
+  const walk = (v, depth, key) => {
+    if (SELECTOR_KEYS.has(key) && typeof v === "string" && !/>>>|\(shadow root\)/.test(v) && !matchesOne(v)) {
+      violations.add("non-unique-selector");
+    }
     if (v === null || v === undefined) return;
     if (typeof v === "function") return violations.add("not-serializable");
     if (typeof v !== "object") return;
@@ -278,7 +293,7 @@ function inspectInPage(value) {
     }
     if (depth > 8) return;
     ancestors.add(v);
-    for (const key of Object.keys(v)) walk(v[key], depth + 1);
+    for (const key of Object.keys(v)) walk(v[key], depth + 1, Array.isArray(v) ? undefined : key);
     ancestors.delete(v);
   };
   walk(value, 0);

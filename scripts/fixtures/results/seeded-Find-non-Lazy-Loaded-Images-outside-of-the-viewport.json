@@ -14,7 +14,7 @@
   },
   "items": [
     {
-      "selector": "html>body>img",
+      "selector": "img:nth-of-type(3)",
       "src": "http://127.0.0.1:8000/hero.png?c",
       "sizeBytes": 30473,
       "category": "below-fold",

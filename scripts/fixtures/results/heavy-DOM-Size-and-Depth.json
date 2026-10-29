@@ -6,17 +6,17 @@
     {
       "code": "too-many-children",
       "severity": "warning",
-      "message": "html > body has 183 children, above 60; consider virtualizing or paginating the list"
+      "message": "body has 183 children, above 60; consider virtualizing or paginating the list"
     }
   ],
   "items": [
     {
-      "selector": "html > body",
+      "selector": "body",
       "children": 183,
       "depth": 2
     },
     {
-      "selector": "html > head",
+      "selector": "head",
       "children": 145,
       "depth": 2
     },
@@ -26,37 +26,37 @@
       "depth": 1
     },
     {
-      "selector": "html > body > div.c0",
+      "selector": "div.c0:nth-of-type(2)",
       "children": 1,
       "depth": 3
     },
     {
-      "selector": "html > body > div.c1",
+      "selector": "div.c1:nth-of-type(3)",
       "children": 1,
       "depth": 3
     },
     {
-      "selector": "html > body > div.c2",
+      "selector": "div.c2:nth-of-type(4)",
       "children": 1,
       "depth": 3
     },
     {
-      "selector": "html > body > div.c3",
+      "selector": "div.c3:nth-of-type(5)",
       "children": 1,
       "depth": 3
     },
     {
-      "selector": "html > body > div.c4",
+      "selector": "div.c4:nth-of-type(6)",
       "children": 1,
       "depth": 3
     },
     {
-      "selector": "html > body > div.c5",
+      "selector": "div.c5:nth-of-type(7)",
       "children": 1,
       "depth": 3
     },
     {
-      "selector": "html > body > div.c6",
+      "selector": "div.c6:nth-of-type(8)",
       "children": 1,
       "depth": 3
     }
@@ -65,7 +65,7 @@
     "totalElements": 421,
     "maxDepth": 4,
     "maxChildren": 183,
-    "widestParent": "html > body",
+    "widestParent": "body",
     "deepestElement": "html > body > div.c0 > img",
     "shadowRoots": 0,
     "thresholds": {

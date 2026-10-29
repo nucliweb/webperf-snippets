@@ -15,6 +15,7 @@
   },
   "items": [
     {
+      "selector": "img:nth-of-type(2)",
       "url": "http://127.0.0.1:8000/hero.png?b",
       "format": "png",
       "inViewport": true,
@@ -45,6 +46,7 @@
       ]
     },
     {
+      "selector": "img:nth-of-type(3)",
       "url": "http://127.0.0.1:8000/hero.png?c",
       "format": "png",
       "inViewport": false,
@@ -70,6 +72,7 @@
       ]
     },
     {
+      "selector": "img:nth-of-type(4)",
       "url": "http://127.0.0.1:8001/bitmap.svg",
       "format": "svg",
       "inViewport": false,
@@ -90,6 +93,7 @@
       ]
     },
     {
+      "selector": "#hero",
       "url": "http://127.0.0.1:8000/hero.png",
       "format": "png",
       "inViewport": true,

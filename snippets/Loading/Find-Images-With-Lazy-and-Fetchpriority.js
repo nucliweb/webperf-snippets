@@ -2,26 +2,40 @@
 // https://webperf-snippets.net
 
 (() => {
-  function getSelector(node) {
-    let sel = "";
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const name = el.nodeName.toLowerCase();
-        const part = el.id
-          ? "#" + el.id
-          : name +
-            (el.classList && el.classList.value && el.classList.value.trim()
-              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
-              : "");
-        if (sel.length + part.length > 80) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
       }
-    } catch {}
-    return sel;
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
   }
+  // @end-shared uniqueSelector
+
 
   function isInViewport(element) {
     const rect = element.getBoundingClientRect();
@@ -77,7 +91,7 @@
       const isLcp = el === lcpCandidate;
 
       return {
-        selector: getSelector(el),
+        selector: uniqueSelector(el),
         dimensions: `${Math.round(rect.width)}×${Math.round(rect.height)}`,
         inViewport: inViewport ? "Yes" : "No",
         isLcpCandidate: isLcp ? "⚠️ Yes" : "No",
@@ -140,7 +154,7 @@
     items: Array.from(conflictingElements).map((el) => {
       const rect = el.getBoundingClientRect();
       return {
-        selector: getSelector(el),
+        selector: uniqueSelector(el),
         src: el.currentSrc || el.src || "",
         inViewport: isInViewport(el),
         isLcpCandidate: el === lcpCandidate,
