@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Security
+- The site no longer loads the RUM script of DebugBear (`cdn.debugbear.com`). DebugBear reported that its domain was taken over, so the script could serve any code to the visitors of the site.
+
 ---
 
 ## [2.4.1] — 2026-10-29

@@ -3,10 +3,6 @@ import Script from "next/script";
 export function Analytics() {
   return (
     <>
-      <Script
-        src="https://cdn.debugbear.com/BK73p0yToVVP.js"
-        strategy="afterInteractive"
-      />
       {/* The library loads when the browser is idle after load, not while the page loads: it took
           about 200 ms of main thread on a mobile CPU. gtag() below queues the events until then. */}
       <Script

@@ -19,8 +19,8 @@ describe("Analytics", () => {
     expect(inline().props.children).toMatch(/function gtag\(\)\{dataLayer\.push\(arguments\)\}/);
   });
 
-  // The RUM script has to observe the page from the start to measure INP and LCP
-  it("keeps the RUM of DebugBear loading after hydration", () => {
-    expect(bySrc("cdn.debugbear.com").props.strategy).toBe("afterInteractive");
+  // The domain of DebugBear was taken over (2026-10-29), so its RUM script could serve anything
+  it("does not load the RUM script of DebugBear", () => {
+    expect(bySrc("debugbear.com")).toBeUndefined();
   });
 });
