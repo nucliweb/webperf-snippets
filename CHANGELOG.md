@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Oversized-Images leaves out an SVG of the page served without the `.svg` extension, such as `/logo?format=svg` from an image service, by the content type of its response, where Chrome and Edge 148 and Firefox 129 report it. It measured it as a raster image and flagged it as oversized. An SVG of another origin without the extension is still measured, since the browser does not give its content type.
+
 ---
 
 ## [2.4.0] — 2026-10-29

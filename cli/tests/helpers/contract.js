@@ -174,6 +174,15 @@ const SMALL_PAGES = (other) => ({
     "<style>.late{content-visibility:auto;contain-intrinsic-size:auto 500px}</style>",
     '<section class="late">a</section><section class="late">b</section>'
   ),
+  // Elements that share their tag and classes, with content-visibility, and offscreen blocks of many
+  // children, so a selector without :nth-of-type() or escaped classes names several
+  "/cv-repeated": page(
+    "<style>.late{content-visibility:auto;contain-intrinsic-size:auto 500px}.bare{content-visibility:auto}.block{height:300px}</style>",
+    '<section class="late">a</section><section class="late">b</section>' +
+      '<div class="bare w-[50%]">c</div><div class="bare w-[50%]">d</div>' +
+      '<div style="height:2000px"></div>' +
+      Array.from({ length: 2 }, () => `<div class="block">${"<p>row</p>".repeat(6)}</div>`).join("")
+  ),
   // Next.js data with a large array and a key that looks sensitive
   "/ssr": page(
     `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({

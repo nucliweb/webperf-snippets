@@ -49,8 +49,9 @@
     }
     return parts.join(" > ");
   }
+  const typeByUrl = new Map(performance.getEntriesByType("resource").map(e => [ e.name, e.contentType ]));
   function isVector(url) {
-    return /^data:image\/svg/i.test(url) || /\.svg([?#]|$)/i.test(url);
+    return /^data:image\/svg/i.test(url) || /\.svg([?#]|$)/i.test(url) || typeByUrl.get(url) === "image/svg+xml";
   }
   function loadPixels(url) {
     return new Promise(resolve => {
