@@ -8,7 +8,6 @@ export default {
     // A CSS selector of an element of the page, which a consumer can make inspectable
     selector: { format: 'selector' },
     element: { format: 'selector' },
-    lcpElement: { format: 'selector' },
     finalElement: { format: 'selector' },
     // The name of a phase, read as its label
     slowestPhase: { format: 'key' },

@@ -1,5 +1,39 @@
 // Detect elements with content-visibility: auto and analyze optimization opportunities
 
+// @shared uniqueSelector
+// A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+// otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+// unique id, or to the root, and stops as soon as it matches one element.
+function uniqueSelector(el) {
+  const root = el.getRootNode();
+  const matchesOne = (selector) => {
+    try {
+      return root.querySelectorAll(selector).length === 1;
+    } catch {
+      return false;
+    }
+  };
+  const parts = [];
+  let node = el;
+  while (node && node.nodeType === 1) {
+    if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+      parts.unshift(`#${window.CSS.escape(node.id)}`);
+      break;
+    }
+    const tag = node.localName;
+    let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+    const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+    if (siblings.filter((s) => s.matches(part)).length > 1) {
+      part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+    }
+    parts.unshift(part);
+    if (matchesOne(parts.join(" > "))) break;
+    node = node.parentElement;
+  }
+  return parts.join(" > ");
+}
+// @end-shared uniqueSelector
+
 function detectContentVisibility() {
   // Create an object to store the results
   const results = {
@@ -8,39 +42,6 @@ function detectContentVisibility() {
     visibleElements: [],
     nodeArray: [],
   };
-
-  // Get the name of the node
-  function getName(node) {
-    const name = node.nodeName;
-    return node.nodeType === 1 ? name.toLowerCase() : name.toUpperCase().replace(/^#/, "");
-  }
-
-  // Get the selector for an element
-  function getSelector(node) {
-    let sel = "";
-
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const part = el.id
-          ? "#" + el.id
-          : getName(el) +
-            (el.classList &&
-            el.classList.value &&
-            el.classList.value.trim() &&
-            el.classList.value.trim().length
-              ? "." + el.classList.value.trim().replace(/\s+/g, ".")
-              : "");
-        if (sel.length + part.length > 100 - 1) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
-      }
-    } catch {
-      // Do nothing...
-    }
-    return sel;
-  }
 
   // Check if element is in viewport
   function isInViewport(element) {
@@ -59,7 +60,7 @@ function detectContentVisibility() {
     const cs = window.getComputedStyle(node);
 
     return {
-      selector: getSelector(node),
+      selector: uniqueSelector(node),
       contentVisibility: cs["content-visibility"],
       containIntrinsicSize: cs["contain-intrinsic-size"] || "not set",
       width: Math.round(rect.width),
@@ -171,27 +172,6 @@ function analyzeContentVisibilityOpportunities(options = {}) {
   const opportunities = [];
   const processedElements = new Set();
 
-  function getSelector(node) {
-    let sel = "";
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const name = el.nodeName.toLowerCase();
-        const part = el.id
-          ? "#" + el.id
-          : name +
-            (el.classList && el.classList.value && el.classList.value.trim()
-              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
-              : "");
-        if (sel.length + part.length > 80) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
-      }
-    } catch {}
-    return sel;
-  }
-
   function estimateRenderSavings(childCount) {
     const baseMs = childCount * 0.2;
     if (baseMs < 5) return "Low (~" + baseMs.toFixed(1) + "ms)";
@@ -233,7 +213,7 @@ function analyzeContentVisibilityOpportunities(options = {}) {
     processedElements.add(el);
 
     opportunities.push({
-      selector: getSelector(el),
+      selector: uniqueSelector(el),
       height: Math.round(rect.height) + "px",
       distanceFromViewport: Math.round(distanceFromViewport) + "px",
       childElements: childCount,

@@ -182,7 +182,7 @@ test('a selector in the items or the details is a button that inspects the eleme
     items: [{ selector: 'img#hero', bytes: 10 }, { selector: '', bytes: 2 }],
     details: { element: 'p.intro', elementType: 'Text block' },
   })
-  assert.match(html, /<td><button type="button" class="inspect" data-selector="img#hero" title="Inspect in Elements">img#hero<\/button><\/td>/)
+  assert.match(html, /<td class="long"><button type="button" class="inspect" data-selector="img#hero" title="Inspect in Elements">img#hero<\/button><\/td>/)
   assert.match(html, /<dt>Element<\/dt><dd><button type="button" class="inspect" data-selector="p.intro" title="Inspect in Elements">p.intro<\/button><\/dd>/)
   assert.match(html, /<dt>Element type<\/dt><dd>Text block<\/dd>/)
 })
@@ -191,6 +191,11 @@ test('a long selector wraps like any long value, so the table does not scroll si
   const selector = 'html.js-ready > body.logged-in > div.layout > div.layout-main > div.content > ul#list'
   const html = renderResult({ script: 'X', status: 'ok', items: [{ selector, children: 120 }] })
   assert.match(html, /<td class="long"><button type="button" class="inspect"/)
+})
+
+test('a short selector wraps too, since a selector that matches only its element is often a path', () => {
+  const html = renderResult({ script: 'X', status: 'ok', items: [{ selector: 'img:nth-of-type(2)', children: 3 }] })
+  assert.match(html, /<td class="long"><button type="button" class="inspect" data-selector="img:nth-of-type\(2\)"/)
 })
 
 test('a distribution reads as a line of its parts, with the numbers in bold', () => {

@@ -10,7 +10,7 @@
   },
   "items": [
     {
-      "selector": "html>body>img",
+      "selector": "img:nth-of-type(2)",
       "lazyType": "loading-lazy",
       "dimensions": "300×200",
       "position": "441px, 604px",

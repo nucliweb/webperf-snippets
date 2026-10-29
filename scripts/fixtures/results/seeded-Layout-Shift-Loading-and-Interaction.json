@@ -21,7 +21,7 @@
         "totalImpact": 0.1137
       },
       {
-        "selector": "img",
+        "selector": "img:nth-of-type(2)",
         "shiftCount": 2,
         "totalImpact": 0.1137
       },

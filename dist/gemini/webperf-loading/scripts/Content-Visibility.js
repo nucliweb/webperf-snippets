@@ -1,3 +1,30 @@
+function uniqueSelector(el) {
+  const root = el.getRootNode();
+  const matchesOne = selector => {
+    try {
+      return root.querySelectorAll(selector).length === 1;
+    } catch {
+      return false;
+    }
+  };
+  const parts = [];
+  let node = el;
+  while (node && node.nodeType === 1) {
+    if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+      parts.unshift(`#${window.CSS.escape(node.id)}`);
+      break;
+    }
+    const tag = node.localName;
+    let part = tag + Array.from(node.classList).slice(0, 2).map(c => `.${window.CSS.escape(c)}`).join("");
+    const siblings = node.parentNode ? Array.from(node.parentNode.children) : [ node ];
+    if (siblings.filter(s => s.matches(part)).length > 1) part += `:nth-of-type(${siblings.filter(s => s.localName === tag).indexOf(node) + 1})`;
+    parts.unshift(part);
+    if (matchesOne(parts.join(" > "))) break;
+    node = node.parentElement;
+  }
+  return parts.join(" > ");
+}
+
 function detectContentVisibility() {
   const results = {
     autoElements: [],
@@ -5,24 +32,6 @@ function detectContentVisibility() {
     visibleElements: [],
     nodeArray: []
   };
-  function getName(node) {
-    const name = node.nodeName;
-    return node.nodeType === 1 ? name.toLowerCase() : name.toUpperCase().replace(/^#/, "");
-  }
-  function getSelector(node) {
-    let sel = "";
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const part = el.id ? "#" + el.id : getName(el) + (el.classList && el.classList.value && el.classList.value.trim() && el.classList.value.trim().length ? "." + el.classList.value.trim().replace(/\s+/g, ".") : "");
-        if (sel.length + part.length > 100 - 1) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
-      }
-    } catch {}
-    return sel;
-  }
   function isInViewport(element) {
     const rect = element.getBoundingClientRect();
     return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0;
@@ -31,7 +40,7 @@ function detectContentVisibility() {
     const rect = node.getBoundingClientRect();
     const cs = window.getComputedStyle(node);
     return {
-      selector: getSelector(node),
+      selector: uniqueSelector(node),
       contentVisibility: cs["content-visibility"],
       containIntrinsicSize: cs["contain-intrinsic-size"] || "not set",
       width: Math.round(rect.width),
@@ -73,21 +82,6 @@ function analyzeContentVisibilityOpportunities(options = {}) {
   const viewportHeight = window.innerHeight;
   const opportunities = [];
   const processedElements = new Set;
-  function getSelector(node) {
-    let sel = "";
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const name = el.nodeName.toLowerCase();
-        const part = el.id ? "#" + el.id : name + (el.classList && el.classList.value && el.classList.value.trim() ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".") : "");
-        if (sel.length + part.length > 80) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
-      }
-    } catch {}
-    return sel;
-  }
   function estimateRenderSavings(childCount) {
     const baseMs = childCount * 0.2;
     if (baseMs < 5) return "Low (~" + baseMs.toFixed(1) + "ms)";
@@ -114,7 +108,7 @@ function analyzeContentVisibilityOpportunities(options = {}) {
     if (childCount < minChildren) return;
     processedElements.add(el);
     opportunities.push({
-      selector: getSelector(el),
+      selector: uniqueSelector(el),
       height: Math.round(rect.height) + "px",
       distanceFromViewport: Math.round(distanceFromViewport) + "px",
       childElements: childCount,

@@ -58,7 +58,8 @@ git push origin v2.0.2
 ## CLI (`cli-v*`)
 
 1. Update the version in [cli/package.json](../cli/package.json) and the CHANGELOG, and merge the pull request.
-   Before the merge, run `npm run smoke:cli-package`: it packs the CLI as the workflow publishes it, installs it in an empty folder and checks its MCP server without Chromium and after `npx playwright install chromium`. It needs the network, so it does not run in CI.
+   Before the merge, run `npm run smoke:cli-package`: it packs the CLI as the workflow publishes it, installs it in an empty folder, runs `npm audit` on what it installed and checks its MCP server without Chromium and after `npx playwright install chromium`. It needs the network, so it does not run in CI.
+   The audit fails on a high or critical advisory in the tree a user gets today. That tree floats with the ranges of the dependencies and has none of the overrides of the repository, and the package has no `npm-shrinkwrap.json`, so users get the fixes of the dependencies without a release. When the audit fails, raise the range of the dependency in `cli/package.json`, or wait for its fix, and release; a release with a known high advisory in its tree needs a reason in its CHANGELOG.
 2. Push the tag right after the merge. The Copy prompt of the site pins the CLI version of `cli/package.json`, so the prompts of the deployed site fail until npm has that version.
 
 ```bash
