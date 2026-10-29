@@ -70,7 +70,7 @@ npm run test:extension:e2e   # every snippet through the real panel, on the seed
 npm run eval:prompts         # an agent runs the prompts on local pages, graded from its transcript (eval-prompts.yml: on demand and on PRs that change the prompt)
 
 npm run test:unit --prefix cli
-npm run smoke:cli-package     # before a CLI release: the packed CLI installed in an empty folder, through its MCP server
+npm run smoke:cli-package     # before a CLI release: the packed CLI installed in an empty folder, npm audit of that tree and its MCP server
 npm run test:e2e --prefix cli   # Playwright against local fixtures (cli/tests/fixtures)
 ```
 

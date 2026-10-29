@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 // Installs the CLI the way a user gets it, and talks to its MCP server. It packs cli/ with the snippets,
 // as the publish workflow does, installs the tarball in an empty folder (npm adds the peer playwright,
-// at the version it resolves today), and then checks, through `webperf-snippets mcp`:
-//   1. without Chromium: list_snippets answers, and run_snippet says how to install the browser
-//   2. after `npx playwright install chromium` in that folder: run_snippet measures a local page
+// at the version it resolves today), and then checks:
+//   1. npm audit of that folder: no high or critical advisory in the tree a user installs today, which
+//      floats with the ranges of the dependencies and does not have the overrides of the repository
+//   2. without Chromium, through `webperf-snippets mcp`: list_snippets answers, and run_snippet says how
+//      to install the browser
+//   3. after `npx playwright install chromium` in that folder: run_snippet measures a local page
 // It needs the network (npm and, the first time, the Chromium of that Playwright), so it runs by hand
 // before a release of the CLI, not in CI.
 //
@@ -63,6 +66,19 @@ try {
   check(installed.includes('playwright'), 'npm installed the peer playwright')
   const playwrightVersion = JSON.parse(execFileSync('node', ['-p', 'JSON.stringify(require("playwright/package.json").version)'], { cwd: app, encoding: 'utf8' }))
   console.log(`  playwright ${playwrightVersion}`)
+
+  step('npm audit of the installed tree')
+  // npm audit exits with 1 when it finds anything, so its JSON is read from the error as well
+  let report
+  try {
+    report = JSON.parse(npm(['audit', '--json'], app))
+  } catch (error) {
+    report = JSON.parse(error.stdout)
+  }
+  const counts = report.metadata.vulnerabilities
+  const serious = Object.entries(report.vulnerabilities).filter(([, v]) => v.severity === 'high' || v.severity === 'critical')
+  for (const [name, v] of serious) console.log(`  ${v.severity} ${name}: ${[v.via].flat().map((via) => via.title ?? via).join('; ')}`)
+  check(serious.length === 0, `no high or critical advisory (${counts.critical} critical, ${counts.high} high, ${counts.moderate} moderate, ${counts.low} low)`)
 
   await new Promise((done) => page.listen(0, '127.0.0.1', done))
   const url = `http://127.0.0.1:${page.address().port}/`
