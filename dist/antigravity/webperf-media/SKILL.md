@@ -11,7 +11,7 @@ tools:
 license: MIT
 metadata:
   author: Joan Leon | @nucliweb
-  version: 2.4.0
+  version: 2.4.1
   mcp-server: chrome-devtools
   category: web-performance
   repository: https://github.com/nucliweb/webperf-snippets

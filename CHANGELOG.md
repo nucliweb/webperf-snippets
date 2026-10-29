@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.4.1] — 2026-10-29
+
+A patch release with two fixes of what Content-Visibility and Oversized-Images report. The CLI reaches version 1.7.1 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)) and the extension 0.5.1, with the same snippets.
+
 ### Fixed
 - Content-Visibility warns with `missing-intrinsic-size` about an element with `content-visibility: auto` and no size. `content-visibility: auto` adds `auto` to `contain-intrinsic-size`, so Chrome reports an element with no size as `auto none`, also when the CSS says `none`, and the snippet flagged only `none` or no value: the warning never appeared in Chrome. It now flags a value with no length, and an element with `auto 500px` or `500px` stays clean.
 - Oversized-Images leaves out an SVG of the page served without the `.svg` extension, such as `/logo?format=svg` from an image service, by the content type of its response, where Chrome and Edge 148 and Firefox 129 report it. It measured it as a raster image and flagged it as oversized. An SVG of another origin without the extension is still measured, since the browser does not give its content type.
@@ -279,7 +285,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.1.0...v2.2.0
