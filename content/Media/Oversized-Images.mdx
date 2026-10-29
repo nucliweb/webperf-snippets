@@ -42,7 +42,9 @@ The console shows a summary and a table of the worst offenders. The returned obj
 
 #### What is skipped
 
-Images with a zero-size box (`display: none`, or `width: 0`), images that have not loaded yet (for example, a `loading="lazy"` image far below the fold) and SVG images are not measured. `details` counts each group. CSS background images are not inspected.
+Images with a zero-size box (`display: none`, or `width: 0`), images that have not loaded yet (for example, a `loading="lazy"` image far below the fold) and SVG images are not measured: an SVG scales to any size. `details` counts each group. CSS background images are not inspected.
+
+An SVG is known by its `.svg` extension or a `data:image/svg` URL, and an SVG of the page served without the extension, such as `/logo?format=svg` from an image service, by the content type of its response, which Chrome and Edge 148 and Firefox 129 report. The browser does not give the content type of an image from another origin, so an SVG of a CDN without the extension is measured as a raster image.
 
 <Callout type="warning">
   Scroll the page to the end before running the snippet, or images with `loading="lazy"` are not measured.

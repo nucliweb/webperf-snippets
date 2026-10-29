@@ -88,6 +88,11 @@ const PAGES = {
     <img class="w-[200px] logo" src="/img/800.png?d" style="width:200px;height:150px">
   `),
 };
+// An SVG of the site served without the .svg extension, as an image service does
+PAGES["/svg-by-type"] = page(`
+    <img id="vector" src="/img/logo?format=svg" style="width:30px;height:30px">
+    <img id="raster" src="/img/1600.png?t" style="width:200px;height:150px">
+  `);
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><circle cx="150" cy="150" r="140"/></svg>';
 
 let server;
@@ -99,7 +104,7 @@ beforeAll(async () => {
   await new Promise((resolve) => {
     server = createServer((req, res) => {
       const path = req.url.split("?")[0];
-      if (path === "/img/logo.svg") {
+      if (path === "/img/logo.svg" || path === "/img/logo") {
         res.writeHead(200, { "Content-Type": "image/svg+xml" });
         return res.end(SVG);
       }
@@ -185,6 +190,12 @@ describe("Oversized-Images", () => {
     } finally {
       await context.close();
     }
+  }, 60000);
+
+  it("leaves out an SVG of the page served without the .svg extension, by its content type", async () => {
+    const r = await run("/svg-by-type");
+    expect(r.details.skippedVector).toBe(1);
+    expect(r.items.map((i) => i.url.split("/").pop())).toEqual(["1600.png?t"]);
   }, 60000);
 
   it("does not report a correctly sized image, nor hidden, zero-size or unloaded ones", async () => {

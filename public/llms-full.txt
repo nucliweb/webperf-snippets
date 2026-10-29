@@ -16684,8 +16684,13 @@ Compares the pixels of each downloaded image file with the pixels the page draws
   }
   // @end-shared uniqueSelector
 
+  // An SVG scales to any size, so its pixels are not measured. The extension names most of them; the
+  // content type of the response names an SVG of the page served without it, such as an image service
+  // that takes the format in the query. The browser gives the content type only for a response it can
+  // read: an SVG of another origin without the extension is measured as a raster image.
+  const typeByUrl = new Map(performance.getEntriesByType("resource").map((e) => [e.name, e.contentType]));
   function isVector(url) {
-    return /^data:image\/svg/i.test(url) || /\.svg([?#]|$)/i.test(url);
+    return /^data:image\/svg/i.test(url) || /\.svg([?#]|$)/i.test(url) || typeByUrl.get(url) === "image/svg+xml";
   }
 
   // The size of the file in pixels. HTMLImageElement.naturalWidth is corrected by the srcset
