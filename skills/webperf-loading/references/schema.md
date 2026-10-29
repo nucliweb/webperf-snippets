@@ -1250,7 +1250,7 @@ An issue about one thing among several, one issue per thing, also names it in `t
 
 | Code | Severity | When |
 |------|----------|------|
-| `missing-intrinsic-size` | warning | An element with `content-visibility: auto` and no `contain-intrinsic-size`; `target` is its selector |
+| `missing-intrinsic-size` | warning | An element with `content-visibility: auto` whose `contain-intrinsic-size` has no length, such as `none` or the `auto none` Chrome reports when no size is declared; `target` is its selector |
 | `not-used` | info | No `content-visibility` on the page |
 
 ### Critical-CSS-Detection

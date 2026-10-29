@@ -437,6 +437,16 @@ describe("Content-Visibility", () => {
     expect(used.issues.some((i) => /No content-visibility usage/i.test(i.message))).toBe(false);
   }, 60000);
 
+  // content-visibility: auto adds auto to contain-intrinsic-size, so Chrome reports an element with no
+  // size as "auto none", also when the CSS says none: it still has no size before it first renders
+  it("warns about an element with content-visibility: auto and no size, and not about one with a size", async () => {
+    const r = await runOn("/cv-repeated", "Loading/Content-Visibility");
+    const warned = r.issues.filter((i) => i.code === "missing-intrinsic-size");
+    expect(warned.map((i) => i.severity)).toEqual(["warning", "warning"]);
+    expect(warned.every((i) => /bare/.test(i.target))).toBe(true);
+    expect(r.items.filter((i) => /late/.test(i.selector)).map((i) => i.containIntrinsicSize)).toEqual(["auto 500px", "auto 500px"]);
+  }, 60000);
+
   // The contract checks selectors on its pages, which have no content-visibility; this page repeats
   // tags and classes, so only a selector with :nth-of-type() and escaped classes names one element
   it("names each element and each opportunity with a selector that matches only it, the target of an issue too", async () => {
@@ -462,8 +472,8 @@ describe("Content-Visibility", () => {
       );
       return { result, opportunities, matches };
     });
-    // Four elements with content-visibility and two opportunities
-    expect(found.matches.length).toBeGreaterThanOrEqual(6);
+    // Four elements with content-visibility, the two without a size as issues, and two opportunities
+    expect(found.matches.length).toBeGreaterThanOrEqual(8);
     expect(found.matches.filter(([, n]) => n !== 1)).toEqual([]);
   }, 60000);
 });

@@ -34,6 +34,14 @@ function uniqueSelector(el) {
 }
 // @end-shared uniqueSelector
 
+// An element with content-visibility: auto has no size before it first renders unless
+// contain-intrinsic-size gives one, so the page moves when it does. content-visibility: auto adds auto
+// to contain-intrinsic-size, so Chrome reports an element with no size as "auto none", also when the CSS
+// says none: what counts is whether the value has a length, as in "auto 500px".
+function lacksIntrinsicSize(value) {
+  return !/\d/.test(value);
+}
+
 function detectContentVisibility() {
   // Create an object to store the results
   const results = {
@@ -125,7 +133,7 @@ function detectContentVisibility() {
 
     // Check for missing contain-intrinsic-size
     const missingIntrinsicSize = results.autoElements.filter(
-      (el) => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none",
+      (el) => lacksIntrinsicSize(el.containIntrinsicSize),
     );
 
     if (missingIntrinsicSize.length > 0) {
@@ -327,7 +335,7 @@ window.analyzeContentVisibilityOpportunities = analyzeContentVisibilityOpportuni
     ],
     issues: [
       ...cvResults.autoElements
-        .filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none")
+        .filter(el => lacksIntrinsicSize(el.containIntrinsicSize))
         .map(el => ({ code: "missing-intrinsic-size", severity: "warning", message: `${el.selector}: missing contain-intrinsic-size (CLS risk)`, target: el.selector })),
       ...(cvResults.autoElements.length + cvResults.hiddenElements.length === 0
         ? [{ code: "not-used", severity: "info", message: "No content-visibility usage found. Consider content-visibility: auto on below-the-fold sections to reduce the initial render cost." }]

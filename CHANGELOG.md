@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- Content-Visibility warns with `missing-intrinsic-size` about an element with `content-visibility: auto` and no size. `content-visibility: auto` adds `auto` to `contain-intrinsic-size`, so Chrome reports an element with no size as `auto none`, also when the CSS says `none`, and the snippet flagged only `none` or no value: the warning never appeared in Chrome. It now flags a value with no length, and an element with `auto 500px` or `500px` stays clean.
 - Oversized-Images leaves out an SVG of the page served without the `.svg` extension, such as `/logo?format=svg` from an image service, by the content type of its response, where Chrome and Edge 148 and Firefox 129 report it. It measured it as a raster image and flagged it as oversized. An SVG of another origin without the extension is still measured, since the browser does not give its content type.
 
 ---
