@@ -12,7 +12,7 @@ The snippet source files in `snippets/` are the single source of truth. Document
 
 - **Site**: Next.js 16 App Router with Nextra 4 (`nextra-theme-docs`) and React 19, deployed on Vercel. Search is Pagefind, built after `next build`
 - **Media**: Cloudinary URLs (`res.cloudinary.com/nucliweb`), with no SDK
-- **Analytics**: Google Analytics and DebugBear
+- **Analytics**: Google Analytics
 - **CLI** (`cli/`, npm workspace `webperf-snippets`): Playwright runner for the snippets, tested with Vitest
 
 ## Repository layout

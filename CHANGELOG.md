@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Security
+- The site no longer loads the RUM script of DebugBear (`cdn.debugbear.com`). DebugBear reported that its domain was taken over, so the script could serve any code to the visitors of the site.
 - `katex` 0.18.11, which fixes GHSA-238p-pmpm-9mq7 (low). It comes with Nextra and Mermaid, and the site does not reach it: Nextra loads it only with its `latex` option, which the site leaves off, and no page has a Mermaid block. `npm audit` goes from 9 warnings (3 high, 6 low) to 3 (high), all of `zod` 4.3.6 inside Nextra and only at build time: Nextra 4.6.1 fails with the `zod` that fixes GHSA-mrhx-c7xc-m3w5 (shuding/nextra#5036), since `<Layout>` validates its props without `children` against a schema that requires it.
 
 ---
