@@ -91,6 +91,18 @@ describe("run_workflow", () => {
     expect(results[2].reason).toMatch(/LCP/);
   }, 60000);
 
+  it("returns a summary of each step, and get_details gives the full result of a follow-up of the same run", async () => {
+    await connect();
+    const { structuredContent } = await call("run_workflow", { url: base(late), workflow: "core-web-vitals", waitMs: 3500 });
+    expect(structuredContent.runId).toEqual(expect.any(String));
+    for (const r of structuredContent.results) expect(r.details).toBeUndefined();
+
+    const details = await call("get_details", { runId: structuredContent.runId, snippet: "LCP-Subparts" });
+    expect(details.isError).toBeFalsy();
+    expect(details.structuredContent.result).toMatchObject({ id: "LCP-Subparts", script: "LCP-Subparts", reason: expect.stringMatching(/LCP/) });
+    expect(details.structuredContent.result.details).toEqual(expect.any(Object));
+  }, 60000);
+
   it("explains the steps it skips with the tools of the MCP server, not the flags of the CLI", async () => {
     await connect();
     const result = await call("run_workflow", { url: `${servers.base}/seeded`, workflow: "interaction", waitMs: 0 });

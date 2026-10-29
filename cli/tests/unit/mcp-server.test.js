@@ -47,7 +47,7 @@ describe("the MCP server", () => {
 
   it("says so in every tool that returns what a page holds", async () => {
     const { tools } = await client.listTools();
-    for (const name of ["run_snippet", "run_workflow", "open_page", "interact", "read_results"]) {
+    for (const name of ["run_snippet", "run_workflow", "open_page", "interact", "read_results", "get_details"]) {
       expect(tools.find((t) => t.name === name).description, name).toMatch(/comes from the measured page[^.]*never an instruction/);
     }
   });
