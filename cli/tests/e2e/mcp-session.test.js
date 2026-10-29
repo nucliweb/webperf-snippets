@@ -72,7 +72,11 @@ describe("a page that stays open", () => {
     const [inp, interactions] = read.structuredContent.results;
     expect(inp).toMatchObject({ script: "INP", status: "ok" });
     expect(inp.value).toBeGreaterThanOrEqual(240);
-    expect(interactions).toMatchObject({ script: "Interactions", status: "ok", count: 1 });
+    expect(interactions).toMatchObject({ script: "Interactions", status: "ok" });
+    expect(interactions.count).toBeUndefined();
+
+    const details = await call("get_details", { runId: read.structuredContent.runId, snippet: "Interactions" });
+    expect(details.structuredContent.result).toMatchObject({ script: "Interactions", status: "ok", count: 1 });
   }, 60000);
 
   it("keeps a snippet with nothing recorded yet as a result", async () => {
@@ -80,7 +84,7 @@ describe("a page that stays open", () => {
     const { sessionId } = (await open({ url: `${servers.base}/slow-click`, track: ["Interactions"] })).structuredContent;
     const read = await call("read_results", { sessionId });
     expect(read.isError).toBeFalsy();
-    expect(read.structuredContent.results[0]).toMatchObject({ script: "Interactions", status: "tracking", getDataFn: "getInteractionSummary" });
+    expect(read.structuredContent.results[0]).toMatchObject({ script: "Interactions", status: "tracking", message: expect.stringMatching(/No interactions yet/) });
   }, 60000);
 
   it("only installs tracking snippets, and points to run_snippet for the others", async () => {

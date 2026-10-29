@@ -13,6 +13,7 @@ import { createSessions, SessionError } from "./sessions.js";
 import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js";
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
+import { summarize, createRuns, RunError } from "./summary.js";
 import { isHttpUrl } from "../url.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
@@ -32,6 +33,17 @@ const SnippetResult = z
   .describe("The object the snippet returns");
 
 const SessionId = z.string().describe("The id open_page returned");
+
+const RunId = z.string().describe("The id of the run, for get_details");
+
+// A summary by default: the agent reads the status, the metric and the issues of each snippet, and asks
+// get_details for the rest of the one it needs, from the same run
+const Detail = z
+  .enum(["summary", "full"])
+  .default("summary")
+  .describe("summary: status, metric, rating and issues of each snippet, with get_details for the rest. full: the whole object of each snippet");
+const DETAIL_NOTE =
+  "It returns a summary of each result (status, metric, rating and issues) and a runId: get_details gives the whole object of a snippet of that run, without measuring again, and detail full returns every whole object at once.";
 
 // A page can put instructions for the agent in what a snippet returns: an alt text, a class in a
 // selector, the URL of a script. The tools that return what a page holds say how to read it, and so
@@ -98,6 +110,8 @@ function describeSnippet(name) {
 export function createServer({ launchBrowser = () => launchChromium(), maxPages, idleMs, env = process.env } = {}) {
   const server = new McpServer({ name: "webperf-snippets", version: cliVersion }, { instructions: INSTRUCTIONS });
   const sessions = createSessions({ launchBrowser, maxPages, idleMs });
+  const runs = createRuns();
+  const shape = (result, detail) => (detail === "full" ? result : summarize(result));
   // The client left (end of stdin, or a closed transport): close the pages and Chromium
   server.server.onclose = () => sessions.closeAll();
   registerResources(server);
@@ -138,15 +152,17 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a snippet",
       description:
-        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead. ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead. ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         snippet: z.string().describe("The snippet: its name (LCP-Subparts), an alias (render-blocking) or Category/Name"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the snippet, in ms"),
+        detail: Detail,
       }),
       outputSchema: z.object({
         url: z.string(),
+        runId: RunId,
         snippet: z.string().describe("Category/Name of the snippet that ran"),
         viewport: z.enum(VIEWPORTS),
         navMs: z.number().describe("From the start of the navigation to the end of the wait"),
@@ -155,7 +171,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, snippet, viewport, waitMs }, ctx) => {
+    async ({ url, snippet, viewport, waitMs, detail }, ctx) => {
       let path;
       try {
         path = resolveSnippetName(snippet);
@@ -169,8 +185,9 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
 
       try {
         const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress: progressFor(ctx) });
+        const runId = runs.keep(run.results);
         const { id, ...result } = run.results[0];
-        return toolResult({ url, snippet: id, viewport, navMs: run.navMs, pageErrors: run.pageErrors, result });
+        return toolResult({ url, runId, snippet: id, viewport, navMs: run.navMs, pageErrors: run.pageErrors, result: shape(result, detail) });
       } catch (err) {
         if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
@@ -184,15 +201,17 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a workflow",
       description:
-        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page. ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page. ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the workflow, in ms"),
+        detail: Detail,
       }),
       outputSchema: z.object({
         url: z.string(),
+        runId: RunId,
         workflow: z.string(),
         viewport: z.enum(VIEWPORTS),
         navMs: z.number(),
@@ -203,7 +222,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, workflow, viewport, waitMs }, ctx) => {
+    async ({ url, workflow, viewport, waitMs, detail }, ctx) => {
       try {
         const run = await runMeasurement({
           url,
@@ -219,7 +238,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
             ? { ...r, reason: "This step measures clicks and key presses: open the page with open_page and this snippet in track, use it with interact, and read it with read_results." }
             : r
         );
-        return toolResult({ url, workflow, viewport, navMs: run.navMs, pageErrors: run.pageErrors, results });
+        const runId = runs.keep(results);
+        return toolResult({ url, runId, workflow, viewport, navMs: run.navMs, pageErrors: run.pageErrors, results: results.map((r) => shape(r, detail)) });
       } catch (err) {
         if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
@@ -358,20 +378,56 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Read the tracking snippets",
       description:
-        `Returns what the tracking snippets installed by open_page have recorded on the page so far, as the objects they return. A snippet with nothing recorded yet, such as INP before any interaction, answers with status tracking and a message: interact with the page and read again. ${PAGE_DATA}`,
-      inputSchema: z.object({ sessionId: SessionId }),
-      outputSchema: z.object({ sessionId: z.string(), pageErrors: z.array(z.string()), results: z.array(SnippetResult) }),
+        `Returns what the tracking snippets installed by open_page have recorded on the page so far, as the objects they return. A snippet with nothing recorded yet, such as INP before any interaction, answers with status tracking and a message: interact with the page and read again. ${DETAIL_NOTE} ${PAGE_DATA}`,
+      inputSchema: z.object({ sessionId: SessionId, detail: Detail }),
+      outputSchema: z.object({ sessionId: z.string(), runId: RunId, pageErrors: z.array(z.string()), results: z.array(SnippetResult) }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    withSession(async ({ sessionId }) => {
+    withSession(async ({ sessionId, detail }) => {
       const session = sessions.get(sessionId);
-      const results = [];
-      for (const installed of session.tracking) {
-        const { id, ...result } = await collectTrackingData(session.page, installed, session.hadInput);
-        results.push(result);
-      }
-      return toolResult({ sessionId, pageErrors: session.pageErrors, results });
+      const collected = [];
+      for (const installed of session.tracking) collected.push(await collectTrackingData(session.page, installed, session.hadInput));
+      const runId = runs.keep(collected);
+      const results = collected.map(({ id, ...result }) => shape(result, detail));
+      return toolResult({ sessionId, runId, pageErrors: session.pageErrors, results });
     })
+  );
+
+  server.registerTool(
+    "get_details",
+    {
+      title: "Get the details of a result",
+      description:
+        `Returns the whole object of one snippet of a run of run_snippet, run_workflow or read_results, by the runId it returned: the details, items and thresholds the summary leaves out, with the same values, since it does not measure again. The server keeps the last 20 runs of the connection. ${PAGE_DATA}`,
+      inputSchema: z.object({
+        runId: RunId,
+        snippet: z.string().describe("The id or the script of the result in the summary (LCP-Subparts), an alias or Category/Name"),
+      }),
+      outputSchema: z.object({ runId: z.string(), snippet: z.string().describe("The id of the result in the run"), result: SnippetResult }),
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    async ({ runId, snippet }) => {
+      // The id the summary shows first, then the Category/Name an alias or a short name stands for
+      let resolved;
+      try {
+        resolved = resolveSnippetName(snippet);
+      } catch {
+        resolved = undefined;
+      }
+      try {
+        let result;
+        try {
+          result = runs.get(runId, snippet);
+        } catch (err) {
+          if (!(err instanceof RunError) || !resolved || resolved === snippet) throw err;
+          result = runs.get(runId, resolved);
+        }
+        return toolResult({ runId, snippet: result.id, result });
+      } catch (err) {
+        if (err instanceof RunError) return toolError(err.message);
+        throw err;
+      }
+    }
   );
 
   server.registerTool(

@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Changed
+- `run_snippet`, `run_workflow` and `read_results` of the MCP server return a summary of each result: its `status`, `metric`, `value`, `unit`, `rating`, `error`, `message`, the `reason` of a follow-up, and its `issues` with `code`, `severity`, `message` and `target`. The details, items and thresholds stay out, so an answer takes about half the tokens: 58 % fewer for the `audit` workflow and 51 % for `core-web-vitals` on a fixture page of the tests, and more on a real page, whose details grow with its resources. With `detail: "full"` the three tools return every whole object, as in 1.7. The `debug_lcp` and `debug_inp` prompts call `get_details` for the LCP element, the sub-parts and the phases of INP.
+
+### Added
+- `get_details` returns the whole object of one snippet of a run, by the `runId` that `run_snippet`, `run_workflow` and `read_results` now return, with the values the summary came from: measuring again would give other ones. It takes the id of the result in the summary, the name of its script, an alias or `Category/Name`. The server keeps the last 20 runs of a connection, and an older or unknown `runId` answers with a tool error that says to run the tool again.
+
 ---
 
 ## [1.7.1] — 2026-10-29

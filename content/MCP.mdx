@@ -81,13 +81,16 @@ These clients read a JSON file with an `mcpServers` object:
 | Tool | What it does |
 | --- | --- |
 | `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |
-| `run_snippet` | Opens a URL in a headless Chromium, runs one snippet and returns the object it returns. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport` and `waitMs`. |
+| `run_snippet` | Opens a URL in a headless Chromium, runs one snippet and returns a summary of its result. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport` and `waitMs`. |
 | `run_workflow` | Runs a workflow (`core-web-vitals`, `audit`, `loading`, `interaction`) and the follow-ups of its decision tree, such as LCP-Subparts when LCP is over 2.5 s. Takes `url`, `workflow`, and optional `viewport` and `waitMs`. |
 | `get_crux` | Returns the CrUX p75 of LCP, CLS and INP for a URL, or for its origin. Takes `url` and an optional `formFactor` (`phone`, `desktop`, `tablet`). |
 | `open_page` | Opens a URL in a page that stays open between calls and installs tracking snippets (`track`, such as `INP`). Returns a `sessionId`. |
 | `interact` | Runs steps on an open page: `click`, `type`, `hover`, `scroll` or `wait`. |
 | `read_results` | Returns what the tracking snippets of an open page have recorded. |
+| `get_details` | Returns the whole object of one snippet of a run, by the `runId` that `run_snippet`, `run_workflow` or `read_results` returned, without measuring again. Takes `runId` and `snippet`. |
 | `close_page` | Closes an open page. |
+
+The tools that measure return a summary of each result (status, metric, rating and issues) and a `runId`, which keeps the answer small: the details, items and thresholds of a snippet come from `get_details`, with the values of the same run. The server keeps the last 20 runs of a connection. With `detail: "full"`, `run_snippet`, `run_workflow` and `read_results` return every whole object at once.
 
 The tools take `http` and `https` URLs, local servers such as `http://localhost:3000` included, and refuse any other protocol, such as `file://`. The agent chooses the URLs, so it can reach what your machine reaches, an internal address too. Everything a tool returns comes from the measured page, and the server tells the agent, in its instructions and in the description of each tool, to read it as data and never follow what it says.
 
