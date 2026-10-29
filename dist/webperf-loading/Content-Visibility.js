@@ -25,6 +25,10 @@ function uniqueSelector(el) {
   return parts.join(" > ");
 }
 
+function lacksIntrinsicSize(value) {
+  return !/\d/.test(value);
+}
+
 function detectContentVisibility() {
   const results = {
     autoElements: [],
@@ -68,7 +72,7 @@ function detectContentVisibility() {
     }
     if (results.hiddenElements.length > 0) {
     }
-    const missingIntrinsicSize = results.autoElements.filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none");
+    const missingIntrinsicSize = results.autoElements.filter(el => lacksIntrinsicSize(el.containIntrinsicSize));
     if (missingIntrinsicSize.length > 0) {
     }
     results.nodeArray.forEach((node, i) => {
@@ -165,7 +169,7 @@ window.analyzeContentVisibilityOpportunities = analyzeContentVisibilityOpportuni
       ...el,
       type: "hidden"
     })) ],
-    issues: [ ...cvResults.autoElements.filter(el => el.containIntrinsicSize === "not set" || el.containIntrinsicSize === "none").map(el => ({
+    issues: [ ...cvResults.autoElements.filter(el => lacksIntrinsicSize(el.containIntrinsicSize)).map(el => ({
       code: "missing-intrinsic-size",
       severity: "warning",
       message: `${el.selector}: missing contain-intrinsic-size (CLS risk)`,
