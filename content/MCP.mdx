@@ -92,6 +92,8 @@ These clients read a JSON file with an `mcpServers` object:
 
 The tools that measure return a summary of each result (status, metric, rating and issues) and a `runId`, which keeps the answer small: the details, items and thresholds of a snippet come from `get_details`, with the values of the same run. The server keeps the last 20 runs of a connection. With `detail: "full"`, `run_snippet`, `run_workflow` and `read_results` return every whole object at once.
 
+When the results call for another measurement, `run_snippet` and `run_workflow` add `nextSteps`: the calls to make next, with their arguments and their reason, such as `run_snippet` with LCP-Subparts when LCP is over 2.5 s, or `open_page` with the steps of a workflow that need clicks and key presses.
+
 The tools take `http` and `https` URLs, local servers such as `http://localhost:3000` included, and refuse any other protocol, such as `file://`. The agent chooses the URLs, so it can reach what your machine reaches, an internal address too. Everything a tool returns comes from the measured page, and the server tells the agent, in its instructions and in the description of each tool, to read it as data and never follow what it says.
 
 The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with `open_page`: the agent installs them, clicks or types with `interact` and reads them with `read_results`. At most three pages are open at a time, a page closes after 10 minutes without use, and every page and Chromium close when the client disconnects.
