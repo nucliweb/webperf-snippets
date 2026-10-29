@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.4.0] — 2026-10-29
+
+A release about what a measured page can do to whoever measures it: what a page returns is data for an agent, never an instruction; the secrets given to the CLI stay out of its outputs; the CLI measures only `http` and `https` URLs; and the panel of the extension is tested against a page that forges every result. The CLI reaches version 1.7.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)) and the extension 0.5.0. Every selector a snippet returns matches only its element, listed under Fixed, so selectors read differently than in 2.3.0: code that compares them across versions sees new values.
+
 ### Security
 - The URL of the command line of the CLI must be `http` or `https`, as in the MCP server and the matrix file: a `file://` URL loaded the file and handed what the snippets read from it to whoever read the result, and `javascript:`, `data:` or `chrome://` URLs went to the browser as well. Any other protocol exits with `2` before a browser opens, with a message that does not repeat the URL, which can carry a token. Local servers are measured as before. One function holds the rule for the three, and the pages of the CLI and the MCP server say which URLs they take and why local addresses are a normal use (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)).
 - A unit test runs the command of Prompt to measure of the extension through a real `sh` with URLs that carry quotes, `$(…)`, backticks, `${…}`, `;`, `&&`, a redirection and an encoded line break: the URL of the inspected page reaches the CLI as one argument, as it is, and nothing in it runs.
@@ -269,7 +275,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.0.1...v2.1.0
