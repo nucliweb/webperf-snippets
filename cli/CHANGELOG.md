@@ -10,6 +10,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
+## [1.7.1] — 2026-10-29
+
+The snippets are those of the collection 2.4.1.
+
+### Fixed
+- Content-Visibility warns with `missing-intrinsic-size` about an element with `content-visibility: auto` and no size, which Chrome reports as `auto none`: the warning never appeared in the CLI. A `--baseline` of 1.7.0 lists these warnings as new.
+- Oversized-Images leaves out an SVG of the page served without the `.svg` extension, by the content type of its response, which it measured as a raster image and flagged as oversized. A `--baseline` of 1.7.0 lists its warnings as fixed.
+
+---
+
 ## [1.7.0] — 2026-10-29
 
 A security release: the URL of the command line takes only `http` and `https`, an invalid `--header` no longer prints its token, and the MCP server tells the agent that what a page returns is data. The snippets are those of the collection 2.4.0, whose selectors match only their element, listed under Changed: a `--baseline` of 1.6.0 sees the warnings `missing-intrinsic-size` of Content-Visibility, whose `target` is a selector, as fixed and new once.
@@ -213,7 +223,8 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.1...HEAD
+[1.7.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.0...cli-v1.7.1
 [1.7.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.6.0...cli-v1.7.0
 [1.6.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.5.0...cli-v1.6.0
 [1.5.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.4.0...cli-v1.5.0
