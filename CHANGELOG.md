@@ -11,6 +11,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Security
 - The site no longer loads the RUM script of DebugBear (`cdn.debugbear.com`). DebugBear reported that its domain was taken over, so the script could serve any code to the visitors of the site.
 - `katex` 0.18.11, which fixes GHSA-238p-pmpm-9mq7 (low). It comes with Nextra and Mermaid, and the site does not reach it: Nextra loads it only with its `latex` option, which the site leaves off, and no page has a Mermaid block. `npm audit` goes from 9 warnings (3 high, 6 low) to 3 (high), all of `zod` 4.3.6 inside Nextra and only at build time: Nextra 4.6.1 fails with the `zod` that fixes GHSA-mrhx-c7xc-m3w5 (shuding/nextra#5036), since `<Layout>` validates its props without `children` against a schema that requires it.
+- The `Action` workflow, which tests the GitHub Action of the CLI, gives its token only `contents: read`, as the other workflows do. It had the default permissions of the repository, and it only checks out the code. Code scanning of the repository found it.
+
+### Fixed
+- Prompt to fix of the extension keeps a backslash before a pipe in a cell of its tables, such as in a selector with `\|`, from splitting the cell: the backslash escaped the one of the escaped pipe, so the pipe ended the cell and moved the rest of the row one column. Other backslashes, such as those of `w-\[200px\]`, stay as they are.
 
 ---
 

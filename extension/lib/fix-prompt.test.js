@@ -70,6 +70,19 @@ test('a table cell keeps its pipes and line breaks from breaking the table', () 
   assert.match(prompt, /^\| a\\\|b \| two lines \|$/m)
 })
 
+// In a GFM table a backslash escapes the next character, so a backslash before a pipe would escape the
+// backslash of the escaped pipe and leave the pipe to split the cell
+test('a table cell keeps a backslash before a pipe from breaking the table, and leaves other backslashes as they are', () => {
+  const result = {
+    script: 'Oversized-Images',
+    status: 'ok',
+    issues: [{ severity: 'warning', code: 'x', target: 'a\\|b', message: 'One' }],
+    items: [{ selector: 'a\\|b', note: 'div.w-\\[200px\\]' }],
+  }
+  const prompt = promptFor(result)
+  assert.match(prompt, /^\| a\\\\\\\|b \| div\.w-\\\[200px\\\] \|$/m)
+})
+
 test('a page without an address the panel could read is named as the inspected page', () => {
   const result = fixture('seeded-Oversized-Images')
   const prompt = fixPrompt({ snippet: snippetOf(result), result, date: '2026-10-26T20:00:00.000Z', extensionVersion: '0.3.0' })

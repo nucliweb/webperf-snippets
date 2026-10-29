@@ -33,8 +33,9 @@ ${text.trim()}
 
 ${END}`
 
-// A value in a cell of a Markdown table: its pipes escaped and on one line
-const cell = (text) => line(text).replace(/\|/g, '\\|')
+// A value in a cell of a Markdown table: its pipes escaped and on one line. A backslash before a pipe is
+// escaped too, or it would escape the backslash of the pipe; the others stay, as in `w-\[200px\]`.
+const cell = (text) => line(text).replace(/\\(?=\|)/g, '\\\\').replace(/\|/g, '\\|')
 
 // The whole URL, which an agent can open, rather than the file the panel shows
 const textOf = (field) => (field.format === 'url' && field.href ? field.href : field.text)
