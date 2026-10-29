@@ -114,12 +114,16 @@ async function run(route, { withoutLoaf = false, frames } = {}) {
 // came without the script. The diagnosis then showed the frame missing altogether after 5 s
 // (frames: []), as Chromium on Linux sometimes leaves a long task of the parse out of its buffer:
 // with no frame the snippet has nothing to attribute, so the page loads again, up to three times.
+// Every test whose premise is a long frame goes through it; `lines` are the console lines of the page
+// it measured.
 async function runAfterLongFrame(route, attempts = 3) {
   const browser = await chromium.launch();
   try {
     let measured;
     for (let attempt = 1; attempt <= attempts; attempt++) {
       const page = await browser.newPage();
+      const lines = [];
+      page.on("console", (m) => lines.push(m.text()));
       await page.goto(`${pageBase}${route}`, { waitUntil: "load" });
       const start = Date.now();
       await page
@@ -134,7 +138,7 @@ async function runAfterLongFrame(route, attempts = 3) {
         }))
       );
       await page.close();
-      measured = { result, frames, waitedMs, attempt };
+      measured = { result, frames, waitedMs, attempt, lines };
       if (frames.length > 0) break;
     }
     return measured;
@@ -178,13 +182,9 @@ async function runWithOwnDomains(route, own) {
   }
 }
 
-async function runWithLines(route) {
-  return runWithOwnDomains(route, []);
-}
-
 describe("Third-Party-Impact-by-Domain, long frames without a third-party script", () => {
   it("counts the long frames and the time not attributed to a third party", async () => {
-    const r = await run("/first-party-long-frame");
+    const { result: r } = await runAfterLongFrame("/first-party-long-frame");
     expect(r.details.loafSupported).toBe(true);
     expect(r.details.thirdPartyLoafMs).toBe(0);
     expect(r.details.longFrames).toBeGreaterThanOrEqual(1);
@@ -192,7 +192,7 @@ describe("Third-Party-Impact-by-Domain, long frames without a third-party script
   }, 30000);
 
   it("says that 0 ms per domain does not rule out third-party cost", async () => {
-    const { result, lines } = await runWithLines("/first-party-long-frame");
+    const { result, lines } = await runAfterLongFrame("/first-party-long-frame");
     const issue = result.issues.find((i) => i.severity === "info" && /long animation frame/i.test(i.message));
     expect(issue).toBeDefined();
     expect(issue.message).toMatch(/no third-party script/i);
