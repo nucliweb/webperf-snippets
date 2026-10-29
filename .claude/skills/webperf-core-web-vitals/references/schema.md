@@ -71,6 +71,8 @@ Every script must return an object matching this shape:
 }
 ```
 
+A field named `selector`, `element` or `finalElement`, at any level, is a CSS selector that matches only its element in the document, so `document.querySelector()` returns that element and no other: the id when it is unique, otherwise a path of tag, classes and `:nth-of-type()` up to the nearest ancestor with a unique id, such as `div.carousel-item:nth-of-type(8) > img`. A selector of an element inside a shadow root marks the boundary with `>>>` or ends in `(shadow root)`, and cannot be read from the document. `cli/tests/e2e/snippet-contract.test.js` checks it on its pages.
+
 ---
 
 ## Execution Patterns

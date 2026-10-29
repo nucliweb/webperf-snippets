@@ -5,12 +5,12 @@
   "issues": [],
   "items": [
     {
-      "selector": "html > body",
+      "selector": "body",
       "children": 14,
       "depth": 2
     },
     {
-      "selector": "html > head",
+      "selector": "head",
       "children": 9,
       "depth": 2
     },
@@ -24,7 +24,7 @@
     "totalElements": 26,
     "maxDepth": 3,
     "maxChildren": 14,
-    "widestParent": "html > body",
+    "widestParent": "body",
     "deepestElement": "html > head > meta",
     "shadowRoots": 0,
     "thresholds": {

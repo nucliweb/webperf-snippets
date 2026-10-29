@@ -181,6 +181,40 @@
   // if the server does not expose CORS headers.
   const formats = await Promise.all(images.map((img) => fetchFormat(img.currentSrc || img.src)));
 
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
   const audited = images.map((img, i) => {
     const inViewport = isInViewport(img);
     const isLcp = img === lcpCandidate;
@@ -230,6 +264,7 @@
 
     return {
       img,
+      selector: uniqueSelector(img),
       inViewport,
       isLcp,
       src,
@@ -393,7 +428,7 @@
       totalInfos,
       lcpCandidate: lcpData
         ? {
-            selector: shortSrc(lcpData.src),
+            selector: lcpData.selector,
             format: lcpData.format,
             fetchpriority: lcpData.fetchpriority,
             loading: lcpData.loading,
@@ -402,6 +437,7 @@
         : null,
     },
     items: rankedImages.slice(0, MAX_ITEMS).map((r) => ({
+      selector: r.selector,
       url: r.src,
       format: r.format,
       inViewport: r.inViewport,

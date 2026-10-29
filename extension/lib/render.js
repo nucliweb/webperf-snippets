@@ -91,7 +91,8 @@ function field(f) {
   }
 }
 
-// A number aligns to the right, a mark is centred, and a long text, a selector among them, wraps
+// A number aligns to the right, a mark is centred, and a long text wraps. A selector wraps at any
+// length: one that matches only its element is often a path, such as div.card:nth-of-type(8) > img
 const cellClass = (cell) =>
   typeof cell.value === 'number'
     ? ' class="num"'
@@ -101,7 +102,7 @@ const cellClass = (cell) =>
         ? ' class="flags"'
         : cell.format === 'url'
           ? ' class="url"'
-        : cell.text.length > LONG
+        : cell.format === 'selector' || cell.text.length > LONG
           ? ' class="long"'
           : ''
 const td = (cell, before = '') => `<td${cellClass(cell)}>${before}${field(cell)}</td>`

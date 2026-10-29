@@ -3972,6 +3972,40 @@ Detect and analyze all elements using content-visibility: auto on a page. This C
 ```js
 // Detect elements with content-visibility: auto and analyze optimization opportunities
 
+// @shared uniqueSelector
+// A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+// otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+// unique id, or to the root, and stops as soon as it matches one element.
+function uniqueSelector(el) {
+  const root = el.getRootNode();
+  const matchesOne = (selector) => {
+    try {
+      return root.querySelectorAll(selector).length === 1;
+    } catch {
+      return false;
+    }
+  };
+  const parts = [];
+  let node = el;
+  while (node && node.nodeType === 1) {
+    if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+      parts.unshift(`#${window.CSS.escape(node.id)}`);
+      break;
+    }
+    const tag = node.localName;
+    let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+    const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+    if (siblings.filter((s) => s.matches(part)).length > 1) {
+      part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+    }
+    parts.unshift(part);
+    if (matchesOne(parts.join(" > "))) break;
+    node = node.parentElement;
+  }
+  return parts.join(" > ");
+}
+// @end-shared uniqueSelector
+
 function detectContentVisibility() {
   // Create an object to store the results
   const results = {
@@ -3980,39 +4014,6 @@ function detectContentVisibility() {
     visibleElements: [],
     nodeArray: [],
   };
-
-  // Get the name of the node
-  function getName(node) {
-    const name = node.nodeName;
-    return node.nodeType === 1 ? name.toLowerCase() : name.toUpperCase().replace(/^#/, "");
-  }
-
-  // Get the selector for an element
-  function getSelector(node) {
-    let sel = "";
-
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const part = el.id
-          ? "#" + el.id
-          : getName(el) +
-            (el.classList &&
-            el.classList.value &&
-            el.classList.value.trim() &&
-            el.classList.value.trim().length
-              ? "." + el.classList.value.trim().replace(/\s+/g, ".")
-              : "");
-        if (sel.length + part.length > 100 - 1) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
-      }
-    } catch {
-      // Do nothing...
-    }
-    return sel;
-  }
 
   // Check if element is in viewport
   function isInViewport(element) {
@@ -4031,7 +4032,7 @@ function detectContentVisibility() {
     const cs = window.getComputedStyle(node);
 
     return {
-      selector: getSelector(node),
+      selector: uniqueSelector(node),
       contentVisibility: cs["content-visibility"],
       containIntrinsicSize: cs["contain-intrinsic-size"] || "not set",
       width: Math.round(rect.width),
@@ -4143,27 +4144,6 @@ function analyzeContentVisibilityOpportunities(options = {}) {
   const opportunities = [];
   const processedElements = new Set();
 
-  function getSelector(node) {
-    let sel = "";
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const name = el.nodeName.toLowerCase();
-        const part = el.id
-          ? "#" + el.id
-          : name +
-            (el.classList && el.classList.value && el.classList.value.trim()
-              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
-              : "");
-        if (sel.length + part.length > 80) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
-      }
-    } catch {}
-    return sel;
-  }
-
   function estimateRenderSavings(childCount) {
     const baseMs = childCount * 0.2;
     if (baseMs < 5) return "Low (~" + baseMs.toFixed(1) + "ms)";
@@ -4205,7 +4185,7 @@ function analyzeContentVisibilityOpportunities(options = {}) {
     processedElements.add(el);
 
     opportunities.push({
-      selector: getSelector(el),
+      selector: uniqueSelector(el),
       height: Math.round(rect.height) + "px",
       distanceFromViewport: Math.round(distanceFromViewport) + "px",
       childElements: childCount,
@@ -5087,26 +5067,40 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
   }
   // @end-shared isOwnRequest
 
-  function getSelector(node) {
-    let sel = "";
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const name = el.nodeName.toLowerCase();
-        const part = el.id
-          ? "#" + el.id
-          : name +
-            (el.classList && el.classList.value && el.classList.value.trim()
-              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
-              : "");
-        if (sel.length + part.length > 80) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
       }
-    } catch {}
-    return sel;
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
   }
+  // @end-shared uniqueSelector
+
 
   function isInViewport(element) {
     const rect = element.getBoundingClientRect();
@@ -5158,7 +5152,7 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
     const area = rect.width * rect.height;
 
     return {
-      selector: getSelector(img),
+      selector: uniqueSelector(img),
       lazyType: getLazyType(img),
       dimensions: `${Math.round(rect.width)}×${Math.round(rect.height)}`,
       position: {
@@ -5361,26 +5355,40 @@ Detects images that have both loading="lazy" and fetchpriority="high" - a contra
 // https://webperf-snippets.net
 
 (() => {
-  function getSelector(node) {
-    let sel = "";
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const name = el.nodeName.toLowerCase();
-        const part = el.id
-          ? "#" + el.id
-          : name +
-            (el.classList && el.classList.value && el.classList.value.trim()
-              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
-              : "");
-        if (sel.length + part.length > 80) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
       }
-    } catch {}
-    return sel;
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
   }
+  // @end-shared uniqueSelector
+
 
   function isInViewport(element) {
     const rect = element.getBoundingClientRect();
@@ -5436,7 +5444,7 @@ Detects images that have both loading="lazy" and fetchpriority="high" - a contra
       const isLcp = el === lcpCandidate;
 
       return {
-        selector: getSelector(el),
+        selector: uniqueSelector(el),
         dimensions: `${Math.round(rect.width)}×${Math.round(rect.height)}`,
         inViewport: inViewport ? "Yes" : "No",
         isLcpCandidate: isLcp ? "⚠️ Yes" : "No",
@@ -5499,7 +5507,7 @@ Detects images that have both loading="lazy" and fetchpriority="high" - a contra
     items: Array.from(conflictingElements).map((el) => {
       const rect = el.getBoundingClientRect();
       return {
-        selector: getSelector(el),
+        selector: uniqueSelector(el),
         src: el.currentSrc || el.src || "",
         inViewport: isInViewport(el),
         isLcpCandidate: el === lcpCandidate,
@@ -5534,26 +5542,40 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
   }
   // @end-shared isOwnRequest
 
-  function getSelector(node) {
-    let sel = "";
-    try {
-      while (node && node.nodeType !== 9) {
-        const el = node;
-        const name = el.nodeName.toLowerCase();
-        const part = el.id
-          ? "#" + el.id
-          : name +
-            (el.classList && el.classList.value && el.classList.value.trim()
-              ? "." + el.classList.value.trim().split(/\s+/).slice(0, 2).join(".")
-              : "");
-        if (sel.length + part.length > 80) return sel || part;
-        sel = sel ? part + ">" + sel : part;
-        if (el.id) break;
-        node = el.parentNode;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
       }
-    } catch {}
-    return sel;
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
   }
+  // @end-shared uniqueSelector
+
 
   function isInViewport(element) {
     const rect = element.getBoundingClientRect();
@@ -5583,12 +5605,12 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
     while (parent && parent !== document.body) {
       const cs = window.getComputedStyle(parent);
       if (cs.display === "none" || cs.visibility === "hidden") {
-        return { hidden: true, reason: "CSS hidden", container: getSelector(parent) };
+        return { hidden: true, reason: "CSS hidden", container: uniqueSelector(parent) };
       }
       for (const selector of hiddenSelectors) {
         try {
           if (parent.matches(selector)) {
-            return { hidden: true, reason: selector, container: getSelector(parent) };
+            return { hidden: true, reason: selector, container: uniqueSelector(parent) };
           }
         } catch {}
       }
@@ -5657,7 +5679,7 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
     // Skip images in viewport (they shouldn't be lazy loaded)
     if (isInViewport(img)) {
       if (img === lcpCandidate) {
-        results.excluded.lcpCandidate = getSelector(img);
+        results.excluded.lcpCandidate = uniqueSelector(img);
       } else {
         results.excluded.inViewport++;
       }
@@ -5675,7 +5697,7 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
     const hiddenCheck = isInHiddenContainer(img);
 
     const imageData = {
-      selector: getSelector(img),
+      selector: uniqueSelector(img),
       src: src.length > 60 ? "..." + src.slice(-57) : src,
       fullSrc: src,
       dimensions: `${img.naturalWidth}×${img.naturalHeight}`,
@@ -13085,6 +13107,44 @@ Measures the total number of DOM elements, the maximum nesting depth, and the pa
     return (truncated ? "... > " : "") + parts.join(" > ").replace(/> >>> >/g, ">>>");
   };
 
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
+  // An element of the document by its unique selector, which Inspect can select; one inside a shadow
+  // root by the short path above, which marks the boundary
+  const inspectableSelectorFor = (el) => (el.getRootNode() === document ? uniqueSelector(el) : selectorFor(el));
+
   // Iterative walk (explicit stack) so very deep trees cannot overflow the call stack.
   // Depth counts <html> as level 1 and continues through open shadow roots.
   let totalElements = 0;
@@ -13117,10 +13177,10 @@ Measures the total number of DOM elements, the maximum nesting depth, and the pa
   const ranked = parents
     .sort((a, b) => b.children - a.children || a.depth - b.depth);
   const widest = ranked[0] ?? null;
-  const widestSelector = widest ? selectorFor(widest.el) + (widest.root !== widest.el ? " (shadow root)" : "") : null;
+  const widestSelector = widest ? inspectableSelectorFor(widest.el) + (widest.root !== widest.el ? " (shadow root)" : "") : null;
 
   const items = ranked.slice(0, 10).map((p) => ({
-    selector: selectorFor(p.el) + (p.root !== p.el ? " (shadow root)" : ""),
+    selector: inspectableSelectorFor(p.el) + (p.root !== p.el ? " (shadow root)" : ""),
     children: p.children,
     depth: p.depth,
   }));
@@ -14171,14 +14231,44 @@ Tracks all layout shifts during page load and user interaction, identifying the 
         totalImpact: Math.round(data.totalShift * 10000) / 10000,
       }));
 
-  const getElementSelector = (element) => {
-    if (!element) return "(unknown)";
-    if (element.id) return `#${element.id}`;
-    if (element.className && typeof element.className === "string") {
-      const classes = element.className.trim().split(/\s+/).slice(0, 2).join(".");
-      if (classes) return `${element.tagName.toLowerCase()}.${classes}`;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
     }
-    return element.tagName?.toLowerCase() || "(unknown)";
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
+  // The node of a source can be a text node, named by its element
+  const getElementSelector = (node) => {
+    const element = node?.nodeType === 1 ? node : node?.parentElement;
+    return element ? uniqueSelector(element) : "(unknown)";
   };
 
   const observer = new PerformanceObserver((list) => {
@@ -16220,6 +16310,40 @@ Audits all <img> elements on the page against image performance best practices, 
   // if the server does not expose CORS headers.
   const formats = await Promise.all(images.map((img) => fetchFormat(img.currentSrc || img.src)));
 
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
   const audited = images.map((img, i) => {
     const inViewport = isInViewport(img);
     const isLcp = img === lcpCandidate;
@@ -16269,6 +16393,7 @@ Audits all <img> elements on the page against image performance best practices, 
 
     return {
       img,
+      selector: uniqueSelector(img),
       inViewport,
       isLcp,
       src,
@@ -16432,7 +16557,7 @@ Audits all <img> elements on the page against image performance best practices, 
       totalInfos,
       lcpCandidate: lcpData
         ? {
-            selector: shortSrc(lcpData.src),
+            selector: lcpData.selector,
             format: lcpData.format,
             fetchpriority: lcpData.fetchpriority,
             loading: lcpData.loading,
@@ -16441,6 +16566,7 @@ Audits all <img> elements on the page against image performance best practices, 
         : null,
     },
     items: rankedImages.slice(0, MAX_ITEMS).map((r) => ({
+      selector: r.selector,
       url: r.src,
       format: r.format,
       inViewport: r.inViewport,

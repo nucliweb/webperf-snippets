@@ -41,9 +41,9 @@ The console shows a summary and a table with the ten parents that have the most 
 | `details.maxDepth` | Depth of the deepest element |
 | `details.deepestElement` | Short selector of the deepest element |
 | `details.maxChildren` | Children of the widest parent |
-| `details.widestParent` | Short selector of the widest parent |
+| `details.widestParent` | Selector that matches only the widest parent |
 | `details.shadowRoots` | Number of open shadow roots traversed |
-| `items` | Up to ten parents ordered by number of children, each with `selector`, `children` and `depth` |
+| `items` | Up to ten parents ordered by number of children, each with `selector` (which matches only that parent), `children` and `depth` |
 | `issues` | One entry for each exceeded threshold |
 
 Selectors are shortened to the nearest `id` or the last four levels, and `>>>` marks a shadow root boundary. A parent whose children live in a shadow root carries the `(shadow root)` suffix.

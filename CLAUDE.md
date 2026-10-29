@@ -70,7 +70,7 @@ npm run test:extension:e2e   # every snippet through the real panel, on the seed
 npm run eval:prompts         # an agent runs the prompts on local pages, graded from its transcript (eval-prompts.yml: on demand and on PRs that change the prompt)
 
 npm run test:unit --prefix cli
-npm run smoke:cli-package     # before a CLI release: the packed CLI installed in an empty folder, through its MCP server
+npm run smoke:cli-package     # before a CLI release: the packed CLI installed in an empty folder, npm audit of that tree and its MCP server
 npm run test:e2e --prefix cli   # Playwright against local fixtures (cli/tests/fixtures)
 ```
 
@@ -106,7 +106,7 @@ Writing rules for pages are in "Writing documentation pages" of `CONTRIBUTING.md
 ## Notes
 
 - `dev` and `build` run with `--webpack`: the plugins of `lib/` are functions, and Nextra 4 does not load them under Turbopack (its loader cannot resolve plugins given as strings). The `?raw` import of the snippets is a webpack rule in `next.config.mjs`; Next 16 keeps its SWC rule outside `oneOf`, so the rule excludes `snippets/` from every SWC rule, or the code reaches the page rewritten. `npm run check:built-snippets` fails after a build when a page shows different code from the source.
-- `package.json` pins `zod` to 4.3.6 with `overrides`: Nextra 4.6.1 fails in `<Layout>` with 4.4.3 or later. Review it when Nextra is upgraded.
+- `package.json` pins `zod` to 4.3.6 for `nextra` and `nextra-theme-docs` only, with nested `overrides`: Nextra 4.6.1 fails in `<Layout>` with 4.4.3 or later (`Invalid input: expected nonoptional`, checked again with 4.6.7). The rest of the tree, such as the MCP SDK of the CLI, gets the latest `zod`, which fixes GHSA-mrhx-c7xc-m3w5; Nextra only validates its own configuration with it, at build time. Review it when Nextra is upgraded.
 - `agentRules: false` in `next.config.mjs` stops `next dev` from writing a Next.js block into `CLAUDE.md` and `AGENTS.md`.
 - The code block and the demo are components of this repository, and `Callout` wraps the one of the theme (`components/`); their styles use `wp-*` classes and `--wp-*` tokens in `styles/globals.css`, never the utility classes of the theme.
 - The dev server does not pick up changes in `lib/`; restart it after editing a plugin.
