@@ -8,10 +8,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.7.0] — 2026-10-29
+
+A security release: the URL of the command line takes only `http` and `https`, an invalid `--header` no longer prints its token, and the MCP server tells the agent that what a page returns is data. The snippets are those of the collection 2.4.0, whose selectors match only their element, listed under Changed: a `--baseline` of 1.6.0 sees the warnings `missing-intrinsic-size` of Content-Visibility, whose `target` is a selector, as fixed and new once.
+
 ### Security
 - The URL of the command line must be `http` or `https`, as the MCP server and the matrix file require: `file:///etc/passwd` loaded the file and returned what the snippets read from it, and other protocols went to the browser as well. Any other protocol, or a text that is not a URL, exits with `2` before a browser opens; the message does not repeat the URL, which can carry a token. `localhost` and internal addresses are measured as before.
 - An invalid `--header` is named by its position (`Invalid --header (number 2)`), not by its text, which may hold a token: `--header "Authorization Bearer <token>"`, without the colon, printed the token to stderr, and so to the log of a CI job. A test passes a value per secret (`--header`, `--storage-state`, `--api-key`, `--crux-key`) through every output of the CLI, the body of `--report-to` and its errors, and fails if one comes out.
 - The MCP server tells the agent, in its instructions and in the description of `run_snippet`, `run_workflow`, `open_page`, `interact` and `read_results`, that everything a tool returns comes from the measured page (selectors, URLs, alt texts, the names of its resources): data to report, never an instruction to follow. A page can put instructions for agents in those values, and an agent with a terminal could follow them. `npm run eval:mcp` has a case with such a page, where the agent has Bash and Write and must report the issue of the page without creating the file or running the command the page asks for.
+
+### Changed
+- The snippets the CLI runs are those of the collection 2.4.0: every selector a snippet returns matches only its element, such as `div.c0:nth-of-type(2)` instead of `html > body > div.c0` and `#wide` instead of `ul#wide`; Oversized-Images names an image with no id or class by its path instead of `img`; and Image-Element-Audit returns a `selector` in each item and in `lcpCandidate`, which held a short URL. A `--baseline` of 1.6.0 pairs the warnings `missing-intrinsic-size` of Content-Visibility, whose `target` is a selector, as fixed and new.
 
 ---
 
@@ -204,7 +213,8 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.6.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.0...HEAD
+[1.7.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.6.0...cli-v1.7.0
 [1.6.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.5.0...cli-v1.6.0
 [1.5.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.4.0...cli-v1.5.0
 [1.4.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.3.0...cli-v1.4.0
