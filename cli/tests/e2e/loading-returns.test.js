@@ -436,6 +436,36 @@ describe("Content-Visibility", () => {
     expect(used.count).toBeGreaterThan(0);
     expect(used.issues.some((i) => /No content-visibility usage/i.test(i.message))).toBe(false);
   }, 60000);
+
+  // The contract checks selectors on its pages, which have no content-visibility; this page repeats
+  // tags and classes, so only a selector with :nth-of-type() and escaped classes names one element
+  it("names each element and each opportunity with a selector that matches only it, the target of an issue too", async () => {
+    const found = await onPage("/cv-repeated", async (page) => {
+      await page.waitForTimeout(400);
+      const result = await page.evaluate(source("Loading/Content-Visibility"));
+      const opportunities = await page.evaluate(() => window.analyzeContentVisibilityOpportunities());
+      const selectors = [
+        ...result.items.map((i) => i.selector),
+        ...result.issues.filter((i) => i.code === "missing-intrinsic-size").map((i) => i.target),
+        ...(opportunities.items ?? opportunities.opportunities ?? []).map((o) => o.selector),
+      ];
+      const matches = await page.evaluate(
+        (list) =>
+          list.map((selector) => {
+            try {
+              return [selector, document.querySelectorAll(selector).length];
+            } catch {
+              return [selector, "invalid"];
+            }
+          }),
+        selectors
+      );
+      return { result, opportunities, matches };
+    });
+    // Four elements with content-visibility and two opportunities
+    expect(found.matches.length).toBeGreaterThanOrEqual(6);
+    expect(found.matches.filter(([, n]) => n !== 1)).toEqual([]);
+  }, 60000);
 });
 
 describe("Critical-CSS-Detection", () => {
