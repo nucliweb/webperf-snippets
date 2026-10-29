@@ -8,8 +8,22 @@ hljs.registerLanguage("javascript", javascript);
 // server, so the code arrives highlighted and highlight.js never reaches the browser; only the buttons
 // (components/SnippetActions.jsx) run there. The copy button shows on hover or keyboard focus, in CSS.
 
+export function SnippetExample({ example }) {
+  if (!example) return null;
+
+  return (
+    <section className="wp-snippet-example" aria-label="Returned object example">
+      <p>Captured from the seeded test page; timing values can vary between runs.</p>
+      <pre>
+        <code>{JSON.stringify(example, null, 2)}</code>
+      </pre>
+    </section>
+  );
+}
+
 // snippet: the path of the snippet, such as "CoreWebVitals/LCP", which lib/remark-snippet-prompt.mjs adds
-export function Snippet({ code, prompt, snippet }) {
+export function Snippet({ code, prompt, snippet, example }) {
+  if (!code) return <SnippetExample example={example} />;
   const highlighted = hljs.highlight(code, { language: "javascript" }).value;
 
   return (
@@ -35,6 +49,7 @@ export function Snippet({ code, prompt, snippet }) {
           <CopyCodeButton snippet={snippet} />
         </div>
       </div>
+      {example ? <SnippetExample example={example} /> : null}
     </div>
   );
 }

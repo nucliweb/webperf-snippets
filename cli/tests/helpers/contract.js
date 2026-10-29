@@ -31,7 +31,7 @@ const SEEDED_PAGE = (other) => `<!DOCTYPE html>
   <link rel="preconnect" href="${other}">
   <link rel="preload" href="/app.js" as="script">
   <link rel="stylesheet" href="/style.css">
-  <style>body{margin:0}.box{width:200px;height:20px;will-change:transform}</style>
+  <style>body{margin:0}img{display:block}.box{width:200px;height:20px;will-change:transform}</style>
   <script src="${other}/third.js"></script>
   <script src="/async.js" async></script>
   <script src="/app.js" defer></script>
@@ -422,6 +422,8 @@ export async function startContractServers() {
     if (path === "/behaviors") return send("text/html", BEHAVIORS_PAGE(query));
     if (path === "/heavy") return send("text/html", HEAVY_PAGE(otherUrl));
     if (path === "/frame") return send("text/html", "<p>frame</p>");
+    if (path === "/video-poster.html") return send("text/html", readFileSync(join(FIXTURES, "video-poster.html")));
+    if (path === "/clip.webm") return send("video/webm", readFileSync(join(FIXTURES, "clip.webm")));
     if (path === "/hero.png") return send("image/png", png);
     if (path === "/style.css") return send("text/css", "h1{color:#333}");
     if (path.endsWith(".js")) return send("application/javascript", "window.__app = true;");
