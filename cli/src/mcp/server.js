@@ -14,6 +14,7 @@ import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
 import { summarize, createRuns, RunError } from "./summary.js";
+import { followUpCalls, trackingCall } from "./next-steps.js";
 import { isHttpUrl } from "../url.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
@@ -42,8 +43,14 @@ const Detail = z
   .enum(["summary", "full"])
   .default("summary")
   .describe("summary: status, metric, rating and issues of each snippet, with get_details for the rest. full: the whole object of each snippet");
+// The call an agent makes next, with the arguments it takes as they are
+const NextSteps = z
+  .array(z.object({ tool: z.string(), args: z.record(z.string(), z.unknown()), reason: z.string() }))
+  .optional()
+  .describe("The calls to make next, with their arguments and why, when the results call for them");
+
 const DETAIL_NOTE =
-  "It returns a summary of each result (status, metric, rating and issues) and a runId: get_details gives the whole object of a snippet of that run, without measuring again, and detail full returns every whole object at once.";
+  "It returns a summary of each result (status, metric, rating and issues) and a runId: get_details gives the whole object of a snippet of that run, without measuring again, and detail full returns every whole object at once. nextSteps, when there is one, is the call to make next, with its arguments and its reason.";
 
 // A page can put instructions for the agent in what a snippet returns: an alt text, a class in a
 // selector, the URL of a script. The tools that return what a page holds say how to read it, and so
@@ -168,6 +175,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         navMs: z.number().describe("From the start of the navigation to the end of the wait"),
         pageErrors: z.array(z.string()).describe("Uncaught errors of the page during the run"),
         result: SnippetResult,
+        nextSteps: NextSteps,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
@@ -187,7 +195,17 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress: progressFor(ctx) });
         const runId = runs.keep(run.results);
         const { id, ...result } = run.results[0];
-        return toolResult({ url, runId, snippet: id, viewport, navMs: run.navMs, pageErrors: run.pageErrors, result: shape(result, detail) });
+        const nextSteps = followUpCalls({ results: run.results, url, viewport, waitMs, ran: [path] });
+        return toolResult({
+          url,
+          runId,
+          snippet: id,
+          viewport,
+          navMs: run.navMs,
+          pageErrors: run.pageErrors,
+          result: shape(result, detail),
+          ...(nextSteps.length ? { nextSteps } : {}),
+        });
       } catch (err) {
         if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
@@ -219,6 +237,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         results: z
           .array(z.looseObject({ id: z.string(), status: z.string() }).meta({ additionalProperties: true }))
           .describe("One object per step, in order, then the follow-ups, each with the reason it was added"),
+        nextSteps: NextSteps,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
@@ -239,7 +258,22 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
             : r
         );
         const runId = runs.keep(results);
-        return toolResult({ url, runId, workflow, viewport, navMs: run.navMs, pageErrors: run.pageErrors, results: results.map((r) => shape(r, detail)) });
+        // The runner already ran the follow-ups of the decision tree; what is left is the steps it skipped
+        const skipped = results
+          .filter((r) => r.status === "skipped")
+          .map((r) => WORKFLOWS[workflow].steps.find((s) => s.id === r.id)?.path)
+          .filter(Boolean);
+        const nextSteps = skipped.length ? [trackingCall({ paths: skipped, url, viewport })] : [];
+        return toolResult({
+          url,
+          runId,
+          workflow,
+          viewport,
+          navMs: run.navMs,
+          pageErrors: run.pageErrors,
+          results: results.map((r) => shape(r, detail)),
+          ...(nextSteps.length ? { nextSteps } : {}),
+        });
       } catch (err) {
         if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);

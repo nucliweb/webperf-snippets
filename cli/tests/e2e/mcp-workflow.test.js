@@ -103,6 +103,33 @@ describe("run_workflow", () => {
     expect(details.structuredContent.result.details).toEqual(expect.any(Object));
   }, 60000);
 
+  it("gives the calls of the next steps the decision tree asks for after run_snippet, and none when the result is good", async () => {
+    await connect();
+    const slow = await call("run_snippet", { url: base(late), snippet: "LCP", waitMs: 3500, viewport: "desktop" });
+    expect(slow.structuredContent.result.value).toBeGreaterThan(2500);
+    expect(slow.structuredContent.nextSteps).toContainEqual({
+      tool: "run_snippet",
+      args: { url: base(late), snippet: "CoreWebVitals/LCP-Subparts", viewport: "desktop", waitMs: 3500 },
+      reason: expect.stringMatching(/LCP > 2\.5s/),
+    });
+
+    const fast = await call("run_snippet", { url: `${servers.base}/lcp-text`, snippet: "LCP", waitMs: 0 });
+    expect(fast.structuredContent.result.value).toBeLessThan(2500);
+    expect(fast.structuredContent.nextSteps).toBeUndefined();
+  }, 60000);
+
+  it("gives the call that opens a page with the steps a workflow skipped", async () => {
+    await connect();
+    const result = await call("run_workflow", { url: `${servers.base}/seeded`, workflow: "interaction", waitMs: 0 });
+    expect(result.structuredContent.nextSteps).toEqual([
+      {
+        tool: "open_page",
+        args: { url: `${servers.base}/seeded`, track: ["CoreWebVitals/INP", "Interaction/Interactions", "Interaction/Input-Latency-Breakdown"], viewport: "mobile" },
+        reason: expect.stringMatching(/clicks and key presses/),
+      },
+    ]);
+  }, 60000);
+
   it("explains the steps it skips with the tools of the MCP server, not the flags of the CLI", async () => {
     await connect();
     const result = await call("run_workflow", { url: `${servers.base}/seeded`, workflow: "interaction", waitMs: 0 });

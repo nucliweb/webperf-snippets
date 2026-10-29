@@ -13,6 +13,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ### Added
 - `get_details` returns the whole object of one snippet of a run, by the `runId` that `run_snippet`, `run_workflow` and `read_results` now return, with the values the summary came from: measuring again would give other ones. It takes the id of the result in the summary, the name of its script, an alias or `Category/Name`. The server keeps the last 20 runs of a connection, and an older or unknown `runId` answers with a tool error that says to run the tool again.
+- `run_snippet` and `run_workflow` of the MCP server return `nextSteps`, the calls an agent makes next, each with its `tool`, its `args` and its `reason`, when the results call for them. After `run_snippet` they are the follow-ups of the decision tree of the workflows, such as `run_snippet` with LCP-Subparts, the same viewport and the same wait when LCP is over 2.5 s, or `open_page` for a follow-up that records interactions. After `run_workflow`, which already runs those follow-ups, it is the `open_page` call with the steps the workflow skipped because they measure clicks and key presses.
 
 ---
 
