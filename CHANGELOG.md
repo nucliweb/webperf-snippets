@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Security
+- A unit test runs the command of Prompt to measure of the extension through a real `sh` with URLs that carry quotes, `$(…)`, backticks, `${…}`, `;`, `&&`, a redirection and an encoded line break: the URL of the inspected page reaches the CLI as one argument, as it is, and nothing in it runs.
 - `dompurify` 3.4.17, which fixes three advisories (one critical). It comes with Mermaid, through Nextra, and the site does not reach it: no page has a Mermaid block, and neither `dompurify`, `mermaid` nor `katex` is in the bundles of the browser.
 - `zod` 4.3.6 stays only for Nextra, which fails with 4.4.3 or later; the rest of the tree, such as the MCP SDK of the CLI, gets the latest version, which fixes GHSA-mrhx-c7xc-m3w5. The CLI installed from npm never had the override. `npm audit` goes from 13 warnings (1 critical, 6 high, 6 low) to 9 (3 high, 6 low), all inside Nextra and only at build time.
 - `npm run smoke:cli-package` runs `npm audit` on the CLI it installs in an empty folder, the tree a user gets today, which floats with the ranges of the dependencies and has none of the overrides of the repository, and fails on a high or critical advisory. With 1.6.0 it finds none. `docs/RELEASING.md` says what to do when it fails, and why the package has no `npm-shrinkwrap.json`.
