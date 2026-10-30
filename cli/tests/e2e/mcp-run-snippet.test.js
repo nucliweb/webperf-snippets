@@ -38,11 +38,19 @@ describe("run_snippet", () => {
     expect(tool.annotations).toMatchObject({ readOnlyHint: true, openWorldHint: true });
   });
 
+  it("returns a small result whole by default, since a summary would cost the agent a turn for the details", async () => {
+    const result = await run({ url: `${servers.base}/lcp-image`, snippet: "LCP" });
+    expect(result.structuredContent.detail).toBe("full");
+    expect(result.structuredContent.result.details).toEqual(expect.any(Object));
+    // A whole object leaves nothing for get_details, so there is no run to ask it about
+    expect(result.structuredContent.runId).toBeUndefined();
+  }, 60000);
+
   it("returns a summary of the result with the id of the run, as structured content and as text", async () => {
-    const result = await run({ url: `${servers.base}/lcp-image`, snippet: "LCP", viewport: "desktop" });
+    const result = await run({ url: `${servers.base}/lcp-image`, snippet: "LCP", viewport: "desktop", detail: "summary" });
     expect(result.isError).toBeFalsy();
     const { structuredContent } = result;
-    expect(structuredContent).toMatchObject({ snippet: "CoreWebVitals/LCP", viewport: "desktop", runId: expect.any(String) });
+    expect(structuredContent).toMatchObject({ snippet: "CoreWebVitals/LCP", viewport: "desktop", runId: expect.any(String), detail: "summary" });
     expect(structuredContent.result).toMatchObject({ script: "LCP", status: "ok", metric: "LCP", unit: "ms", rating: expect.any(String) });
     expect(structuredContent.result.value).toBeGreaterThan(0);
     expect(structuredContent.result.details).toBeUndefined();
@@ -50,7 +58,7 @@ describe("run_snippet", () => {
   }, 60000);
 
   it("gives the full result of the same run with get_details, without measuring again", async () => {
-    const { structuredContent: summary } = await run({ url: `${servers.base}/lcp-image`, snippet: "LCP" });
+    const { structuredContent: summary } = await run({ url: `${servers.base}/lcp-image`, snippet: "LCP", detail: "summary" });
     const details = await client.callTool({ name: "get_details", arguments: { runId: summary.runId, snippet: "LCP" } });
     expect(details.isError).toBeFalsy();
     expect(details.structuredContent).toMatchObject({ runId: summary.runId, snippet: "CoreWebVitals/LCP" });
@@ -62,7 +70,7 @@ describe("run_snippet", () => {
   it("returns the full result at once with detail full", async () => {
     const result = await run({ url: `${servers.base}/lcp-image`, snippet: "LCP", detail: "full" });
     expect(result.structuredContent.result.details).toEqual(expect.any(Object));
-    expect(result.structuredContent.runId).toEqual(expect.any(String));
+    expect(result.structuredContent.runId).toBeUndefined();
   }, 60000);
 
   it("answers get_details for a run it does not keep with a tool error that says to run again", async () => {

@@ -31,7 +31,7 @@ export function registerPrompts(server) {
             `1. Call run_workflow with url "${url}", workflow "core-web-vitals" and viewport "${viewport}". It returns LCP and CLS, and adds LCP-Subparts with the reason when LCP is over 2.5 s.`,
             `2. Call get_crux for the same URL with formFactor "${viewport === "desktop" ? "desktop" : "phone"}", to compare the lab with what real users get. If it answers that there is no key, say so and go on with the lab data.`,
             '3. If LCP-Subparts did not run, call run_snippet with snippet "LCP-Subparts".',
-            "4. Call get_details with the runId and the snippets LCP and LCP-Subparts: the summaries leave out the LCP element and the sub-parts.",
+            "4. If the answers are summaries (detail: summary), call get_details with the runId for LCP and LCP-Subparts: a summary leaves out the LCP element and the sub-parts.",
             "5. Report the LCP value and rating in the lab and in the field, the LCP element, the slowest sub-part and what it means, and the fixes for that sub-part, the most effective first.",
             "",
             `${QUOTE} The result of each snippet is described below.`,
@@ -64,7 +64,7 @@ export function registerPrompts(server) {
             selector
               ? `2. Call interact with a click on "${selector}". Add a few more clicks or key presses if the page has other controls a user would use.`
               : "2. Call interact with clicks on the controls a user would use first: main buttons, links that open menus, form fields. If you cannot tell which ones, ask me.",
-            "3. Call read_results, then get_details with its runId for INP and Input-Latency-Breakdown: INP gives the worst interaction and its phases (input delay, processing, presentation); Input-Latency-Breakdown says which phase dominates for each type of event.",
+            "3. Call read_results; if it answers with summaries, call get_details with its runId for INP and Input-Latency-Breakdown. INP gives the worst interaction and its phases (input delay, processing, presentation); Input-Latency-Breakdown says which phase dominates for each type of event.",
             "4. Call close_page.",
             "5. Report the worst interaction, its target, the dominant phase and the fixes for that phase.",
             "",

@@ -13,7 +13,7 @@ import { createSessions, SessionError } from "./sessions.js";
 import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js";
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
-import { summarize, createRuns, RunError } from "./summary.js";
+import { shapeResults, createRuns, RunError } from "./summary.js";
 import { followUpCalls, trackingCall } from "./next-steps.js";
 import { isHttpUrl } from "../url.js";
 
@@ -36,13 +36,17 @@ const SnippetResult = z
 const SessionId = z.string().describe("The id open_page returned");
 
 const RunId = z.string().describe("The id of the run, for get_details");
+// Only a summary names its run: whole objects leave nothing for get_details to add
+const SummaryRunId = RunId.optional().describe("The id of the run, for get_details; only with summaries");
 
-// A summary by default: the agent reads the status, the metric and the issues of each snippet, and asks
-// get_details for the rest of the one it needs, from the same run
+// auto, the default, returns whole objects when they are small and summaries when they are large: a
+// summary of a small result costs the agent a turn for the details, which is more than it saves
 const Detail = z
-  .enum(["summary", "full"])
-  .default("summary")
-  .describe("summary: status, metric, rating and issues of each snippet, with get_details for the rest. full: the whole object of each snippet");
+  .enum(["auto", "summary", "full"])
+  .default("auto")
+  .describe("auto: whole objects when small, summaries when large");
+const DetailOut = z.enum(["summary", "full"]).describe("Whether the results are summaries or the whole objects");
+
 // The call an agent makes next, with the arguments it takes as they are
 const NextSteps = z
   .array(z.object({ tool: z.string(), args: z.record(z.string(), z.unknown()), reason: z.string() }))
@@ -50,7 +54,7 @@ const NextSteps = z
   .describe("The calls to make next, with their arguments and why, when the results call for them");
 
 const DETAIL_NOTE =
-  "It returns a summary of each result (status, metric, rating and issues) and a runId: get_details gives the whole object of a snippet of that run, without measuring again, and detail full returns every whole object at once. nextSteps, when there is one, is the call to make next, with its arguments and its reason.";
+  "Large results come as summaries with a runId for get_details; nextSteps, when present, is the call to make next.";
 
 // A page can put instructions for the agent in what a snippet returns: an alt text, a class in a
 // selector, the URL of a script. The tools that return what a page holds say how to read it, and so
@@ -118,7 +122,6 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
   const server = new McpServer({ name: "webperf-snippets", version: cliVersion }, { instructions: INSTRUCTIONS });
   const sessions = createSessions({ launchBrowser, maxPages, idleMs });
   const runs = createRuns();
-  const shape = (result, detail) => (detail === "full" ? result : summarize(result));
   // The client left (end of stdin, or a closed transport): close the pages and Chromium
   server.server.onclose = () => sessions.closeAll();
   registerResources(server);
@@ -169,7 +172,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }),
       outputSchema: z.object({
         url: z.string(),
-        runId: RunId,
+        runId: SummaryRunId,
+        detail: DetailOut,
         snippet: z.string().describe("Category/Name of the snippet that ran"),
         viewport: z.enum(VIEWPORTS),
         navMs: z.number().describe("From the start of the navigation to the end of the wait"),
@@ -193,17 +197,19 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
 
       try {
         const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress: progressFor(ctx) });
-        const runId = runs.keep(run.results);
-        const { id, ...result } = run.results[0];
+        const shaped = shapeResults(run.results.map(({ id, ...result }) => result), detail);
+        const runId = shaped.detail === "summary" ? runs.keep(run.results) : undefined;
+        const id = run.results[0].id;
         const nextSteps = followUpCalls({ results: run.results, url, viewport, waitMs, ran: [path] });
         return toolResult({
           url,
-          runId,
+          ...(runId ? { runId } : {}),
+          detail: shaped.detail,
           snippet: id,
           viewport,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
-          result: shape(result, detail),
+          result: shaped.results[0],
           ...(nextSteps.length ? { nextSteps } : {}),
         });
       } catch (err) {
@@ -229,7 +235,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }),
       outputSchema: z.object({
         url: z.string(),
-        runId: RunId,
+        runId: SummaryRunId,
+        detail: DetailOut,
         workflow: z.string(),
         viewport: z.enum(VIEWPORTS),
         navMs: z.number(),
@@ -257,7 +264,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
             ? { ...r, reason: "This step measures clicks and key presses: open the page with open_page and this snippet in track, use it with interact, and read it with read_results." }
             : r
         );
-        const runId = runs.keep(results);
+        const shaped = shapeResults(results, detail);
+        const runId = shaped.detail === "summary" ? runs.keep(results) : undefined;
         // The runner already ran the follow-ups of the decision tree; what is left is the steps it skipped
         const skipped = results
           .filter((r) => r.status === "skipped")
@@ -266,12 +274,12 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         const nextSteps = skipped.length ? [trackingCall({ paths: skipped, url, viewport })] : [];
         return toolResult({
           url,
-          runId,
+          ...(runId ? { runId } : {}),
+          ...shaped,
           workflow,
           viewport,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
-          results: results.map((r) => shape(r, detail)),
           ...(nextSteps.length ? { nextSteps } : {}),
         });
       } catch (err) {
@@ -414,16 +422,16 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       description:
         `Returns what the tracking snippets installed by open_page have recorded on the page so far, as the objects they return. A snippet with nothing recorded yet, such as INP before any interaction, answers with status tracking and a message: interact with the page and read again. ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({ sessionId: SessionId, detail: Detail }),
-      outputSchema: z.object({ sessionId: z.string(), runId: RunId, pageErrors: z.array(z.string()), results: z.array(SnippetResult) }),
+      outputSchema: z.object({ sessionId: z.string(), runId: SummaryRunId, detail: DetailOut, pageErrors: z.array(z.string()), results: z.array(SnippetResult) }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     withSession(async ({ sessionId, detail }) => {
       const session = sessions.get(sessionId);
       const collected = [];
       for (const installed of session.tracking) collected.push(await collectTrackingData(session.page, installed, session.hadInput));
-      const runId = runs.keep(collected);
-      const results = collected.map(({ id, ...result }) => shape(result, detail));
-      return toolResult({ sessionId, runId, pageErrors: session.pageErrors, results });
+      const shaped = shapeResults(collected.map(({ id, ...result }) => result), detail);
+      const runId = shaped.detail === "summary" ? runs.keep(collected) : undefined;
+      return toolResult({ sessionId, ...(runId ? { runId } : {}), ...shaped, pageErrors: session.pageErrors });
     })
   );
 
@@ -432,10 +440,10 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Get the details of a result",
       description:
-        `Returns the whole object of one snippet of a run of run_snippet, run_workflow or read_results, by the runId it returned: the details, items and thresholds the summary leaves out, with the same values, since it does not measure again. The server keeps the last 20 runs of the connection. ${PAGE_DATA}`,
+        `Returns the whole object of one snippet of a summarized run, by its runId: what the summary leaves out, from the same run, without measuring again. ${PAGE_DATA}`,
       inputSchema: z.object({
         runId: RunId,
-        snippet: z.string().describe("The id or the script of the result in the summary (LCP-Subparts), an alias or Category/Name"),
+        snippet: z.string().describe("The id of the result in the summary, or its script"),
       }),
       outputSchema: z.object({ runId: z.string(), snippet: z.string().describe("The id of the result in the run"), result: SnippetResult }),
       annotations: { readOnlyHint: true, openWorldHint: false },

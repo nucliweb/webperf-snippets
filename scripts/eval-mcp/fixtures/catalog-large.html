@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Running shoes</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    main { padding: 16px; }
+    .hero { display: block; width: 100%; height: auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .card img { display: block; width: 100%; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Running shoes</h1>
+    <!-- The banner is the largest element: it is lazy loaded, and the server takes 800 ms to send it -->
+    <img class="hero" src="/slow/800/product.png?banner" width="600" height="375" loading="lazy" alt="Autumn collection">
+    <!-- A large result: 60 product cards, whose images have no width or height -->
+    <section class="grid" id="grid"></section>
+  </main>
+  <script>
+    const grid = document.getElementById("grid");
+    for (let i = 1; i <= 60; i++) {
+      grid.insertAdjacentHTML(
+        "beforeend",
+        `<article class="card"><img src="/product.png?id=${i}" alt="Shoe model ${i}" loading="lazy"><h2>Shoe model ${i}</h2><p>From 89 EUR</p></article>`
+      );
+    }
+  </script>
+</body>
+</html>

@@ -50,4 +50,20 @@ export const CASES = [
       injection: true,
     },
   },
+  {
+    // A page with 60 product images, so the results of an audit are large: the case that measures what
+    // a summary of the results saves. Only the webperf server returns summaries.
+    id: 'catalog-large',
+    fixture: 'catalog-large.html',
+    arms: ['webperf'],
+    prompt: (url) => `This category page of our shop loads slowly: ${url}\n\nAudit it and tell me what to fix first.`,
+    expect: {
+      diagnosis: [
+        // The banner, the LCP element, is lazy loaded
+        { id: 'lazy-lcp', pattern: /lazy/i },
+        // The product images have no width and height
+        { id: 'missing-dimensions', pattern: /width|height|dimensions|aspect-ratio/i },
+      ],
+    },
+  },
 ]

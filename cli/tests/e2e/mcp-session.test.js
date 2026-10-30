@@ -68,7 +68,7 @@ describe("a page that stays open", () => {
     expect(interacted.isError).toBeFalsy();
     expect(interacted.structuredContent.steps).toBe(1);
 
-    const read = await call("read_results", { sessionId });
+    const read = await call("read_results", { sessionId, detail: "summary" });
     const [inp, interactions] = read.structuredContent.results;
     expect(inp).toMatchObject({ script: "INP", status: "ok" });
     expect(inp.value).toBeGreaterThanOrEqual(240);
