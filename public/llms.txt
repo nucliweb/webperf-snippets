@@ -2,7 +2,7 @@
 
 > Tested JavaScript snippets that measure and debug web performance. Your AI agent runs them for you, or you run them yourself in DevTools.
 > Source: https://webperf-snippets.net
-> Version: 2.4.1
+> Version: 2.4.2
 > Each link points to the Markdown version of a page; the HTML page is at the same URL without .md.
 
 ---

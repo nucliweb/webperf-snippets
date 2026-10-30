@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.8.0] — 2026-10-30
+
+The MCP server spends fewer tokens of the agent on large results: it answers them with summaries, gives the rest of a result of the same run with `get_details`, and says which call to make next with `nextSteps`. Small results come whole, as in 1.7. On a page with 60 product images, the agents of `npm run eval:mcp` diagnosed the page with 57 % fewer input tokens and 3 turns instead of 11. The snippets are those of the collection 2.4.2, the same as in 1.7.1, and the command line does not change.
+
 ### Changed
 - `run_snippet`, `run_workflow` and `read_results` of the MCP server return a summary of each result when the results are large, around 2,000 tokens or more, and the whole objects when they are small; `detail` in the answer says which. A summary has the `status`, `metric`, `value`, `unit`, `rating`, `error` and `message` of a result, the `reason` of a follow-up, and its `issues` with `code`, `severity`, `message` and `target`, without the details, items and thresholds. On a page with 60 product images, an `audit` takes ~6,400 tokens instead of ~14,900. Small results stay whole because a summary made the agent spend a turn on `get_details` for what it left out, which costs more than it saves: with summaries always on, the agents of `npm run eval:mcp` used up to 44 % more tokens on the small fixture pages. `detail: "summary"` and `detail: "full"` choose one of the two whatever the size, and `full` is the shape of 1.7. Only an answer with summaries has a `runId`: with the whole objects, agents still called `get_details` for nothing. The `audit_lcp` and `debug_inp` prompts call `get_details` when they get a summary.
 
@@ -230,7 +236,8 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.1...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.8.0...HEAD
+[1.8.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.1...cli-v1.8.0
 [1.7.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.0...cli-v1.7.1
 [1.7.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.6.0...cli-v1.7.0
 [1.6.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.5.0...cli-v1.6.0
