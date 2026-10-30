@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { summarize, createRuns, RunError } from "../../src/mcp/summary.js";
+import { summarize, shapeResults, createRuns, RunError } from "../../src/mcp/summary.js";
 
 describe("summarize", () => {
   it("keeps the status, the metric and the issues of a result, and leaves out its details and items", () => {
@@ -46,6 +46,24 @@ describe("summarize", () => {
   it("leaves out an empty list of issues, and an issue without a code or a target has none", () => {
     expect(summarize({ script: "TTFB", status: "ok", issues: [] })).toEqual({ script: "TTFB", status: "ok" });
     expect(summarize({ script: "TTFB", status: "ok", issues: [{ severity: "warning", message: "Slow" }] }).issues).toEqual([{ severity: "warning", message: "Slow" }]);
+  });
+});
+
+describe("shapeResults", () => {
+  const big = { script: "Big", status: "ok", metric: "X", value: 1, details: { list: "x".repeat(200) } };
+  const small = { script: "Small", status: "ok", metric: "X", value: 1, details: { a: 1 } };
+
+  it("returns the whole objects when they are small, since a summary would cost the agent a turn for the details", () => {
+    expect(shapeResults([small], "auto", 100)).toEqual({ detail: "full", results: [small] });
+  });
+
+  it("returns summaries when the whole objects are large", () => {
+    expect(shapeResults([small, big], "auto", 100)).toEqual({ detail: "summary", results: [summarize(small), summarize(big)] });
+  });
+
+  it("returns what the agent asks for with summary or full, whatever the size", () => {
+    expect(shapeResults([small], "summary", 100)).toEqual({ detail: "summary", results: [summarize(small)] });
+    expect(shapeResults([big], "full", 100)).toEqual({ detail: "full", results: [big] });
   });
 });
 

@@ -91,9 +91,16 @@ describe("run_workflow", () => {
     expect(results[2].reason).toMatch(/LCP/);
   }, 60000);
 
+  it("returns summaries by default when the whole results are large", async () => {
+    await connect();
+    const { structuredContent } = await call("run_workflow", { url: `${servers.base}/seeded`, workflow: "audit", waitMs: 0 });
+    expect(structuredContent.detail).toBe("summary");
+    for (const r of structuredContent.results) expect(r.details).toBeUndefined();
+  }, 60000);
+
   it("returns a summary of each step, and get_details gives the full result of a follow-up of the same run", async () => {
     await connect();
-    const { structuredContent } = await call("run_workflow", { url: base(late), workflow: "core-web-vitals", waitMs: 3500 });
+    const { structuredContent } = await call("run_workflow", { url: base(late), workflow: "core-web-vitals", waitMs: 3500, detail: "summary" });
     expect(structuredContent.runId).toEqual(expect.any(String));
     for (const r of structuredContent.results) expect(r.details).toBeUndefined();
 
