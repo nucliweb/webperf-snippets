@@ -62,8 +62,30 @@ describe("the summary of the metrics", () => {
   it("gives the median, min and max of each metric, and its values in the order of the runs", () => {
     const runs = [run(1, { LCP: 2600, CLS: 0.11 }), failed("x"), run(1, { LCP: 1980, CLS: 0.02 }), run(1, { LCP: 2140, CLS: 0.04 })];
     const { summary } = summarizeRuns(runs).runs;
-    expect(summary.LCP).toEqual({ median: 2140, min: 1980, max: 2600, values: [2600, null, 1980, 2140], unit: "ms" });
-    expect(summary.CLS).toEqual({ median: 0.04, min: 0.02, max: 0.11, values: [0.11, null, 0.02, 0.04], unit: "score" });
+    expect(summary.LCP).toEqual({ median: 2140, min: 1980, max: 2600, values: [2600, null, 1980, 2140], unit: "ms", cv: 14.4, agreement: "noisy" });
+    expect(summary.CLS).toEqual({ median: 0.04, min: 0.02, max: 0.11, values: [0.11, null, 0.02, 0.04], unit: "score", cv: 83.4, agreement: "noisy" });
+  });
+
+  // The coefficient of variation of the runs, the sample standard deviation over the mean, in percent;
+  // the values were computed apart with Python's statistics.stdev
+  it("says how much the runs agree: consistent up to 5 %, variable up to 10 %, noisy above", () => {
+    const of = (values) => summarizeRuns(values.map((LCP) => run(1, { LCP }))).runs.summary.LCP;
+    expect(of([2000, 2100, 2200])).toMatchObject({ cv: 4.8, agreement: "consistent" });
+    expect(of([1000, 1080, 1160])).toMatchObject({ cv: 7.4, agreement: "variable" });
+    expect(of([1000, 1100, 1300])).toMatchObject({ cv: 13.5, agreement: "noisy" });
+  });
+
+  it("calls consistent the runs that vary by less than half of what --baseline counts as a change, whatever their CV", () => {
+    // A local TTFB of 3 to 18 ms: a CV of 64 %, with a standard deviation of 5.8 ms
+    const ttfb = summarizeRuns([18, 3, 9, 5, 10].map((TTFB) => run(1, { TTFB }))).runs.summary.TTFB;
+    expect(ttfb).toMatchObject({ cv: 64.3, agreement: "consistent" });
+  });
+
+  it("says nothing of the agreement of one run, or of runs whose mean is 0, such as a CLS of 0 in every run", () => {
+    expect(summarizeRuns([run(1, { LCP: 1200 })]).runs.summary.LCP.cv).toBeUndefined();
+    const zero = summarizeRuns([run(1, { CLS: 0 }), run(1, { CLS: 0 }), run(1, { CLS: 0 })]).runs.summary.CLS;
+    expect(zero.cv).toBeUndefined();
+    expect(zero.agreement).toBeUndefined();
   });
 
   it("takes the first result of a metric in a run, as LCP before its follow-up LCP-Subparts", () => {

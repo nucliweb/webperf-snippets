@@ -190,7 +190,7 @@ One page load is one sample, and lab values vary from one load to the next. `--r
 npx webperf-snippets https://example.com --runs 5 --budget-lcp 2500
 ```
 
-The median run is the one with the median LCP. A workflow without LCP uses the first of FCP, TTFB and the navigation time that it measures, and `--median-by <metric>` picks another one (`LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`). With an even count it takes the lower of the two middle runs, so the report is always a run that happened. The report adds the median, min and max of each metric across the runs, and the JSON output carries them in `runs`:
+The median run is the one with the median LCP. A workflow without LCP uses the first of FCP, TTFB and the navigation time that it measures, and `--median-by <metric>` picks another one (`LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`). With an even count it takes the lower of the two middle runs, so the report is always a run that happened. The report adds the median, min and max of each metric across the runs, and how much the runs agree, and the JSON output carries them in `runs`:
 
 ```json
 "runs": {
@@ -199,12 +199,12 @@ The median run is the one with the median LCP. A workflow without LCP uses the f
   "medianRun": 3,
   "medianBy": "LCP",
   "summary": {
-    "LCP": { "median": 2140, "min": 1980, "max": 2610, "values": [2610, 2010, 2140, 1980, 2290], "unit": "ms" }
+    "LCP": { "median": 2140, "min": 1980, "max": 2610, "values": [2610, 2010, 2140, 1980, 2290], "unit": "ms", "cv": 11.6, "agreement": "noisy" }
   }
 }
 ```
 
-`medianRun` counts from 1, and `values` keeps the order of the runs. The budgets compare the median of each metric, not one run. A run that fails, such as a navigation that does not finish, counts in `failed` and is left out of the median; when every run fails, the command exits with code `1`. Each run is reported on stderr as it starts, so stdout keeps only the report. An invalid count or metric exits with code `2`.
+`medianRun` counts from 1, and `values` keeps the order of the runs. `cv` is the coefficient of variation of the runs, their standard deviation over their mean in percent, and `agreement` its band: `consistent` up to 5 %, `variable` up to 10 % and `noisy` above, where one median says little and more runs help. Runs that vary by less than half of the minimum change of `--baseline` (50 ms for LCP, FCP and TTFB, 25 ms for INP, 0.025 for CLS) are `consistent` whatever their CV, since a local TTFB of 3 to 18 ms has a CV of 64 %. The budgets compare the median of each metric, not one run. A run that fails, such as a navigation that does not finish, counts in `failed` and is left out of the median; when every run fails, the command exits with code `1`. Each run is reported on stderr as it starts, so stdout keeps only the report. An invalid count or metric exits with code `2`.
 
 Measure several pages, on several devices and in several variants, in one command with `--matrix <file>`. The file lists them, and the CLI measures every URL on every device and in every variant, each combination `runs` times, one load after the other:
 
@@ -238,7 +238,7 @@ npx webperf-snippets --matrix matrix.json --budget-lcp 2500
 
 The options of the command line apply to every combination: `--workflow`, `--snippet`, `--wait`, `--interact-script`, `--header`, `--own-domains`, `--storage-state`, `--cpu`, `--network` and the budgets. The file replaces `cpu`, `network` and `storageState` where it sets them, and its `headers` and `ownDomains` add to the ones of the command line, the variant winning on the same header. A matrix file is meant to be versioned, so pass secrets, such as the token of an access proxy, with `--header` and an environment variable; a header of the file whose name looks like a secret raises a warning. A key the CLI does not know is an error, so a typo does not measure without its condition.
 
-The report is a table with one row per combination and the rated median of each metric, followed by the errors that decide the exit code; `--verbose` adds the report of the median run of each combination. `--markdown` gives the same table and folds the report of each combination into a `<details>` block, to keep a pull request comment readable. With `--json`, it is `{ "matrix", "runs", "combinations" }`, each combination being the report of its median run with its `id`, `name`, `device`, `variant` (when the file defines variants), `runs` and `conditions`, with the viewport of its device. The budgets compare the median of each combination. The command exits with code `1` when a combination exceeds a budget, has an error or fails every run, and with code `2` for an invalid file, before any page load, naming the place of the problem in the JSON. `--viewport` does not apply, since each device sets its own.
+The report is a table with one row per combination and the rated median of each metric, a variable or noisy one followed by the coefficient of variation of its runs (`🟡 2.71s ±14%`), then the errors that decide the exit code; `--verbose` adds the report of the median run of each combination. `--markdown` gives the same table and folds the report of each combination into a `<details>` block, to keep a pull request comment readable. With `--json`, it is `{ "matrix", "runs", "combinations" }`, each combination being the report of its median run with its `id`, `name`, `device`, `variant` (when the file defines variants), `runs` and `conditions`, with the viewport of its device. The budgets compare the median of each combination. The command exits with code `1` when a combination exceeds a budget, has an error or fails every run, and with code `2` for an invalid file, before any page load, naming the place of the problem in the JSON. `--viewport` does not apply, since each device sets its own.
 
 With CrUX, the CLI asks once for each URL and form factor, so the variants of a device share their field data. With `--report-to`, it posts one report for each combination, the body of one page with `meta.device`, `meta.variant` and `meta.runs`; the headers of the command line and of the file are conditions of the load, and no report carries their values.
 

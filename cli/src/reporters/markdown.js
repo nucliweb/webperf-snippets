@@ -2,7 +2,7 @@ import { fieldDataView } from "../crux.js";
 import { describeResult } from "../view.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { describeThrottling } from "../throttling.js";
-import { describeRuns } from "../runs.js";
+import { describeRuns, describeAgreement } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
 import { baselineView } from "./baseline-view.js";
 import { budgetRows, matrixBudgetFailures } from "./budgets-view.js";
@@ -115,11 +115,12 @@ function renderFieldData(crux, results) {
   ];
 }
 
-// The median, min and max of each metric across the runs
+// The median, min and max of each metric across the runs, and how much they agree
 function renderRuns(runs) {
-  const lines = ["| Metric | Median | Min | Max |", "|--------|--------|-----|-----|"];
-  for (const [metric, { median, min, max, unit }] of Object.entries(runs.summary)) {
-    lines.push(`| ${metric} | ${formatValue(median, unit)} | ${formatValue(min, unit)} | ${formatValue(max, unit)} |`);
+  const lines = ["| Metric | Median | Min | Max | Runs |", "|--------|--------|-----|-----|------|"];
+  for (const [metric, value] of Object.entries(runs.summary)) {
+    const { median, min, max, unit } = value;
+    lines.push(`| ${metric} | ${formatValue(median, unit)} | ${formatValue(min, unit)} | ${formatValue(max, unit)} | ${describeAgreement(value) || "·"} |`);
   }
   return lines;
 }
@@ -196,7 +197,7 @@ export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttli
 // report of the median run of each combination folded into a details block, to keep a pull request
 // comment readable.
 export function reportMatrixMarkdown(report) {
-  const { file, summary, hasVariants, metrics, rows, errors, comparison } = matrixView(report);
+  const { file, summary, hasVariants, metrics, rows, errors, comparison, legend } = matrixView(report);
   // With --baseline, a change column follows each metric
   const metricHeadings = metrics.flatMap((m) => (comparison ? [m, "Δ"] : [m]));
   const headings = ["Page", "Device", ...(hasVariants ? ["Variant"] : []), ...metricHeadings];
@@ -208,12 +209,13 @@ export function reportMatrixMarkdown(report) {
   for (const { combination: c, cells, changes } of rows) {
     const drawn = cells
       ? cells.flatMap((cell, i) => {
-          const value = cell ? `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}` : "·";
+          const value = cell ? `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}${cell.spread ? ` ${cell.spread}` : ""}` : "·";
           return changes ? [value, changes[i].text] : [value];
         })
       : ["❌ every run failed", ...metricHeadings.slice(1).map(() => "")];
     lines.push(row([c.name, c.device, ...(hasVariants ? [c.variant] : []), ...drawn]));
   }
+  if (legend) lines.push("", `> ${legend}`);
 
   if (errors.length) {
     lines.push("", "### Errors", ...errors.map((e) => `- ${e}`));

@@ -3,7 +3,7 @@ import { describeResult } from "../view.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { fieldDataView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
-import { describeRuns } from "../runs.js";
+import { describeRuns, describeAgreement } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
 import { baselineView } from "./baseline-view.js";
 import { budgetRows, matrixBudgetFailures } from "./budgets-view.js";
@@ -210,12 +210,13 @@ function renderFieldData(crux, results) {
   return lines;
 }
 
-// The runs line, and the median, min and max of each metric across the runs
+// The runs line, and the median, min and max of each metric across the runs, with how much they agree
 function renderRuns(runs) {
   const lines = [styleText("dim", describeRuns(runs))];
-  for (const [metric, { median, min, max, unit }] of Object.entries(runs.summary)) {
-    const cell = (label, value) => pad(`${label} ${formatValue(value, unit)}`, 16);
-    lines.push(styleText("dim", `  ${pad(metric, 6)}${cell("median", median)}${cell("min", min)}${cell("max", max).trimEnd()}`));
+  for (const [metric, value] of Object.entries(runs.summary)) {
+    const { median, min, max, unit } = value;
+    const cell = (label, v) => pad(`${label} ${formatValue(v, unit)}`, 16);
+    lines.push(styleText("dim", `  ${pad(metric, 6)}${cell("median", median)}${cell("min", min)}${cell("max", max)}${describeAgreement(value)}`.trimEnd()));
   }
   return lines;
 }
@@ -274,7 +275,7 @@ export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, th
 // One row per combination with the rated median of each metric, and below it the errors that decide
 // the exit code. With verbose, the report of the median run of each combination follows.
 export function reportMatrixHuman(report) {
-  const { file, summary, hasVariants, metrics, rows, errors, comparison } = matrixView(report);
+  const { file, summary, hasVariants, metrics, rows, errors, comparison, legend } = matrixView(report);
   const columns = [["name", "Page"], ["device", "Device"], ...(hasVariants ? [["variant", "Variant"]] : [])];
   const widths = columns.map(([key, label]) => Math.max(...report.combinations.map((c) => c[key].length), label.length) + 3);
   const identity = (values) => values.map((value, i) => pad(value, widths[i])).join("");
@@ -292,11 +293,13 @@ export function reportMatrixHuman(report) {
       continue;
     }
     const drawn = cells.map((cell, i) => {
-      const value = cell ? pad(paint(cell.rating, `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}`), 14) : pad("·", 14);
+      const width = legend ? 18 : 14;
+      const value = cell ? pad(paint(cell.rating, `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}${cell.spread ? ` ${cell.spread}` : ""}`), width) : pad("·", width);
       return value + (changes ? pad(styleText(VERDICT_STYLE[changes[i].verdict], changes[i].text), 12) : "");
     });
     lines.push(row + drawn.join("").trimEnd());
   }
+  if (legend) lines.push(styleText("dim", `  ${legend}`));
 
   if (errors.length) {
     lines.push("");
