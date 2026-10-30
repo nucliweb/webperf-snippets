@@ -385,6 +385,8 @@ npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.jso
 
 LCP, FCP, TTFB, CLS and INP compare when both runs measured them, the median of each with `--runs`; a metric that only one side measured is `not measured`. A metric regresses when it gets worse by more than its threshold, the larger of a share of the baseline and a minimum, and, when the baseline has two runs or more, ends above the slowest of them: a median inside the range of the baseline is noise the baseline already had. It improves under the same rules the other way, and otherwise it is unchanged.
 
+With five runs or more on each side, the range gives way to a test of the runs themselves: a change that beats its threshold also needs a one-sided Mann-Whitney U p-value under 0.05, the chance that runs of an unchanged page would differ this much. A median can move with two slow runs out of five; the test asks whether most runs moved. The JSON of the metric adds `stats`, with `p`, the `shift` (the Hodges-Lehmann estimate, the median of the differences between every run of one side and every run of the other) and its 95 % interval `ci`, and the reports add them to the verdict: `regressed (p = 0.028, +500ms, 95% CI +20ms to +600ms)`, or `unchanged (no evidence: p = 0.35)` for a change over the threshold that the runs do not back. Three runs a side can never reach p < 0.05, so under five the range decides.
+
 | Metric         | Share of the baseline | Minimum |
 | -------------- | --------------------- | ------- |
 | LCP, FCP, TTFB | 10%                   | 100 ms  |

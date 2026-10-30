@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { blockingErrors } from "./blocking.js";
 import { describeThrottling } from "./throttling.js";
+import { mannWhitneyGreater, hodgesLehmann } from "./stats.js";
 
 // A measurement compared with an earlier one, its baseline: which metrics got worse or better beyond
 // the noise of the lab, which errors appeared or went away, and what differs in how both were
@@ -71,23 +72,40 @@ export function thresholdsWith(overrides) {
 
 const round = (n) => Math.round(n * 10000) / 10000;
 
-// The value of a metric in a page: the median of its runs, with their range when there are two or
-// more, or its one result, as runs.js picks it
+// The value of a metric in a page: the median of its runs, with their range and their values when there
+// are two or more, or its one result, as runs.js picks it
 function measured(payload, metric) {
   const summary = payload.runs?.summary?.[metric];
   if (summary) {
-    const runs = summary.values.filter((value) => value !== null).length;
-    return { value: summary.median, ...(runs >= 2 ? { range: { min: summary.min, max: summary.max } } : {}) };
+    const values = summary.values.filter((value) => value !== null);
+    return { value: summary.median, ...(values.length >= 2 ? { range: { min: summary.min, max: summary.max }, values } : {}) };
   }
   const result = payload.results?.find((r) => r.metric === metric && r.status === "ok" && typeof r.value === "number");
   return result ? { value: result.value } : null;
 }
 
-// A regression must beat the threshold of its metric and, when the baseline has several runs, the
-// worst of them: a median inside the range of the baseline is noise the baseline already had.
-function verdict(base, current, threshold) {
-  if (current.value - base.value > threshold && (!base.range || current.value > base.range.max)) return "regressed";
-  if (base.value - current.value > threshold && (!base.range || current.value < base.range.min)) return "improved";
+// With five runs or more a side, Mann-Whitney U can tell a change from the noise of the runs; with
+// fewer, its p-value cannot go under 0.05 (three a side give 0.05 at best), so the range decides.
+export const RUNS_FOR_STATISTICS = 5;
+const ALPHA = 0.05;
+
+// The evidence of a change: the one-sided p-value in its direction, and the shift with its 95 % interval
+function statsOf(base, current, delta) {
+  if ((base.values?.length ?? 0) < RUNS_FOR_STATISTICS || (current.values?.length ?? 0) < RUNS_FOR_STATISTICS) return undefined;
+  const { p, method } = delta < 0 ? mannWhitneyGreater(base.values, current.values) : mannWhitneyGreater(current.values, base.values);
+  const { shift, ci } = hodgesLehmann(base.values, current.values);
+  return { p: round(p), shift: round(shift), ci: ci.map(round), method };
+}
+
+// A regression must beat the threshold of its metric and, with five runs a side, be unlikely to come
+// from the noise of the runs (p < 0.05). With fewer, when the baseline has several runs, it must beat
+// the worst of them: a median inside the range of the baseline is noise the baseline already had.
+function verdict(base, current, threshold, stats) {
+  const worse = current.value - base.value > threshold;
+  const better = base.value - current.value > threshold;
+  if (stats) return stats.p < ALPHA ? (worse ? "regressed" : better ? "improved" : "unchanged") : "unchanged";
+  if (worse && (!base.range || current.value > base.range.max)) return "regressed";
+  if (better && (!base.range || current.value < base.range.min)) return "improved";
   return "unchanged";
 }
 
@@ -104,13 +122,15 @@ function compareMetrics(base, current, thresholds) {
     const { relative = 0, absolute } = thresholds[metric];
     const threshold = round(Math.max(relative * b.value, absolute));
     const delta = c.value - b.value;
+    const stats = statsOf(b, c, delta);
     metrics[metric] = {
       baseline: b.value,
       current: c.value,
       delta: round(delta),
       deltaPercent: b.value === 0 ? null : Math.round((delta / b.value) * 1000) / 10,
       threshold,
-      verdict: verdict(b, c, threshold),
+      verdict: verdict(b, c, threshold, stats),
+      ...(stats ? { stats } : {}),
     };
   }
   return metrics;

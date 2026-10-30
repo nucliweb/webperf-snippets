@@ -41,6 +41,21 @@ describe("the view of a comparison with a baseline", () => {
     expect(rows.map((r) => r.note)).toEqual(["under 100ms", "inside the range of the baseline", "under 0.05", null]);
   });
 
+  it("gives the evidence of a change measured with five runs a side, and says when there is none", () => {
+    const { rows } = baselineView(
+      comparison({
+        LCP: { baseline: 2150, current: 2650, delta: 500, deltaPercent: 23.3, threshold: 215, verdict: "regressed", stats: { p: 0.0278, shift: 500, ci: [20, 600], method: "exact" } },
+        FCP: { baseline: 2175, current: 2900, delta: 725, deltaPercent: 33.3, threshold: 217.5, verdict: "unchanged", stats: { p: 0.3452, shift: 700, ci: [-175, 825], method: "exact" } },
+        CLS: { baseline: 0.1, current: 0.02, delta: -0.08, deltaPercent: -80, threshold: 0.05, verdict: "improved", stats: { p: 0.004, shift: -0.08, ci: [-0.09, -0.07], method: "exact" } },
+      })
+    );
+    expect(rows.map((r) => r.note)).toEqual([
+      "p = 0.028, +500ms, 95% CI +20ms to +600ms",
+      "no evidence: p = 0.35",
+      "p = 0.004, −0.0800, 95% CI −0.0900 to −0.0700",
+    ]);
+  });
+
   it("keeps a metric that one side did not measure, with no change", () => {
     const { rows } = baselineView(comparison({ INP: { baseline: 120, verdict: "not measured" } }));
     expect(rows).toEqual([{ metric: "INP", unit: "ms", baseline: 120, current: undefined, change: null, verdict: "not measured", note: null }]);

@@ -132,6 +132,47 @@ describe("the verdict of a metric", () => {
     expect(compare(base, page({ metrics: { LCP: 1500 } })).metrics.LCP.verdict).toBe("improved");
   });
 
+  // With five runs or more a side, a change must also be unlikely to come from the noise of the runs:
+  // Mann-Whitney U, one-sided, p < 0.05. The p-values come from scipy (see tests/unit/stats.test.js).
+  it("is regressed with five runs a side when the change beats the threshold and p < 0.05, even inside the range of the baseline", () => {
+    const base = page({ runs: runsOf({ LCP: [2100, 2120, 2150, 2180, 2700] }) });
+    const current = page({ runs: runsOf({ LCP: [2600, 2620, 2650, 2720, 2750] }) });
+    const lcp = compare(base, current).metrics.LCP;
+    expect(lcp).toMatchObject({ baseline: 2150, current: 2650, verdict: "regressed" });
+    expect(lcp.stats).toEqual({ p: 0.0278, shift: 500, ci: [20, 600], method: "exact" });
+  });
+
+  it("is unchanged with five runs a side when the change beats the threshold but the runs give no evidence", () => {
+    // Three runs much slower and two faster: the median moved, the runs do not say the page did
+    const base = page({ runs: runsOf({ LCP: [2100, 2140, 2175, 2210, 2250] }) });
+    const current = page({ runs: runsOf({ LCP: [2000, 2050, 2900, 2950, 3000] }) });
+    const lcp = compare(base, current).metrics.LCP;
+    expect(lcp).toMatchObject({ baseline: 2175, current: 2900, verdict: "unchanged" });
+    expect(lcp.stats.p).toBe(0.3452);
+  });
+
+  it("is improved with five runs a side when it gets better beyond the threshold and p < 0.05", () => {
+    const base = page({ runs: runsOf({ LCP: [2600, 2620, 2650, 2720, 2750] }) });
+    const current = page({ runs: runsOf({ LCP: [2100, 2120, 2150, 2180, 2700] }) });
+    const lcp = compare(base, current).metrics.LCP;
+    expect(lcp.verdict).toBe("improved");
+    expect(lcp.stats).toEqual({ p: 0.0278, shift: -500, ci: [-600, -20], method: "exact" });
+  });
+
+  it("keeps the rule of the range, with no statistics, under five runs a side", () => {
+    const base = page({ runs: runsOf({ LCP: [2100, 2120, 2700] }) });
+    const current = page({ runs: runsOf({ LCP: [2600, 2650, 2750] }) });
+    const lcp = compare(base, current).metrics.LCP;
+    expect(lcp.verdict).toBe("unchanged");
+    expect(lcp.stats).toBeUndefined();
+  });
+
+  it("leaves out the runs that failed from the statistics", () => {
+    const base = page({ runs: runsOf({ LCP: [2100, 2120, 2150, 2180, 2700, null] }) });
+    const current = page({ runs: runsOf({ LCP: [2600, 2620, 2650, 2720, 2750] }) });
+    expect(compare(base, current).metrics.LCP.stats.p).toBe(0.0278);
+  });
+
   it("is not measured when one side lacks the metric, never a regression", () => {
     const { metrics } = compare(page({ metrics: { LCP: 2100, INP: 120 } }), page({ metrics: { LCP: 2100 } }));
     expect(metrics.INP).toEqual({ baseline: 120, verdict: "not measured" });

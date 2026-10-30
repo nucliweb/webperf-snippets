@@ -15,9 +15,22 @@ function describeChange(metric, { delta, deltaPercent }) {
   return `${arrow(delta)} ${ms}${percent}`;
 }
 
+// Three decimals where the verdict is decided, two above it: "0.028", "0.35"
+const pValue = (p) => (p < 0.001 ? "< 0.001" : p < 0.05 ? p.toFixed(3) : p.toFixed(2));
+const amountOf = (metric, n) => (metric === "CLS" ? signed(n, Math.abs(n).toFixed(4)) : signed(n, `${Math.abs(Math.round(n))}ms`));
+
+// The evidence of a change measured with five runs a side: its p-value, its shift and the 95 % interval
+// of the shift; for a change over the threshold that stayed unchanged, that the runs gave no evidence
+function evidenceOf(metric, m) {
+  const { p, shift, ci } = m.stats;
+  if (m.verdict === "unchanged") return Math.abs(m.delta) > m.threshold ? `no evidence: p = ${pValue(p)}` : null;
+  return `p = ${pValue(p)}, ${amountOf(metric, shift)}, 95% CI ${amountOf(metric, ci[0])} to ${amountOf(metric, ci[1])}`;
+}
+
 // An unchanged metric that moved stayed under its threshold, or beat it inside the range of the runs
 // of the baseline: noise the baseline already had
 function noteOf(metric, m) {
+  if (m.stats) return evidenceOf(metric, m) ?? (m.verdict === "unchanged" && m.delta !== 0 ? `under ${metric === "CLS" ? m.threshold : `${Math.round(m.threshold)}ms`}` : null);
   if (m.verdict !== "unchanged" || m.delta === 0) return null;
   if (Math.abs(m.delta) > m.threshold) return "inside the range of the baseline";
   return `under ${metric === "CLS" ? m.threshold : `${Math.round(m.threshold)}ms`}`;
