@@ -375,8 +375,8 @@ describe("the runs of a measurement", () => {
       medianRun: 2,
       medianBy: "LCP",
       summary: {
-        LCP: { median: 1200, min: 980, max: 2610, values: [2610, 1200, null, 980], unit: "ms" },
-        CLS: { median: 0.04, min: 0.02, max: 0.11, values: [0.11, 0.04, null, 0.02], unit: "score" },
+        LCP: { median: 1200, min: 980, max: 2610, values: [2610, 1200, null, 980], unit: "ms", cv: 55.2, agreement: "noisy" },
+        CLS: { median: 0.04, min: 0.02, max: 0.11, values: [0.11, 0.04, null, 0.02], unit: "score", cv: 4.2, agreement: "consistent" },
       },
     },
   };
@@ -386,6 +386,13 @@ describe("the runs of a measurement", () => {
     expect(output).toContain("3 runs, median by LCP: run 2 (1 failed)");
     expect(output).toMatch(/LCP\s+median 1\.20s\s+min 980ms\s+max 2\.61s/);
     expect(output).toMatch(/CLS\s+median 0\.0400\s+min 0\.0200\s+max 0\.1100/);
+  });
+
+  it("say how much the runs of each metric agree, with their coefficient of variation", () => {
+    const output = reportHuman(measured);
+    expect(output).toMatch(/LCP\s+median 1\.20s\s+min 980ms\s+max 2\.61s\s+noisy \(CV 55\.2%\)/);
+    expect(output).toMatch(/CLS\s+median 0\.0400\s+min 0\.0200\s+max 0\.1100\s+consistent \(CV 4\.2%\)/);
+    expect(reportMarkdown(measured)).toContain("| LCP | 1.20s | 980ms | 2.61s | noisy (CV 55.2%) |");
   });
 
   it("say run, not runs, for one run", () => {
@@ -400,8 +407,8 @@ describe("the runs of a measurement", () => {
   it("are a table in the markdown report", () => {
     const output = reportMarkdown(measured);
     expect(output).toContain("3 runs, median by LCP: run 2 (1 failed)");
-    expect(output).toContain("| Metric | Median | Min | Max |");
-    expect(output).toContain("| LCP | 1.20s | 980ms | 2.61s |");
+    expect(output).toContain("| Metric | Median | Min | Max | Runs |");
+    expect(output).toContain("| LCP | 1.20s | 980ms | 2.61s | noisy (CV 55.2%) |");
   });
 
   it("leave both reports as they were without runs", () => {
@@ -411,7 +418,7 @@ describe("the runs of a measurement", () => {
 });
 
 // A matrix of three combinations: two measured, one whose runs all failed
-const combination = (name, device, variant, lcp, cls, results = []) => ({
+const combination = (name, device, variant, lcp, cls, results = [], lcpCv = 1.2) => ({
   id: `${name} · ${device} · ${variant}`,
   name,
   device,
@@ -426,7 +433,7 @@ const combination = (name, device, variant, lcp, cls, results = []) => ({
     medianRun: 2,
     medianBy: "LCP",
     summary: {
-      LCP: { median: lcp, min: lcp, max: lcp, values: [lcp, lcp, lcp], unit: "ms" },
+      LCP: { median: lcp, min: lcp, max: lcp, values: [lcp, lcp, lcp], unit: "ms", cv: lcpCv, agreement: lcpCv <= 5 ? "consistent" : lcpCv <= 10 ? "variable" : "noisy" },
       CLS: { median: cls, min: cls, max: cls, values: [cls, cls, cls], unit: "score" },
     },
   },
@@ -456,6 +463,21 @@ describe("the human report of a matrix", () => {
     expect(lines.find((l) => l.includes("no-consent"))).toMatch(/home\s+mobile\s+no-consent\s+🟢 1\.98s\s+🟢 0\.0200/);
     expect(lines.find((l) => /mobile\s+consent/.test(l))).toMatch(/🟡 2\.71s\s+🔴 0\.3100/);
     expect(lines.find((l) => l.includes("article"))).toMatch(/article\s+desktop\s+consent\s+✗ every run failed/);
+  });
+
+  it("marks a median whose runs are variable or noisy with their CV, with a legend under the table", () => {
+    const noisy = { ...matrix, combinations: [combination("home", "mobile", "no-consent", 1980, 0.02, [], 7.4), ...matrix.combinations.slice(1)] };
+    const output = reportMatrixHuman(noisy);
+    expect(output.split("\n").find((l) => l.includes("no-consent"))).toMatch(/🟢 1\.98s ±7%/);
+    expect(output.split("\n").find((l) => /mobile\s+consent/.test(l))).not.toMatch(/±/);
+    expect(output).toContain("±: the coefficient of variation of the runs of a variable or noisy median");
+    expect(reportMatrixHuman(matrix)).not.toContain("±");
+    // A local TTFB of a few milliseconds has a large CV and runs that agree: no mark
+    const tiny = combination("home", "mobile", "no-consent", 1980, 0.02, [], 48);
+    tiny.runs.summary.LCP.agreement = "consistent";
+    expect(reportMatrixHuman({ ...matrix, combinations: [tiny] })).not.toContain("±");
+    expect(reportMatrixMarkdown(noisy)).toContain("✅ 1.98s ±7%");
+    expect(reportMatrixMarkdown(noisy)).toContain("±: the coefficient of variation of the runs of a variable or noisy median");
   });
 
   it("lists the errors that decide the exit code, and leaves out the ones of follow-ups", () => {

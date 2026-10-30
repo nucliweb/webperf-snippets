@@ -6,6 +6,11 @@ import { changeCell, matrixComparisonView } from "./baseline-view.js";
 // The order of the metric columns of the matrix table
 const METRICS = ["LCP", "FCP", "TTFB", "CLS", "INP"];
 
+// A median whose runs are variable or noisy carries their coefficient of variation in its cell; the
+// others carry nothing, so the table stays narrow and the marks stand out
+const varies = (value) => value?.agreement === "variable" || value?.agreement === "noisy";
+const LEGEND = "±: the coefficient of variation of the runs of a variable or noisy median";
+
 // What the human and markdown reports of a matrix show, so they only differ in how they draw it:
 // the title, the metric columns, one row per combination with the rated median of each metric, and
 // the errors that decide the exit code. With --baseline, each row also has the change of each metric
@@ -31,10 +36,13 @@ export function matrixView({ matrix, runs, combinations, baseline }) {
         ? null
         : metrics.map((metric) => {
             const value = c.runs.summary[metric];
-            return value ? { median: value.median, unit: value.unit, rating: rate(metric, value.median) } : null;
+            return value
+              ? { median: value.median, unit: value.unit, rating: rate(metric, value.median), ...(varies(value) ? { spread: `±${Math.round(value.cv)}%` } : {}) }
+              : null;
           }),
     })),
     ...(baseline ? { comparison: matrixComparisonView(baseline, combinations) } : {}),
+    ...(measured.some((c) => metrics.some((metric) => varies(c.runs.summary[metric]))) ? { legend: LEGEND } : {}),
     errors: combinations.flatMap((c) =>
       c.error ? [`${c.id}: ${c.error}`] : blockingErrors(c.results).map((e) => `${c.id}: ${e.id}: ${e.message}`)
     ),

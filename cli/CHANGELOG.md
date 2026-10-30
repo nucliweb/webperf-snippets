@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `--runs` and `--matrix` say how much the runs of each metric agree. The JSON of each metric of `runs.summary` adds `cv`, the coefficient of variation of the runs in percent, and `agreement`: `consistent` up to 5 %, `variable` up to 10 %, `noisy` above. Runs that vary by less than half of the minimum change of `--baseline` are `consistent` whatever their CV, as the few milliseconds of a local TTFB. The report of `--runs` shows it after the median, min and max (`noisy (CV 62%)`), and the table of `--matrix` marks a variable or noisy median with its CV (`🟡 2.71s ±14%`), with a legend under the table.
+
 ### Changed
 - With five runs or more on each side, `--baseline` decides a regression or an improvement with the runs themselves: a change must beat its threshold and have a one-sided Mann-Whitney U p-value under 0.05, instead of ending outside the range of the baseline. The range let two slow runs out of five hide a regression, and let a median moved by three runs report one; with `LCP` runs of 2100, 2120, 2150, 2180 and 2700 against 2600, 2620, 2650, 2720 and 2750 the verdict goes from unchanged to regressed (p = 0.028), and with 2100 to 2250 against 2000, 2050, 2900, 2950 and 3000 from regressed to unchanged (p = 0.35). The JSON of each metric adds `stats` (`p`, the Hodges-Lehmann `shift` and its 95 % interval `ci`, and the `method`), and the reports add them to the verdict. Under five runs a side, the rule of the range stays.
 
