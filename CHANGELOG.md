@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.4.2] — 2026-10-30
+
+A patch release: the site stops loading the RUM script of DebugBear, whose domain was taken over, `katex` gets its fix, the `Action` workflow gets a read-only token, and Prompt to fix of the extension keeps its tables whole. The snippets are those of 2.4.1. The CLI reaches version 1.8.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)), whose MCP server answers large results with summaries and says which call to make next, and the extension 0.5.2.
+
 ### Security
 - The site no longer loads the RUM script of DebugBear (`cdn.debugbear.com`). DebugBear reported that its domain was taken over, so the script could serve any code to the visitors of the site.
 - `katex` 0.18.11, which fixes GHSA-238p-pmpm-9mq7 (low). It comes with Nextra and Mermaid, and the site does not reach it: Nextra loads it only with its `latex` option, which the site leaves off, and no page has a Mermaid block. `npm audit` goes from 9 warnings (3 high, 6 low) to 3 (high), all of `zod` 4.3.6 inside Nextra and only at build time: Nextra 4.6.1 fails with the `zod` that fixes GHSA-mrhx-c7xc-m3w5 (shuding/nextra#5036), since `<Layout>` validates its props without `children` against a schema that requires it.
@@ -293,7 +299,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.2...HEAD
+[2.4.2]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.2.0...v2.3.0

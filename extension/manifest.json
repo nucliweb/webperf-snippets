@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WebPerf Snippets",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Run the WebPerf Snippets on the inspected page from a DevTools panel, and read their results.",
   "icons": {
     "16": "icons/icon-16.png",
