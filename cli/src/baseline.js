@@ -186,6 +186,20 @@ const pathOf = (url) => {
   }
 };
 
+// Machines whose benchmark indexes differ by more than 35 % give different timings for the same page,
+// as do machines with other cores; within that, the noise of the index itself
+const MACHINE_DIFFERENCE = 0.35;
+
+function machineWarning(base, current) {
+  if (!base || !current) return null;
+  const ratio = base.benchmarkIndex / current.benchmarkIndex;
+  const differs = Math.max(ratio, 1 / ratio) - 1 > MACHINE_DIFFERENCE;
+  if (!differs && base.cores === current.cores) return null;
+  const speed = ratio >= 1 ? `${Math.round((ratio - 1) * 100)}% faster` : `${Math.round((1 - ratio) * 100)}% slower`;
+  const cores = base.cores === current.cores ? `${base.cores} cores both` : `${base.cores} cores against ${current.cores}`;
+  return `the baseline was measured on a machine ${speed} than this one (benchmark index ${base.benchmarkIndex} against ${current.benchmarkIndex}, ${cores}); timings can differ for that alone`;
+}
+
 // What differs in how both were measured. The comparison goes on: the warnings say how far to trust it.
 function warningsOf(base, current) {
   const warnings = [];
@@ -203,6 +217,8 @@ function warningsOf(base, current) {
   }
   if (runCount(base) < 2) warnings.push("the baseline has 1 run, so only the thresholds apply; measure both with --runs");
   else if (runCount(base) !== runCount(current)) warnings.push(`the baseline has ${runCount(base)} runs, and this run ${runCount(current)}`);
+  const machine = machineWarning(b?.machine, c?.machine);
+  if (machine) warnings.push(machine);
   if (b && c && b.cliVersion !== c.cliVersion) {
     warnings.push(`the baseline was measured with CLI ${b.cliVersion}, and this run with ${c.cliVersion}; the snippets may have changed`);
   }

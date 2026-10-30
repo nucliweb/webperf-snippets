@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ## [Unreleased]
 
 ### Added
+- The `conditions` of the JSON add the `machine`: its `cores` and a `benchmarkIndex`, a CPU test of 200 ms in Node before Chromium starts, so `--cpu` does not change it; alone, ten in a row vary by about 6 %. `--baseline` warns when the benchmark indexes of both differ by more than 35 % or the cores differ, since timings move with the machine as much as with the page.
 - `--runs` and `--matrix` say how much the runs of each metric agree. The JSON of each metric of `runs.summary` adds `cv`, the coefficient of variation of the runs in percent, and `agreement`: `consistent` up to 5 %, `variable` up to 10 %, `noisy` above. Runs that vary by less than half of the minimum change of `--baseline` are `consistent` whatever their CV, as the few milliseconds of a local TTFB. The report of `--runs` shows it after the median, min and max (`noisy (CV 62%)`), and the table of `--matrix` marks a variable or noisy median with its CV (`🟡 2.71s ±14%`), with a legend under the table.
 
 ### Changed

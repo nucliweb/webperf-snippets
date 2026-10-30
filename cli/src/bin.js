@@ -20,6 +20,7 @@ import { loadMatrix } from "./matrix.js";
 import { blockingErrors } from "./blocking.js";
 import { MEASURED_BY, checkBudgets, parseBudgets, unmeasuredMetrics, violationsOf } from "./budgets.js";
 import { measurementConditions } from "./conditions.js";
+import { machineOf } from "./machine.js";
 import { isHttpUrl } from "./url.js";
 import { loadBaseline, parseThreshold, thresholdsWith, compareRun, compareMatrix } from "./baseline.js";
 import { describeRegressions, describeMatrixRegressions, matrixComparisonView } from "./reporters/baseline-view.js";
@@ -287,9 +288,11 @@ async function main() {
     const options = { waitMs, headless: !values.headed, interactScript, ...conditions };
     return items ? runSnippets({ ...options, items }) : runMeasurement({ ...options, workflow, rules: RULES });
   };
-  // What the JSON records of how each page was measured, for a later run to compare with
+  // What the JSON records of how each page was measured, for a later run to compare with. The machine is
+  // measured once, before Chromium starts, so its processes do not slow the benchmark down.
+  const machine = machineOf();
   const conditionsFor = (viewport) =>
-    measurementConditions({ viewport, waitMs, ...(items ? { snippet: items[0].path } : { workflow: values.workflow ?? "core-web-vitals" }) });
+    measurementConditions({ viewport, waitMs, machine, ...(items ? { snippet: items[0].path } : { workflow: values.workflow ?? "core-web-vitals" }) });
 
   if (matrixPath) {
     let matrix;

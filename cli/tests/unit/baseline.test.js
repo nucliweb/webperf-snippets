@@ -254,6 +254,19 @@ describe("the warnings of a comparison", () => {
     expect(warningsOf(base, current)).toEqual([]);
   });
 
+  it("say when the machine of the baseline was more than 35 % faster or slower, or had other cores", () => {
+    const on = (machine) => page({ conditions: { ...CONDITIONS, machine }, runs: runsOf({ LCP: [1, 2, 3] }) });
+    expect(warningsOf(on({ cores: 8, benchmarkIndex: 1000 }), on({ cores: 8, benchmarkIndex: 600 }))).toContain(
+      "the baseline was measured on a machine 67% faster than this one (benchmark index 1000 against 600, 8 cores both); timings can differ for that alone"
+    );
+    expect(warningsOf(on({ cores: 8, benchmarkIndex: 1000 }), on({ cores: 4, benchmarkIndex: 1400 }))).toContain(
+      "the baseline was measured on a machine 29% slower than this one (benchmark index 1000 against 1400, 8 cores against 4); timings can differ for that alone"
+    );
+    expect(warningsOf(on({ cores: 8, benchmarkIndex: 1000 }), on({ cores: 8, benchmarkIndex: 1300 }))).toEqual([]);
+    // A baseline from a CLI without the machine says nothing of it
+    expect(warningsOf(page({ runs: runsOf({ LCP: [1, 2, 3] }) }), on({ cores: 8, benchmarkIndex: 600 }))).toEqual([]);
+  });
+
   it("say when the baseline comes from a CLI without conditions", () => {
     expect(warningsOf(page({ conditions: null }), page())).toContain(
       "the baseline comes from a CLI without conditions (1.3.0 or earlier); it cannot say how it was measured"
