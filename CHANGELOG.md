@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- The CLI reaches version 1.9.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): from five runs a side, `--baseline` decides a regression with a Mann-Whitney U test of the runs on top of the threshold, and reports the p-value and the shift with its 95 % interval; `--runs` and `--matrix` give the coefficient of variation of the runs of each metric and whether they agree; and the conditions of a measurement name the machine, with a warning in `--baseline` when it ran on another CPU.
+
 ---
 
 ## [2.4.2] — 2026-10-30
