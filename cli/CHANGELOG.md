@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `--crux-history <weeks>` adds the trend of the field data over the last 1 to 40 weeks, from the CrUX History API: for LCP, CLS and INP, the p75 of each week, each the 28 days before it, the first and the last, the change between them and its direction (`stable` within 5 %), as a sparkline in the human and markdown reports and in `crux.history` in the JSON. It uses the page when it has data of its own and its origin otherwise, needs a CrUX key, and works with `--matrix`. The `get_crux` tool of the MCP server takes `weeks` for the same trend.
+
 ---
 
 ## [1.9.0] — 2026-10-31

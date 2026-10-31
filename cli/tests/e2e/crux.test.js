@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { fetchCrux } from "../../src/crux.js";
+import { fetchCrux, fetchCruxHistory } from "../../src/crux.js";
 import { cliEnv } from "../helpers/cli-env.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -39,6 +39,24 @@ const RECORD = {
   },
 };
 
+// What the History API returns: three weekly periods, oldest first
+const HISTORY = {
+  record: {
+    key: { formFactor: "PHONE", url: "https://example.com/page" },
+    collectionPeriods: [
+      { firstDate: { year: 2026, month: 9, day: 13 }, lastDate: { year: 2026, month: 10, day: 10 } },
+      { firstDate: { year: 2026, month: 9, day: 20 }, lastDate: { year: 2026, month: 10, day: 17 } },
+      { firstDate: { year: 2026, month: 9, day: 27 }, lastDate: { year: 2026, month: 10, day: 24 } },
+    ],
+    metrics: {
+      largest_contentful_paint: { percentilesTimeseries: { p75s: [2875, 2990, 3097] } },
+      cumulative_layout_shift: { percentilesTimeseries: { p75s: ["0.26", "0.24", "0.21"] } },
+      interaction_to_next_paint: { percentilesTimeseries: { p75s: [248, 249, 251] } },
+    },
+  },
+};
+const isHistory = (path) => path.includes("records:queryHistoryRecord");
+
 const ok = (res, body = RECORD) => {
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify(body));
@@ -60,7 +78,7 @@ beforeAll(async () => {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       requests.push({ method: req.method, url: req.url, body: JSON.parse(body || "{}") });
-      respond(res, JSON.parse(body || "{}"));
+      respond(res, JSON.parse(body || "{}"), req.url);
     });
   });
   cruxEndpoint = `http://127.0.0.1:${cruxServer.address().port}/v1/records:queryRecord`;
@@ -77,7 +95,41 @@ afterAll(async () => {
 
 beforeEach(() => {
   requests = [];
-  respond = (res) => ok(res);
+  respond = (res, body, path) => ok(res, isHistory(path) ? HISTORY : RECORD);
+});
+
+describe("fetchCruxHistory", () => {
+  const call = (extra = {}) =>
+    fetchCruxHistory({ url: "https://example.com/page", apiKey: "secret-key", weeks: 3, endpoint: cruxEndpoint, ...extra });
+
+  it("asks the History API for the weeks of the URL, with the key in the query string", async () => {
+    const history = await call();
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toMatch(/\/v1\/records:queryHistoryRecord\?key=secret-key$/);
+    expect(requests[0].body).toEqual({ url: "https://example.com/page", formFactor: "PHONE", collectionPeriodCount: 3 });
+    expect(history).toMatchObject({ scope: "url", formFactor: "PHONE", weeks: 3 });
+    expect(history.metrics.LCP).toMatchObject({ p75s: [2875, 2990, 3097], change: 7.7, trend: "worsening" });
+    expect(history.metrics.CLS).toMatchObject({ p75s: [0.26, 0.24, 0.21], trend: "improving" });
+  });
+
+  it("falls back to the origin when the URL has too little traffic, and says so", async () => {
+    respond = (res, body, path) => (body.url ? notFound(res) : ok(res, isHistory(path) ? HISTORY : RECORD));
+    const history = await call();
+    expect(requests.map((r) => r.body.url ?? r.body.origin)).toEqual(["https://example.com/page", "https://example.com"]);
+    expect(history.scope).toBe("origin");
+  });
+
+  it("is unavailable when neither the URL nor the origin has data, and a failure without the key on an API error", async () => {
+    respond = (res) => notFound(res);
+    expect(await call()).toEqual({ unavailable: "not in the CrUX dataset" });
+    respond = (res) => {
+      res.writeHead(500);
+      res.end("{}");
+    };
+    const failed = await call();
+    expect(failed).toEqual({ unavailable: "the CrUX History API answered 500", failed: true });
+    expect(JSON.stringify(failed)).not.toContain("secret-key");
+  });
 });
 
 describe("fetchCrux", () => {
@@ -198,4 +250,38 @@ describe("CrUX in the CLI", () => {
     expect(code).toBe(0);
     expect(stdout).toContain("Field data: not available");
   }, 30000);
+
+  it("adds the trend of the last weeks with --crux-history, to the JSON and to both reports", async () => {
+    const json = await cli(["--json", "--crux-key", "k1", "--crux-history", "3"]);
+    expect(json.code, json.stderr).toBe(0);
+    const history = requests.find((r) => isHistory(r.url));
+    expect(history.body.collectionPeriodCount).toBe(3);
+    expect(JSON.parse(json.stdout).crux.history).toMatchObject({ scope: "url", weeks: 3, metrics: { LCP: { trend: "worsening" } } });
+
+    const human = await cli(["--crux-key", "k1", "--crux-history", "3"]);
+    expect(human.stdout).toContain("Field data trend (CrUX p75, 3 weeks, mobile)");
+    expect(human.stdout).toMatch(/LCP\s+2\.88s → 3\.10s\s+▲ \+7\.7%\s+worsening\s+▁▅█/);
+    expect(human.stdout).toMatch(/CLS\s+0\.2600 → 0\.2100\s+▼ −19\.2%\s+improving/);
+
+    const markdown = await cli(["--markdown", "--crux-key", "k1", "--crux-history", "3"]);
+    expect(markdown.stdout).toContain("### Field data trend (CrUX p75, 3 weeks, mobile)");
+    expect(markdown.stdout).toContain("| LCP | 2.88s | 3.10s | ▲ +7.7% | worsening | ▁▅█ |");
+  }, 60000);
+
+  it("asks the History API only with --crux-history", async () => {
+    await cli(["--json", "--crux-key", "k1"]);
+    expect(requests.some((r) => isHistory(r.url))).toBe(false);
+  }, 30000);
+
+  it("refuses --crux-history outside 1 to 40 weeks, or without a key, before the page loads", async () => {
+    for (const weeks of ["0", "41", "many"]) {
+      const { code, stderr } = await cli(["--crux-key", "k1", "--crux-history", weeks]);
+      expect(code).toBe(2);
+      expect(stderr).toMatch(/--crux-history takes 1 to 40 weeks/);
+    }
+    const { code, stderr } = await cli(["--crux-history", "3"], { CRUX_API_KEY: "" });
+    expect(code).toBe(2);
+    expect(stderr).toMatch(/--crux-history needs a CrUX key: --crux-key or CRUX_API_KEY/);
+    expect(requests).toHaveLength(0);
+  }, 60000);
 });

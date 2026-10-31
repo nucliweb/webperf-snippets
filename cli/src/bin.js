@@ -10,7 +10,7 @@ import { reportHuman, reportMatrixHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMarkdown, reportMatrixMarkdown } from "./reporters/markdown.js";
 import { cliVersion, reportTo, validateReportUrl } from "./report-to.js";
-import { fetchCrux, formFactorFor } from "./crux.js";
+import { fetchCrux, fetchCruxHistory, formFactorFor } from "./crux.js";
 import { MissingBrowserError } from "./browser.js";
 import { parseHeader } from "./headers.js";
 import { NETWORK_PRESETS, parseCpuFactor } from "./throttling.js";
@@ -80,6 +80,7 @@ Options:
                             LCP=200ms or CLS=0.1. Repeat it for more metrics
   --fail-on-regression      Exit 1 when a metric regressed or an error is new against --baseline
   --crux-key <key>          Add CrUX field data (p75) next to the measured values.
+  --crux-history <weeks>    Add the trend of the field data over the last 1 to 40 weeks (needs a CrUX key).
                             Also read from the CRUX_API_KEY environment variable
   --report-to <url>         POST the results to this https URL after the run
                             (without it the CLI makes no external calls)
@@ -175,6 +176,7 @@ async function main() {
         threshold: { type: "string", multiple: true },
         "fail-on-regression": { type: "boolean" },
         "crux-key": { type: "string" },
+        "crux-history": { type: "string" },
         "report-to": { type: "string" },
         "api-key": { type: "string" },
         verbose: { type: "boolean" },
@@ -253,6 +255,19 @@ async function main() {
   }
   if (medianBy != null && runCount == null && !matrixPath) fail("--median-by needs --runs");
 
+  // The field data: the p75 of the last 28 days with a key, and its trend week by week with --crux-history
+  const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;
+  let cruxWeeks;
+  if (values["crux-history"] !== undefined) {
+    cruxWeeks = /^\d+$/.test(values["crux-history"]) ? Number(values["crux-history"]) : NaN;
+    if (!(cruxWeeks >= 1 && cruxWeeks <= 40)) fail(`--crux-history takes 1 to 40 weeks, not "${values["crux-history"]}"`);
+    if (!cruxKey) fail("--crux-history needs a CrUX key: --crux-key or CRUX_API_KEY");
+  }
+  const fieldDataOf = async (url, formFactor) => {
+    const crux = await fetchCrux({ url, apiKey: cruxKey, formFactor });
+    return cruxWeeks ? { ...crux, history: await fetchCruxHistory({ url, apiKey: cruxKey, formFactor, weeks: cruxWeeks }) } : crux;
+  };
+
   // The baseline is read and checked before the browser opens: a wrong file fails at once
   let baseline;
   let thresholds;
@@ -301,7 +316,7 @@ async function main() {
     } catch (err) {
       fail(err.message);
     }
-    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds, budgets });
+    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds, budgets, cruxKey, fieldDataOf });
     return;
   }
 
@@ -316,9 +331,7 @@ async function main() {
   }
   payload.conditions = conditionsFor(viewportName);
 
-  const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;
-  const crux = cruxKey ? await fetchCrux({ url, apiKey: cruxKey, formFactor: formFactorFor(viewportName) }) : undefined;
-  if (crux) payload.crux = crux;
+  if (cruxKey) payload.crux = await fieldDataOf(url, formFactorFor(viewportName));
 
   if (baseline) {
     payload.baseline = compareRun(baseline.data, payload, { file: baseline.file, thresholds });
@@ -394,7 +407,7 @@ async function measureRuns(measure, count, medianBy, progress) {
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code follows the same rules as one page, for every combination.
-async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds, budgets }) {
+async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds, budgets, cruxKey, fieldDataOf }) {
   for (const warning of matrix.warnings) process.stderr.write(`Warning: ${warning}\n`);
   const viewportOf = new Map(matrix.combinations.map((c) => [c.id, c.viewport]));
 
@@ -414,13 +427,12 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
   }
 
   // The field data of a URL depends on the form factor, not on the variant: one query for each pair
-  const cruxKey = values["crux-key"] || process.env.CRUX_API_KEY;
   if (cruxKey) {
     const queries = new Map();
     for (const c of combinations.filter((c) => !c.error)) {
       const formFactor = formFactorFor(viewportOf.get(c.id));
       const key = `${c.url} ${formFactor}`;
-      if (!queries.has(key)) queries.set(key, fetchCrux({ url: c.url, apiKey: cruxKey, formFactor }));
+      if (!queries.has(key)) queries.set(key, fieldDataOf(c.url, formFactor));
       const crux = await queries.get(key);
       if (crux) c.crux = crux;
     }

@@ -1,4 +1,4 @@
-import { fieldDataView } from "../crux.js";
+import { fieldDataView, historyView } from "../crux.js";
 import { describeResult } from "../view.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { describeThrottling } from "../throttling.js";
@@ -102,7 +102,8 @@ function renderSection(title, results) {
 }
 
 function renderFieldData(crux, results) {
-  if (crux.unavailable) return [`> Field data: not available (${crux.unavailable})`];
+  const trend = crux.history ? ["", ...renderFieldTrend(crux.history)] : [];
+  if (crux.unavailable) return [`> Field data: not available (${crux.unavailable})`, ...trend];
   const { title, rows } = fieldDataView(crux, results);
   return [
     `### ${title}`,
@@ -112,6 +113,18 @@ function renderFieldData(crux, results) {
       const synthetic = row.synthetic == null ? "n/a" : formatValue(row.synthetic, row.unit);
       return `| ${row.metric} | ${formatValue(row.p75, row.unit)} | ${RATING_ICON[row.rating] ?? "·"} ${row.rating} | ${synthetic} |`;
     }),
+    ...trend,
+  ];
+}
+
+function renderFieldTrend(history) {
+  if (history.unavailable) return [`> Field data trend: not available (${history.unavailable})`];
+  const { title, rows } = historyView(history);
+  return [
+    `### ${title}`,
+    "| Metric | First | Last | Change | Trend | Weeks |",
+    "|--------|-------|------|--------|-------|-------|",
+    ...rows.map((row) => `| ${row.metric} | ${formatValue(row.first, row.unit)} | ${formatValue(row.last, row.unit)} | ${row.change} | ${row.trend} | ${row.sparkline} |`),
   ];
 }
 

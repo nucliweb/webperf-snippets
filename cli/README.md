@@ -136,6 +136,17 @@ Field data (CrUX p75, mobile)
 
 Get a key for the [Chrome UX Report API](https://developer.chrome.com/docs/crux/api) and pass it with `--crux-key` or the `CRUX_API_KEY` environment variable; prefer the variable, because a flag ends up in shell history and CI logs. The section appears in the human and markdown output and under `crux` in the `--json` output.
 
+`--crux-history <weeks>` adds the trend of the field data over the last 1 to 40 weeks, from the [CrUX History API](https://developer.chrome.com/docs/crux/history-api), with the same key. Each week is the p75 of the 28 days before it, so the weeks overlap and the series is smooth. For LCP, CLS and INP the section gives the first and the last week, the change between them and its direction, `stable` within 5 %, and the weeks as a sparkline, where a gap is a week with too little data:
+
+```
+Field data trend (CrUX p75, 40 weeks, mobile, origin-level)
+  LCP   2.88s → 3.10s       ▲ +7.7%   worsening   ▃▃▄▃▃▃▄▆▇██▇▆▄▂▁▂▃▃▄▅▆▆▆▆▆▆
+  CLS   0.2600 → 0.2100     ▼ −19.2%  improving   ▅▆▆▇▇█▇▆▆▅▄▃▃▃▃▃▂▂▁▂▂▂▂▂▂▂
+  INP   253ms → 251ms       ▼ −0.8%   stable      ▇▅▃▂▂▄▆██▇▅▃▂▃▄▆▅▃▂▁▂▃▃▄▅▆
+```
+
+The JSON output carries it in `crux.history`, with the periods, the p75 of each week and the trend of each metric. Like the p75, it uses the page when it has data of its own and its origin otherwise, and says which in `scope`.
+
 - The population follows `--viewport`: `desktop` uses desktop data, `mobile` and `tablet` use phone data. The heading says which one.
 - When the page itself has no data, the CLI looks the origin up instead and labels the section `origin-level`, so it is not mistaken for page-level data. If the origin has none either, the output says `Field data: not available`.
 - A CrUX error (quota, network, no answer within 10 seconds) only skips the section. It never changes the exit code, and the key is never printed.
@@ -327,6 +338,7 @@ Each budget compares the value measured, or the median with `--runs`, and fails 
 | `--threshold <metric>=<v>`   | The threshold of a metric for `--baseline`, such as `LCP=15%`, `LCP=200ms` or `CLS=0.1`. Repeat it for more metrics. |
 | `--fail-on-regression`       | Exit `1` when a metric regressed or an error is new against `--baseline`. |
 | `--crux-key <key>`           | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`. |
+| `--crux-history <weeks>`     | Add the trend of the field data over the last 1 to 40 weeks. Needs a CrUX key. |
 | `--report-to <url>`          | POST the results to this `https` URL after the run. No external calls without it. |
 | `--api-key <key>`            | Sent as a Bearer token with `--report-to`. Prefer `PERF_REVIEWS_API_KEY`. |
 | `--budget-lcp <ms>`          | Exit `1` if LCP exceeds this value or was not measured.                                    |

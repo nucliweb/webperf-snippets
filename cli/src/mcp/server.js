@@ -7,7 +7,7 @@ import { isTrackingSnippet } from "../tracking.js";
 import { runSnippets, runMeasurement, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
 import { WORKFLOWS } from "../workflows/index.js";
 import { RULES } from "../decision-tree.js";
-import { fetchCrux } from "../crux.js";
+import { fetchCrux, fetchCruxHistory } from "../crux.js";
 import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
 import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js";
@@ -295,10 +295,11 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Get CrUX field data",
       description:
-        "Returns the p75 of LCP, CLS and INP that real Chrome users had on a URL over the last 28 days, from the Chrome UX Report, with their rating. Falls back to the origin when the URL has no data of its own. Compare it with the lab values of run_snippet: field data is what users get.",
+        "Returns the p75 of LCP, CLS and INP that real Chrome users had on a URL over the last 28 days, from the Chrome UX Report, with their rating. Falls back to the origin when the URL has no data of its own. Compare it with the lab values of run_snippet: field data is what users get. With weeks, it adds the trend: the p75 of each week, each the 28 days before it, with the change from the first week to the last.",
       inputSchema: z.object({
         url: HttpUrl,
         formFactor: z.enum(Object.keys(CRUX_FORM_FACTORS)).default("phone").describe("The devices the data describes"),
+        weeks: z.number().int().min(1).max(40).optional().describe("Add the trend of the last 1 to 40 weeks"),
       }),
       outputSchema: z.object({
         url: z.string(),
@@ -309,21 +310,30 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           .optional()
           .describe("By metric name: LCP, CLS, INP"),
         unavailable: z.string().optional().describe("Why there is no field data, such as a page with too little traffic"),
+        history: z
+          .looseObject({})
+          .meta({ additionalProperties: true })
+          .optional()
+          .describe("With weeks: scope, weeks, periods, and per metric its p75s, first, last, change in percent and trend"),
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, formFactor }) => {
+    async ({ url, formFactor, weeks }) => {
       const apiKey = env.CRUX_API_KEY;
       if (!apiKey) return toolError(CRUX_SETUP);
-      const crux = await fetchCrux({
+      const options = {
         url,
         apiKey,
         formFactor: CRUX_FORM_FACTORS[formFactor],
         ...(env.WEBPERF_CRUX_ENDPOINT ? { endpoint: env.WEBPERF_CRUX_ENDPOINT } : {}),
-      });
+      };
+      const crux = await fetchCrux(options);
       if (crux.failed) return toolError(`Could not read the CrUX data: ${crux.unavailable}.`);
-      if (crux.unavailable) return toolResult({ url, formFactor, unavailable: crux.unavailable });
-      return toolResult({ url, formFactor, scope: crux.scope, metrics: crux.metrics });
+      const history = weeks ? await fetchCruxHistory({ ...options, weeks }) : undefined;
+      // A history that failed says why in its own unavailable, next to the p75 that did come
+      const trend = history ? { history: history.failed ? { unavailable: history.unavailable } : history } : {};
+      if (crux.unavailable) return toolResult({ url, formFactor, unavailable: crux.unavailable, ...trend });
+      return toolResult({ url, formFactor, scope: crux.scope, metrics: crux.metrics, ...trend });
     }
   );
 
