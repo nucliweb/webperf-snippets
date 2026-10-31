@@ -1,7 +1,7 @@
 import { styleText } from "node:util";
 import { describeResult } from "../view.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
-import { fieldDataView } from "../crux.js";
+import { fieldDataView, historyView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
 import { describeRuns, describeAgreement } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
@@ -197,7 +197,8 @@ function renderResult(r, verbose) {
 }
 
 function renderFieldData(crux, results) {
-  if (crux.unavailable) return [styleText("dim", `Field data: not available (${crux.unavailable})`)];
+  const trend = crux.history ? ["", ...renderFieldTrend(crux.history)] : [];
+  if (crux.unavailable) return [styleText("dim", `Field data: not available (${crux.unavailable})`), ...trend];
   const { title, rows } = fieldDataView(crux, results);
   const lines = [styleText("bold", title)];
   for (const row of rows) {
@@ -207,7 +208,21 @@ function renderFieldData(crux, results) {
       `  ${icon} ${pad(row.metric, 6)} ${pad(paint(row.rating, formatValue(row.p75, row.unit)), 10)} ${pad(styleText("dim", row.rating), 20)} ${styleText("dim", `(synthetic: ${synthetic})`)}`
     );
   }
-  return lines;
+  return [...lines, ...trend];
+}
+
+// "LCP  2.88s → 3.10s  ▲ +7.7%  worsening  ▁▅█"
+function renderFieldTrend(history) {
+  if (history.unavailable) return [styleText("dim", `Field data trend: not available (${history.unavailable})`)];
+  const { title, rows } = historyView(history);
+  const style = { improving: "green", worsening: "red" };
+  return [
+    styleText("bold", title),
+    ...rows.map(
+      (row) =>
+        `  ${pad(row.metric, 6)}${pad(`${formatValue(row.first, row.unit)} → ${formatValue(row.last, row.unit)}`, 20)}${pad(row.change, 10)}${pad(style[row.trend] ? styleText(style[row.trend], row.trend) : row.trend, 12)}${row.sparkline}`
+    ),
+  ];
 }
 
 // The runs line, and the median, min and max of each metric across the runs, with how much they agree
