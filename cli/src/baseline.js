@@ -186,18 +186,12 @@ const pathOf = (url) => {
   }
 };
 
-// Machines whose benchmark indexes differ by more than 35 % give different timings for the same page,
-// as do machines with other cores; within that, the noise of the index itself
-const MACHINE_DIFFERENCE = 0.35;
-
+// Another CPU or other cores give other timings for the same page. A different benchmark index alone
+// does not warn: on the same machine it moves by 40 % with its load.
 function machineWarning(base, current) {
-  if (!base || !current) return null;
-  const ratio = base.benchmarkIndex / current.benchmarkIndex;
-  const differs = Math.max(ratio, 1 / ratio) - 1 > MACHINE_DIFFERENCE;
-  if (!differs && base.cores === current.cores) return null;
-  const speed = ratio >= 1 ? `${Math.round((ratio - 1) * 100)}% faster` : `${Math.round((1 - ratio) * 100)}% slower`;
-  const cores = base.cores === current.cores ? `${base.cores} cores both` : `${base.cores} cores against ${current.cores}`;
-  return `the baseline was measured on a machine ${speed} than this one (benchmark index ${base.benchmarkIndex} against ${current.benchmarkIndex}, ${cores}); timings can differ for that alone`;
+  if (!base?.cpu || !current?.cpu) return null;
+  if (base.cpu === current.cpu && base.cores === current.cores) return null;
+  return `the baseline was measured on another machine (${base.cpu}, ${base.cores} cores) than this run (${current.cpu}, ${current.cores} cores); timings can differ for that alone`;
 }
 
 // What differs in how both were measured. The comparison goes on: the warnings say how far to trust it.

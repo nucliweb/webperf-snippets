@@ -1,7 +1,9 @@
-import { cpus } from "node:os";
+import { arch as osArch, cpus as osCpus, totalmem as osTotalmem } from "node:os";
 
 // The machine a measurement ran on, kept in its conditions, so --baseline can say when two were measured
-// on machines of different speed: timings move with the CPU as much as with the page.
+// on different machines: timings move with the CPU as much as with the page. The machine is told apart by
+// what the operating system reports of it. The benchmark index only informs: on the same machine it
+// moves by 40 % with its load and with the cores the system picks (performance or efficiency).
 
 const WINDOW_MS = 40;
 const WINDOWS = 5;
@@ -34,6 +36,7 @@ export function benchmarkIndex() {
   return sink > 0 ? best : 0;
 }
 
-export function machineOf({ cores = cpus().length, benchmark = benchmarkIndex } = {}) {
-  return { cores, benchmarkIndex: benchmark() };
+export function machineOf({ cpus = osCpus, arch = osArch(), totalmem = osTotalmem, benchmark = benchmarkIndex } = {}) {
+  const list = cpus();
+  return { cpu: list[0]?.model ?? "unknown", cores: list.length, arch, memoryGB: Math.round(totalmem() / 2 ** 30), benchmarkIndex: benchmark() };
 }

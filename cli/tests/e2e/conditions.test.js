@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer } from "node:http";
 import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir, cpus } from "node:os";
+import { tmpdir, cpus, arch, totalmem } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -46,8 +46,9 @@ const cli = (...args) =>
     (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr, said: said(err.stdout, err.stderr) })
   );
 
-// The machine the CLI ran on: its cores and a benchmark index, measured once per command
-const machine = { cores: cpus().length, benchmarkIndex: expect.any(Number) };
+// The machine the CLI ran on, as the operating system reports it, and a benchmark index measured once
+// per command
+const machine = { cpu: cpus()[0].model, cores: cpus().length, arch: arch(), memoryGB: Math.round(totalmem() / 2 ** 30), benchmarkIndex: expect.any(Number) };
 
 describe("the conditions in the JSON", () => {
   it("of a page measured with a workflow name its viewport, workflow, wait and CLI version", async () => {

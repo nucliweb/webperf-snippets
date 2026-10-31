@@ -70,10 +70,10 @@ JSON output (for piping into `jq` or CI):
 npx webperf-snippets https://example.com --json
 ```
 
-The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait, the version of the CLI and the machine: its cores and a benchmark index, a short CPU test in Node before Chromium starts, which `--cpu` does not change.
+The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait, the version of the CLI and the machine: its CPU model, cores, architecture and memory, as the operating system reports them, and a benchmark index, a short CPU test in Node before Chromium starts, which only informs, since on the same machine it moves by up to 40 % with the load.
 
 ```json
-"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "cliVersion": "1.8.0", "machine": { "cores": 10, "benchmarkIndex": 2324 } }
+"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "cliVersion": "1.8.0", "machine": { "cpu": "Apple M4", "cores": 10, "arch": "arm64", "memoryGB": 16, "benchmarkIndex": 2371 } }
 ```
 
 Single snippet:
@@ -284,7 +284,7 @@ The report adds the comparison after the usual one, and `--markdown` a table for
 }
 ```
 
-When both runs were measured differently, with another workflow or snippet, viewport, wait, throttling, number of runs or version of the CLI, on a machine whose benchmark index differs by more than 35 % or with other cores, or on another path or query, the CLI compares anyway and warns on stderr, in the reports and in `warnings`: whoever reads the pull request comment does not see the stderr of the CI. Another host does not warn, since it is the review app of a pull request against production. A baseline of one run warns that only the thresholds apply.
+When both runs were measured differently, with another workflow or snippet, viewport, wait, throttling, number of runs or version of the CLI, on another CPU model or with other cores, or on another path or query, the CLI compares anyway and warns on stderr, in the reports and in `warnings`: whoever reads the pull request comment does not see the stderr of the CI. Another host does not warn, since it is the review app of a pull request against production. A baseline of one run warns that only the thresholds apply.
 
 The comparison only informs, and the exit code is the same as without it, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new, and names them on stderr. A baseline that does not exist or is not an output of the CLI, a baseline of a page for a matrix or of a matrix for a page, or a `--threshold` the CLI does not understand exits with code `2`, before the page loads.
 
