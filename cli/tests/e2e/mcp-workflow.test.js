@@ -191,6 +191,29 @@ describe("get_crux", () => {
     expect(cruxRequests.find((r) => r.url.includes("queryHistoryRecord")).body).toEqual({ url: "https://example.com/", formFactor: "PHONE", collectionPeriodCount: 2 });
   });
 
+  it("returns the field sub-parts of an image LCP, the round trip time and the navigation types", async () => {
+    await connect({ CRUX_API_KEY: KEY });
+    const record = {
+      record: {
+        metrics: {
+          ...RECORD.record.metrics,
+          largest_contentful_paint_image_time_to_first_byte: { percentiles: { p75: 1527 } },
+          largest_contentful_paint_resource_type: { fractions: { text: 0.7, image: 0.3 } },
+          round_trip_time: { percentiles: { p75: 216 } },
+          navigation_types: { fractions: { navigate: 0.9, back_forward: 0.1 } },
+        },
+      },
+    };
+    cruxAnswer = (res) => res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(record));
+    const result = await call("get_crux", { url: "https://example.com/" });
+    expect(result.structuredContent).toMatchObject({
+      subParts: { ttfb: 1527 },
+      lcpImageShare: 0.3,
+      roundTripTime: 216,
+      navigationTypes: { navigate: 0.9, back_forward: 0.1 },
+    });
+  });
+
   it("asks the History API only with weeks", async () => {
     await connect({ CRUX_API_KEY: KEY });
     cruxAnswer = (res) => res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(RECORD));

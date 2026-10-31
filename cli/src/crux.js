@@ -29,6 +29,42 @@ function parseMetrics(record) {
   return metrics;
 }
 
+// The sub-parts of the LCP as CrUX reports them, for the loads whose LCP is an image, by the names of
+// the lab sub-parts of LCP-Subparts
+const SUB_PARTS = [
+  { part: "ttfb", label: "TTFB", key: "largest_contentful_paint_image_time_to_first_byte" },
+  { part: "resourceLoadDelay", label: "Load delay", key: "largest_contentful_paint_image_resource_load_delay" },
+  { part: "resourceLoadTime", label: "Load duration", key: "largest_contentful_paint_image_resource_load_duration" },
+  { part: "elementRenderDelay", label: "Render delay", key: "largest_contentful_paint_image_element_render_delay" },
+];
+
+const p75Of = (record, key) => {
+  const value = Number(record?.metrics?.[key]?.percentiles?.p75);
+  return Number.isFinite(value) ? value : undefined;
+};
+
+// What else the record of a page says besides LCP, CLS and INP: the sub-parts of an image LCP, the
+// share of loads whose LCP is an image, the round trip time and the navigation types, by share
+export function parseFieldExtras(record) {
+  const extras = {};
+  const subParts = {};
+  for (const { part, key } of SUB_PARTS) {
+    const value = p75Of(record, key);
+    if (value !== undefined) subParts[part] = value;
+  }
+  if (Object.keys(subParts).length) extras.subParts = subParts;
+  const imageShare = record?.metrics?.largest_contentful_paint_resource_type?.fractions?.image;
+  if (typeof imageShare === "number") extras.lcpImageShare = imageShare;
+  const rtt = p75Of(record, "round_trip_time");
+  if (rtt !== undefined) extras.roundTripTime = rtt;
+  const fractions = record?.metrics?.navigation_types?.fractions;
+  if (fractions) {
+    const sorted = Object.entries(fractions).filter(([, share]) => share > 0).sort((a, b) => b[1] - a[1]);
+    if (sorted.length) extras.navigationTypes = Object.fromEntries(sorted);
+  }
+  return extras;
+}
+
 async function query({ endpoint, apiKey, body, timeoutMs }) {
   const res = await fetch(`${endpoint}?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
@@ -63,7 +99,7 @@ export async function fetchCrux({
     if (answer.status) return { unavailable: `the CrUX API answered ${answer.status}`, failed: true };
     const metrics = parseMetrics(answer.record);
     if (Object.keys(metrics).length === 0) return { unavailable: "no Core Web Vitals in the CrUX record" };
-    return { scope, formFactor, metrics };
+    return { scope, formFactor, metrics, ...parseFieldExtras(answer.record) };
   } catch (err) {
     const reason = err.name === "TimeoutError" ? `no answer within ${timeoutMs}ms` : (err.cause?.code ?? "request failed");
     return { unavailable: reason, failed: true };
@@ -169,4 +205,67 @@ export function historyView(history) {
     return { metric: m.name, unit: m.unit, first, last, change: changeText, trend: trend ?? "·", sparkline: sparkline(p75s) };
   });
   return { title, rows };
+}
+
+const share = (fraction) => (fraction < 0.01 ? `${Math.round(fraction * 1000) / 10}%` : `${Math.round(fraction * 100)}%`);
+
+// A sub-part counts as different when one side is at least 1.5 times the other and 100 ms apart: less
+// than that is within the noise of the lab and of a percentile
+const differs = (slow, fast) => slow >= fast * 1.5 && slow - fast >= 100;
+
+const rttNote = (rtt) => (rtt === undefined ? "" : ` (RTT p75 ${rtt} ms)`);
+const FIELD_SLOWER = {
+  ttfb: (rtt) => `real users wait longer for the server: network distance${rttNote(rtt)}, the CDN or cache misses the lab does not see`,
+  resourceLoadDelay: () => 'the lab finds the image sooner: preload it or give it fetchpriority="high", or users run more scripts before it',
+  resourceLoadTime: (rtt) => `slower connections in the field${rttNote(rtt)}: compress or resize the LCP image`,
+  elementRenderDelay: () => "slower devices or more main-thread work in the field",
+};
+const LAB_SLOWER = "the lab is slower than users: check the CPU and network throttling of the lab";
+
+// The sub-parts of the field next to those of LCP-Subparts in the lab, when it ran, with a note where
+// they differ, and what the field sub-parts describe. Null without field sub-parts.
+export function subPartsView(extras, results) {
+  if (!extras.subParts) return null;
+  const labResult = results.find((r) => r.script === "LCP-Subparts" && r.status === "ok");
+  const labParts = labResult?.details?.subParts ?? {};
+  // The field sub-parts are those of image LCPs: a lab LCP without a resource, such as text, has no load
+  // delay or duration to set against them
+  const labImage = !labResult || Boolean(labResult.details?.url);
+  const rows = SUB_PARTS.filter(({ part }) => extras.subParts[part] !== undefined).map(({ part, label }) => {
+    const field = extras.subParts[part];
+    const comparable = labImage || part === "ttfb" || part === "elementRenderDelay";
+    const lab = comparable ? (labParts[part]?.value ?? null) : null;
+    let note = null;
+    if (lab !== null && differs(field, lab)) note = FIELD_SLOWER[part](extras.roundTripTime);
+    else if (lab !== null && differs(lab, field)) note = LAB_SLOWER;
+    return { part, label, field, lab, note };
+  });
+  const caveats = [
+    ...(extras.lcpImageShare !== undefined ? [`The field sub-parts describe the ${share(extras.lcpImageShare)} of loads whose LCP is an image.`] : []),
+    ...(labImage ? [] : ["The LCP of the lab is not an image, so it has no load delay or duration to compare."]),
+    "Each p75 is taken on its own, so the sub-parts do not add up to the p75 of LCP.",
+  ];
+  return { rows, caveats };
+}
+
+const NAVIGATION_LABELS = {
+  navigate: "navigate",
+  navigate_cache: "navigate from cache",
+  reload: "reload",
+  restore: "restore",
+  back_forward: "back/forward",
+  back_forward_cache: "back/forward cache",
+  prerender: "prerender",
+};
+
+// How users arrive at the page, by share, and a pointer to Back-Forward-Cache when over 5 % of the
+// visits come back without the back/forward cache, which would have shown the page at once
+export function navigationView(extras) {
+  if (!extras.navigationTypes) return null;
+  const parts = Object.entries(extras.navigationTypes).map(([type, fraction]) => `${NAVIGATION_LABELS[type] ?? type} ${share(fraction)}`);
+  const missed = extras.navigationTypes.back_forward ?? 0;
+  return {
+    line: `Navigations: ${parts.join(", ")}`,
+    hint: missed > 0.05 ? `${share(missed)} of the visits come back without the back/forward cache: run Back-Forward-Cache to see what blocks it.` : null,
+  };
 }

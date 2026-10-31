@@ -39,6 +39,23 @@ const RECORD = {
   },
 };
 
+// A record with the sub-parts of an image LCP, the share of image LCPs, the round trip time and the
+// navigation types, as the API answers for a page with enough traffic
+const RECORD_WITH_SUBPARTS = {
+  record: {
+    metrics: {
+      ...RECORD.record.metrics,
+      largest_contentful_paint_image_time_to_first_byte: { percentiles: { p75: 1527 } },
+      largest_contentful_paint_image_resource_load_delay: { percentiles: { p75: 324 } },
+      largest_contentful_paint_image_resource_load_duration: { percentiles: { p75: 556 } },
+      largest_contentful_paint_image_element_render_delay: { percentiles: { p75: 534 } },
+      largest_contentful_paint_resource_type: { fractions: { text: 0.7575, image: 0.2425 } },
+      round_trip_time: { percentiles: { p75: 216 } },
+      navigation_types: { fractions: { navigate: 0.8016, back_forward_cache: 0.0817, back_forward: 0.0639, reload: 0.0503, prerender: 0.0025 } },
+    },
+  },
+};
+
 // What the History API returns: three weekly periods, oldest first
 const HISTORY = {
   record: {
@@ -266,6 +283,32 @@ describe("CrUX in the CLI", () => {
     const markdown = await cli(["--markdown", "--crux-key", "k1", "--crux-history", "3"]);
     expect(markdown.stdout).toContain("### Field data trend (CrUX p75, 3 weeks, mobile)");
     expect(markdown.stdout).toContain("| LCP | 2.88s | 3.10s | ▲ +7.7% | worsening | ▁▅█ |");
+  }, 60000);
+
+  it("puts the field sub-parts of the LCP next to those of the lab, and the navigation types", async () => {
+    respond = (res) => ok(res, RECORD_WITH_SUBPARTS);
+    const subParts = ["--snippet", "LCP-Subparts", "--crux-key", "k1"];
+
+    const json = await cli([...subParts, "--json"]);
+    expect(json.code, json.stderr).toBe(0);
+    expect(JSON.parse(json.stdout).crux).toMatchObject({
+      subParts: { ttfb: 1527, resourceLoadDelay: 324, resourceLoadTime: 556, elementRenderDelay: 534 },
+      lcpImageShare: 0.2425,
+      roundTripTime: 216,
+      navigationTypes: { navigate: 0.8016 },
+    });
+
+    const human = await cli(subParts);
+    expect(human.stdout).toContain("LCP sub-parts (CrUX p75 against the lab)");
+    expect(human.stdout).toMatch(/TTFB\s+1\.53s\s+lab \d+ms\s+real users wait longer for the server: network distance \(RTT p75 216 ms\)/);
+    expect(human.stdout).toContain("The field sub-parts describe the 24% of loads whose LCP is an image.");
+    expect(human.stdout).toContain("Navigations: navigate 80%, back/forward cache 8%, back/forward 6%, reload 5%, prerender 0.3%");
+    expect(human.stdout).toContain("6% of the visits come back without the back/forward cache: run Back-Forward-Cache to see what blocks it.");
+
+    const markdown = await cli([...subParts, "--markdown"]);
+    expect(markdown.stdout).toContain("### LCP sub-parts (CrUX p75 against the lab)");
+    expect(markdown.stdout).toMatch(/\| TTFB \| 1\.53s \| \d+ms \| real users wait longer for the server/);
+    expect(markdown.stdout).toContain("> Navigations: navigate 80%");
   }, 60000);
 
   it("asks the History API only with --crux-history", async () => {

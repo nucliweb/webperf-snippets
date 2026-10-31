@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ## [Unreleased]
 
 ### Added
+- The field data of `--crux-key` adds what CrUX knows of an image LCP: the p75 of its sub-parts (TTFB, load delay, load duration, render delay), the share of loads whose LCP is an image, the round trip time of the users and the navigation types. With LCP-Subparts in the run, a table sets each field sub-part against the lab one, with a note where one side is at least 1.5 times the other and 100 ms apart (a slower server or network for users, an image the lab finds sooner, slower connections, slower devices, or a lab slower than users), and compares only TTFB and render delay when the LCP of the lab is not an image. A line of navigation types points to Back-Forward-Cache when over 5 % of the visits come back without the back/forward cache. In the JSON, `crux.subParts`, `crux.lcpImageShare`, `crux.roundTripTime` and `crux.navigationTypes`; `get_crux` of the MCP server returns them too.
 - `--crux-history <weeks>` adds the trend of the field data over the last 1 to 40 weeks, from the CrUX History API: for LCP, CLS and INP, the p75 of each week, each the 28 days before it, the first and the last, the change between them and its direction (`stable` within 5 %), as a sparkline in the human and markdown reports and in `crux.history` in the JSON. It uses the page when it has data of its own and its origin otherwise, needs a CrUX key, and works with `--matrix`. The `get_crux` tool of the MCP server takes `weeks` for the same trend.
 
 ---
