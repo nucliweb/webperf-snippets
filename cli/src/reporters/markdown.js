@@ -1,4 +1,4 @@
-import { fieldDataView, historyView } from "../crux.js";
+import { fieldDataView, historyView, subPartsView, navigationView } from "../crux.js";
 import { describeResult } from "../view.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { describeThrottling } from "../throttling.js";
@@ -113,8 +113,30 @@ function renderFieldData(crux, results) {
       const synthetic = row.synthetic == null ? "n/a" : formatValue(row.synthetic, row.unit);
       return `| ${row.metric} | ${formatValue(row.p75, row.unit)} | ${RATING_ICON[row.rating] ?? "·"} ${row.rating} | ${synthetic} |`;
     }),
+    ...renderFieldSubParts(crux, results),
+    ...renderNavigations(crux),
     ...trend,
   ];
+}
+
+function renderFieldSubParts(crux, results) {
+  const view = subPartsView(crux, results);
+  if (!view) return [];
+  return [
+    "",
+    "### LCP sub-parts (CrUX p75 against the lab)",
+    "| Sub-part | Field p75 | Lab | Note |",
+    "|----------|-----------|-----|------|",
+    ...view.rows.map((row) => `| ${row.label} | ${formatValue(row.field, "ms")} | ${row.lab === null ? "n/a" : formatValue(row.lab, "ms")} | ${row.note ?? ""} |`),
+    "",
+    ...view.caveats.map((caveat) => `> ${caveat}`),
+  ];
+}
+
+function renderNavigations(crux) {
+  const view = navigationView(crux);
+  if (!view) return [];
+  return ["", `> ${view.line}`, ...(view.hint ? [">", `> ${view.hint}`] : [])];
 }
 
 function renderFieldTrend(history) {

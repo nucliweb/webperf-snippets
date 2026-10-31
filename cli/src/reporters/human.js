@@ -1,7 +1,7 @@
 import { styleText } from "node:util";
 import { describeResult } from "../view.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
-import { fieldDataView, historyView } from "../crux.js";
+import { fieldDataView, historyView, subPartsView, navigationView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
 import { describeRuns, describeAgreement } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
@@ -208,7 +208,27 @@ function renderFieldData(crux, results) {
       `  ${icon} ${pad(row.metric, 6)} ${pad(paint(row.rating, formatValue(row.p75, row.unit)), 10)} ${pad(styleText("dim", row.rating), 20)} ${styleText("dim", `(synthetic: ${synthetic})`)}`
     );
   }
-  return [...lines, ...trend];
+  return [...lines, ...renderFieldSubParts(crux, results), ...renderNavigations(crux), ...trend];
+}
+
+// "TTFB  1.53s  lab 400ms  real users wait longer for the server…"
+function renderFieldSubParts(crux, results) {
+  const view = subPartsView(crux, results);
+  if (!view) return [];
+  return [
+    "",
+    styleText("bold", "LCP sub-parts (CrUX p75 against the lab)"),
+    ...view.rows.map(
+      (row) => `  ${pad(row.label, 14)}${pad(formatValue(row.field, "ms"), 10)}${pad(`lab ${row.lab === null ? "n/a" : formatValue(row.lab, "ms")}`, 12)}${row.note ?? ""}`.trimEnd()
+    ),
+    ...view.caveats.map((caveat) => styleText("dim", `  ${caveat}`)),
+  ];
+}
+
+function renderNavigations(crux) {
+  const view = navigationView(crux);
+  if (!view) return [];
+  return ["", styleText("dim", view.line), ...(view.hint ? [`  ${view.hint}`] : [])];
 }
 
 // "LCP  2.88s → 3.10s  ▲ +7.7%  worsening  ▁▅█"

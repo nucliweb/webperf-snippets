@@ -310,6 +310,13 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           .optional()
           .describe("By metric name: LCP, CLS, INP"),
         unavailable: z.string().optional().describe("Why there is no field data, such as a page with too little traffic"),
+        subParts: z
+          .record(z.string(), z.number())
+          .optional()
+          .describe("The p75 of the sub-parts of an image LCP: ttfb, resourceLoadDelay, resourceLoadTime, elementRenderDelay"),
+        lcpImageShare: z.number().optional().describe("The share of loads whose LCP is an image, which the sub-parts describe"),
+        roundTripTime: z.number().optional().describe("The p75 of the round trip time of the users, in ms"),
+        navigationTypes: z.record(z.string(), z.number()).optional().describe("The share of each navigation type, such as navigate, reload or back_forward_cache"),
         history: z
           .looseObject({})
           .meta({ additionalProperties: true })
@@ -333,7 +340,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       // A history that failed says why in its own unavailable, next to the p75 that did come
       const trend = history ? { history: history.failed ? { unavailable: history.unavailable } : history } : {};
       if (crux.unavailable) return toolResult({ url, formFactor, unavailable: crux.unavailable, ...trend });
-      return toolResult({ url, formFactor, scope: crux.scope, metrics: crux.metrics, ...trend });
+      const { scope, metrics, subParts, lcpImageShare, roundTripTime, navigationTypes } = crux;
+      return toolResult({ url, formFactor, scope, metrics, subParts, lcpImageShare, roundTripTime, navigationTypes, ...trend });
     }
   );
 
