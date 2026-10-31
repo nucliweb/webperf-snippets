@@ -73,7 +73,7 @@ npx webperf-snippets https://example.com --json
 The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait, the version of the CLI and the machine: its CPU model, cores, architecture and memory, as the operating system reports them, and a benchmark index, a short CPU test in Node before Chromium starts, which only informs, since on the same machine it moves by up to 40 % with the load.
 
 ```json
-"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "cliVersion": "1.8.0", "machine": { "cpu": "Apple M4", "cores": 10, "arch": "arm64", "memoryGB": 16, "benchmarkIndex": 2371 } }
+"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "cliVersion": "1.9.0", "machine": { "cpu": "Apple M4", "cores": 10, "arch": "arm64", "memoryGB": 16, "benchmarkIndex": 2371 } }
 ```
 
 Single snippet:
@@ -158,7 +158,7 @@ Without `--report-to` the CLI makes no external calls. With it, the results are 
   "timestamp": "2026-05-06T10:00:00.000Z",
   "navMs": 1240,
   "results": [],
-  "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "1.8.0" }
+  "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "1.9.0" }
 }
 ```
 
