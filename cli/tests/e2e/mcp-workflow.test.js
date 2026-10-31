@@ -45,7 +45,7 @@ beforeAll(async () => {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       cruxRequests.push({ url: req.url, body: JSON.parse(body) });
-      cruxAnswer(res);
+      cruxAnswer(res, req.url);
     });
   });
 }, 30000);
@@ -168,6 +168,35 @@ describe("get_crux", () => {
     expect(result.structuredContent).toMatchObject({ url: "https://example.com/", formFactor: "desktop", scope: "url" });
     expect(result.structuredContent.metrics.LCP).toEqual({ p75: 2800, rating: "needs-improvement", unit: "ms" });
     expect(cruxRequests[0].body).toEqual({ url: "https://example.com/", formFactor: "DESKTOP" });
+  });
+
+  it("adds the trend of the last weeks with weeks, from the History API", async () => {
+    await connect({ CRUX_API_KEY: KEY });
+    const history = {
+      record: {
+        collectionPeriods: [
+          { firstDate: { year: 2026, month: 9, day: 20 }, lastDate: { year: 2026, month: 10, day: 17 } },
+          { firstDate: { year: 2026, month: 9, day: 27 }, lastDate: { year: 2026, month: 10, day: 24 } },
+        ],
+        metrics: { largest_contentful_paint: { percentilesTimeseries: { p75s: [3100, 2600] } } },
+      },
+    };
+    cruxAnswer = (res, path) =>
+      res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(path.includes("queryHistoryRecord") ? history : RECORD));
+    const { tools } = await client.listTools();
+    expect(tools.find((t) => t.name === "get_crux").inputSchema.properties.weeks).toMatchObject({ minimum: 1, maximum: 40 });
+    const result = await call("get_crux", { url: "https://example.com/", weeks: 2 });
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent.history).toMatchObject({ scope: "url", weeks: 2, metrics: { LCP: { p75s: [3100, 2600], change: -16.1, trend: "improving" } } });
+    expect(cruxRequests.find((r) => r.url.includes("queryHistoryRecord")).body).toEqual({ url: "https://example.com/", formFactor: "PHONE", collectionPeriodCount: 2 });
+  });
+
+  it("asks the History API only with weeks", async () => {
+    await connect({ CRUX_API_KEY: KEY });
+    cruxAnswer = (res) => res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(RECORD));
+    const result = await call("get_crux", { url: "https://example.com/" });
+    expect(result.structuredContent.history).toBeUndefined();
+    expect(cruxRequests.some((r) => r.url.includes("queryHistoryRecord"))).toBe(false);
   });
 
   it("reads the key from the environment of the server, never from the arguments, and never returns it", async () => {
