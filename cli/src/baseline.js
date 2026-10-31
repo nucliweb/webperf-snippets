@@ -186,6 +186,14 @@ const pathOf = (url) => {
   }
 };
 
+// Another CPU or other cores give other timings for the same page. A different benchmark index alone
+// does not warn: on the same machine it moves by 40 % with its load.
+function machineWarning(base, current) {
+  if (!base?.cpu || !current?.cpu) return null;
+  if (base.cpu === current.cpu && base.cores === current.cores) return null;
+  return `the baseline was measured on another machine (${base.cpu}, ${base.cores} cores) than this run (${current.cpu}, ${current.cores} cores); timings can differ for that alone`;
+}
+
 // What differs in how both were measured. The comparison goes on: the warnings say how far to trust it.
 function warningsOf(base, current) {
   const warnings = [];
@@ -203,6 +211,8 @@ function warningsOf(base, current) {
   }
   if (runCount(base) < 2) warnings.push("the baseline has 1 run, so only the thresholds apply; measure both with --runs");
   else if (runCount(base) !== runCount(current)) warnings.push(`the baseline has ${runCount(base)} runs, and this run ${runCount(current)}`);
+  const machine = machineWarning(b?.machine, c?.machine);
+  if (machine) warnings.push(machine);
   if (b && c && b.cliVersion !== c.cliVersion) {
     warnings.push(`the baseline was measured with CLI ${b.cliVersion}, and this run with ${c.cliVersion}; the snippets may have changed`);
   }

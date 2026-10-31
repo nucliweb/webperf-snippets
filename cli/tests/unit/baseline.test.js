@@ -254,6 +254,23 @@ describe("the warnings of a comparison", () => {
     expect(warningsOf(base, current)).toEqual([]);
   });
 
+  // A benchmark index moves by 40 % on the same machine, with its load or with the cores the system
+  // picks (performance or efficiency), so the machine is told apart by what the system reports of it
+  it("say when the baseline was measured on another CPU or with other cores, never for a different benchmark index", () => {
+    const m4 = { cpu: "Apple M4", cores: 10, arch: "arm64", memoryGB: 16, benchmarkIndex: 2300 };
+    const epyc = { cpu: "AMD EPYC 7763 64-Core Processor", cores: 4, arch: "x64", memoryGB: 16, benchmarkIndex: 980 };
+    const on = (machine) => page({ conditions: { ...CONDITIONS, machine }, runs: runsOf({ LCP: [1, 2, 3] }) });
+    expect(warningsOf(on(epyc), on(m4))).toContain(
+      "the baseline was measured on another machine (AMD EPYC 7763 64-Core Processor, 4 cores) than this run (Apple M4, 10 cores); timings can differ for that alone"
+    );
+    expect(warningsOf(on(m4), on({ ...m4, cores: 8 }))).toContain(
+      "the baseline was measured on another machine (Apple M4, 10 cores) than this run (Apple M4, 8 cores); timings can differ for that alone"
+    );
+    expect(warningsOf(on(m4), on({ ...m4, benchmarkIndex: 1100 }))).toEqual([]);
+    // A baseline from a CLI without the machine says nothing of it
+    expect(warningsOf(page({ runs: runsOf({ LCP: [1, 2, 3] }) }), on(m4))).toEqual([]);
+  });
+
   it("say when the baseline comes from a CLI without conditions", () => {
     expect(warningsOf(page({ conditions: null }), page())).toContain(
       "the baseline comes from a CLI without conditions (1.3.0 or earlier); it cannot say how it was measured"

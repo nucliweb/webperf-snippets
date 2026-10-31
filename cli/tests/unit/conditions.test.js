@@ -17,4 +17,9 @@ describe("the conditions of a measurement", () => {
     expect(conditions).toEqual({ viewport: "desktop", snippet: "CoreWebVitals/LCP", waitMs: 500, cliVersion });
     expect(conditions).not.toHaveProperty("workflow");
   });
+
+  it("name the machine when it is given: its cores and its benchmark index", () => {
+    const machine = { cores: 8, benchmarkIndex: 1234 };
+    expect(measurementConditions({ viewport: "mobile", workflow: "core-web-vitals", waitMs: 3000, machine })).toMatchObject({ machine });
+  });
 });

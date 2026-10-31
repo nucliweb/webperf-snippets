@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer } from "node:http";
 import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir, cpus, arch, totalmem } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -46,20 +46,26 @@ const cli = (...args) =>
     (err) => ({ code: err.code, stdout: err.stdout, stderr: err.stderr, said: said(err.stdout, err.stderr) })
   );
 
+// The machine the CLI ran on, as the operating system reports it, and a benchmark index measured once
+// per command
+const machine = { cpu: cpus()[0].model, cores: cpus().length, arch: arch(), memoryGB: Math.round(totalmem() / 2 ** 30), benchmarkIndex: expect.any(Number) };
+
 describe("the conditions in the JSON", () => {
   it("of a page measured with a workflow name its viewport, workflow, wait and CLI version", async () => {
     const { code, stdout, said: output } = await cli(`${baseUrl}/home`, "--json", "--viewport", "desktop");
     expect(code, output).toBe(0);
-    expect(JSON.parse(stdout).conditions).toEqual({ viewport: "desktop", workflow: "core-web-vitals", waitMs: 500, cliVersion });
+    expect(JSON.parse(stdout).conditions).toEqual({ viewport: "desktop", workflow: "core-web-vitals", waitMs: 500, cliVersion, machine });
   }, 60000);
 
   it("of a page measured with one snippet name the snippet, the same for its alias and its path", async () => {
     const alias = await cli(`${baseUrl}/home`, "--json", "--snippet", "LCP");
     expect(alias.code, alias.said).toBe(0);
-    expect(JSON.parse(alias.stdout).conditions).toEqual({ viewport: "mobile", snippet: "CoreWebVitals/LCP", waitMs: 500, cliVersion });
+    expect(JSON.parse(alias.stdout).conditions).toEqual({ viewport: "mobile", snippet: "CoreWebVitals/LCP", waitMs: 500, cliVersion, machine });
 
+    // The same conditions but the benchmark index, which is measured again
     const path = await cli(`${baseUrl}/home`, "--json", "--snippet", "CoreWebVitals/LCP");
-    expect(JSON.parse(path.stdout).conditions).toEqual(JSON.parse(alias.stdout).conditions);
+    const withoutIndex = ({ machine: { benchmarkIndex, ...rest }, ...conditions }) => ({ ...conditions, machine: rest });
+    expect(withoutIndex(JSON.parse(path.stdout).conditions)).toEqual(withoutIndex(JSON.parse(alias.stdout).conditions));
   }, 60000);
 
   it("of a matrix go in each combination, with the viewport of its device", async () => {
@@ -70,9 +76,11 @@ describe("the conditions in the JSON", () => {
     const { stdout } = await cli("--matrix", matrixPath, "--json", "--workflow", "loading");
     const { combinations } = JSON.parse(stdout);
     expect(combinations.map((c) => c.conditions)).toEqual([
-      { viewport: "mobile", workflow: "loading", waitMs: 500, cliVersion },
-      { viewport: "desktop", workflow: "loading", waitMs: 500, cliVersion },
+      { viewport: "mobile", workflow: "loading", waitMs: 500, cliVersion, machine },
+      { viewport: "desktop", workflow: "loading", waitMs: 500, cliVersion, machine },
     ]);
+    // Measured once for the whole matrix
+    expect(combinations[0].conditions.machine).toEqual(combinations[1].conditions.machine);
   }, 120000);
 
   it("leave the human and markdown reports as they are", async () => {
