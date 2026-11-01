@@ -1,3 +1,4 @@
+import { DEFAULT_THRESHOLDS } from "./baseline.js";
 import { rate } from "./ratings.js";
 
 const DEFAULT_ENDPOINT = "https://chromeuxreport.googleapis.com/v1/records:queryRecord";
@@ -122,12 +123,17 @@ export function trendOf(p75s) {
 
 const BARS = "▁▂▃▄▅▆▇█";
 
-// The series as bars between its lowest and highest values, a space for a period without data
-export function sparkline(values) {
+// The series as bars, a space for a period without data. The bars span the range of the series, or
+// `minRange` when the series is narrower, centred in it: a CLS of 0.20 to 0.21 drawn from its lowest
+// to its highest value looked like a big swing. Eight equal steps, so a flat series sits in the middle.
+export function sparkline(values, minRange = 0) {
   const known = values.filter((v) => v !== null);
   const min = Math.min(...known);
   const max = Math.max(...known);
-  return values.map((v) => (v === null ? " " : max === min ? BARS[3] : BARS[Math.round(((v - min) / (max - min)) * 7)])).join("");
+  const range = Math.max(max - min, minRange);
+  if (range === 0) return values.map((v) => (v === null ? " " : BARS[4])).join("");
+  const low = max - min >= minRange ? min : (min + max) / 2 - range / 2;
+  return values.map((v) => (v === null ? " " : BARS[Math.min(7, Math.floor(((v - low) / range) * 8))])).join("");
 }
 
 const dateOf = ({ year, month, day }) => `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -202,7 +208,8 @@ export function historyView(history) {
   const rows = METRICS.filter((m) => history.metrics[m.name]).map((m) => {
     const { p75s, first, last, change, trend } = history.metrics[m.name];
     const changeText = change === null ? "·" : `${change > 0 ? "▲ +" : change < 0 ? "▼ −" : "= "}${Math.abs(change)}%`;
-    return { metric: m.name, unit: m.unit, first, last, change: changeText, trend: trend ?? "·", sparkline: sparkline(p75s) };
+    // The smallest change --baseline counts for the metric is the least the bars span
+    return { metric: m.name, unit: m.unit, first, last, change: changeText, trend: trend ?? "·", sparkline: sparkline(p75s, DEFAULT_THRESHOLDS[m.name].absolute) };
   });
   return { title, rows };
 }

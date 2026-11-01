@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseHistory, trendOf, sparkline } from "../../src/crux.js";
+import { parseHistory, trendOf, sparkline, historyView } from "../../src/crux.js";
 
 // A record of the CrUX History API as it answers: one entry per weekly collection period, oldest first,
 // each period the 28 days before its last date; p75s are numbers, CLS as strings, null where the
@@ -63,6 +63,29 @@ describe("sparkline", () => {
   });
 
   it("draws a flat series in the middle", () => {
-    expect(sparkline([0.1, 0.1, 0.1])).toBe("▄▄▄");
+    expect(sparkline([0.1, 0.1, 0.1])).toBe("▅▅▅");
+  });
+
+  // A CLS of 0.20 to 0.21 drawn from its lowest to its highest value looked like a big swing
+  it("draws a series narrower than the minimum range of its metric near the middle", () => {
+    expect(sparkline([0.2, 0.21, 0.21, 0.2], 0.05)).toBe("▄▅▅▄");
+    expect(sparkline([3070, 3100, 3085], 100)).toBe("▃▆▅");
+    // A series wider than the minimum range uses its own
+    expect(sparkline([2000, 2500, 3000], 100)).toBe("▁▅█");
+  });
+
+  it("gives each metric the minimum change of --baseline as its range in the trend", () => {
+    const history = {
+      formFactor: "PHONE",
+      scope: "origin",
+      weeks: 8,
+      periods: [],
+      metrics: {
+        LCP: { unit: "ms", p75s: [3070, 3100, 3085, 3090], first: 3070, last: 3090, change: 0.7, trend: "stable" },
+        CLS: { unit: "score", p75s: [0.21, 0.2, 0.2, 0.21], first: 0.21, last: 0.21, change: 0, trend: "stable" },
+        INP: { unit: "ms", p75s: [242, 251, 246, 251], first: 242, last: 251, change: 3.7, trend: "stable" },
+      },
+    };
+    expect(historyView(history).rows.map((r) => r.sparkline)).toEqual(["▃▆▅▅", "▅▄▄▅", "▄▅▄▅"]);
   });
 });
