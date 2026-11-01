@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.10.0] — 2026-11-01
+
+The field data of CrUX says more: its trend over the last weeks with `--crux-history`, and, with `--crux-key`, the sub-parts of an image LCP set against the lab, the round trip time of the users and their navigation types. The `get_crux` tool of the MCP server gives the same. The snippets are those of the collection 2.4.2, the same as in 1.9.0.
+
 ### Added
 - The field data of `--crux-key` adds what CrUX knows of an image LCP: the p75 of its sub-parts (TTFB, load delay, load duration, render delay), the share of loads whose LCP is an image, the round trip time of the users and the navigation types. With LCP-Subparts in the run, a table sets each field sub-part against the lab one, with a note where one side is at least 1.5 times the other and 100 ms apart (a slower server or network for users, an image the lab finds sooner, slower connections, slower devices, or a lab slower than users), and compares only TTFB and render delay when the LCP of the lab is not an image. A line of navigation types points to Back-Forward-Cache when over 5 % of the visits come back without the back/forward cache. In the JSON, `crux.subParts`, `crux.lcpImageShare`, `crux.roundTripTime` and `crux.navigationTypes`; `get_crux` of the MCP server returns them too.
 - `--crux-history <weeks>` adds the trend of the field data over the last 1 to 40 weeks, from the CrUX History API: for LCP, CLS and INP, the p75 of each week, each the 28 days before it, the first and the last, the change between them and its direction (`stable` within 5 %), as a sparkline in the human and markdown reports and in `crux.history` in the JSON. It uses the page when it has data of its own and its origin otherwise, needs a CrUX key, and works with `--matrix`. The `get_crux` tool of the MCP server takes `weeks` for the same trend.
@@ -253,7 +259,8 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.9.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.10.0...HEAD
+[1.10.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.9.0...cli-v1.10.0
 [1.9.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.8.0...cli-v1.9.0
 [1.8.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.1...cli-v1.8.0
 [1.7.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.0...cli-v1.7.1
