@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Fixed
+- The sparkline of `--crux-history` spans at least the smallest change `--baseline` counts for the metric (100 ms for LCP, 50 ms for INP, 0.05 for CLS), centred on the series when it is narrower. It spanned the lowest to the highest value, so a CLS of 0.20 to 0.21 drew `█▁▁▁▁▁▁█`, as if it swung; it now draws `▅▄▄▄▄▄▄▅`. A flat series sits in the middle.
+
 ---
 
 ## [1.10.0] — 2026-11-01

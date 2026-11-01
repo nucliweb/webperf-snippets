@@ -138,13 +138,13 @@ Get a key for the [Chrome UX Report API](https://developer.chrome.com/docs/crux/
 
 With a key, the field data also gives what CrUX knows of the LCP when it is an image: the p75 of its sub-parts, TTFB, load delay, load duration and render delay. When the measurement ran LCP-Subparts, with `--snippet LCP-Subparts` or the `core-web-vitals` workflow over 2.5 s, a table puts each one next to its lab value, with a note where one side is at least 1.5 times the other and 100 ms apart: a slower server or network for users, an image the lab finds sooner, slower connections, slower devices, or a lab slower than users. The field sub-parts describe only the loads whose LCP is an image, and the table says which share that is; when the LCP of the lab is not an image, only TTFB and render delay compare. Each p75 is taken on its own, so the sub-parts do not add up to the p75 of LCP. A line gives the navigation types of the users, by share, and points to Back-Forward-Cache when over 5 % of the visits come back without the back/forward cache. The JSON output carries them in `crux.subParts`, `crux.lcpImageShare`, `crux.roundTripTime` and `crux.navigationTypes`.
 
-`--crux-history <weeks>` adds the trend of the field data over the last 1 to 40 weeks, from the [CrUX History API](https://developer.chrome.com/docs/crux/history-api), with the same key. Each week is the p75 of the 28 days before it, so the weeks overlap and the series is smooth. For LCP, CLS and INP the section gives the first and the last week, the change between them and its direction, `stable` within 5 %, and the weeks as a sparkline, where a gap is a week with too little data:
+`--crux-history <weeks>` adds the trend of the field data over the last 1 to 40 weeks, from the [CrUX History API](https://developer.chrome.com/docs/crux/history-api), with the same key. Each week is the p75 of the 28 days before it, so the weeks overlap and the series is smooth. For LCP, CLS and INP the section gives the first and the last week, the change between them and its direction, `stable` within 5 %, and the weeks as a sparkline, where a gap is a week with too little data. The bars span at least the smallest change `--baseline` counts for the metric (100 ms for LCP, 50 ms for INP, 0.05 for CLS), so a series that barely moves draws almost flat:
 
 ```
 Field data trend (CrUX p75, 40 weeks, mobile, origin-level)
   LCP   2.88s → 3.10s       ▲ +7.7%   worsening   ▃▃▄▃▃▃▄▆▇██▇▆▄▂▁▂▃▃▄▅▆▆▆▆▆▆
   CLS   0.2600 → 0.2100     ▼ −19.2%  improving   ▅▆▆▇▇█▇▆▆▅▄▃▃▃▃▃▂▂▁▂▂▂▂▂▂▂
-  INP   253ms → 251ms       ▼ −0.8%   stable      ▇▅▃▂▂▄▆██▇▅▃▂▃▄▆▅▃▂▁▂▃▃▄▅▆
+  INP   253ms → 251ms       ▼ −0.8%   stable      ▅▅▅▄▄▄▅▅▆▆▆▅▅▄▄▄▄▅▅▅▅▄▄▄▃▃▄▄▄▅▅
 ```
 
 The JSON output carries it in `crux.history`, with the periods, the p75 of each week and the trend of each metric. Like the p75, it uses the page when it has data of its own and its origin otherwise, and says which in `scope`.
