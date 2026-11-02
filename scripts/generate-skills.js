@@ -112,9 +112,11 @@ const CATEGORIES = {
 const RUNNING_SCRIPTS_LINES = [
   '## Running a script',
   '',
-  '1. Run the script with `mcp__chrome-devtools__evaluate_script` and read the object it returns. The scripts have no console output, so the returned object is the result: `script`, `status` and the metric data (`value`, `rating`, `details`, `items`, `issues`), as described in `references/schema.md`.',
-  '2. When `status` is `"tracking"`, the script keeps observing the page. After the interactions, call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call, for example `getINP()`, and read the object it returns.',
+  '1. Run the script with `mcp__chrome-devtools__evaluate_script`, passing the file instead of its code: `sourcePath` with the absolute path of `scripts/<Name>.js` in this skill, and `format: "script"`, since a script runs by itself and is not a function. Read the object it returns. The scripts have no console output, so the returned object is the result: `script`, `status` and the metric data (`value`, `rating`, `details`, `items`, `issues`), as described in `references/schema.md`.',
+  '2. When `status` is `"tracking"`, the script keeps observing the page. After the interactions, call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call, as an arrow function in `function`, for example `() => getINP()`, and read the object it returns.',
   '3. When `status` is `"error"` or `"unsupported"`, read `error`: the page may not have loaded yet, or the browser lacks the API.',
+  '',
+  '`sourcePath` and `format` need Chrome DevTools MCP 1.11.0 or later, and the server only reads files inside its workspace roots: the project, the temp folder and each `--workspace=<folder>` in its arguments. When it answers `Access denied`, as it does for a skill installed outside the project, such as in `~/.claude/skills/`, read the file and pass its code in `function`, still with `format: "script"`. A `--workspace` with the real folder of the skills makes the path work; the server follows symlinks, so a link to the folder is not enough.',
   '',
   'Without Chrome DevTools MCP, run the same snippet with the [webperf-snippets CLI](https://webperf-snippets.net/CLI), which loads the page in headless Chromium and prints the same result objects: `npx webperf-snippets <url> --snippet <Name> --json`, where `<Name>` is the script name without `.js`. It needs Playwright and Chromium (`npm install --save-dev webperf-snippets playwright`, then `npx playwright install chromium`), and tracking snippets take `--interact-script <file>` to drive the interactions.',
 ]
@@ -519,8 +521,8 @@ function generateMetaSkill() {
   bodyLines.push("2. Load the skill's SKILL.md to see available snippets and thresholds")
   bodyLines.push('3. Execute with Chrome DevTools MCP:')
   bodyLines.push('   - `mcp__chrome-devtools__navigate_page` → navigate to target URL')
-  bodyLines.push('   - `mcp__chrome-devtools__evaluate_script` → run the snippet and read the returned object, which is the result (the scripts have no console output)')
-  bodyLines.push('   - `status: "tracking"` → call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions')
+  bodyLines.push('   - `mcp__chrome-devtools__evaluate_script` with `sourcePath` (the absolute path of the script) and `format: "script"` → run the snippet and read the returned object, which is the result (the scripts have no console output)')
+  bodyLines.push('   - `status: "tracking"` → call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions, as an arrow function such as `() => getINP()`')
   bodyLines.push('   - Without Chrome DevTools MCP, run the snippet with the CLI: `npx webperf-snippets <url> --snippet <Name> --json`')
   bodyLines.push('4. Interpret results using the thresholds defined in the skill')
   bodyLines.push('5. Provide actionable recommendations based on findings')

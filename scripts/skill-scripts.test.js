@@ -27,6 +27,12 @@ for (const file of scripts) {
   test(`${name} keeps the result objects of its source`, () => {
     assert.equal(resultObjects(built), resultObjects(fs.readFileSync(source, 'utf8')))
   })
+
+  // The skills run a script with `format: "script"` of evaluate_script, which gives the value of the last
+  // statement: a snippet may declare functions first, but it has to end by calling what returns the result.
+  test(`${name} ends with the call that gives its result`, () => {
+    assert.match(built.trimEnd(), /\);?$/)
+  })
 }
 
 test('finds the built skill scripts', () => {

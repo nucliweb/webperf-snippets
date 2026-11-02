@@ -13,6 +13,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The CLI reaches version 1.10.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `--crux-history` adds the trend of the CrUX field data over the last 1 to 40 weeks, and the field data of `--crux-key` sets the sub-parts of an image LCP against the lab, with the round trip time and the navigation types of the users; `get_crux` of the MCP server gives the same.
 - The CLI reaches version 1.9.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): from five runs a side, `--baseline` decides a regression with a Mann-Whitney U test of the runs on top of the threshold, and reports the p-value and the shift with its 95 % interval; `--runs` and `--matrix` give the coefficient of variation of the runs of each metric and whether they agree; and the conditions of a measurement name the machine, with a warning in `--baseline` when it ran on another CPU.
 
+### Changed
+- The Agent Skills pass a script to `evaluate_script` of Chrome DevTools MCP by path (`sourcePath` with `format: "script"`, in its version 1.11.0 or later), so the agent neither reads the script nor sends its code back. The server only reads files inside its workspace roots: for skills outside the project, such as in `~/.claude/skills/`, add `--workspace` with their real folder to the server, or the agent sends the code with the same format.
+
+### Fixed
+- The skills and `SCHEMA.md` call a `getDataFn` as an arrow function, `() => getINP()`: `evaluate_script` takes a function by default, so a bare `getINP()` fails with `fn is not a function`.
+
 ---
 
 ## [2.4.2] — 2026-10-30

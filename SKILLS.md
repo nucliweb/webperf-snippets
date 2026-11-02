@@ -211,10 +211,12 @@ Analyze network and connection quality.
 These skills are designed to work with the Chrome DevTools Model Context Protocol:
 
 1. **Navigate**: `mcp__chrome-devtools__navigate_page` → go to target URL
-2. **Execute**: `mcp__chrome-devtools__evaluate_script` → run snippet code and read the returned object, which is the result (the skill scripts have no console output; see `references/schema.md`)
-3. **Collect**: for `status: "tracking"`, call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions
+2. **Execute**: `mcp__chrome-devtools__evaluate_script` with `sourcePath` (the absolute path of the script) and `format: "script"` → run the snippet and read the returned object, which is the result (the skill scripts have no console output; see `references/schema.md`)
+3. **Collect**: for `status: "tracking"`, call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions, as an arrow function such as `() => getINP()`
 4. **Interpret**: Use thresholds from SKILL.md to analyze results
 5. **Recommend**: Provide actionable optimization suggestions
+
+Passing the path saves the agent from reading the script and sending its code back. It needs Chrome DevTools MCP 1.11.0 or later, and the server only reads files inside its workspace roots: the project, the temp folder and each `--workspace=<folder>` in its arguments. For skills installed outside the project, add `--workspace` with the absolute path of their real folder to the server, or the agent sends the code instead. The server follows symlinks: with skills linked into `~/.claude/skills/`, it needs the folder the links point to.
 
 Without Chrome DevTools MCP, the [CLI](https://webperf-snippets.net/CLI) runs the same snippet in headless Chromium and prints the same result objects: `npx webperf-snippets <url> --snippet <Name> --json`.
 

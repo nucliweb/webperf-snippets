@@ -63,6 +63,14 @@ npm run install-skills   # into .claude/skills/ of the current project
 npm run install-global   # into ~/.claude/skills/, for every project
 ```
 
+The skills pass each script to Chrome DevTools MCP by path, and the server only reads files inside its workspace roots. For skills outside the project, such as in `~/.claude/skills/`, add `--workspace` to the arguments of the server, with the real folder of the skills and not a symlink to it:
+
+```json
+"args": ["-y", "chrome-devtools-mcp@latest", "--workspace=/absolute/path/to/skills"]
+```
+
+Without it the skills still work: the server answers `Access denied` and the agent sends the code of the script instead, at the cost of one failed call in each session.
+
 | Skill                     | Snippets | What it covers                                                   |
 | ------------------------- | -------- | ---------------------------------------------------------------- |
 | `webperf`                 | 56       | Main entry point for all web performance analysis                |
