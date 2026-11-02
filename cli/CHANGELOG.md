@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.11.0] — 2026-11-02
+
+The MCP server reaches the verdict of `--baseline`: `run_snippet` and `run_workflow` compare a run with an earlier one, or with a file of the CLI, and measure several runs, so five a side give the statistical verdict. The sparkline of `--crux-history` gets its fix, and a wrong `--baseline` file no longer gets a suggestion to save over it.
+
 ### Added
 - `run_snippet` and `run_workflow` of the MCP server compare a run with an earlier one, with the verdict of `--baseline`: `baseline` takes the `runId` of an earlier run of the connection or the path of a page the CLI wrote with `--json`, and `thresholds` the values of `--threshold`. The answer adds a `baseline` field, the one of the JSON of the CLI, with the `runId` or the `file` it compared with and `regressions`, the lines `--fail-on-regression` prints. A wrong baseline or threshold is a tool error before the page loads, and a baseline of a matrix is refused.
 - `run_snippet` and `run_workflow` of the MCP server take `runs`, from 1 to 9, as `--runs`: the answer is the median run plus the `runs` field of the JSON of the CLI, and with `baseline` and five runs or more a side, the statistical verdict of `--baseline`, with `stats` in each metric. The server reports the three stages of each run as progress, numbered across the runs, and starts no more runs when the client cancels the call or times out. A measurement of several runs works as a baseline by its `runId` and in `webperf://runs/{runId}`; `get_details` answers from the median run, the only one kept, and names it in `medianRun`.

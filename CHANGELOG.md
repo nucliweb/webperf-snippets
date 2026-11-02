@@ -8,7 +8,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.5.0] — 2026-11-02
+
+The Agent Skills run each script by path, so the agent neither reads it nor sends its code back, and a new page lists what agents get wrong when they measure a page. The snippets are those of 2.4.2, and the extension stays at 0.5.2. The CLI reaches version 1.11.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)), whose MCP server compares a run with a baseline and measures several runs.
+
 ### Added
+- The CLI reaches version 1.11.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `run_snippet` and `run_workflow` of the MCP server take `baseline` and `runs`, so an agent gets the verdict of `--baseline`, with its statistics from five runs a side.
 - A page, [What agents get wrong](https://webperf-snippets.net/agent-mistakes), lists the mistakes an agent makes when it measures with the CLI and the MCP server, such as raising a budget to pass a check, lowering the number of runs or changing a wait: what the agent does, why it gives a wrong result, and the tool, argument or flag to use instead.
 - CI audits the production build with the Agentic browsing category of Lighthouse (the accessibility tree, the WebMCP tools and `llms.txt`) and writes the score and each audit to the job summary, without blocking. `npm run audit:agentic` runs it locally after `npm run build`.
 - The CLI reaches version 1.10.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `--crux-history` adds the trend of the CrUX field data over the last 1 to 40 weeks, and the field data of `--crux-key` sets the sub-parts of an image LCP against the lab, with the round trip time and the navigation types of the users; `get_crux` of the MCP server gives the same.
