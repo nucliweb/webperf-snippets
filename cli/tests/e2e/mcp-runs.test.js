@@ -30,6 +30,8 @@ let delays = [];
 let delay = 0;
 let fails = [];
 let loads = 0;
+// The delay stays here and the page names its load: a timer takes nothing from a request
+const delayOfLoad = new Map();
 const image = (src) => `<img src="${src}" width="600" height="400" alt="Product photo">`;
 const html = (body) => `<!DOCTYPE html><html><head><title>Product</title></head><body><h1>Product</h1>${body}</body></html>`;
 let server;
@@ -43,14 +45,15 @@ beforeAll(async () => {
       if (pathname === "/product") {
         loads++;
         if (fails.includes(loads)) return req.socket.destroy();
-        return res.writeHead(200, { "Content-Type": "text/html", "Cache-Control": "no-store" }).end(html(image(`/hero.png?delay=${delays.shift() ?? delay}&load=${loads}`)));
+        delayOfLoad.set(String(loads), delays.shift() ?? delay);
+        return res.writeHead(200, { "Content-Type": "text/html", "Cache-Control": "no-store" }).end(html(image(`/hero.png?load=${loads}`)));
       }
       if (pathname === "/large") {
         const images = Array.from({ length: 60 }, (_, i) => `<img src="/hero.png?n=${i}" alt="Photo number ${i} of the long gallery of this product">`);
         return res.writeHead(200, { "Content-Type": "text/html" }).end(html(images.join("")));
       }
       if (pathname === "/hero.png") {
-        return setTimeout(() => res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" }).end(png), Number(searchParams.get("delay") ?? 0));
+        return setTimeout(() => res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" }).end(png), delayOfLoad.get(searchParams.get("load")) ?? 0);
       }
       res.writeHead(404).end();
     });
