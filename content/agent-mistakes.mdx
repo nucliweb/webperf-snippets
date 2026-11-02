@@ -1,0 +1,146 @@
+---
+type: guide
+---
+
+import { Callout } from '../components/Callout'
+
+# What agents get wrong
+
+The mistakes an agent makes when it measures a page with the [CLI](/CLI) and the [MCP server](/MCP), why each one gives a wrong result or wastes a turn, and the tool, argument or flag to use instead.
+
+The first five can change what the measurement says, often into a pass. The last three only cost turns. They come from the [evals of the MCP server](https://github.com/nucliweb/webperf-snippets/tree/main/scripts/eval-mcp), 82 runs of an agent on local pages, and from how the tools work.
+
+<Callout type="info">
+To give these rules to an agent, link the Markdown version of this page in its instructions: `https://webperf-snippets.net/agent-mistakes.md`.
+</Callout>
+
+| The agent | Instead |
+| --- | --- |
+| [Raises a budget or a threshold](#raising-a-budget-to-pass-a-check) until the check passes | Report the failure and look for its cause, with `--baseline` and `LCP-Subparts` |
+| [Lowers the number of runs](#lowering-the-number-of-runs), or decides on one | `--runs 5` on both sides of a comparison |
+| [Adds or changes a wait](#adding-or-changing-a-wait) | The same wait and the same steps on both sides |
+| [Measures with a page load](#measuring-with-a-page-load-what-needs-a-person) what needs a person | `open_page`, `interact`, `read_results`, or `--interact-script` |
+| [Measures several times in one turn](#measuring-several-times-in-one-turn) | One measurement at a time |
+| [Calls `get_details` after a full result](#calling-get_details-after-a-full-result) | Read `detail` in the answer first |
+| [Calls `run_snippet` with a tracking snippet](#calling-run_snippet-with-a-tracking-snippet) | The `tracking` field of `list_snippets`, then `open_page` |
+| [Guesses a name](#guessing-the-name-of-a-snippet-or-a-tool) | The names `list_snippets` returns |
+
+## Raising a budget to pass a check
+
+A budget fails, and the agent raises `--budget-lcp` or removes it. After a comparison, it drops `--fail-on-regression` or loosens `--threshold`, or the `thresholds` argument of the MCP server.
+
+The page did not change, so the check stops saying anything about it. A budget only compares a value with a number, and a threshold only says how large a change has to be to count. With `--threshold LCP=900ms`, a page 400 ms slower on each of its five runs came back `unchanged` with exit code `0`, next to a p-value of 0.005 that says the change is real.
+
+Instead, report the failure with its value, and look for the cause:
+
+```bash copy
+# Did this change cause it? Five runs a side, against the baseline of main
+npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.json --budget-lcp 2500
+
+# Where does the time go?
+npx webperf-snippets https://pr-123.example.com --snippet LCP-Subparts
+```
+
+With `--runs`, the budget compares the median, which rules out one slow load. The comparison says whether this change made the page slower or the page was already over the budget. The value of a budget belongs to whoever owns the gate. A noisy runner calls for the `audit` workflow or a generous budget set up front, as in [CI integration](/CLI#ci-integration), never for raising one to turn a failed check green. A budget the agent thinks is wrong goes back to that person, with the numbers.
+
+The other failures of a budget are about the run, so the fix is in the run too. `--budget-fcp` on a run that does not measure FCP exits with code `2` and names the workflow or the snippet that does. `--budget-inp` without a click exits with code `1` as `not measured`, since [INP needs a person](#measuring-with-a-page-load-what-needs-a-person).
+
+## Lowering the number of runs
+
+The agent lowers `--runs` to finish sooner, decides from one call of `run_snippet`, or measures again until a load passes.
+
+One page load is one sample, and one run has nothing to check a change against. Five runs of 2100 to 2250 ms against 2000, 2050, 2900, 2950 and 3000 ms compare as `unchanged (no evidence: p = 0.35)`, and one run of each side, 2150 against 2900 ms, as `regressed`. Measuring again until a load passes picks the best sample, and reports it as the page.
+
+The statistics of `--baseline` need five runs on each side. With fewer on either side, the verdict has no `stats`, and a change only has to beat its threshold and the range of the baseline. A baseline of one run has only the threshold.
+
+Instead, measure five runs on each side:
+
+```bash copy
+npx webperf-snippets https://example.com --runs 5 --json > baseline.json
+npx webperf-snippets https://example.com --runs 5 --baseline baseline.json
+```
+
+- Read `agreement` in `runs`: with `noisy`, one median says little, so raise `--runs`, up to 9.
+- A matrix measures one run per combination unless `--runs` or `runs` in its file says otherwise.
+- The tools of the MCP server take the same number in `runs`: call `run_snippet` or `run_workflow` with `runs: 5` on each side, and pass the `runId` of the first as `baseline` of the second.
+- One run is enough to look for a cause, such as the slow phase of LCP. It is not enough to say that a value changed or that a fix worked.
+
+## Adding or changing a wait
+
+The agent adds a `wait` step, or raises `--wait` or `waitMs`, to give the page time. In the evals, 35 of the 71 steps sent to `interact` were waits. Or it lowers the wait to finish sooner.
+
+A wait is part of what is measured, in three ways:
+
+- Between two steps it can change the result. On one page, the same three scrolls gave a CLS of 0.7584 with 800 ms between them and 0.309 with 1,000 ms, and each value repeated five times out of five. CLS is the largest window of shifts less than 1 s apart, so the longer wait split one window into three. Two runs of the same eval reported both values for the same page.
+- After the load, a longer wait does not change what already painted: an LCP of about 420 ms stayed there with `waitMs` at 500, 3,000 and 10,000. A shorter one reads the page before it has finished: with a banner that appears 1.5 s after the load, `waitMs: 500` gave an LCP of 24 ms and a CLS of 0, and the default gave 1,528 ms and 0.0217. A shorter wait can pass a budget that way.
+- After the last step, a wait adds nothing to INP: `interact` and `--interact-script` already wait for the browser to report the timing of the last interaction.
+
+Instead:
+
+- Keep the default wait, 3,000 ms in `--wait` and in `waitMs` of `run_snippet` and `run_workflow`. Change it only for a page whose content arrives later, and use the same value on both sides of a comparison. The JSON of the CLI records it in `conditions.waitMs`, and a comparison warns when it differs: `the baseline waited 500 ms after the load, and this run 3000 ms`.
+- Keep the steps of a measurement in a file for `--interact-script`, or send the same `steps` to `interact` each time, and report them with the value. The comparison warns about another wait, viewport or throttling, never about other steps.
+- End with a `wait` only to measure what a click sets in motion later, such as a request or an animation.
+
+## Measuring with a page load what needs a person
+
+The agent measures INP or the shifts of a scroll with `run_snippet`, `run_workflow` or the CLI without a script, and takes the missing value for a good one.
+
+INP needs a click or a key press, and a page load has neither. `run_snippet` refuses the snippet, and the `interaction` workflow returns it as `skipped`, with the `open_page` call in `nextSteps`. A scroll or a hover does not count either: `read_results` answers `status: "tracking"` and `No interactions yet`. `tracking` and `skipped` are not values, and they do not mean the page is fast. Shifts have the same trap with a value that looks like a pass: on a page that inserts blocks while the reader scrolls, `core-web-vitals` gave a CLS of 0, `good`, and the `interaction` workflow, which scrolls, gave 0.7606, `poor`.
+
+Instead, open the page, use it and read the result:
+
+```js
+open_page({ url: "https://example.com", track: ["INP", "Interactions", "Input-Latency-Breakdown"] })
+interact({ sessionId, steps: [{ action: "click", selector: "#add-to-cart" }] })
+read_results({ sessionId })
+```
+
+The CLI takes the same steps from a file:
+
+```bash copy
+npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
+```
+
+- For the shifts of a scroll, use the `interaction` workflow, or `Layout-Shift-Loading-and-Interaction` in `track` with `scroll` steps.
+- `status: "tracking"` after a click means nothing was recorded: read again, and check that the selector reaches an element that responds.
+- The value is the INP of those steps, not of the page: in the evals, the agent clicked the first `button` it could guess. Say which element was clicked, and use `get_crux` for what users get.
+
+## Measuring several times in one turn
+
+The agent sends two or more measurements in one turn, to save time or to get more samples. In the evals, 35 turns did it, most pairing `LCP-Subparts` with another snippet, or two workflows, and the client ran them at the same time.
+
+Each call opens its own Chromium and the server does not queue them, so they compete for the CPU, which is why `--runs` measures one load after the other. On a laptop with ten cores, a page with an LCP of 424 ms stayed at 432 ms with two calls at a time, and went to 524 ms with eight and 612 ms with sixteen. The values also come from different page loads, so the sub-parts of one call do not add up to the LCP of the other.
+
+Instead, measure one thing at a time. `LCP-Subparts` already returns the LCP, a workflow runs all its steps on one page load, and `--runs` gives the repeated samples.
+
+## Calling `get_details` after a full result
+
+Every run of `run_snippet` and `run_workflow` has a `runId`, so the agent calls `get_details` with it. In the evals it did so four times in three runs of one case, after answers that were already `detail: "full"`. It also invents ids: with `runId: "interaction"`, the name of the workflow, the server answers `Unknown runId interaction`.
+
+With `detail: "full"`, the answer already holds the whole object of each result, and `get_details` returns the same object. It measures nothing new, and the turn sends the whole context again.
+
+Instead, read `detail` in the answer first:
+
+- `full`: the data is all there. The `runId` is for `baseline`, to compare a later run with this one.
+- `summary`: call `get_details` with that `runId` and the `id` of the one result you need.
+
+## Calling `run_snippet` with a tracking snippet
+
+The agent calls `run_snippet` with a snippet that records interactions, such as `Layout-Shift-Loading-and-Interaction`, although the description of the tool says to use `open_page`. The server refuses it, measures nothing and answers with the right tools, so the cost is the turn.
+
+Instead, read `tracking` in `list_snippets`. A snippet with `tracking: true` goes in `track` of `open_page`, and any other snippet in `run_snippet`; `open_page` refuses the second kind the same way.
+
+## Guessing the name of a snippet or a tool
+
+The agent writes a name it has not read. In the 82 runs of the evals, 15 calls named a snippet that does not exist: `Image-Loading-Priority` eight times, `Image-Loading-Audit` three times, `Scripts` twice, `long-tasks`, which is a step of a workflow, and `Loading/LCP-Subparts`, a real snippet in the wrong category. Five calls went to tools the client did not have, such as `interact` without the prefix its client adds, or `bash` in a client with no shell.
+
+The server answers an unknown snippet with the closest names, which are close in spelling, not always in meaning: for `Scripts` it offered `CoreWebVitals/CLS`, and that agent stopped there.
+
+Instead, call `list_snippets` before the first `run_snippet`, with `category` to keep the answer short, and use the names and `aliases` it returns, or the ones in `nextSteps`. For a tool, use the name the client lists.
+
+## Further reading
+
+- [MCP server](/MCP) | The tools, their arguments and the comparison with a baseline
+- [CLI](/CLI) | Budgets, `--runs`, `--baseline` and `--interact-script`
+- [Result contract of the snippets](https://github.com/nucliweb/webperf-snippets/blob/main/snippets/SCHEMA.md) | GitHub
+- [Evals of the MCP server](https://github.com/nucliweb/webperf-snippets/tree/main/scripts/eval-mcp) | GitHub

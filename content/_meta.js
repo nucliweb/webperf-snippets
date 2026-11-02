@@ -29,6 +29,9 @@ export default {
   "MCP": {
     "title": "MCP server"
   },
+  "agent-mistakes": {
+    "title": "What agents get wrong"
+  },
   "extension": {
     "title": "DevTools extension (beta)"
   },

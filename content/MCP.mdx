@@ -108,7 +108,7 @@ Each run is a page load plus `waitMs`. With the default wait of 3 seconds, five 
 
 `run_snippet` and `run_workflow` compare a run with an earlier one, with the verdict of `--baseline`. `baseline` takes the `runId` of an earlier run of the connection, which every run of these two tools returns, or the path of a page the CLI wrote with `--json`, absolute or relative to the working directory of the server. The answer adds a `baseline` field: the one of the JSON of the CLI, with the `runId` or the `file` it compared with, plus `regressions`, the same lines `--fail-on-regression` prints. `thresholds` takes the values of `--threshold`, such as `["LCP=15%", "CLS=0.1"]`. A baseline that cannot be read or a threshold the server does not understand is a tool error, before the page loads, and a baseline of a matrix is refused, since a tool measures one page.
 
-With [five runs or more](#measure-several-runs) a side, a regression needs a Mann-Whitney U p-value under 0.05 on top of its threshold, as in the CLI, and each metric adds `stats` with the p-value, the shift and its 95 % interval. With fewer, a metric compares by its threshold and, against a baseline of several runs, by the range of those runs. A single run can be off by more than a threshold on a page that did not change, so read `warnings`, and measure both sides with `runs: 5`, or `--runs 5` in the CLI, when the verdict matters. An earlier run of the connection works for a change made in the same session, and a file measured with the CLI for a comparison with `main`.
+With [five runs or more](#measure-several-runs) a side, a regression needs a Mann-Whitney U p-value under 0.05 on top of its threshold, as in the CLI, and each metric adds `stats` with the p-value, the shift and its 95 % interval. With fewer, a metric compares by its threshold and, against a baseline of several runs, by the range of those runs. A single run can be off by more than a threshold on a page that did not change, so read `warnings`, and measure both sides with `runs: 5`, or `--runs 5` in the CLI, when the verdict matters. An earlier run of the connection works for a change made in the same session, and a file measured with the CLI for a comparison with `main`. [What agents get wrong](/agent-mistakes) lists the mistakes that change a verdict, such as deciding on one run or changing a wait, and what to do instead.
 
 ## Resources and prompts
 
@@ -177,5 +177,6 @@ The server measures a page in its own headless Chromium, with a fresh profile: n
 
 - [Model Context Protocol](https://modelcontextprotocol.io) | modelcontextprotocol.io
 - [CLI](/CLI) | The same snippets and workflows from the command line and CI
+- [What agents get wrong](/agent-mistakes) | The mistakes agents make with these tools, and what to do instead
 - [Result contract of the snippets](https://github.com/nucliweb/webperf-snippets/blob/main/snippets/SCHEMA.md) | GitHub
 - [Why the server is a subcommand of the CLI](https://github.com/nucliweb/webperf-snippets/blob/main/docs/adr/0002-mcp-server-as-cli-subcommand.md) | ADR 0002
