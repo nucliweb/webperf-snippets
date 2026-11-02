@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- CI audits the production build with the Agentic browsing category of Lighthouse (the accessibility tree, the WebMCP tools and `llms.txt`) and writes the score and each audit to the job summary, without blocking. `npm run audit:agentic` runs it locally after `npm run build`.
 - The CLI reaches version 1.10.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `--crux-history` adds the trend of the CrUX field data over the last 1 to 40 weeks, and the field data of `--crux-key` sets the sub-parts of an image LCP against the lab, with the round trip time and the navigation types of the users; `get_crux` of the MCP server gives the same.
 - The CLI reaches version 1.9.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): from five runs a side, `--baseline` decides a regression with a Mann-Whitney U test of the runs on top of the threshold, and reports the p-value and the shift with its 95 % interval; `--runs` and `--matrix` give the coefficient of variation of the runs of each metric and whether they agree; and the conditions of a measurement name the machine, with a warning in `--baseline` when it ran on another CPU.
 

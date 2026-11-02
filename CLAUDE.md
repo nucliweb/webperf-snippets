@@ -59,6 +59,7 @@ npm run check:emoji          # no emoji left in rendered text where an icon exis
 npm run test:demos           # demo contract
 npm run test:site            # sitemap routes, _meta reader, built snippets check
 npm run check:built-snippets # after `npm run build`: every page shows its snippets as in the source
+npm run audit:agentic        # after `npm run build`: Agentic browsing category of Lighthouse on the build, reported without blocking in CI
 npm run test:icons           # emoji to icon plugins
 npm run test:support         # browser support plugin
 npm run test:prompt          # agent prompt of each snippet (lib/snippet-prompt.mjs)
