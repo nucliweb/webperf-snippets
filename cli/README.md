@@ -351,6 +351,7 @@ Each budget compares the value measured, or the median with `--runs`, and fails 
 | `--verbose`                  | Show all items, including passing checks.                              |
 | `--headed`                   | Show the browser window (debug).                                       |
 | `-h, --help`                 | Show help.                                                             |
+| `-v, --version`              | Show the version.                                                      |
 
 ### Snippet aliases
 

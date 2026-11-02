@@ -89,6 +89,7 @@ Options:
   --verbose             Show all items, even for passing checks
   --headed              Show the browser window (debug)
   -h, --help            Show this help
+  -v, --version         Show the version
 
 Examples:
   npx webperf-snippets https://example.com
@@ -182,6 +183,7 @@ async function main() {
         verbose: { type: "boolean" },
         headed: { type: "boolean" },
         help: { type: "boolean", short: "h" },
+        version: { type: "boolean", short: "v" },
       },
       allowPositionals: true,
     });
@@ -193,6 +195,11 @@ async function main() {
 
   if (values.help) {
     process.stdout.write(USAGE);
+    return;
+  }
+
+  if (values.version) {
+    process.stdout.write(`${cliVersion}\n`);
     return;
   }
 

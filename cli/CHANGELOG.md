@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `--version` and `-v` print the version of the CLI, and nothing else, with exit code `0`.
+
 ---
 
 ## [1.11.0] — 2026-11-02
