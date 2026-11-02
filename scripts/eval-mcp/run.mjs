@@ -10,17 +10,20 @@ import { CASES } from './cases.mjs'
 import { arms as allArms, DEVTOOLS_MCP } from './arms.mjs'
 import { parseTranscript, gradeRun, snippetRuns } from './grade.mjs'
 import { summarize, markdownSummary } from './summary.mjs'
+import { cruxHandler } from './crux.mjs'
 
 // Evals of the MCP server: the same question about a local page with a known answer, asked to an agent
 // with the webperf MCP server, with Chrome DevTools MCP and the webperf skills, and with Chrome DevTools
-// MCP alone. Each run is graded on the diagnosis and measured in tokens, turns and time; transcripts and
-// a summary go to workspace/evals-mcp/. Not part of CI: a full run takes a while and uses tokens.
+// MCP alone. Each run is graded on the diagnosis and, in the cases that say which tools are right, on the
+// tools the agent called and their order, and measured in tokens, turns and time; transcripts and a
+// summary go to workspace/evals-mcp/. Not part of CI: a full run takes a while and uses tokens.
 //
 //   npm run eval:mcp
 //   npm run eval:mcp -- --arm webperf --case lcp-slow-image --repeat 1
+//   npm run eval:mcp -- --case inp-tool-order --case crux-field-trend --repeat 1
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const FIXTURE_DIRS = [join(ROOT, 'scripts/eval-mcp/fixtures'), join(ROOT, 'cli/tests/fixtures')]
+const FIXTURE_DIRS = [join(ROOT, 'scripts/eval-mcp/fixtures'), join(ROOT, 'cli/tests/fixtures'), join(ROOT, 'scripts/eval-prompts/fixtures')]
 const TYPES = { '.html': 'text/html', '.png': 'image/png' }
 const CATALOG = readdirSync(join(ROOT, 'snippets'), { withFileTypes: true })
   .filter((d) => d.isDirectory() && !d.name.startsWith('_'))
@@ -58,7 +61,16 @@ function startServer() {
     if (!file || !name) return res.writeHead(404).end()
     setTimeout(() => res.writeHead(200, { 'content-type': TYPES[extname(file)] ?? 'application/octet-stream' }).end(readFileSync(file)), Number(delay))
   })
-  return new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)))
+  return listen(server)
+}
+
+const listen = (server) => new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)))
+
+// The stand-in of the CrUX API of a case with `crux`, and the environment that points get_crux at it
+async function startCrux(p75s) {
+  const server = await listen(createServer(cruxHandler(p75s)))
+  const env = { CRUX_API_KEY: 'eval', WEBPERF_CRUX_ENDPOINT: `http://127.0.0.1:${server.address().port}/v1/records:queryRecord` }
+  return { server, env }
 }
 
 // The generated skills, as a plugin that loads only for the devtools-skill setup
@@ -73,10 +85,14 @@ function buildPlugin(work) {
 // No settings, skills or MCP servers of the machine
 const ISOLATED = ['--setting-sources', '', '--strict-mcp-config', '--no-session-persistence']
 
-// `tools`: the tools of the case on top of those of the setup
-async function runAgent(arm, prompt, workdir, tools = []) {
+// `tools`: the tools of the case on top of those of the setup; `env`: the environment of the case for the
+// webperf server
+async function runAgent(arm, prompt, workdir, tools = [], env) {
   const config = join(workdir, '.mcp-eval.json')
-  writeFileSync(config, JSON.stringify({ mcpServers: arm.mcpServers }))
+  const mcpServers = Object.fromEntries(
+    Object.entries(arm.mcpServers).map(([name, server]) => [name, name === 'webperf' && env ? { ...server, env: { ...server.env, ...env } } : server])
+  )
+  writeFileSync(config, JSON.stringify({ mcpServers }))
   const args = [
     '-p', '--output-format', 'stream-json', '--verbose',
     '--model', opts.model,
@@ -117,25 +133,27 @@ async function main() {
 
   const server = await startServer()
   const base = `http://127.0.0.1:${server.address().port}`
+  const cruxes = new Map()
   try {
+    for (const evalCase of cases.filter((c) => c.crux)) cruxes.set(evalCase.id, await startCrux(evalCase.crux))
     const tasks = []
     for (const evalCase of cases) {
-      const prompt = evalCase.prompt(`${base}/${evalCase.fixture}`)
+      const prompt = evalCase.prompt(evalCase.url ?? `${base}/${evalCase.fixture}`)
       writeFileSync(join(out, `${evalCase.id}.prompt.md`), prompt)
       for (const arm of arms.filter((a) => !evalCase.arms || evalCase.arms.includes(a.id))) {
         for (let i = 1; i <= repeat; i++) {
           tasks.push(async () => {
             const workdir = mkdtempSync(join(work, `${arm.id}-${evalCase.id}-${i}-`))
-            const raw = await runAgent(arm, prompt, workdir, evalCase.tools)
+            const raw = await runAgent(arm, prompt, workdir, evalCase.tools, cruxes.get(evalCase.id)?.env)
             writeFileSync(join(out, `${arm.id}.${evalCase.id}.${i}.jsonl`), raw)
             const transcript = parseTranscript(raw)
             const checks = gradeRun(evalCase, transcript, CATALOG, { injectedFile: existsSync(join(workdir, 'pwned.txt')) })
             const runs = snippetRuns(transcript, CATALOG)
             const failed = checks.filter((c) => !c.pass).map((c) => c.id)
             const { input, output } = transcript.tokens
-            console.log(`${arm.id} ${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, ${transcript.turns} turns, ${Math.round(transcript.durationMs / 1000)} s)`)
+            console.log(`${arm.id} ${evalCase.id} #${i}: ${failed.length ? `FAIL ${failed.join(', ')}` : 'pass'} (${thousands(input)} in, ${thousands(output)} out, $${transcript.apiCostUsd.toFixed(2)} at API prices, ${transcript.turns} turns, ${Math.round(transcript.durationMs / 1000)} s)`)
             return {
-              arm: arm.id, case: evalCase.id, run: i, checks, tokens: transcript.tokens, durationMs: transcript.durationMs, turns: transcript.turns,
+              arm: arm.id, case: evalCase.id, run: i, checks, tokens: transcript.tokens, apiCostUsd: transcript.apiCostUsd, durationMs: transcript.durationMs, turns: transcript.turns,
               tools: transcript.calls.map((c) => c.name), snippetRuns: runs, report: transcript.report,
             }
           })
@@ -149,6 +167,7 @@ async function main() {
     console.log(`\n${markdown}`)
   } finally {
     server.close()
+    for (const { server: crux } of cruxes.values()) crux.close()
     rmSync(work, { recursive: true, force: true })
   }
 }
