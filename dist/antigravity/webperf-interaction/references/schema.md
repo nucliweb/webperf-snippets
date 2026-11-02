@@ -64,7 +64,7 @@ Every script must return an object matching this shape:
 
   // Tracking scripts (status: "tracking")
   message?: string;      // Human-readable status message
-  getDataFn?: string;    // window function to call for data: evaluate_script(`${getDataFn}()`). May be a dotted path such as "loafHelpers.getData"
+  getDataFn?: string;    // window function to call for data: evaluate_script(`() => ${getDataFn}()`). May be a dotted path such as "loafHelpers.getData"
 
   // Error info (status: "error" or "unsupported")
   error?: string;
@@ -169,7 +169,7 @@ return {
 ```
 1. evaluate_script(INP.js)          → { status: "tracking", getDataFn: "getINP" }
 2. (user interacts with the page)
-3. evaluate_script("getINP()")      → { script: "INP", status: "ok", value: 350, rating: "needs-improvement", ... }
+3. evaluate_script("() => getINP()") → { script: "INP", status: "ok", value: 350, rating: "needs-improvement", ... }
 ```
 
 **The window function must also return a structured object** matching the same schema, including when nothing has been recorded yet:
@@ -181,7 +181,7 @@ return {
 
 ### Pattern 4: Async scripts
 
-Scripts that use `async/await` or `setTimeout`. The IIFE returns a Promise, which `evaluate_script` can await (Chrome DevTools `awaitPromise`).
+Scripts that use `async/await` or `setTimeout`. The IIFE returns a Promise, which `evaluate_script` awaits with `format: "script"` (Chrome DevTools `awaitPromise`).
 
 Keep the existing `async () => {}` wrapper. Add a `return` statement with structured data at the end. The agent receives the resolved value.
 
@@ -1622,7 +1622,7 @@ Each issue names its video in `target`, except `no-videos`.
 // Read the return value: the skill scripts have no console output
 result = evaluate_script(scriptCode)
 if result.status == "ok" → use result.value, result.rating, result.details, result.items
-if result.status == "tracking" → call evaluate_script(`${result.getDataFn}()`) after user interaction
+if result.status == "tracking" → call evaluate_script(`() => ${result.getDataFn}()`) after user interaction
 if result.status == "error" → check result.error, the browser may not have loaded the page yet
 if result.status == "unsupported" → browser does not support the required API (check: Chrome 107+?)
 ```
@@ -1637,7 +1637,7 @@ result = evaluate_script(INP_js)
 // 2. Wait for/trigger user interactions
 
 // 3. Collect data
-data = evaluate_script("getINP()")
+data = evaluate_script("() => getINP()")
 // data = { status: "ok", value: 350, rating: "needs-improvement", ... }
 ```
 

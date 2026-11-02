@@ -46,6 +46,25 @@ for (const file of categoryGuides) {
   test(`${rel(file)} offers the CLI when Chrome DevTools MCP is not available`, () => {
     assert.match(read(file), /npx webperf-snippets <url> --snippet <\w+> --json/)
   })
+
+  // The file goes by path so the agent neither reads nor resends the script. A script is an expression
+  // and not a function, so the default format of evaluate_script fails with "fn is not a function".
+  test(`${rel(file)} passes the script to evaluate_script by path, as a script`, () => {
+    assert.match(read(file), /`sourcePath`.*`format: "script"`/)
+  })
+
+  // A bare getINP() is not a function either: only `format: "script"` or an arrow function runs it
+  test(`${rel(file)} calls getDataFn as an arrow function`, () => {
+    assert.match(read(file), /`\(\) => getINP\(\)`/)
+  })
+
+  // Chrome DevTools MCP takes paths inside its workspace roots, and ~/.claude/skills/ is not one
+  test(`${rel(file)} says what to do when the server rejects the path`, () => {
+    const text = read(file)
+    assert.match(text, /1\.11\.0/)
+    assert.match(text, /--workspace/)
+    assert.match(text, /Access denied.*`function`.*`format: "script"`/)
+  })
 }
 
 const routers = files.filter((f) => path.basename(path.dirname(f)) === 'webperf')
@@ -59,6 +78,10 @@ for (const file of routers) {
 
   test(`${rel(file)} says to read the return value of evaluate_script`, () => {
     assert.match(read(file), /evaluate_script.*return(ed)? (value|object)/i)
+  })
+
+  test(`${rel(file)} passes the script to evaluate_script by path, as a script`, () => {
+    assert.match(read(file), /evaluate_script.*`sourcePath`.*`format: "script"`/)
   })
 }
 

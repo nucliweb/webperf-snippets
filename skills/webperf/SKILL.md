@@ -30,8 +30,8 @@ A collection of 56 JavaScript snippets for measuring and debugging web performan
 2. Load the skill's SKILL.md to see available snippets and thresholds
 3. Execute with Chrome DevTools MCP:
    - `mcp__chrome-devtools__navigate_page` → navigate to target URL
-   - `mcp__chrome-devtools__evaluate_script` → run the snippet and read the returned object, which is the result (the scripts have no console output)
-   - `status: "tracking"` → call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions
+   - `mcp__chrome-devtools__evaluate_script` with `sourcePath` (the absolute path of the script) and `format: "script"` → run the snippet and read the returned object, which is the result (the scripts have no console output)
+   - `status: "tracking"` → call the function named in `getDataFn` with another `mcp__chrome-devtools__evaluate_script` call after the interactions, as an arrow function such as `() => getINP()`
    - Without Chrome DevTools MCP, run the snippet with the CLI: `npx webperf-snippets <url> --snippet <Name> --json`
 4. Interpret results using the thresholds defined in the skill
 5. Provide actionable recommendations based on findings
