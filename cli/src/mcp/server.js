@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/server";
+import { McpServer, ResourceTemplate, ResourceNotFoundError } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { cliVersion } from "../report-to.js";
 import { CATEGORIES, aliasesOf, listSnippets, resolveSnippetName } from "../snippet-names.js";
@@ -16,6 +16,9 @@ import { registerPrompts } from "./prompts.js";
 import { shapeResults, createRuns, RunError } from "./summary.js";
 import { followUpCalls, trackingCall } from "./next-steps.js";
 import { isHttpUrl } from "../url.js";
+import { machineOf } from "../machine.js";
+import { measurementConditions } from "../conditions.js";
+import { prepareBaseline, compareWithBaseline } from "./baseline.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
 const STAGES = 3;
@@ -36,8 +39,40 @@ const SnippetResult = z
 const SessionId = z.string().describe("The id open_page returned");
 
 const RunId = z.string().describe("The id of the run, for get_details");
-// Only a summary names its run: whole objects leave nothing for get_details to add
+// Only a summary of read_results names its run: whole objects leave nothing for get_details to add
 const SummaryRunId = RunId.optional().describe("The id of the run, for get_details; only with summaries");
+// A run of a page load is also the baseline of a later one, so it always has its id
+const PageRunId = RunId.describe("The id of the run: the baseline of a later run_snippet or run_workflow; with summaries, also for get_details");
+
+const Baseline = z
+  .string()
+  .min(1)
+  .optional()
+  .describe(
+    "Compare this run with a baseline, as --baseline of the CLI: the runId of an earlier run_snippet or run_workflow of this connection (listed as webperf://runs/{runId}), or the path of a page the CLI wrote with --json, absolute or relative to the working directory of the server"
+  );
+const Thresholds = z
+  .array(z.string())
+  .optional()
+  .describe("With baseline, the threshold of a metric, as --threshold of the CLI: LCP=15% (relative), LCP=200ms (absolute), CLS=0.1. The part not given keeps its default");
+
+const LooseObject = (shape) => z.looseObject(shape).meta({ additionalProperties: true });
+const BaselineError = LooseObject({ id: z.string(), message: z.string().optional() });
+const Comparison = z
+  .object({
+    runId: z.string().optional().describe("The run the baseline was, when it was a runId"),
+    file: z.string().optional().describe("The file the baseline was, when it was a path"),
+    url: z.string().describe("The URL the baseline measured"),
+    runs: LooseObject({ count: z.number() }).describe("The runs of the baseline"),
+    metrics: z
+      .record(z.string(), LooseObject({ verdict: z.string() }))
+      .describe("By metric: baseline, current, delta, deltaPercent, threshold and verdict (regressed, improved, unchanged, not measured)"),
+    errors: z.object({ new: z.array(BaselineError), fixed: z.array(BaselineError) }).describe("The errors only this run has, and the ones only the baseline had"),
+    warnings: z.array(z.string()).describe("What differs in how both were measured: how far to trust the comparison"),
+    regressions: z.array(z.string()).describe("What got worse, one line each: the metrics that regressed and the new errors"),
+  })
+  .optional()
+  .describe("With baseline, the comparison, as the baseline field of the JSON of the CLI");
 
 // auto, the default, returns whole objects when they are small and summaries when they are large: a
 // summary of a small result costs the agent a turn for the details, which is more than it saves
@@ -55,6 +90,7 @@ const NextSteps = z
 
 const DETAIL_NOTE =
   "Large results come as summaries with a runId for get_details; nextSteps, when present, is the call to make next.";
+const BASELINE_NOTE = "With baseline, it also compares the run with an earlier one, as --baseline of the CLI, and says what regressed.";
 
 // A page can put instructions for the agent in what a snippet returns: an alt text, a class in a
 // selector, the URL of a script. The tools that return what a page holds say how to read it, and so
@@ -116,9 +152,44 @@ function describeSnippet(name) {
   };
 }
 
+// The runs of the connection that measured a page, as resources: an agent picks the baseline of a run
+// among them. Each is the JSON the CLI prints with --json, so saved to a file it is a baseline of the
+// CLI too.
+function registerRuns(server, runs) {
+  const JSON_TYPE = "application/json";
+  server.registerResource(
+    "runs",
+    new ResourceTemplate("webperf://runs/{runId}", {
+      list: async () => ({
+        resources: runs.pages().map(({ runId, url, conditions, at }) => ({
+          uri: `webperf://runs/${runId}`,
+          name: `${conditions.snippet ?? conditions.workflow} on ${url} (${conditions.viewport})`,
+          description: `Measured at ${at}`,
+          mimeType: JSON_TYPE,
+        })),
+      }),
+    }),
+    {
+      title: "Runs of this connection",
+      description: `The page an earlier run_snippet or run_workflow of this connection measured, with its results and conditions, as the JSON of the CLI (--json). Its runId is the baseline argument of a later run. The server keeps the last 20 runs. ${PAGE_DATA}`,
+      mimeType: JSON_TYPE,
+    },
+    async (uri, { runId }) => {
+      let page;
+      try {
+        page = runs.page(runId);
+      } catch (err) {
+        if (err instanceof RunError) throw new ResourceNotFoundError(uri.href);
+        throw err;
+      }
+      return { contents: [{ uri: uri.href, mimeType: JSON_TYPE, text: JSON.stringify(page) }] };
+    }
+  );
+}
+
 // The MCP server of the CLI: the same snippets and runner, offered as tools an agent calls by name.
 // serveStdio creates one instance per connection, so the pages it keeps open belong to that client.
-export function createServer({ launchBrowser = () => launchChromium(), maxPages, idleMs, env = process.env } = {}) {
+export function createServer({ launchBrowser = () => launchChromium(), maxPages, idleMs, env = process.env, machine = machineOf } = {}) {
   const server = new McpServer({ name: "webperf-snippets", version: cliVersion }, { instructions: INSTRUCTIONS });
   const sessions = createSessions({ launchBrowser, maxPages, idleMs });
   const runs = createRuns();
@@ -126,6 +197,30 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
   server.server.onclose = () => sessions.closeAll();
   registerResources(server);
   registerPrompts(server);
+  registerRuns(server, runs);
+
+  // The machine goes in the conditions of every run, as in the JSON of the CLI, so a baseline measured
+  // on another one warns. It is measured once, with the first run, before its Chromium starts.
+  let machineOfServer;
+  const conditionsOf = (conditions) => measurementConditions({ ...conditions, machine: (machineOfServer ??= machine()) });
+
+  // A run of a page load, kept with its page in the shape of the JSON of the CLI: its runId is the
+  // baseline of a later run, and the resources list it
+  const keepPage = (run, results, conditions) => {
+    const page = { url: run.url, navMs: run.navMs, pageErrors: run.pageErrors, ...(run.throttling ? { throttling: run.throttling } : {}), conditions };
+    const runId = runs.keep(results, page);
+    server.sendResourceListChanged();
+    return { runId, current: { ...page, results } };
+  };
+
+  // The baseline of a tool, read and checked before the page loads; a wrong one is a tool error
+  const baselineFor = ({ baseline, thresholds }) => {
+    if (baseline === undefined) {
+      if (thresholds?.length) throw new Error("thresholds need a baseline");
+      return undefined;
+    }
+    return prepareBaseline({ baseline, thresholds }, runs);
+  };
 
   // Runs a session tool, and turns the errors the model can act on into tool errors
   const withSession = (handler) => async (args, ctx) => {
@@ -162,28 +257,31 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a snippet",
       description:
-        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead. ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead. ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         snippet: z.string().describe("The snippet: its name (LCP-Subparts), an alias (render-blocking) or Category/Name"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the snippet, in ms"),
         detail: Detail,
+        baseline: Baseline,
+        thresholds: Thresholds,
       }),
       outputSchema: z.object({
         url: z.string(),
-        runId: SummaryRunId,
+        runId: PageRunId,
         detail: DetailOut,
         snippet: z.string().describe("Category/Name of the snippet that ran"),
         viewport: z.enum(VIEWPORTS),
         navMs: z.number().describe("From the start of the navigation to the end of the wait"),
         pageErrors: z.array(z.string()).describe("Uncaught errors of the page during the run"),
         result: SnippetResult,
+        baseline: Comparison,
         nextSteps: NextSteps,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, snippet, viewport, waitMs, detail }, ctx) => {
+    async ({ url, snippet, viewport, waitMs, detail, baseline, thresholds }, ctx) => {
       let path;
       try {
         path = resolveSnippetName(snippet);
@@ -194,22 +292,30 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       if (isTrackingSnippet(path, source)) {
         return toolError(`${path} records interactions: open the page with open_page and this snippet in track, use it with interact, and read it with read_results.`);
       }
+      let base;
+      try {
+        base = baselineFor({ baseline, thresholds });
+      } catch (err) {
+        return toolError(err.message);
+      }
 
       try {
+        const conditions = conditionsOf({ viewport, snippet: path, waitMs });
         const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress: progressFor(ctx) });
         const shaped = shapeResults(run.results.map(({ id, ...result }) => result), detail);
-        const runId = shaped.detail === "summary" ? runs.keep(run.results) : undefined;
+        const { runId, current } = keepPage(run, run.results, conditions);
         const id = run.results[0].id;
         const nextSteps = followUpCalls({ results: run.results, url, viewport, waitMs, ran: [path] });
         return toolResult({
           url,
-          ...(runId ? { runId } : {}),
+          runId,
           detail: shaped.detail,
           snippet: id,
           viewport,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
           result: shaped.results[0],
+          ...(base ? { baseline: compareWithBaseline(base, current) } : {}),
           ...(nextSteps.length ? { nextSteps } : {}),
         });
       } catch (err) {
@@ -225,17 +331,19 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a workflow",
       description:
-        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page. ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page. ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the workflow, in ms"),
         detail: Detail,
+        baseline: Baseline,
+        thresholds: Thresholds,
       }),
       outputSchema: z.object({
         url: z.string(),
-        runId: SummaryRunId,
+        runId: PageRunId,
         detail: DetailOut,
         workflow: z.string(),
         viewport: z.enum(VIEWPORTS),
@@ -244,12 +352,20 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         results: z
           .array(z.looseObject({ id: z.string(), status: z.string() }).meta({ additionalProperties: true }))
           .describe("One object per step, in order, then the follow-ups, each with the reason it was added"),
+        baseline: Comparison,
         nextSteps: NextSteps,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, workflow, viewport, waitMs, detail }, ctx) => {
+    async ({ url, workflow, viewport, waitMs, detail, baseline, thresholds }, ctx) => {
+      let base;
       try {
+        base = baselineFor({ baseline, thresholds });
+      } catch (err) {
+        return toolError(err.message);
+      }
+      try {
+        const conditions = conditionsOf({ viewport, workflow, waitMs });
         const run = await runMeasurement({
           url,
           workflow: WORKFLOWS[workflow],
@@ -265,7 +381,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
             : r
         );
         const shaped = shapeResults(results, detail);
-        const runId = shaped.detail === "summary" ? runs.keep(results) : undefined;
+        const { runId, current } = keepPage(run, results, conditions);
         // The runner already ran the follow-ups of the decision tree; what is left is the steps it skipped
         const skipped = results
           .filter((r) => r.status === "skipped")
@@ -274,12 +390,13 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         const nextSteps = skipped.length ? [trackingCall({ paths: skipped, url, viewport })] : [];
         return toolResult({
           url,
-          ...(runId ? { runId } : {}),
+          runId,
           ...shaped,
           workflow,
           viewport,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
+          ...(base ? { baseline: compareWithBaseline(base, current) } : {}),
           ...(nextSteps.length ? { nextSteps } : {}),
         });
       } catch (err) {

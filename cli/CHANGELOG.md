@@ -8,7 +8,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- `run_snippet` and `run_workflow` of the MCP server compare a run with an earlier one, with the verdict of `--baseline`: `baseline` takes the `runId` of an earlier run of the connection or the path of a page the CLI wrote with `--json`, and `thresholds` the values of `--threshold`. The answer adds a `baseline` field, the one of the JSON of the CLI, with the `runId` or the `file` it compared with and `regressions`, the lines `--fail-on-regression` prints. A wrong baseline or threshold is a tool error before the page loads, and a baseline of a matrix is refused. The tools measure one run, so the statistics of five runs a side stay in the CLI.
+- The resource `webperf://runs/{runId}` of the MCP server gives each run of `run_snippet` and `run_workflow` of the connection in the shape of the JSON of the CLI, with its conditions, so an agent can choose a baseline, and the list names each one with its snippet or workflow, URL, viewport and time.
+
+### Changed
+- `run_snippet` and `run_workflow` of the MCP server return a `runId` with whole objects too, since a run is the baseline of a later one; 1.8.0 returned it only with summaries. `read_results` keeps returning it only with summaries.
+
 ### Fixed
+- The errors of a `--baseline` file that is not an output of the CLI no longer suggest saving a new one over that path, which would overwrite it.
+- `--baseline` pairs the errors of one snippet asked by different names on each side, such as `--snippet render-blocking` and `--snippet Loading/Find-render-blocking-resources`. They came out as one new error and one fixed error.
 - The sparkline of `--crux-history` spans at least the smallest change `--baseline` counts for the metric (100 ms for LCP, 50 ms for INP, 0.05 for CLS), centred on the series when it is narrower. It spanned the lowest to the highest value, so a CLS of 0.20 to 0.21 drew `█▁▁▁▁▁▁█`, as if it swung; it now draws `▅▄▄▄▄▄▄▅`. A flat series sits in the middle.
 
 ---

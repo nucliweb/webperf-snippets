@@ -20,10 +20,10 @@ afterEach(async () => {
 const read = async (uri) => (await client.readResource({ uri })).contents[0];
 
 describe("resources", () => {
-  it("are declared, with the general contract, a template per snippet and a template per category", async () => {
+  it("are declared, with the general contract, a template per snippet, a template per category and one per run", async () => {
     expect(client.getServerCapabilities()).toHaveProperty("resources");
     const { resourceTemplates } = await client.listResourceTemplates();
-    expect(resourceTemplates.map((t) => t.uriTemplate).sort()).toEqual(["webperf://schema/{snippet}", "webperf://workflows/{category}"]);
+    expect(resourceTemplates.map((t) => t.uriTemplate).sort()).toEqual(["webperf://runs/{runId}", "webperf://schema/{snippet}", "webperf://workflows/{category}"]);
   });
 
   it("list the general contract, the snippets with a section in SCHEMA.md and the five workflows", async () => {

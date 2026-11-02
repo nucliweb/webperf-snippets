@@ -45,12 +45,27 @@ describe("reading a baseline", () => {
     expect(baseline.data.results[0].value).toBe(2100);
   });
 
+  it("never suggests writing over the file it could not read: it may be anything, and an agent may follow the message", () => {
+    const messageOf = (text) => {
+      try {
+        readBaseline(text, ".env");
+      } catch (err) {
+        return err.message;
+      }
+    };
+    for (const text of ["TOKEN=secret", '{"token":"secret"}']) {
+      expect(messageOf(text)).not.toContain("> .env");
+      expect(messageOf(text)).not.toContain("secret");
+      expect(messageOf(text)).toContain("webperf-snippets <url> --json");
+    }
+  });
+
   it("fails on a file that is not JSON", () => {
     expect(() => readBaseline("LCP 2100", "base.json")).toThrow(/base\.json is not JSON/);
   });
 
   it("fails on JSON that is not an output of the CLI, and says how to make one", () => {
-    expect(() => readBaseline(JSON.stringify({ lcp: 2100 }), "base.json")).toThrow(/base\.json is not an output of webperf-snippets --json.*--json > base\.json/);
+    expect(() => readBaseline(JSON.stringify({ lcp: 2100 }), "base.json")).toThrow(/base\.json is not an output of webperf-snippets --json.*a file saved with webperf-snippets <url> --json/);
   });
 
   it("fails on a file that does not exist", () => {
@@ -235,6 +250,17 @@ describe("the errors", () => {
 
   it("leave out warnings and information, which change too easily", () => {
     const { errors } = compare(page(), page({ results: [withIssue("fonts", "warning", "2 fonts are not preloaded"), withIssue("fonts", "info", "4 fonts")] }));
+    expect(errors).toEqual({ new: [], fixed: [] });
+  });
+
+  // The CLI names the result of --snippet as it was typed, and the MCP server by its path
+  it("are the same error for one snippet asked by an alias on one side and by its path on the other", () => {
+    const snippet = { viewport: "mobile", snippet: "Loading/Find-render-blocking-resources", waitMs: 3000, cliVersion };
+    const error = (id) => withIssue(id, "error", "1 blocking script(s) in <head>", { code: "blocking-in-head", target: "/app.js" });
+    const { errors } = compare(
+      page({ conditions: snippet, results: [error("render-blocking")] }),
+      page({ conditions: snippet, results: [error("Loading/Find-render-blocking-resources")] })
+    );
     expect(errors).toEqual({ new: [], fixed: [] });
   });
 

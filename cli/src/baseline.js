@@ -23,7 +23,8 @@ export const DEFAULT_THRESHOLDS = {
 // The baseline in a file, as { kind: "page" | "matrix", file, data }. Throws with what to do when
 // the file is not an output of the CLI.
 export function readBaseline(text, file) {
-  const howTo = `save one with webperf-snippets <url> --json > ${file}`;
+  // Never this path as the place to save it: the file is something else, and an agent may follow the message
+  const howTo = "give a file saved with webperf-snippets <url> --json";
   let data;
   try {
     data = JSON.parse(text);
@@ -153,8 +154,17 @@ function targetOf(target, pageUrl) {
 // (69.21 KB)…" and "Render-blocking CSS (71.80 KB)…"
 const byMessage = (error) => `${error.id}\u0000${error.message.replace(/\d+(?:[.,]\d+)*/g, "#")}`;
 
+// One snippet measured on both sides is the same result, whatever name it was asked by: the CLI names
+// the result of --snippet as it was typed (an alias, its name or Category/Name), and the MCP server by
+// its path. Its conditions name it by its path on both.
+function baseResultsOf(base, current) {
+  const path = base.conditions?.snippet;
+  if (!path || path !== current.conditions?.snippet || current.results?.length !== 1) return base.results ?? [];
+  return base.results.map((r) => ({ ...r, id: current.results[0].id }));
+}
+
 function compareErrors(base, current) {
-  const baseErrors = blockingErrors(base.results ?? []);
+  const baseErrors = blockingErrors(baseResultsOf(base, current));
   const currentErrors = blockingErrors(current.results ?? []);
   // The snippets whose errors on one side all lack a code pair by message on both
   const uncoded = (errors) => {
