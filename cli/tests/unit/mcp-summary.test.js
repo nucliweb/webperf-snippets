@@ -106,6 +106,25 @@ describe("the runs of a connection", () => {
     expect(runs.pages()).toEqual([{ runId, url: "http://localhost:3000/", conditions, at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) }]);
   });
 
+  // Only the median run is kept, as in the JSON of the CLI: the rest of the runs are the values of `runs`
+  it("keeps a measurement of several runs as one, with their summary, and names the run its results come from", () => {
+    const runs = createRuns();
+    const results = [{ id: "CoreWebVitals/LCP", script: "LCP", status: "ok", metric: "LCP", value: 1200 }];
+    const conditions = { viewport: "mobile", snippet: "CoreWebVitals/LCP", waitMs: 0, cliVersion: "1.10.0" };
+    const measured = { count: 3, failed: 0, medianRun: 2, medianBy: "LCP", summary: { LCP: { median: 1200, min: 1100, max: 1300, values: [1100, 1200, 1300], unit: "ms" } } };
+    const runId = runs.keep(results, { url: "http://localhost:3000/", navMs: 300, pageErrors: [], runs: measured, conditions });
+    expect(runs.page(runId).runs).toEqual(measured);
+    expect(runs.pages()[0].runs).toBe(3);
+    expect(runs.medianRun(runId)).toBe(2);
+  });
+
+  it("names no run for a measurement of one, or for a read of an open page", () => {
+    const runs = createRuns();
+    const results = [{ id: "CoreWebVitals/INP", script: "INP", status: "ok" }];
+    expect(runs.medianRun(runs.keep(results, { url: "http://localhost:3000/", navMs: 300, pageErrors: [], conditions: {} }))).toBeUndefined();
+    expect(runs.medianRun(runs.keep(results))).toBeUndefined();
+  });
+
   it("answers a run with no page, or an unknown one, with an error that says which runs compare", () => {
     const runs = createRuns();
     const read = runs.keep([{ id: "CoreWebVitals/INP", script: "INP", status: "ok" }]);

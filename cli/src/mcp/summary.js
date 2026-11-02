@@ -61,10 +61,17 @@ export function createRuns({ max = 20 } = {}) {
     return { ...run.page, results: run.results };
   }
 
-  // The runs that can be a baseline, the oldest first
-  const pages = () => [...runs].filter(([, run]) => run.page).map(([runId, { page, at }]) => ({ runId, url: page.url, conditions: page.conditions, at }));
+  // The runs that can be a baseline, the oldest first, with the number of measurements of each when it
+  // has several: the statistics of a comparison need five a side
+  const pages = () =>
+    [...runs]
+      .filter(([, run]) => run.page)
+      .map(([runId, { page, at }]) => ({ runId, url: page.url, conditions: page.conditions, at, ...(page.runs ? { runs: page.runs.count } : {}) }));
+
+  // A measurement of several runs keeps the results of the median one, as the JSON of the CLI does
+  const medianRun = (runId) => runs.get(runId)?.page?.runs?.medianRun;
 
   const has = (runId) => runs.has(runId);
 
-  return { keep, get, page, pages, has };
+  return { keep, get, page, pages, medianRun, has };
 }

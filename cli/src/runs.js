@@ -4,6 +4,11 @@ import { DEFAULT_THRESHOLDS } from "./baseline.js";
 // Every result of the report comes from that run, so they agree with each other (the sub-parts of
 // the LCP add up to its LCP), and a summary gives the median, min and max of each metric.
 
+// The most runs of a measurement, the same in the tools of the MCP server as in --runs. Mann-Whitney U
+// needs five a side (baseline.js), so nine leave room for failed runs and for a noisy page, and a page
+// that takes a few seconds to load stays under two minutes.
+export const MAX_RUNS = 9;
+
 // The metrics the snippets report, and navMs, which every run has
 export const MEDIAN_METRICS = ["LCP", "FCP", "TTFB", "CLS", "INP", "navMs"];
 
@@ -48,6 +53,23 @@ export const describeAgreement = ({ cv, agreement }) => (cv === undefined ? "" :
 export function describeRuns({ count, failed, medianRun, medianBy, medianByRequested }) {
   const by = medianByRequested ? `${medianBy} (no run measured ${medianByRequested})` : medianBy;
   return `${count} run${count === 1 ? "" : "s"}, median by ${by}: run ${medianRun}${failed ? ` (${failed} failed)` : ""}`;
+}
+
+// Measures `count` runs one after the other, never in parallel: they would compete for the CPU and
+// skew the timings. A run that fails is kept as { error } and left out of the median, unless isFatal
+// says the next run would fail the same way. An aborted signal, a caller that left, starts no more runs.
+export async function measureRuns(measure, count, { medianBy, isFatal = () => false, signal } = {}) {
+  const runs = [];
+  for (let i = 1; i <= count; i++) {
+    signal?.throwIfAborted();
+    try {
+      runs.push(await measure(i));
+    } catch (err) {
+      if (isFatal(err)) throw err;
+      runs.push({ error: err.message });
+    }
+  }
+  return summarizeRuns(runs, { medianBy });
 }
 
 // The runs as the CLI made them, in order, a run that failed being { error }. Returns the payload of

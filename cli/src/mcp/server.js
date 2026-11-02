@@ -19,6 +19,7 @@ import { isHttpUrl } from "../url.js";
 import { machineOf } from "../machine.js";
 import { measurementConditions } from "../conditions.js";
 import { prepareBaseline, compareWithBaseline } from "./baseline.js";
+import { MAX_RUNS, measureRuns } from "../runs.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
 const STAGES = 3;
@@ -56,7 +57,26 @@ const Thresholds = z
   .optional()
   .describe("With baseline, the threshold of a metric, as --threshold of the CLI: LCP=15% (relative), LCP=200ms (absolute), CLS=0.1. The part not given keeps its default");
 
+const Runs = z
+  .number()
+  .int()
+  .min(1)
+  .max(MAX_RUNS)
+  .default(1)
+  .describe(
+    "Measure the page this many times, one after the other, as --runs of the CLI: the answer is the median run, plus runs with the median, min, max and agreement of each metric. With baseline, 5 or more on both sides give the statistical verdict: use 5 for a comparison, and more only when agreement says noisy. Each run is a full page load and wait, so it takes that much longer"
+  );
+
 const LooseObject = (shape) => z.looseObject(shape).meta({ additionalProperties: true });
+const RunsSummary = LooseObject({
+  count: z.number(),
+  failed: z.number().describe("Runs left out because they failed"),
+  medianRun: z.number().describe("The run the answer comes from, from 1"),
+  medianBy: z.string().describe("The metric that picked it"),
+  summary: z.record(z.string(), LooseObject({ median: z.number() })).describe("By metric: median, min, max, values of each run (null for a failed one), unit, cv and agreement (consistent, variable, noisy)"),
+})
+  .optional()
+  .describe("With several runs, the runs field of the JSON of the CLI");
 const BaselineError = LooseObject({ id: z.string(), message: z.string().optional() });
 const Comparison = z
   .object({
@@ -66,7 +86,7 @@ const Comparison = z
     runs: LooseObject({ count: z.number() }).describe("The runs of the baseline"),
     metrics: z
       .record(z.string(), LooseObject({ verdict: z.string() }))
-      .describe("By metric: baseline, current, delta, deltaPercent, threshold and verdict (regressed, improved, unchanged, not measured)"),
+      .describe("By metric: baseline, current, delta, deltaPercent, threshold, verdict (regressed, improved, unchanged, not measured) and, with five runs a side, stats (p, shift, ci, method)"),
     errors: z.object({ new: z.array(BaselineError), fixed: z.array(BaselineError) }).describe("The errors only this run has, and the ones only the baseline had"),
     warnings: z.array(z.string()).describe("What differs in how both were measured: how far to trust the comparison"),
     regressions: z.array(z.string()).describe("What got worse, one line each: the metrics that regressed and the new errors"),
@@ -128,13 +148,28 @@ const toolError = (text) => ({ isError: true, content: [{ type: "text", text }] 
 
 const firstLine = (message) => message.split("\n")[0];
 
-// A client that wants progress sends a token with the call; the stages of a run go to it
-function progressFor(ctx) {
+// A client that wants progress sends a token with the call; the stages of each run go to it, numbered
+// across the runs. Returns the reporter of a run, by its number.
+function progressFor(ctx, runs) {
   const progressToken = ctx.mcpReq._meta?.progressToken;
-  return (progress, message) =>
+  const total = STAGES * runs;
+  return (run) => (stage, message) =>
     progressToken === undefined
       ? undefined
-      : ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken, progress, total: STAGES, message } });
+      : ctx.mcpReq.notify({
+          method: "notifications/progress",
+          params: { progressToken, progress: (run - 1) * STAGES + stage, total, message: runs > 1 ? `Run ${run} of ${runs}: ${message}` : message },
+        });
+}
+
+// A page load measured once, or `count` times with the median run as the answer, as --runs of the CLI.
+// When the client gives up (a cancel, its timeout, or leaving), the runs left never start.
+async function measurePage(measure, count, ctx) {
+  const progress = progressFor(ctx, count);
+  if (count === 1) return measure(progress(1));
+  const { payload, runs, errors } = await measureRuns((i) => measure(progress(i)), count, { isFatal: isMissingBrowser, signal: ctx.mcpReq.signal });
+  if (!payload) throw new Error(`Every run failed: ${[...new Set(errors.map(firstLine))].join("; ")}`);
+  return { ...payload, runs };
 }
 
 const CRUX_FORM_FACTORS = { phone: "PHONE", desktop: "DESKTOP", tablet: "TABLET" };
@@ -161,9 +196,9 @@ function registerRuns(server, runs) {
     "runs",
     new ResourceTemplate("webperf://runs/{runId}", {
       list: async () => ({
-        resources: runs.pages().map(({ runId, url, conditions, at }) => ({
+        resources: runs.pages().map(({ runId, url, conditions, at, runs: count }) => ({
           uri: `webperf://runs/${runId}`,
-          name: `${conditions.snippet ?? conditions.workflow} on ${url} (${conditions.viewport})`,
+          name: `${conditions.snippet ?? conditions.workflow} on ${url} (${conditions.viewport})${count ? `, ${count} runs` : ""}`,
           description: `Measured at ${at}`,
           mimeType: JSON_TYPE,
         })),
@@ -207,7 +242,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
   // A run of a page load, kept with its page in the shape of the JSON of the CLI: its runId is the
   // baseline of a later run, and the resources list it
   const keepPage = (run, results, conditions) => {
-    const page = { url: run.url, navMs: run.navMs, pageErrors: run.pageErrors, ...(run.throttling ? { throttling: run.throttling } : {}), conditions };
+    const page = { url: run.url, navMs: run.navMs, pageErrors: run.pageErrors, ...(run.throttling ? { throttling: run.throttling } : {}), ...(run.runs ? { runs: run.runs } : {}), conditions };
     const runId = runs.keep(results, page);
     server.sendResourceListChanged();
     return { runId, current: { ...page, results } };
@@ -263,6 +298,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         snippet: z.string().describe("The snippet: its name (LCP-Subparts), an alias (render-blocking) or Category/Name"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the snippet, in ms"),
+        runs: Runs,
         detail: Detail,
         baseline: Baseline,
         thresholds: Thresholds,
@@ -276,12 +312,13 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         navMs: z.number().describe("From the start of the navigation to the end of the wait"),
         pageErrors: z.array(z.string()).describe("Uncaught errors of the page during the run"),
         result: SnippetResult,
+        runs: RunsSummary,
         baseline: Comparison,
         nextSteps: NextSteps,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, snippet, viewport, waitMs, detail, baseline, thresholds }, ctx) => {
+    async ({ url, snippet, viewport, waitMs, runs: count, detail, baseline, thresholds }, ctx) => {
       let path;
       try {
         path = resolveSnippetName(snippet);
@@ -301,7 +338,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
 
       try {
         const conditions = conditionsOf({ viewport, snippet: path, waitMs });
-        const run = await runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress: progressFor(ctx) });
+        const run = await measurePage((onProgress) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress }), count, ctx);
         const shaped = shapeResults(run.results.map(({ id, ...result }) => result), detail);
         const { runId, current } = keepPage(run, run.results, conditions);
         const id = run.results[0].id;
@@ -315,6 +352,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
           result: shaped.results[0],
+          ...(run.runs ? { runs: run.runs } : {}),
           ...(base ? { baseline: compareWithBaseline(base, current) } : {}),
           ...(nextSteps.length ? { nextSteps } : {}),
         });
@@ -337,6 +375,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the workflow, in ms"),
+        runs: Runs,
         detail: Detail,
         baseline: Baseline,
         thresholds: Thresholds,
@@ -352,12 +391,13 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         results: z
           .array(z.looseObject({ id: z.string(), status: z.string() }).meta({ additionalProperties: true }))
           .describe("One object per step, in order, then the follow-ups, each with the reason it was added"),
+        runs: RunsSummary,
         baseline: Comparison,
         nextSteps: NextSteps,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, workflow, viewport, waitMs, detail, baseline, thresholds }, ctx) => {
+    async ({ url, workflow, viewport, waitMs, runs: count, detail, baseline, thresholds }, ctx) => {
       let base;
       try {
         base = baselineFor({ baseline, thresholds });
@@ -366,14 +406,11 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }
       try {
         const conditions = conditionsOf({ viewport, workflow, waitMs });
-        const run = await runMeasurement({
-          url,
-          workflow: WORKFLOWS[workflow],
-          rules: RULES,
-          waitMs,
-          viewport: VIEWPORT_PRESETS[viewport],
-          onProgress: progressFor(ctx),
-        });
+        const run = await measurePage(
+          (onProgress) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress }),
+          count,
+          ctx
+        );
         // The runner explains a skipped step with the flag of the CLI; here the tools are what the model has
         const results = run.results.map((r) =>
           r.status === "skipped"
@@ -396,6 +433,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           viewport,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
+          ...(run.runs ? { runs: run.runs } : {}),
           ...(base ? { baseline: compareWithBaseline(base, current) } : {}),
           ...(nextSteps.length ? { nextSteps } : {}),
         });
@@ -580,7 +618,12 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         runId: RunId,
         snippet: z.string().describe("The id of the result in the summary, or its script"),
       }),
-      outputSchema: z.object({ runId: z.string(), snippet: z.string().describe("The id of the result in the run"), result: SnippetResult }),
+      outputSchema: z.object({
+        runId: z.string(),
+        snippet: z.string().describe("The id of the result in the run"),
+        medianRun: z.number().optional().describe("With several runs, the one this result comes from: the median run, the only one kept"),
+        result: SnippetResult,
+      }),
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async ({ runId, snippet }) => {
@@ -599,7 +642,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           if (!(err instanceof RunError) || !resolved || resolved === snippet) throw err;
           result = runs.get(runId, resolved);
         }
-        return toolResult({ runId, snippet: result.id, result });
+        const medianRun = runs.medianRun(runId);
+        return toolResult({ runId, snippet: result.id, ...(medianRun ? { medianRun } : {}), result });
       } catch (err) {
         if (err instanceof RunError) return toolError(err.message);
         throw err;

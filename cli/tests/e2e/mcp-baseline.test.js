@@ -96,7 +96,7 @@ describe("a baseline on the tools that measure", () => {
     expect(after.baseline.metrics.LCP).toMatchObject({ baseline: before.result.value, verdict: "regressed" });
     expect(after.baseline.metrics.LCP.delta).toBeGreaterThan(500);
     expect(after.baseline.regressions).toEqual([expect.stringMatching(/^LCP ▲ \+\d+ms/)]);
-    expect(after.baseline.warnings).toEqual(["the baseline has 1 run, so only the thresholds apply; measure both with --runs"]);
+    expect(after.baseline.warnings).toEqual(["the baseline has 1 run, so only the thresholds apply; measure both with 5 runs or more"]);
   }, 120000);
 
   it("takes the thresholds of --threshold", async () => {

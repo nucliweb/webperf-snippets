@@ -234,7 +234,7 @@ describe("--baseline fails before opening the browser", () => {
     ["a missing file", () => ["--baseline", join(dir, "missing.json")], /Cannot read the baseline .*missing\.json: the file does not exist/],
     ["a file that is not an output of the CLI", () => ["--baseline", invalid("other.json", '{"lcp":2100}')], /is not an output of webperf-snippets --json/],
     ["the baseline of a matrix for a page", () => ["--baseline", invalid("matrix.json", '{"matrix":"m.json","runs":1,"combinations":[]}')], /is the baseline of a matrix: compare it with --matrix/],
-    ["a threshold without its unit", () => ["--baseline", invalid("page.json", '{"url":"https://example.com/","results":[]}'), "--threshold", "LCP=200"], /Invalid --threshold "LCP=200"/],
+    ["a threshold without its unit", () => ["--baseline", invalid("page.json", '{"url":"https://example.com/","results":[]}'), "--threshold", "LCP=200"], /Invalid threshold "LCP=200"/],
     ["--threshold without --baseline", () => ["--threshold", "LCP=15%"], /--threshold needs --baseline/],
     ["--fail-on-regression without --baseline", () => ["--fail-on-regression"], /--fail-on-regression needs --baseline/],
   ])("with exit code 2 for %s", async (_, args, message) => {

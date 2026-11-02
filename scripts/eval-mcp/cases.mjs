@@ -178,4 +178,21 @@ export const CASES = [
       },
     },
   },
+  {
+    // One load says little: a measurement to compare later needs five runs, or the comparison has no
+    // statistics. The prompt asks for trust and never names the argument.
+    id: 'runs-for-a-comparison',
+    fixture: 'lcp-slow-image.html',
+    arms: ['webperf'],
+    prompt: (url) => `We are about to ship a change to this page: ${url}\n\nMeasure its LCP now, in a way I can trust when I compare it with the build after the change.`,
+    expect: {
+      diagnosis: [{ id: 'median', pattern: /median/i }],
+      tools: {
+        orders: [
+          [{ tool: 'run_snippet', label: 'run_snippet with 5 runs or more', match: ({ input }) => input.runs >= 5 }],
+          [{ tool: 'run_workflow', label: 'run_workflow with 5 runs or more', match: ({ input }) => input.runs >= 5 }],
+        ],
+      },
+    },
+  },
 ]

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MEDIAN_METRICS, summarizeRuns } from "../../src/runs.js";
+import { MAX_RUNS, MEDIAN_METRICS, measureRuns, summarizeRuns } from "../../src/runs.js";
 
 // A run as the runner returns it, with the metrics given
 const run = (navMs, metrics = {}) => ({
@@ -105,4 +105,76 @@ describe("the summary of the metrics", () => {
 
 it("the metrics the median can follow are the ones the snippets report, and navMs", () => {
   expect(MEDIAN_METRICS).toEqual(["LCP", "FCP", "TTFB", "CLS", "INP", "navMs"]);
+});
+
+describe("measuring several runs", () => {
+  it("measures one after the other, never in parallel, and reduces them to the median run", async () => {
+    let running = 0;
+    const seen = [];
+    const values = [300, 100, 200];
+    const { payload, runs } = await measureRuns(async (i) => {
+      expect(++running).toBe(1);
+      seen.push(i);
+      await new Promise((resolve) => setTimeout(resolve));
+      running--;
+      return run(1, { LCP: values[i - 1] });
+    }, 3);
+    expect(seen).toEqual([1, 2, 3]);
+    expect(runs).toMatchObject({ count: 3, failed: 0, medianRun: 3, medianBy: "LCP" });
+    expect(payload.results[0].value).toBe(200);
+  });
+
+  it("follows the metric asked for", async () => {
+    const values = [{ LCP: 100, FCP: 30 }, { LCP: 200, FCP: 10 }, { LCP: 300, FCP: 20 }];
+    const { runs } = await measureRuns(async (i) => run(1, values[i - 1]), 3, { medianBy: "FCP" });
+    expect(runs).toMatchObject({ medianBy: "FCP", medianRun: 3 });
+  });
+
+  it("keeps a run that fails out of the median, and gives the errors when every run failed", async () => {
+    const { runs } = await measureRuns(async (i) => {
+      if (i === 2) throw new Error("page.goto: timeout");
+      return run(1, { LCP: i * 100 });
+    }, 3);
+    expect(runs).toMatchObject({ count: 3, failed: 1 });
+    expect(runs.summary.LCP.values).toEqual([100, null, 300]);
+
+    const none = await measureRuns(async () => {
+      throw new Error("page.goto: refused");
+    }, 2);
+    expect(none).toEqual({ payload: null, runs: null, errors: ["page.goto: refused", "page.goto: refused"] });
+  });
+
+  it("stops at an error the next run would repeat, such as a browser that is not installed", async () => {
+    const missing = new Error("Chromium for Playwright is not installed");
+    let attempts = 0;
+    const measuring = measureRuns(
+      async () => {
+        attempts++;
+        throw missing;
+      },
+      3,
+      { isFatal: (err) => err === missing }
+    );
+    await expect(measuring).rejects.toBe(missing);
+    expect(attempts).toBe(1);
+  });
+
+  it("starts no more runs once the signal aborts, so a caller that left does not keep Chromium busy", async () => {
+    const controller = new AbortController();
+    let attempts = 0;
+    const measuring = measureRuns(
+      async () => {
+        if (++attempts === 2) controller.abort(new Error("the client cancelled"));
+        return run(1, { LCP: 100 });
+      },
+      5,
+      { signal: controller.signal }
+    );
+    await expect(measuring).rejects.toThrow("the client cancelled");
+    expect(attempts).toBe(2);
+  });
+
+  it("allows nine runs, the same for the CLI and the MCP server", () => {
+    expect(MAX_RUNS).toBe(9);
+  });
 });
