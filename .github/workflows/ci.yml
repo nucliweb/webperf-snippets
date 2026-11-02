@@ -99,6 +99,12 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: cli
 
+      # Reports to the job summary and does not block: a failing audit marks this step, not the job.
+      - name: Audit agentic browsing with Lighthouse
+        if: steps.slow.outputs.skip != 'true'
+        continue-on-error: true
+        run: npm run audit:agentic
+
       - name: Run E2E tests
         if: steps.slow.outputs.skip != 'true'
         run: npm run test:e2e --prefix cli

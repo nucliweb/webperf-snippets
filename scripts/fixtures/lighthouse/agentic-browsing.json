@@ -1,0 +1,122 @@
+{
+  "lighthouseVersion": "13.6.0",
+  "requestedUrl": "http://localhost:3104/",
+  "finalDisplayedUrl": "http://localhost:3104/",
+  "runWarnings": [],
+  "categories": {
+    "agentic-browsing": {
+      "id": "agentic-browsing",
+      "title": "Agentic Browsing",
+      "score": 1,
+      "auditRefs": [
+        {
+          "id": "agent-accessibility-tree",
+          "weight": 1,
+          "group": "agent-accessibility"
+        },
+        {
+          "id": "webmcp-form-coverage",
+          "weight": 0,
+          "group": "webmcp"
+        },
+        {
+          "id": "webmcp-registered-tools",
+          "weight": 0,
+          "group": "webmcp"
+        },
+        {
+          "id": "webmcp-schema-validity",
+          "weight": 1,
+          "group": "webmcp"
+        },
+        {
+          "id": "cumulative-layout-shift",
+          "weight": 1,
+          "acronym": "CLS"
+        },
+        {
+          "id": "llms-txt",
+          "weight": 1,
+          "group": "agent-discoverability"
+        },
+        {
+          "id": "ard-schema",
+          "weight": 0,
+          "group": "agent-discoverability"
+        }
+      ]
+    }
+  },
+  "audits": {
+    "agent-accessibility-tree": {
+      "id": "agent-accessibility-tree",
+      "title": "Accessibility tree is well-formed",
+      "score": 1,
+      "scoreDisplayMode": "binary",
+      "displayValue": "All audits passed"
+    },
+    "webmcp-form-coverage": {
+      "id": "webmcp-form-coverage",
+      "title": "WebMCP form coverage",
+      "score": null,
+      "scoreDisplayMode": "notApplicable"
+    },
+    "webmcp-registered-tools": {
+      "id": "webmcp-registered-tools",
+      "title": "WebMCP tools registered",
+      "score": 1,
+      "scoreDisplayMode": "informative",
+      "details": {
+        "type": "list",
+        "items": [
+          {
+            "type": "list-section",
+            "title": "Imperative Tools",
+            "value": {
+              "type": "table",
+              "items": [
+                {
+                  "tool": "list_snippets"
+                },
+                {
+                  "tool": "search_snippets"
+                },
+                {
+                  "tool": "get_snippet"
+                },
+                {
+                  "tool": "get_snippet_prompt"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "webmcp-schema-validity": {
+      "id": "webmcp-schema-validity",
+      "title": "WebMCP schemas are valid",
+      "score": 1,
+      "scoreDisplayMode": "binary"
+    },
+    "cumulative-layout-shift": {
+      "id": "cumulative-layout-shift",
+      "title": "Cumulative Layout Shift",
+      "score": 1,
+      "scoreDisplayMode": "numeric",
+      "displayValue": "0"
+    },
+    "llms-txt": {
+      "id": "llms-txt",
+      "title": "llms.txt follows recommendations",
+      "score": 1,
+      "scoreDisplayMode": "binary"
+    },
+    "ard-schema": {
+      "id": "ard-schema",
+      "title": "ARD manifest is valid",
+      "score": null,
+      "scoreDisplayMode": "notApplicable"
+    }
+  }
+}
