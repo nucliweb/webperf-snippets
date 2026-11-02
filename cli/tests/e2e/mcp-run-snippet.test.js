@@ -42,8 +42,8 @@ describe("run_snippet", () => {
     const result = await run({ url: `${servers.base}/lcp-image`, snippet: "LCP" });
     expect(result.structuredContent.detail).toBe("full");
     expect(result.structuredContent.result.details).toEqual(expect.any(Object));
-    // A whole object leaves nothing for get_details, so there is no run to ask it about
-    expect(result.structuredContent.runId).toBeUndefined();
+    // A whole object leaves nothing for get_details, but its run can be the baseline of a later one
+    expect(result.structuredContent.runId).toEqual(expect.any(String));
   }, 60000);
 
   it("returns a summary of the result with the id of the run, as structured content and as text", async () => {
@@ -70,7 +70,6 @@ describe("run_snippet", () => {
   it("returns the full result at once with detail full", async () => {
     const result = await run({ url: `${servers.base}/lcp-image`, snippet: "LCP", detail: "full" });
     expect(result.structuredContent.result.details).toEqual(expect.any(Object));
-    expect(result.structuredContent.runId).toBeUndefined();
   }, 60000);
 
   it("answers get_details for a run it does not keep with a tool error that says to run again", async () => {

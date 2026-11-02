@@ -29,27 +29,42 @@ export function shapeResults(results, detail = "auto", maxFullChars = FULL_UP_TO
 }
 
 // The full results of the last runs of an MCP connection, by run id, so get_details answers with the
-// values the summary came from: measuring again would give other ones
+// values the summary came from: measuring again would give other ones. A run of a page load also keeps
+// its page (url, navMs, pageErrors, conditions), so a later run can take it as its baseline.
 export function createRuns({ max = 20 } = {}) {
   const runs = new Map();
+  const unknown = (runId) =>
+    new RunError(`Unknown runId ${runId}: this server keeps the last ${max} runs of the connection. Run the tool again for a new one.`);
 
-  function keep(results) {
+  function keep(results, page) {
     const runId = randomUUID();
-    runs.set(runId, results);
+    runs.set(runId, { results, page, at: new Date().toISOString() });
     // A Map keeps the order of insertion, so the first key is the oldest run
     if (runs.size > max) runs.delete(runs.keys().next().value);
     return runId;
   }
 
   function get(runId, snippet) {
-    const results = runs.get(runId);
-    if (!results) {
-      throw new RunError(`Unknown runId ${runId}: this server keeps the last ${max} runs of the connection. Run the tool again for a new one.`);
-    }
+    const run = runs.get(runId);
+    if (!run) throw unknown(runId);
+    const { results } = run;
     const result = results.find((r) => r.id === snippet) ?? results.find((r) => r.script === snippet);
     if (!result) throw new RunError(`${snippet} is not in run ${runId}, which has: ${results.map((r) => r.id).join(", ")}.`);
     return result;
   }
 
-  return { keep, get };
+  // A run as the JSON of the CLI gives a page, which is what a baseline is
+  function page(runId) {
+    const run = runs.get(runId);
+    if (!run) throw unknown(runId);
+    if (!run.page) throw new RunError(`Run ${runId} read an open page; a baseline is a run of run_snippet or run_workflow.`);
+    return { ...run.page, results: run.results };
+  }
+
+  // The runs that can be a baseline, the oldest first
+  const pages = () => [...runs].filter(([, run]) => run.page).map(([runId, { page, at }]) => ({ runId, url: page.url, conditions: page.conditions, at }));
+
+  const has = (runId) => runs.has(runId);
+
+  return { keep, get, page, pages, has };
 }

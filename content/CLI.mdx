@@ -429,6 +429,8 @@ When both runs were measured differently, with another workflow or snippet, view
 
 The comparison only informs, and the exit code is the same as without it, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new, and names them on stderr. A baseline that does not exist or is not an output of the CLI, a baseline of a page for a matrix or of a matrix for a page, or a `--threshold` the CLI does not understand exits with code `2`, before the page loads.
 
+An agent gets the same comparison from the [MCP server](/MCP#compare-with-a-baseline), with the `baseline` argument of `run_snippet` and `run_workflow`.
+
 A matrix compares with the `--json` output of an earlier matrix, each combination with the one of the same `id`:
 
 ```bash copy
@@ -508,7 +510,7 @@ Each snippet page has a **Copy prompt to measure** button above the code. The pr
 
 The snippets an agent cannot run in a meaningful way have no button: the [Fetch & XHR Timeline](/DevTools-Overrides/Fetch-XHR-Timeline) overrides, which need DevTools Local Overrides, the [Long Animation Frames helpers](/Interaction/Long-Animation-Frames-Helpers), and [Network Bandwidth & Connection Quality](/Resources/Network-Bandwidth-Connection-Quality), because headless Chromium reports the connection of the machine it runs on. The [Back/forward cache](/Loading/Back-Forward-Cache) prompt says that the result is partial, since the CLI does not navigate back.
 
-An agent in an MCP client can also call the snippets as tools: `webperf-snippets mcp` starts the [MCP server](/MCP) of the CLI.
+An agent in an MCP client can also call the snippets as tools, and compare a run with an earlier one: `webperf-snippets mcp` starts the [MCP server](/MCP) of the CLI.
 
 ## CI integration
 

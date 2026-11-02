@@ -94,6 +94,27 @@ describe("the runs of a connection", () => {
     expect(runs.get(runId, "LCP").value).toBe(1);
   });
 
+  // A run of a page load is a baseline for a later one: its URL and conditions, with its results, in the
+  // shape of the JSON of the CLI
+  it("keeps the page a run measured, with its results, for a later run to compare with", () => {
+    const runs = createRuns();
+    const results = [{ id: "CoreWebVitals/LCP", script: "LCP", status: "ok", metric: "LCP", value: 1200 }];
+    const conditions = { viewport: "mobile", snippet: "CoreWebVitals/LCP", waitMs: 0, cliVersion: "1.10.0" };
+    const runId = runs.keep(results, { url: "http://localhost:3000/", navMs: 300, pageErrors: [], conditions });
+    expect(runs.page(runId)).toEqual({ url: "http://localhost:3000/", navMs: 300, pageErrors: [], conditions, results });
+    // The time tells apart two runs of the same page, for an agent choosing a baseline
+    expect(runs.pages()).toEqual([{ runId, url: "http://localhost:3000/", conditions, at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) }]);
+  });
+
+  it("answers a run with no page, or an unknown one, with an error that says which runs compare", () => {
+    const runs = createRuns();
+    const read = runs.keep([{ id: "CoreWebVitals/INP", script: "INP", status: "ok" }]);
+    expect(() => runs.page(read)).toThrow(RunError);
+    expect(() => runs.page(read)).toThrow(/run_snippet or run_workflow/);
+    expect(() => runs.page("nope")).toThrow(/run the tool again/i);
+    expect(runs.pages()).toEqual([]);
+  });
+
   it("answers a snippet that is not in the run with an error that lists the ones that are", () => {
     const runs = createRuns();
     const runId = runs.keep([{ id: "CoreWebVitals/LCP", script: "LCP", status: "ok" }]);

@@ -96,3 +96,51 @@ describe("list_snippets", () => {
     expect(result.content[0].text).toMatch(/category/i);
   });
 });
+
+// The comparison itself is the one of baseline.js (tests/unit/mcp-baseline.test.js); here, the
+// arguments of the tools and the checks that come before the page loads
+describe("a baseline on the tools that measure", () => {
+  // Nothing listens on this port: a tool that loaded the page would answer with ERR_CONNECTION_REFUSED
+  const unreachable = "http://127.0.0.1:9/";
+
+  it("is an optional argument of run_snippet and run_workflow, with the thresholds of --threshold", async () => {
+    const { tools } = await client.listTools();
+    for (const name of ["run_snippet", "run_workflow"]) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool.inputSchema.properties.baseline.description, name).toMatch(/runId.*--json/);
+      expect(tool.inputSchema.properties.thresholds.type, name).toBe("array");
+      expect(tool.inputSchema.required, name).not.toContain("baseline");
+      expect(tool.outputSchema.properties.baseline, name).toBeDefined();
+    }
+  });
+
+  it("is checked before the page loads, as the CLI checks it before Chromium opens", async () => {
+    const result = await client.callTool({ name: "run_snippet", arguments: { url: unreachable, snippet: "LCP", baseline: "/nowhere/baseline.json" } });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/Cannot read the baseline \/nowhere\/baseline.json: the file does not exist/);
+  });
+
+  it("answers a runId the connection does not keep, or a wrong threshold, with a tool error", async () => {
+    const run = (args) => client.callTool({ name: "run_workflow", arguments: { url: unreachable, ...args } });
+    const unknown = await run({ baseline: "3f1c2b9e-8d2a-4c4e-9f0a-1b2c3d4e5f60" });
+    expect(unknown.isError).toBe(true);
+    expect(unknown.content[0].text).toMatch(/Unknown runId/);
+    const threshold = await run({ baseline: "/nowhere/baseline.json", thresholds: ["LCP=fast"] });
+    expect(threshold.isError).toBe(true);
+    expect(threshold.content[0].text).toMatch(/LCP=15%/);
+  });
+
+  it("is what thresholds are for, as --threshold needs --baseline", async () => {
+    const result = await client.callTool({ name: "run_workflow", arguments: { url: unreachable, thresholds: ["LCP=15%"] } });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/thresholds need a baseline/);
+  });
+
+  it("can be a run of the connection, which the server lists as a resource once there is one", async () => {
+    const { resourceTemplates } = await client.listResourceTemplates();
+    expect(resourceTemplates.find((t) => t.uriTemplate === "webperf://runs/{runId}").mimeType).toBe("application/json");
+    const { resources } = await client.listResources();
+    expect(resources.filter((r) => r.uri.startsWith("webperf://runs/"))).toEqual([]);
+    await expect(client.readResource({ uri: "webperf://runs/nope" })).rejects.toThrow(/not found/i);
+  });
+});
