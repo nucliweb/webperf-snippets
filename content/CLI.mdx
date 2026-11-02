@@ -512,6 +512,8 @@ The snippets an agent cannot run in a meaningful way have no button: the [Fetch 
 
 An agent in an MCP client can also call the snippets as tools, and compare a run with an earlier one: `webperf-snippets mcp` starts the [MCP server](/MCP) of the CLI.
 
+Before you hand the CLI to an agent, read [What agents get wrong](/agent-mistakes): raising a budget to pass a check, lowering `--runs`, changing a wait and the other mistakes that change a verdict, with what to do instead.
+
 ## CI integration
 
 GitHub Actions example, fail the PR if LCP exceeds 2.5s:
@@ -597,3 +599,4 @@ LCP, CLS and INP vary by 15 to 30% on shared runners; prefer the deterministic `
 
 - [GitHub Repository](https://github.com/nucliweb/webperf-snippets), source code and issue tracker
 - [npm package](https://www.npmjs.com/package/webperf-snippets), changelog and releases
+- [What agents get wrong](/agent-mistakes) | The mistakes agents make with the CLI and the MCP server, and what to do instead
