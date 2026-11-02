@@ -97,6 +97,26 @@ describe("list_snippets", () => {
   });
 });
 
+describe("several runs on the tools that measure", () => {
+  it("is an optional argument of run_snippet and run_workflow, from 1 to 9 as --runs, with the runs in the answer", async () => {
+    const { tools } = await client.listTools();
+    for (const name of ["run_snippet", "run_workflow"]) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool.inputSchema.properties.runs, name).toMatchObject({ type: "integer", minimum: 1, maximum: 9, default: 1 });
+      expect(tool.inputSchema.properties.runs.description, name).toMatch(/median/);
+      expect(tool.inputSchema.required, name).not.toContain("runs");
+      expect(tool.outputSchema.properties.runs, name).toBeDefined();
+      expect(tool.outputSchema.required, name).not.toContain("runs");
+    }
+  });
+
+  it.each([0, 10, 2.5])("refuses %s runs before any page loads", async (runs) => {
+    const result = await client.callTool({ name: "run_snippet", arguments: { url: "http://127.0.0.1:9/", snippet: "LCP", runs } });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/runs/);
+  });
+});
+
 // The comparison itself is the one of baseline.js (tests/unit/mcp-baseline.test.js); here, the
 // arguments of the tools and the checks that come before the page loads
 describe("a baseline on the tools that measure", () => {

@@ -398,8 +398,8 @@ It needs the Chromium of Playwright (`npx playwright install chromium`); without
 | Tool            | What it does                                                                 |
 | --------------- | ---------------------------------------------------------------------------- |
 | `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |
-| `run_snippet`   | Opens a URL in a headless Chromium, runs one snippet and returns a summary of its result. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport`, `waitMs`, `baseline` and `thresholds`. The snippets that record interactions run on a page opened with `open_page`. |
-| `run_workflow`  | Runs a workflow of the CLI (`core-web-vitals`, `audit`, `loading`, `interaction`) and the follow-ups of its decision tree. Takes `url`, `workflow`, and optional `viewport`, `waitMs`, `baseline` and `thresholds`. |
+| `run_snippet`   | Opens a URL in a headless Chromium, runs one snippet and returns a summary of its result. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport`, `waitMs`, `runs`, `baseline` and `thresholds`. The snippets that record interactions run on a page opened with `open_page`. |
+| `run_workflow`  | Runs a workflow of the CLI (`core-web-vitals`, `audit`, `loading`, `interaction`) and the follow-ups of its decision tree. Takes `url`, `workflow`, and optional `viewport`, `waitMs`, `runs`, `baseline` and `thresholds`. |
 | `get_crux`      | Returns the CrUX p75 of LCP, CLS and INP for a URL, or its origin. Takes `url` and an optional `formFactor` (`phone`, `desktop`, `tablet`). Needs `CRUX_API_KEY` in the environment of the server. |
 | `open_page`     | Opens a URL in a page that stays open between calls and installs tracking snippets (`track`, such as `INP`). Returns a `sessionId`. |
 | `interact`      | Runs steps on an open page: `click`, `type`, `hover`, `scroll` or `wait`. |
@@ -407,9 +407,13 @@ It needs the Chromium of Playwright (`npx playwright install chromium`); without
 | `get_details`   | Returns the whole object of one snippet of a run, by the `runId` that `run_snippet`, `run_workflow` or `read_results` returned, without measuring again. Takes `runId` and `snippet`. |
 | `close_page`    | Closes an open page. |
 
+`run_snippet` and `run_workflow` take `runs`, from 1 to 9, as `--runs`: the page loads that many times, one after the other, and the answer is the median run plus a `runs` field, the one of the JSON, with the median, min, max, the value of each run and the agreement of each metric. A run that fails counts in `failed` and is left out; when every run fails, the answer is a tool error. The server keeps the results of the median run only, as the JSON does, so `get_details` answers from that run and names it in `medianRun`; a metric other than the one that picked it (`medianBy`) can differ there from its median in `runs`.
+
+Each run is a page load plus `waitMs`. With the default wait of 3 seconds, five runs of a workflow take about 20 seconds on a local page, and about a minute on a page that takes a few seconds to load. When the client asks for progress, the server reports the three stages of each run, numbered across the runs. A client sets its own limit on a tool call: the MCP SDK stops waiting after 60 seconds unless it is given a longer `timeout` or `resetTimeoutOnProgress`, and in Claude Code `MCP_TOOL_TIMEOUT` sets the limit. When the client gives up, the run in progress ends and no other starts.
+
 `run_snippet` and `run_workflow` compare a run with an earlier one, with the verdict of `--baseline`. `baseline` takes the `runId` of an earlier run of the connection, which every run of these two tools returns, or the path of a page the CLI wrote with `--json`, absolute or relative to the working directory of the server. The answer adds a `baseline` field: the one of the JSON of the CLI, with the `runId` or the `file` it compared with, plus `regressions`, the same lines `--fail-on-regression` prints. `thresholds` takes the values of `--threshold`, such as `["LCP=15%", "CLS=0.1"]`. A baseline that cannot be read or a threshold the server does not understand is a tool error, before the page loads, and a baseline of a matrix is refused, since a tool measures one page.
 
-These tools measure one run, so a metric compares by its threshold and, against a baseline of several runs, by the range of those runs; the statistics of five runs a side only apply in the CLI. A single run can be off by more than a threshold on a page that did not change, so read `warnings`, and measure with `--runs` when the verdict matters. An earlier run of the connection works for a change made in the same session, and a file measured with the CLI for a comparison with `main`.
+With five runs or more a side, a regression needs a Mann-Whitney U p-value under 0.05 on top of its threshold, as in the CLI, and each metric adds `stats` with the p-value, the shift and its 95 % interval. With fewer, a metric compares by its threshold and, against a baseline of several runs, by the range of those runs. A single run can be off by more than a threshold on a page that did not change, so read `warnings`, and measure both sides with `runs: 5`, or `--runs 5` in the CLI, when the verdict matters. An earlier run of the connection works for a change made in the same session, and a file measured with the CLI for a comparison with `main`.
 
 The server also offers resources, documents a client can attach to the context:
 
@@ -418,7 +422,7 @@ The server also offers resources, documents a client can attach to the context:
 | `webperf://schema`               | The contract every snippet result follows: base shape, statuses, how to read a result, the rules of the issue codes. |
 | `webperf://schema/{snippet}`     | The fields one snippet returns, with an example, and the codes of its issues. |
 | `webperf://workflows/{category}` | The workflows and the decision tree of a category.                       |
-| `webperf://runs/{runId}`         | A run of `run_snippet` or `run_workflow` of the connection, in the shape of the JSON of the CLI. The list names each run with its snippet or workflow, its URL, its viewport and its time. |
+| `webperf://runs/{runId}`         | A run of `run_snippet` or `run_workflow` of the connection, in the shape of the JSON of the CLI. The list names each run with its snippet or workflow, its URL, its viewport, how many runs it measured when they are several, and its time. |
 
 And prompts, templates that chain the tools (in Claude Code, `/mcp__webperf__audit_lcp`): `audit_lcp`, `debug_inp` and `audit_page`, each with a `url` argument.
 

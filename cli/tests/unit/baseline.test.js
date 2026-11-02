@@ -96,6 +96,12 @@ describe("a threshold given with --threshold", () => {
     expect(() => parseThreshold(raw)).toThrow(message);
   });
 
+  // The same words for the CLI and the MCP server, whose agent has no --threshold to use
+  it.each(["LCP=200", "CLS=10%", "LCP=fast", "SI=10%"])("says what is wrong with %s without naming a flag", (raw) => {
+    expect(() => parseThreshold(raw)).toThrow(/threshold/);
+    expect(() => parseThreshold(raw)).not.toThrow(/--/);
+  });
+
   it("changes one part of the default and keeps the other", () => {
     const thresholds = thresholdsWith([parseThreshold("LCP=15%"), parseThreshold("TTFB=200ms")]);
     expect(thresholds.LCP).toEqual({ relative: 0.15, absolute: 100 });
@@ -326,7 +332,7 @@ describe("the warnings of a comparison", () => {
   });
 
   it("say that a baseline of one run has no range, and name a different number of runs", () => {
-    expect(warningsOf(page(), page())).toContain("the baseline has 1 run, so only the thresholds apply; measure both with --runs");
+    expect(warningsOf(page(), page())).toContain("the baseline has 1 run, so only the thresholds apply; measure both with 5 runs or more");
     expect(warningsOf(page({ runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) }), page({ runs: runsOf({ LCP: [1, 2, 3] }) }))).toContain(
       "the baseline has 5 runs, and this run 3"
     );

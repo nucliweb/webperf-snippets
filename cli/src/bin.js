@@ -15,7 +15,7 @@ import { MissingBrowserError } from "./browser.js";
 import { parseHeader } from "./headers.js";
 import { NETWORK_PRESETS, parseCpuFactor } from "./throttling.js";
 import { parseOwnDomains } from "./own-domains.js";
-import { MEDIAN_METRICS, summarizeRuns } from "./runs.js";
+import { MEDIAN_METRICS, measureRuns } from "./runs.js";
 import { loadMatrix } from "./matrix.js";
 import { blockingErrors } from "./blocking.js";
 import { MEASURED_BY, checkBudgets, parseBudgets, unmeasuredMetrics, violationsOf } from "./budgets.js";
@@ -325,7 +325,7 @@ async function main() {
   if (runCount == null) {
     payload = await measureWith(conditions);
   } else {
-    const median = await measureRuns(() => measureWith(conditions), runCount, medianBy, (i) => `[${i}/${runCount}] ${url} · run ${i}/${runCount}`);
+    const median = await measureRunsWithProgress(() => measureWith(conditions), runCount, medianBy, (i) => `[${i}/${runCount}] ${url} · run ${i}/${runCount}`);
     if (!median.payload) throw new Error(`Every run failed: ${median.errors.join("; ")}`);
     payload = { ...median.payload, runs: median.runs };
   }
@@ -388,22 +388,16 @@ async function main() {
   process.exit(blockingErrors(payload.results).length > 0 ? 1 : 0);
 }
 
-// Measures `count` runs one after the other, never in parallel: they would compete for the CPU and
-// skew the timings. Each run is reported on stderr as it starts, so stdout keeps only the report. A
-// run that fails is kept as { error } and left out of the median.
-async function measureRuns(measure, count, medianBy, progress) {
-  const runs = [];
-  for (let i = 1; i <= count; i++) {
-    process.stderr.write(`${progress(i)}\n`);
-    try {
-      runs.push(await measure());
-    } catch (err) {
-      if (err instanceof MissingBrowserError) throw err;
-      runs.push({ error: err.message });
-    }
-  }
-  return summarizeRuns(runs, { medianBy });
-}
+// Each run is reported on stderr as it starts, so stdout keeps only the report
+const measureRunsWithProgress = (measure, count, medianBy, progress) =>
+  measureRuns(
+    (i) => {
+      process.stderr.write(`${progress(i)}\n`);
+      return measure();
+    },
+    count,
+    { medianBy, isFatal: (err) => err instanceof MissingBrowserError }
+  );
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code follows the same rules as one page, for every combination.
@@ -417,7 +411,7 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
   const combinations = [];
   for (const c of matrix.combinations) {
     const conditions = { url: c.url, viewport: VIEWPORT_PRESETS[c.viewport], storageState: c.storageState, headers: c.headers, cpu: c.cpu, network: c.network, ownDomains: c.ownDomains };
-    const median = await measureRuns(() => measureWith(conditions), matrix.runs, matrix.medianBy, (i) => `[${String(++started).padStart(width)}/${total}] ${c.id} · run ${i}/${matrix.runs}`);
+    const median = await measureRunsWithProgress(() => measureWith(conditions), matrix.runs, matrix.medianBy, (i) => `[${String(++started).padStart(width)}/${total}] ${c.id} · run ${i}/${matrix.runs}`);
     const identity = { id: c.id, name: c.name, device: c.device, ...(c.variant ? { variant: c.variant } : {}), url: c.url };
     combinations.push(
       median.payload

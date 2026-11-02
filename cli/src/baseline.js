@@ -50,18 +50,18 @@ export function loadBaseline(path) {
 // (absolute), CLS=0.1 (CLS has only an absolute part, with no unit)
 export function parseThreshold(raw) {
   const match = /^([A-Za-z]+)=(\d+(?:\.\d+)?)(%|ms)?$/.exec(raw.trim());
-  if (!match) throw new Error(`Invalid --threshold "${raw}": give METRIC=VALUE with its unit, such as LCP=15%, LCP=200ms or CLS=0.1`);
+  if (!match) throw new Error(`Invalid threshold "${raw}": give METRIC=VALUE with its unit, such as LCP=15%, LCP=200ms or CLS=0.1`);
   const [, name, number, unit] = match;
   const metric = name.toUpperCase();
-  if (!METRICS.includes(metric)) throw new Error(`Unknown metric "${name}" in --threshold "${raw}". Choose from: ${METRICS.join(", ")}`);
+  if (!METRICS.includes(metric)) throw new Error(`Unknown metric "${name}" in threshold "${raw}". Choose from: ${METRICS.join(", ")}`);
   const value = Number(number);
   if (metric === "CLS") {
-    if (unit) throw new Error(`Invalid --threshold "${raw}": CLS is a score, with no unit and no relative part, such as CLS=0.1`);
+    if (unit) throw new Error(`Invalid threshold "${raw}": CLS is a score, with no unit and no relative part, such as CLS=0.1`);
     return { metric, absolute: value };
   }
   if (unit === "%") return { metric, relative: value / 100 };
   if (unit === "ms") return { metric, absolute: value };
-  throw new Error(`Invalid --threshold "${raw}": give the unit, such as ${metric}=15% or ${metric}=200ms`);
+  throw new Error(`Invalid threshold "${raw}": give the unit, such as ${metric}=15% or ${metric}=200ms`);
 }
 
 // The default thresholds with the parts that --threshold changes
@@ -219,7 +219,8 @@ function warningsOf(base, current) {
   if (describeLoad(base.throttling) !== describeLoad(current.throttling)) {
     warnings.push(`the baseline was measured ${describeLoad(base.throttling)}, and this run ${describeLoad(current.throttling)}`);
   }
-  if (runCount(base) < 2) warnings.push("the baseline has 1 run, so only the thresholds apply; measure both with --runs");
+  // In words for both: the CLI asks for runs with --runs, and the tools of the MCP server with runs
+  if (runCount(base) < 2) warnings.push(`the baseline has 1 run, so only the thresholds apply; measure both with ${RUNS_FOR_STATISTICS} runs or more`);
   else if (runCount(base) !== runCount(current)) warnings.push(`the baseline has ${runCount(base)} runs, and this run ${runCount(current)}`);
   const machine = machineWarning(b?.machine, c?.machine);
   if (machine) warnings.push(machine);

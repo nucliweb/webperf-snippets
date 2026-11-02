@@ -96,11 +96,11 @@ describe("the comparison of a matrix", () => {
 
   it("gives a warning that every combination has once, and names the combinations of the others", () => {
     const view = matrixComparisonView({ file: "last-week.json", added: [], missing: [], warnings: [] }, [
-      combo("home · mobile", { warnings: ["the baseline has 1 run, so only the thresholds apply; measure both with --runs", "the baseline measured /a and this run /b"] }),
-      combo("news · mobile", { warnings: ["the baseline has 1 run, so only the thresholds apply; measure both with --runs"] }),
+      combo("home · mobile", { warnings: ["the baseline has 1 run, so only the thresholds apply; measure both with 5 runs or more", "the baseline measured /a and this run /b"] }),
+      combo("news · mobile", { warnings: ["the baseline has 1 run, so only the thresholds apply; measure both with 5 runs or more"] }),
       { id: "about · mobile" },
     ]);
-    expect(view.warnings).toEqual(["the baseline has 1 run, so only the thresholds apply; measure both with --runs", "home · mobile: the baseline measured /a and this run /b"]);
+    expect(view.warnings).toEqual(["the baseline has 1 run, so only the thresholds apply; measure both with 5 runs or more", "home · mobile: the baseline measured /a and this run /b"]);
   });
 
   it("lists the errors with their combination, and the combinations only one side has", () => {

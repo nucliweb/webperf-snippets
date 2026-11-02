@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { prepareBaseline, compareWithBaseline } from "../../src/mcp/baseline.js";
 import { createRuns } from "../../src/mcp/summary.js";
 import { compareRun, DEFAULT_THRESHOLDS } from "../../src/baseline.js";
+import { summarizeRuns } from "../../src/runs.js";
 import { cliVersion } from "../../src/report-to.js";
 
 // The baseline of a tool of the MCP server: the runId of an earlier run of the connection, or a file
@@ -13,6 +14,11 @@ import { cliVersion } from "../../src/report-to.js";
 const CONDITIONS = { viewport: "mobile", snippet: "CoreWebVitals/LCP", waitMs: 0, cliVersion };
 const lcp = (value) => [{ id: "CoreWebVitals/LCP", script: "LCP", status: "ok", metric: "LCP", value, unit: "ms" }];
 const page = (value, url = "http://localhost:3101/product") => ({ url, navMs: 400, pageErrors: [], conditions: CONDITIONS, results: lcp(value) });
+// Several runs of a page as both the server and the CLI keep them: the median run with the `runs` field
+const pageOfRuns = (values) => {
+  const { payload, runs } = summarizeRuns(values.map((value) => ({ url: "http://localhost:3101/product", navMs: 400, pageErrors: [], results: lcp(value) })));
+  return { ...payload, runs, conditions: CONDITIONS };
+};
 
 let dir;
 beforeAll(() => {
@@ -79,6 +85,35 @@ describe("a baseline of the MCP server", () => {
   it("refuses a file that does not exist, or that is not an output of the CLI", () => {
     expect(() => prepareBaseline({ baseline: join(dir, "none.json") }, createRuns())).toThrow(/does not exist/);
     expect(() => prepareBaseline({ baseline: file("other.json", { name: "other" }) }, createRuns())).toThrow(/not an output of webperf-snippets/);
+  });
+
+  // The two examples of the review of the statistics, with their p-values worked out apart in stats.test.js
+  it("gives the statistical verdict of --baseline for the same two sets of five runs, by runId and by file", () => {
+    const base = pageOfRuns([2100, 2120, 2150, 2180, 2700]);
+    const runs = createRuns();
+    const { results, ...kept } = base;
+    const runId = runs.keep(results, kept);
+
+    const regressed = pageOfRuns([2600, 2620, 2650, 2720, 2750]);
+    const { file: none, ...cli } = compareRun(base, regressed, { thresholds: DEFAULT_THRESHOLDS });
+    const comparison = compareWithBaseline(prepareBaseline({ baseline: runId }, runs), regressed);
+    expect(none).toBeUndefined();
+    expect(comparison).toEqual({ runId, ...cli, regressions: ["LCP ▲ +500ms (+23%)"] });
+    expect(comparison.metrics.LCP).toMatchObject({ baseline: 2150, current: 2650, verdict: "regressed", stats: { p: expect.closeTo(0.028, 3) } });
+    expect(comparison.runs).toEqual({ count: 5, medianBy: "LCP" });
+    expect(comparison.warnings).toEqual([]);
+
+    const path = file("five-runs.json", base);
+    expect(compareWithBaseline(prepareBaseline({ baseline: path }, createRuns()), regressed).metrics).toEqual(cli.metrics);
+  });
+
+  it("finds no evidence in five runs that overlap, though their median beats the threshold", () => {
+    const runs = createRuns();
+    const { results, ...kept } = pageOfRuns([2100, 2140, 2175, 2210, 2250]);
+    const runId = runs.keep(results, kept);
+    const comparison = compareWithBaseline(prepareBaseline({ baseline: runId }, runs), pageOfRuns([2000, 2050, 2900, 2950, 3000]));
+    expect(comparison.metrics.LCP).toMatchObject({ verdict: "unchanged", stats: { p: expect.closeTo(0.345, 2) } });
+    expect(comparison.regressions).toEqual([]);
   });
 
   it("answers a runId the connection no longer keeps with an error that says to run again", () => {
