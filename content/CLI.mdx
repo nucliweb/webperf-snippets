@@ -76,7 +76,7 @@ npx webperf-snippets https://example.com --snippet Compression-Audit
 npx webperf-snippets https://example.com --snippet Interaction/DOM-Size-and-Depth
 ```
 
-An unknown name exits with code `2` and lists the closest snippets.
+Aliases work in any case, after the names of the snippets: `TTFB` is the snippet, and `ttfb` the alias of its sub-parts. An unknown name exits with code `2` and lists the snippets that share its words or are spelled alike, or says that none is close and where to find the names. A real name in the wrong category runs from the right one: `Loading/LCP-Subparts` is `CoreWebVitals/LCP-Subparts`.
 
 Measure pages behind a login with a Playwright storage state (cookies and localStorage):
 
@@ -192,6 +192,11 @@ For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the na
 | `CLS`              | Cumulative Layout Shift                          | Core Web Vitals |
 | `INP`              | Interaction to Next Paint                        | Core Web Vitals |
 | `LCP-Subparts`     | LCP Subparts breakdown                           | Core Web Vitals |
+| `Largest-Contentful-Paint` | Largest Contentful Paint                 | Core Web Vitals |
+| `Cumulative-Layout-Shift`  | Cumulative Layout Shift                  | Core Web Vitals |
+| `Interaction-to-Next-Paint` | Interaction to Next Paint               | Core Web Vitals |
+| `First-Contentful-Paint`   | First Contentful Paint                   | Loading         |
+| `Time-to-First-Byte`       | Time to First Byte                       | Loading         |
 | `fonts`            | Fonts Preloaded, Loaded, and Used Above The Fold | Loading         |
 | `render-blocking`  | Find render-blocking resources                   | Loading         |
 | `resource-hints`   | Resource Hints Validation                        | Loading         |

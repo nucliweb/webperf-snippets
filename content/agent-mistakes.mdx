@@ -134,7 +134,7 @@ Instead, read `tracking` in `list_snippets`. A snippet with `tracking: true` goe
 
 The agent writes a name it has not read. In the 82 runs of the evals, 15 calls named a snippet that does not exist: `Image-Loading-Priority` eight times, `Image-Loading-Audit` three times, `Scripts` twice, `long-tasks`, which is a step of a workflow, and `Loading/LCP-Subparts`, a real snippet in the wrong category. Five calls went to tools the client did not have, such as `interact` without the prefix its client adds, or `bash` in a client with no shell.
 
-The server answers an unknown snippet with the closest names, which are close in spelling, not always in meaning: for `Scripts` it offered `CoreWebVitals/CLS`, and that agent stopped there.
+The server answers an unknown snippet with the names that share its words or are spelled alike: `Scripts` gets the script snippets, and `Image-Loading-Audit` the image ones. A real name in the wrong category runs from the right one. Words and aliases are all it compares: `bfcache` gets no name, only where to find them, and an agent that stops at that answer measures nothing.
 
 Instead, call `list_snippets` before the first `run_snippet`, with `category` to keep the answer short, and use the names and `aliases` it returns, or the ones in `nextSteps`. For a tool, use the name the client lists.
 
