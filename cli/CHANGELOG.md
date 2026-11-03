@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ### Added
 - `--version` and `-v` print the version of the CLI, and nothing else, with exit code `0`.
+- `--baseline` and the `baseline` of `run_snippet` and `run_workflow` of the MCP server say in `warnings` when a metric compared on both sides has no statistics, in one line for the metrics that share their numbers: `no statistics for LCP: the baseline has 5 values, and this run 4 after 1 failed run; they need 5 a side, so measure both with 5 runs or more`. The numbers are the values left on each side, without the runs that failed or did not measure the metric. A baseline of one run keeps its own warning, and a metric that one side lacks stays `not measured`. A comparison of two to four runs a side, which had no warning, gets this one, so a script that expected empty `warnings` there needs to allow it.
 
 ### Changed
 - An unknown snippet gets suggestions by meaning, for the CLI and the MCP server. The closest names share words with the guess or its aliases, or are spelled alike: `Image-Loading-Audit` reaches the image snippets, `Scripts` the script ones and `long-tasks` `LongTask`, where they got names such as `CoreWebVitals/CLS`, close only in spelling. A typo keeps the right snippet first, and a swap of two letters counts as one edit, so `LPC` reaches `LCP`.

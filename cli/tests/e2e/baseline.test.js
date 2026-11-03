@@ -32,12 +32,15 @@ let slowProduct = false;
 // /scripts blocks rendering with one script of its own in <head>, and with one more from another site
 // once a test adds it
 let thirdPartyScript = false;
+// The load of /fast that fails, counted from when a test sets it: its connection closes, a run that fails
+let loadsUntilFailure = 0;
 
 beforeAll(async () => {
   server = await new Promise((resolve) => {
     const s = createServer((req, res) => {
       requests++;
       const path = req.url.split("?")[0];
+      if (path === "/fast" && loadsUntilFailure > 0 && --loadsUntilFailure === 0) return req.socket.destroy();
       if (path === "/fast" || path === "/news") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png"));
       if (path === "/product") return res.writeHead(200, { "Content-Type": "text/html" }).end(page(slowProduct ? "/hero.png?slow" : "/hero.png"));
       if (path === "/slow") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png?slow"));
@@ -108,8 +111,31 @@ describe("--baseline with a page", () => {
     expect(code, output).toBe(0);
     const { baseline } = JSON.parse(stdout);
     expect(baseline.metrics.LCP.verdict).toBe("unchanged");
-    expect(baseline.warnings).toEqual([]);
+    expect(baseline.metrics.LCP.stats).toBeUndefined();
+    expect(baseline.warnings).toEqual([expect.stringMatching(/^no statistics for .*LCP.*: the baseline has 3 values, and this run 3; they need 5 a side, so measure both with 5 runs or more$/)]);
   }, 120000);
+
+  it("says when a run that fails leaves a metric without statistics, and not when five values remain", async () => {
+    const five = await saveBaseline("five-runs.json", `${base}/fast`, "--snippet", "LCP", "--runs", "5");
+    const compareFailing = async (runs) => {
+      loadsUntilFailure = 2;
+      const { code, stdout, stderr, said: output } = await cli(`${base}/fast`, "--snippet", "LCP", "--runs", runs, "--wait", WAIT_MS, "--baseline", five, "--json");
+      expect(code, output).toBe(0);
+      const report = JSON.parse(stdout);
+      expect(report.runs.failed, output).toBe(1);
+      return { ...report.baseline, stderr };
+    };
+
+    const four = await compareFailing("5");
+    const line = "no statistics for LCP: the baseline has 5 values, and this run 4 after 1 failed run; they need 5 a side, so measure both with 5 runs or more";
+    expect(four.metrics.LCP.stats).toBeUndefined();
+    expect(four.warnings).toEqual([line]);
+    expect(four.stderr).toContain(`Warning: ${line}`);
+
+    const six = await compareFailing("6");
+    expect(six.metrics.LCP.stats).toMatchObject({ p: expect.any(Number) });
+    expect(six.warnings).toEqual(["the baseline has 5 runs, and this run 6"]);
+  }, 180000);
 
   it("adds the comparison to the human and markdown reports, with its warnings", async () => {
     const human = await cli(`${base}/slow`, "--runs", "3", "--wait", WAIT_MS, "--baseline", fastBaseline);
@@ -199,8 +225,10 @@ describe("--baseline with a matrix", () => {
     expect(human.stdout).toContain(`Compared with ${lastWeek}`);
     expect(human.stdout).toContain("Added: about · mobile");
     expect(human.stdout).toContain("Missing: legacy · mobile");
-    // Both matrices were measured the same way, with the same runs: nothing to warn about
-    expect(human.stdout).not.toContain("Warning:");
+    // Both matrices were measured the same way, with the same runs: only the two runs a side to warn about
+    const warnings = human.stdout.split("\n").filter((line) => line.includes("Warning:"));
+    expect(warnings.length, human.said).toBeGreaterThan(0);
+    for (const warning of warnings) expect(warning).toMatch(/no statistics for .*: the baseline has 2 values, and this run 2; they need 5 a side/);
 
     const markdown = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, "--markdown");
     expect(markdown.code, markdown.said).toBe(0);

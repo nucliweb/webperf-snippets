@@ -23,7 +23,7 @@ function runsOf(valuesByMetric) {
   const summary = {};
   let count = 0;
   for (const [metric, values] of Object.entries(valuesByMetric)) {
-    const sorted = [...values].sort((a, b) => a - b);
+    const sorted = values.filter((value) => value !== null).sort((a, b) => a - b);
     summary[metric] = { median: sorted[Math.floor((sorted.length - 1) / 2)], min: sorted[0], max: sorted.at(-1), values, unit: metric === "CLS" ? "score" : "ms" };
     count = values.length;
   }
@@ -281,8 +281,8 @@ describe("the warnings of a comparison", () => {
   const warningsOf = (base, current) => compare(base, current).warnings;
 
   it("are none when both were measured the same way, also on another host", () => {
-    const base = page({ runs: runsOf({ LCP: [1, 2, 3] }) });
-    const current = page({ url: "https://pr-123.example.net/", runs: runsOf({ LCP: [1, 2, 3] }) });
+    const base = page({ runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) });
+    const current = page({ url: "https://pr-123.example.net/", runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) });
     expect(warningsOf(base, current)).toEqual([]);
   });
 
@@ -291,7 +291,7 @@ describe("the warnings of a comparison", () => {
   it("say when the baseline was measured on another CPU or with other cores, never for a different benchmark index", () => {
     const m4 = { cpu: "Apple M4", cores: 10, arch: "arm64", memoryGB: 16, benchmarkIndex: 2300 };
     const epyc = { cpu: "AMD EPYC 7763 64-Core Processor", cores: 4, arch: "x64", memoryGB: 16, benchmarkIndex: 980 };
-    const on = (machine) => page({ conditions: { ...CONDITIONS, machine }, runs: runsOf({ LCP: [1, 2, 3] }) });
+    const on = (machine) => page({ conditions: { ...CONDITIONS, machine }, runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) });
     expect(warningsOf(on(epyc), on(m4))).toContain(
       "the baseline was measured on another machine (AMD EPYC 7763 64-Core Processor, 4 cores) than this run (Apple M4, 10 cores); timings can differ for that alone"
     );
@@ -300,7 +300,7 @@ describe("the warnings of a comparison", () => {
     );
     expect(warningsOf(on(m4), on({ ...m4, benchmarkIndex: 1100 }))).toEqual([]);
     // A baseline from a CLI without the machine says nothing of it
-    expect(warningsOf(page({ runs: runsOf({ LCP: [1, 2, 3] }) }), on(m4))).toEqual([]);
+    expect(warningsOf(page({ runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) }), on(m4))).toEqual([]);
   });
 
   it("say when the baseline comes from a CLI without conditions", () => {
@@ -336,6 +336,98 @@ describe("the warnings of a comparison", () => {
     expect(warningsOf(page({ runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) }), page({ runs: runsOf({ LCP: [1, 2, 3] }) }))).toContain(
       "the baseline has 5 runs, and this run 3"
     );
+  });
+
+  describe("say which metrics have no statistics", () => {
+    const FIVE = [2100, 2120, 2150, 2180, 2700];
+    const NEEDED = "they need 5 a side, so measure both with 5 runs or more";
+    const withFailed = (values, failed) => ({ ...runsOf(values), failed });
+
+    it("when a failed run leaves the baseline or this run with four values", () => {
+      const five = page({ runs: runsOf({ LCP: FIVE }) });
+      const fourOfFive = page({ runs: withFailed({ LCP: [2600, null, 2620, 2650, 2720] }, 1) });
+      expect(compare(fourOfFive, five).metrics.LCP.stats).toBeUndefined();
+      expect(warningsOf(fourOfFive, five)).toEqual([`no statistics for LCP: the baseline has 4 values after 1 failed run, and this run 5; ${NEEDED}`]);
+      expect(warningsOf(five, fourOfFive)).toEqual([`no statistics for LCP: the baseline has 5 values, and this run 4 after 1 failed run; ${NEEDED}`]);
+    });
+
+    it("name the failed runs of both sides", () => {
+      const base = page({ runs: withFailed({ LCP: [2600, null, 2620, 2650, null] }, 2) });
+      const current = page({ runs: withFailed({ LCP: [2600, null, 2620, 2650, 2720] }, 1) });
+      expect(warningsOf(base, current)).toEqual([`no statistics for LCP: the baseline has 3 values after 2 failed runs, and this run 4 after 1 failed run; ${NEEDED}`]);
+    });
+
+    it("with three runs a side, in one line for the metrics that share their numbers", () => {
+      const runs = () => runsOf({ LCP: [2000, 2100, 2200], TTFB: [100, 110, 120], CLS: [0, 0, 0] });
+      expect(warningsOf(page({ runs: runs() }), page({ runs: runs() }))).toEqual([`no statistics for LCP, TTFB, CLS: the baseline has 3 values, and this run 3; ${NEEDED}`]);
+    });
+
+    it("in a line for each set of numbers", () => {
+      const base = page({ runs: withFailed({ LCP: [1, 2, 3, null], TTFB: [1, 2, 3, null], INP: [1, 2, null, null] }, 1) });
+      const current = page({ runs: runsOf({ LCP: [1, 2, 3, 4], TTFB: [1, 2, 3, 4], INP: [1, 2, 3, 4] }) });
+      expect(warningsOf(base, current)).toEqual([
+        `no statistics for LCP, TTFB: the baseline has 3 values after 1 failed run, and this run 4; ${NEEDED}`,
+        `no statistics for INP: the baseline has 2 values after 1 failed run, and this run 4; ${NEEDED}`,
+      ]);
+    });
+
+    it("never when a metric has its statistics, also after a failed run", () => {
+      const base = page({ runs: withFailed({ LCP: [...FIVE, null] }, 1) });
+      const current = page({ runs: withFailed({ LCP: [null, ...FIVE] }, 1) });
+      expect(compare(base, current).metrics.LCP.stats).toBeDefined();
+      expect(warningsOf(base, current)).toEqual([]);
+    });
+
+    // The runs of a page without interactions measure no INP, and some runs of a page may miss a metric
+    it("for the metric that some runs did not measure, with no failed run to blame", () => {
+      const base = page({ runs: runsOf({ LCP: FIVE, INP: [80, null, 90, null, 100] }) });
+      const current = page({ runs: runsOf({ LCP: FIVE, INP: [80, 85, 90, 95, 100] }) });
+      const { metrics, warnings } = compare(base, current);
+      expect(metrics.LCP.stats).toBeDefined();
+      expect(metrics.INP.stats).toBeUndefined();
+      expect(warnings).toEqual([`no statistics for INP: the baseline has 3 values, and this run 5; ${NEEDED}`]);
+    });
+
+    it("with 1 value in the singular", () => {
+      const base = page({ runs: runsOf({ LCP: FIVE, INP: [null, 90, null, null, null] }) });
+      const current = page({ runs: runsOf({ LCP: FIVE, INP: [80, 85, 90, 95, 100] }) });
+      expect(warningsOf(base, current)).toEqual([`no statistics for INP: the baseline has 1 value, and this run 5; ${NEEDED}`]);
+    });
+
+    // There is no comparison to back: its verdict is "not measured", and the reports show it
+    it("never for a metric that one side lacks", () => {
+      const base = page({ runs: runsOf({ LCP: FIVE, INP: FIVE }) });
+      const current = page({ runs: runsOf({ LCP: FIVE }) });
+      expect(compare(base, current).metrics.INP.verdict).toBe("not measured");
+      expect(warningsOf(base, current)).toEqual([]);
+      expect(warningsOf(current, base)).toEqual([]);
+    });
+
+    it("leaves a baseline of one run to its own warning", () => {
+      const one = "the baseline has 1 run, so only the thresholds apply; measure both with 5 runs or more";
+      expect(warningsOf(page({ metrics: { LCP: 2100 } }), page({ metrics: { LCP: 2100 } }))).toEqual([one]);
+      expect(warningsOf(page({ metrics: { LCP: 2100 } }), page({ runs: runsOf({ LCP: FIVE }) }))).toEqual([one]);
+    });
+
+    it("next to the warning of a different number of runs, which does not say what it cost", () => {
+      const base = page({ runs: runsOf({ LCP: FIVE }) });
+      expect(warningsOf(base, page({ runs: runsOf({ LCP: [2100, 2200, 2300] }) }))).toEqual([
+        "the baseline has 5 runs, and this run 3",
+        `no statistics for LCP: the baseline has 5 values, and this run 3; ${NEEDED}`,
+      ]);
+    });
+
+    it("counts one run without a runs field as one value", () => {
+      const base = page({ runs: runsOf({ LCP: FIVE }) });
+      expect(warningsOf(base, page({ metrics: { LCP: 2100 } }))).toContain(`no statistics for LCP: the baseline has 5 values, and this run 1; ${NEEDED}`);
+    });
+
+    it("in words for both interfaces, with no flag of the CLI", () => {
+      const three = () => page({ runs: runsOf({ LCP: [1, 2, 3] }) });
+      const [warning] = warningsOf(three(), three());
+      expect(warning).toContain("measure both with 5 runs or more");
+      expect(warning).not.toContain("--");
+    });
   });
 
   it("name a different version of the CLI, whose snippets may have changed", () => {
