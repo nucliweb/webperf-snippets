@@ -70,7 +70,14 @@
     }
     return parts.join(" > ");
   }
+  const REMOVED = "(removed from DOM)";
   const getElementInfo = (element, entry) => {
+    if (!element) return entry.url ? {
+      type: "Image",
+      url: entry.url
+    } : {
+      type: "Removed element"
+    };
     const tag = element.tagName.toLowerCase();
     if (tag === "img") return {
       type: "Image",
@@ -88,15 +95,27 @@
       type: tag === "h1" || tag === "p" ? "Text block" : tag
     };
   };
+  const candidateKey = entry => entry.element ?? `${entry.startTime}|${entry.size}`;
+  const shortUrl = url => {
+    if (url.startsWith("data:")) return `${url.split(",")[0]},…`;
+    try {
+      const u = new URL(url);
+      const file = u.pathname.split("/").pop()?.split("?")[0];
+      return u.hostname !== location.hostname ? `${u.hostname}/…/${file}` : file || url;
+    } catch {
+      return url;
+    }
+  };
   const candidates = [];
   const logTrail = () => {
     const current = candidates[candidates.length - 1];
     if (!current) return;
     const rating = valueToRating(current.time);
     const {icon: icon, color: ratingColor} = RATING[rating];
+    if (current.element) void 0; else void 0;
     const {type: type, url: url} = getElementInfo(current.element, current.entry);
     if (url) void 0;
-    if (current.element.naturalWidth) void 0;
+    if (current.element?.naturalWidth) void 0;
     if (current.entry.size) void 0;
     candidates.forEach(({index: index, selector: selector, color: color, name: name, time: time, element: element}) => {
       candidates.length;
@@ -104,23 +123,26 @@
   };
   const observer = new PerformanceObserver(list => {
     const activationStart = getActivationStart();
-    const seen = new Set(candidates.map(c => c.element));
+    const seen = new Set(candidates.map(c => candidateKey(c.entry)));
     for (const entry of list.getEntries()) {
+      const key = candidateKey(entry);
+      if (seen.has(key)) continue;
+      seen.add(key);
       const {element: element} = entry;
-      if (!element || seen.has(element)) continue;
       const {color: color, name: name} = PALETTE[candidates.length % PALETTE.length];
-      element.style.outline = `3px dashed ${color}`;
-      element.style.outlineOffset = "2px";
+      if (element) {
+        element.style.outline = `3px dashed ${color}`;
+        element.style.outlineOffset = "2px";
+      }
       candidates.push({
         index: candidates.length + 1,
         element: element,
-        selector: uniqueSelector(element),
-        color: color,
+        selector: element ? uniqueSelector(element) : REMOVED,
+        color: element ? color : "#9CA3AF",
         name: name,
         time: Math.max(0, entry.startTime - activationStart),
         entry: entry
       });
-      seen.add(element);
     }
     logTrail();
   });
@@ -146,39 +168,33 @@
     error: "No LCP entries yet"
   };
   const trailActivationStart = getActivationStart();
-  const seenEls = new Set;
-  const syncCandidates = [];
+  const byKey = new Map;
   for (const entry of trailEntries) {
+    const key = candidateKey(entry);
+    if (byKey.has(key)) continue;
     const el = entry.element;
-    if (!el || seenEls.has(el)) continue;
-    seenEls.add(el);
-    const selector = uniqueSelector(el);
-    const time = Math.round(Math.max(0, entry.startTime - trailActivationStart));
     const {type: type, url: url} = getElementInfo(el, entry);
-    syncCandidates.push({
-      index: syncCandidates.length + 1,
-      selector: selector,
-      time: time,
+    byKey.set(key, {
+      index: byKey.size + 1,
+      selector: el ? uniqueSelector(el) : null,
+      ...el ? {} : {
+        removed: true
+      },
+      ...!el && entry.id ? {
+        id: entry.id
+      } : {},
+      time: Math.round(Math.max(0, entry.startTime - trailActivationStart)),
       elementType: type,
+      sizePixels: entry.size,
       ...url ? {
-        url: (() => {
-          try {
-            const u = new URL(url);
-            return u.hostname !== location.hostname ? `${u.hostname}/…/${u.pathname.split("/").pop()?.split("?")[0]}` : u.pathname.split("/").pop()?.split("?")[0] || url;
-          } catch {
-            return url;
-          }
-        })()
+        url: shortUrl(url)
       } : {}
     });
   }
-  if (syncCandidates.length === 0) return {
-    script: "LCP-Trail",
-    status: "error",
-    error: "No LCP elements in DOM"
-  };
-  const lastCandidate = syncCandidates.at(-1);
-  const trailValue = lastCandidate.time;
+  const syncCandidates = [ ...byKey.values() ];
+  const lastEntry = trailEntries.at(-1);
+  const lastCandidate = byKey.get(candidateKey(lastEntry));
+  const trailValue = Math.round(Math.max(0, lastEntry.startTime - trailActivationStart));
   const trailRating = valueToRating(trailValue);
   return {
     script: "LCP-Trail",

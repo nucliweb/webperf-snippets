@@ -217,6 +217,8 @@ A script wrapped in `void (async () => {...})()` discards its return value. Neve
 
 `details.element` is a CSS selector that matches only the LCP element, so `document.querySelector(details.element)` returns it: the id when it is unique, otherwise a path of tag, classes and `:nth-of-type()` from the nearest ancestor with a unique id, such as `section.intro:nth-of-type(2) > p.copy:nth-of-type(2)`. LCP-Subparts (`details.element`) and LCP-Trail (`finalElement` and each `selector`) build it the same way.
 
+In LCP-Trail, a candidate whose element has left the DOM has `selector: null` and `removed: true`, with its `time`, `sizePixels`, `url` for an image and `id` when the element had one, and `finalElement` is `null` when the LCP element itself was removed. `value` is the time of the last entry either way.
+
 #### CLS
 
 Returns buffered CLS immediately and keeps tracking. Always call `getCLS()` after interactions to get an updated value.

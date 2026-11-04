@@ -42,6 +42,8 @@ The snippet observes `largest-contentful-paint` entries with `buffered: true`, w
 2. The console logs are updated with attribution for the current LCP
 3. The **Candidates Trail** legend shows every candidate in order, with its color, time, and a clickable element reference
 
+A candidate whose element has left the DOM, such as a loading spinner that the app removes when it renders, stays in the trail as `(removed from DOM)`, with its time and, for an image, its URL, but without an outline. The snippet reads the entries once the page has loaded, so the spinner is often gone by then, and it is the LCP that field data reports for the users who leave before the app renders. The LCP is the last candidate, whether or not its element is still in the DOM.
+
 ### Multiple candidates appear when
 - An image loads after a text element that was initially larger in the viewport
 - A hero image replaces a heading as the largest content

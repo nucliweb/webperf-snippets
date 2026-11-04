@@ -1347,12 +1347,30 @@ Tracks every LCP candidate element during page load and highlights each one with
   }
   // @end-shared uniqueSelector
 
+  // The element of an entry is null once its node has left the DOM, as with a loading spinner that
+  // an app removes when it renders. The entry keeps its time, size and URL.
+  const REMOVED = "(removed from DOM)";
+
   const getElementInfo = (element, entry) => {
+    if (!element) return entry.url ? { type: "Image", url: entry.url } : { type: "Removed element" };
     const tag = element.tagName.toLowerCase();
     if (tag === "img") return { type: "Image", url: entry.url || element.src };
     if (tag === "video") return { type: "Video poster", url: entry.url || element.poster };
     if (window.getComputedStyle(element).backgroundImage !== "none") return { type: "Background image", url: entry.url };
     return { type: tag === "h1" || tag === "p" ? "Text block" : tag };
+  };
+
+  // One candidate per element, or per entry when its element was removed
+  const candidateKey = (entry) => entry.element ?? `${entry.startTime}|${entry.size}`;
+
+  // A data: URL keeps its media type, and another URL its file name
+  const shortUrl = (url) => {
+    if (url.startsWith("data:")) return `${url.split(",")[0]},…`;
+    try {
+      const u = new URL(url);
+      const file = u.pathname.split("/").pop()?.split("?")[0];
+      return u.hostname !== location.hostname ? `${u.hostname}/…/${file}` : file || url;
+    } catch { return url; }
   };
 
   const candidates = [];
@@ -1372,12 +1390,13 @@ Tracks every LCP candidate element during page load and highlights each one with
     // Current LCP element attribution
     console.log("");
     console.log("%cLCP Element:", "font-weight: bold;");
-    console.log(`   Element: ${current.selector}`, current.element);
+    if (current.element) console.log(`   Element: ${current.selector}`, current.element);
+    else console.log(`   Element: ${REMOVED}${current.entry.id ? ` #${current.entry.id}` : ""}`);
 
     const { type, url } = getElementInfo(current.element, current.entry);
     console.log(`   Type: ${type}`);
-    if (url) console.log(`   URL: ${url}`);
-    if (current.element.naturalWidth) {
+    if (url) console.log(`   URL: ${shortUrl(url)}`);
+    if (current.element?.naturalWidth) {
       console.log(
         `   Dimensions: ${current.element.naturalWidth}×${current.element.naturalHeight}`
       );
@@ -1394,14 +1413,14 @@ Tracks every LCP candidate element during page load and highlights each one with
       console.log(
         `%c  ● ${index}. ${selector}`,
         `color: ${color}; font-weight: ${isCurrent ? "bold" : "normal"};`,
-        `| ${(time / 1000).toFixed(2)}s — ${name}${isCurrent ? " ← LCP" : ""}`,
-        element
+        `| ${(time / 1000).toFixed(2)}s${element ? ` — ${name}` : ""}${isCurrent ? " ← LCP" : ""}`,
+        ...(element ? [element] : [])
       );
     });
 
     console.log("");
     console.log(
-      "%c✓ Each candidate highlighted with a colored dashed outline",
+      "%c✓ Each candidate in the DOM highlighted with a colored dashed outline",
       "color: #22c55e;"
     );
     console.groupEnd();
@@ -1409,28 +1428,30 @@ Tracks every LCP candidate element during page load and highlights each one with
 
   const observer = new PerformanceObserver((list) => {
     const activationStart = getActivationStart();
-    const seen = new Set(candidates.map((c) => c.element));
+    const seen = new Set(candidates.map((c) => candidateKey(c.entry)));
 
     for (const entry of list.getEntries()) {
-      const { element } = entry;
-      if (!element || seen.has(element)) continue;
+      const key = candidateKey(entry);
+      if (seen.has(key)) continue;
+      seen.add(key);
 
+      const { element } = entry;
       const { color, name } = PALETTE[candidates.length % PALETTE.length];
 
-      element.style.outline = `3px dashed ${color}`;
-      element.style.outlineOffset = "2px";
+      if (element) {
+        element.style.outline = `3px dashed ${color}`;
+        element.style.outlineOffset = "2px";
+      }
 
       candidates.push({
         index: candidates.length + 1,
         element,
-        selector: uniqueSelector(element),
-        color,
+        selector: element ? uniqueSelector(element) : REMOVED,
+        color: element ? color : "#9CA3AF",
         name,
         time: Math.max(0, entry.startTime - activationStart),
         entry,
       });
-
-      seen.add(element);
     }
 
     logTrail();
@@ -1454,37 +1475,28 @@ Tracks every LCP candidate element during page load and highlights each one with
     return { script: "LCP-Trail", status: "error", error: "No LCP entries yet" };
   }
   const trailActivationStart = getActivationStart();
-  const seenEls = new Set();
-  const syncCandidates = [];
+  const byKey = new Map();
   for (const entry of trailEntries) {
+    const key = candidateKey(entry);
+    if (byKey.has(key)) continue;
     const el = entry.element;
-    if (!el || seenEls.has(el)) continue;
-    seenEls.add(el);
-    const selector = uniqueSelector(el);
-    const time = Math.round(Math.max(0, entry.startTime - trailActivationStart));
     const { type, url } = getElementInfo(el, entry);
-    syncCandidates.push({
-      index: syncCandidates.length + 1,
-      selector,
-      time,
+    byKey.set(key, {
+      index: byKey.size + 1,
+      selector: el ? uniqueSelector(el) : null,
+      ...(el ? {} : { removed: true }),
+      ...(!el && entry.id ? { id: entry.id } : {}),
+      time: Math.round(Math.max(0, entry.startTime - trailActivationStart)),
       elementType: type,
-      ...(url ? {
-        url: (() => {
-          try {
-            const u = new URL(url);
-            return u.hostname !== location.hostname
-              ? `${u.hostname}/…/${u.pathname.split("/").pop()?.split("?")[0]}`
-              : u.pathname.split("/").pop()?.split("?")[0] || url;
-          } catch { return url; }
-        })(),
-      } : {}),
+      sizePixels: entry.size,
+      ...(url ? { url: shortUrl(url) } : {}),
     });
   }
-  if (syncCandidates.length === 0) {
-    return { script: "LCP-Trail", status: "error", error: "No LCP elements in DOM" };
-  }
-  const lastCandidate = syncCandidates.at(-1);
-  const trailValue = lastCandidate.time;
+  const syncCandidates = [...byKey.values()];
+  // The LCP is the last entry, whether or not its element is still in the DOM
+  const lastEntry = trailEntries.at(-1);
+  const lastCandidate = byKey.get(candidateKey(lastEntry));
+  const trailValue = Math.round(Math.max(0, lastEntry.startTime - trailActivationStart));
   const trailRating = valueToRating(trailValue);
   return {
     script: "LCP-Trail",
