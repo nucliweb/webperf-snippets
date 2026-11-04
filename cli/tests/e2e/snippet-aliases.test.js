@@ -89,6 +89,20 @@ describe("--snippet by snippet name", () => {
     expect(JSON.parse(stdout).results[0].script).toBe("DOM-Size-and-Depth");
   }, 30000);
 
+  it("runs a real snippet asked under the wrong category", async () => {
+    const { stdout } = await runCli("Loading/DOM-Size-and-Depth");
+    expect(JSON.parse(stdout).results[0].script).toBe("DOM-Size-and-Depth");
+  }, 30000);
+
+  it("says that nothing is close, and where the names are, instead of offering unrelated ones", async () => {
+    const { code, stdout, stderr } = await runCli("Qwerty");
+    expect(code).toBe(2);
+    expect(stdout).toBe("");
+    expect(stderr).toMatch(/Unknown snippet "Qwerty"\. No snippet has a close name\./);
+    expect(stderr).toContain("llms.txt");
+    expect(stderr).not.toContain("Closest");
+  }, 30000);
+
   it("exits with code 2 and names the closest snippet when the name is unknown", async () => {
     const { code, stdout, stderr } = await runCli("Compresion-Audit");
     expect(code).toBe(2);

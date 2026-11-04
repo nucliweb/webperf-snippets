@@ -11,6 +11,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ### Added
 - `--version` and `-v` print the version of the CLI, and nothing else, with exit code `0`.
 
+### Changed
+- An unknown snippet gets suggestions by meaning, for the CLI and the MCP server. The closest names share words with the guess or its aliases, or are spelled alike: `Image-Loading-Audit` reaches the image snippets, `Scripts` the script ones and `long-tasks` `LongTask`, where they got names such as `CoreWebVitals/CLS`, close only in spelling. A typo keeps the right snippet first, and a swap of two letters counts as one edit, so `LPC` reaches `LCP`.
+- When nothing is close, the error says so instead of offering unrelated names. Every answer ends with where the names are, `list_snippets` in the MCP server and `llms.txt` on the site, in place of "Run with a snippet name such as Compression-Audit". A script that matched the old text needs the new one.
+- The full names of the metrics are aliases, `Largest-Contentful-Paint`, `Cumulative-Layout-Shift`, `Interaction-to-Next-Paint`, `First-Contentful-Paint` and `Time-to-First-Byte`, and an alias works in any case after the names of the snippets, so `TTFB` is still the snippet and `ttfb` the alias of its sub-parts.
+- A real snippet or alias in the wrong category resolves: `Loading/LCP-Subparts` runs `CoreWebVitals/LCP-Subparts`, since no two snippets share a name. It was an unknown snippet.
+
 ---
 
 ## [1.11.0] — 2026-11-02

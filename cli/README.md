@@ -361,6 +361,11 @@ Each budget compares the value measured, or the median with `--runs`, and fails 
 | `CLS`              | CoreWebVitals/CLS                              |
 | `INP`              | CoreWebVitals/INP                              |
 | `LCP-Subparts`     | CoreWebVitals/LCP-Subparts                     |
+| `Largest-Contentful-Paint` | CoreWebVitals/LCP                      |
+| `Cumulative-Layout-Shift`  | CoreWebVitals/CLS                      |
+| `Interaction-to-Next-Paint` | CoreWebVitals/INP                     |
+| `First-Contentful-Paint`   | Loading/FCP                            |
+| `Time-to-First-Byte`       | Loading/TTFB                           |
 | `fonts`            | Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold |
 | `render-blocking`  | Loading/Find-render-blocking-resources         |
 | `resource-hints`   | Loading/Resource-Hints-Validation              |
