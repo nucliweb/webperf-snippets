@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Removed LCP candidate fixture</title>
+</head>
+<body style="margin:0">
+  <!-- A loading spinner is the first LCP candidate. Once the browser reports it, the app removes it
+       and renders a larger text block, the second candidate. The entry of the spinner keeps its
+       time, size and URL, but its element is null. -->
+  <img id="spinner" width="64" height="64" alt="Loading" src="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Ccircle cx='32' cy='32' r='28' fill='none' stroke='%23336699' stroke-width='6'/%3E%3C/svg%3E">
+  <script>
+    new PerformanceObserver((list, observer) => {
+      if (!list.getEntries().some((entry) => entry.element?.id === "spinner")) return;
+      observer.disconnect();
+      document.getElementById("spinner").remove();
+      const text = document.createElement("p");
+      text.setAttribute("data-lcp", "");
+      text.style.cssText = "font-size:32px;margin:0";
+      text.textContent = "The rendered app replaces the spinner with a block of text larger than it.";
+      document.body.append(text);
+    }).observe({ type: "largest-contentful-paint", buffered: true });
+  </script>
+</body>
+</html>

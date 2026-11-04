@@ -2,7 +2,7 @@
   "script": "LCP-Trail",
   "status": "ok",
   "metric": "LCP",
-  "value": 28,
+  "value": 24,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
@@ -16,8 +16,9 @@
       {
         "index": 1,
         "selector": "body",
-        "time": 28,
-        "elementType": "body"
+        "time": 24,
+        "elementType": "body",
+        "sizePixels": 57436
       }
     ]
   }

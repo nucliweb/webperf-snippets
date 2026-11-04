@@ -2,7 +2,7 @@
   "script": "LCP-Trail",
   "status": "ok",
   "metric": "LCP",
-  "value": 32,
+  "value": 24,
   "unit": "ms",
   "rating": "good",
   "thresholds": {
@@ -11,19 +11,21 @@
   },
   "details": {
     "candidateCount": 2,
-    "finalElement": "div.c4:nth-of-type(6) > img",
+    "finalElement": "div.c2:nth-of-type(4) > img",
     "candidates": [
       {
         "index": 1,
         "selector": "#go",
-        "time": 24,
-        "elementType": "button"
+        "time": 20,
+        "elementType": "button",
+        "sizePixels": 225
       },
       {
         "index": 2,
-        "selector": "div.c4:nth-of-type(6) > img",
-        "time": 32,
+        "selector": "div.c2:nth-of-type(4) > img",
+        "time": 24,
         "elementType": "Image",
+        "sizePixels": 6000,
         "url": "hero.png"
       }
     ]

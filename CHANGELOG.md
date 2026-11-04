@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - INP, Interactions and Input-Latency-Breakdown stayed in `tracking` after a click or a key press that painted nothing. The browser gives no `event` entries under 16 ms, at any `durationThreshold`, and such an interaction often takes 0 ms. The three snippets also read `first-input`, as web-vitals does, so they give the same value. INP adds the `no-paint-measured` issue when its value is under 16 ms. See also [`cli/CHANGELOG.md`](cli/CHANGELOG.md).
+- LCP-Trail dropped every candidate whose element had left the DOM, such as a loading spinner that an app removes when it renders, so the trail missed it and `value` could be the time of an earlier candidate, or the snippet returned `No LCP elements in DOM`. Such a candidate stays in the trail as `(removed from DOM)`, and in `candidates` with `selector: null` and `removed: true`; `value` is the time of the last entry. Each candidate also gives its `sizePixels`, and a `data:` URL keeps only its media type (#389).
 
 ---
 
