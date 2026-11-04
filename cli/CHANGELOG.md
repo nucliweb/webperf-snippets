@@ -17,6 +17,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 - When nothing is close, the error says so instead of offering unrelated names. Every answer ends with where the names are, `list_snippets` in the MCP server and `llms.txt` on the site, in place of "Run with a snippet name such as Compression-Audit". A script that matched the old text needs the new one.
 - The full names of the metrics are aliases, `Largest-Contentful-Paint`, `Cumulative-Layout-Shift`, `Interaction-to-Next-Paint`, `First-Contentful-Paint` and `Time-to-First-Byte`, and an alias works in any case after the names of the snippets, so `TTFB` is still the snippet and `ttfb` the alias of its sub-parts.
 - A real snippet or alias in the wrong category resolves: `Loading/LCP-Subparts` runs `CoreWebVitals/LCP-Subparts`, since no two snippets share a name. It was an unknown snippet.
+- The calls of an MCP connection that make a page work take turns: `run_snippet`, `run_workflow`, `open_page` and `interact` run one at a time, in the order they arrive. An agent often sends several measurements in one turn, and each opened its own Chromium, so they competed for the CPU: a page with an LCP of 416 ms read up to 516 ms with eight calls at a time and 588 ms with sixteen, the slowest call of each, not the median; with the queue, every call read 416 to 420 ms. A call keeps its turn only while it runs, so a page left open holds up nothing, and `read_results`, `close_page` and the tools that load no page answer at once. A waiting call reports how many calls are ahead as progress, when the queue moves and every 5 seconds. A call the client cancels or times out while it waits never loads its page, and waiting counts towards the limit of the client, so a long queue can reach it.
+- When the client gives up on a `run_snippet` or `run_workflow` in progress, its Chromium closes at once, so the next call does not wait for that load. The run used to go on until it ended.
+
+### Fixed
+- A page that stops answering, with a main thread that never yields, no longer hangs a call of the MCP server for ever: the call fails after 2 minutes per run, plus the `wait` steps of `interact`, and closes the page. `run_snippet` and `run_workflow` stop at that run instead of measuring the others.
 
 ---
 

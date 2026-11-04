@@ -90,6 +90,16 @@ export async function collectTrackingData(page, result, hasInput) {
   }
 }
 
+// An aborted signal closes Chromium, which fails whatever the run is waiting for, a page that stopped
+// answering included: Playwright has no timeout for an evaluation. Returns what stops listening.
+function closeOnAbort(browser, signal) {
+  if (!signal) return () => {};
+  const close = () => browser.close().catch(() => {});
+  if (signal.aborted) close();
+  signal.addEventListener("abort", close, { once: true });
+  return () => signal.removeEventListener("abort", close);
+}
+
 export async function runSnippets({
   url,
   items,
@@ -106,9 +116,11 @@ export async function runSnippets({
   ownDomains,
   // Called at each of the three stages of a run, for callers that report progress (the MCP server)
   onProgress = () => {},
+  signal,
 }) {
   await onProgress(1, "Opening Chromium");
   const browser = await launchChromium({ headless });
+  const stopListening = closeOnAbort(browser, signal);
   try {
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
@@ -126,6 +138,7 @@ export async function runSnippets({
     await onProgress(3, "Snippets evaluated");
     return { url, navMs, results, pageErrors, throttling: throttlingOf({ cpu, network }) };
   } finally {
+    stopListening();
     await browser.close();
   }
 }
@@ -146,9 +159,11 @@ export async function runMeasurement({
   network,
   ownDomains,
   onProgress = () => {},
+  signal,
 }) {
   await onProgress(1, "Opening Chromium");
   const browser = await launchChromium({ headless });
+  const stopListening = closeOnAbort(browser, signal);
   try {
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
@@ -212,6 +227,7 @@ export async function runMeasurement({
     await onProgress(3, "Workflow and follow-ups evaluated");
     return { url, navMs, results: [...initialResults, ...followUpResults], pageErrors, throttling: throttlingOf({ cpu, network }) };
   } finally {
+    stopListening();
     await browser.close();
   }
 }

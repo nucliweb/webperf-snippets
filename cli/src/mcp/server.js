@@ -10,6 +10,7 @@ import { RULES } from "../decision-tree.js";
 import { fetchCrux, fetchCruxHistory } from "../crux.js";
 import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
+import { createQueue } from "./queue.js";
 import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js";
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
@@ -24,6 +25,10 @@ import { MAX_RUNS, measureRuns } from "../runs.js";
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
 const STAGES = 3;
 const NAV_TIMEOUT_MS = 30000;
+// How long a page load can keep its turn: far beyond the load and the wait, which have their own limits
+// (30 s and 10 s), because a run that reaches this is not slow. A page whose main thread never yields
+// answers no evaluation, and Playwright has no timeout for one, so it would hold up the queue for ever.
+const CALL_LIMIT_MS = 120000;
 
 const HttpUrl = z
   .string()
@@ -111,6 +116,7 @@ const NextSteps = z
 const DETAIL_NOTE =
   "Large results come as summaries with a runId for get_details; nextSteps, when present, is the call to make next.";
 const BASELINE_NOTE = "With baseline, it also compares the run with an earlier one, as --baseline of the CLI, and says what regressed.";
+const QUEUE_NOTE = "Measurements run one at a time, so several in one turn save no time.";
 
 // A page can put instructions for the agent in what a snippet returns: an alt text, a class in a
 // selector, the URL of a script. The tools that return what a page holds say how to read it, and so
@@ -162,12 +168,44 @@ function progressFor(ctx, runs) {
         });
 }
 
+// The report of a call that waits for its turn, for a client that wants progress: how many calls are
+// ahead. Progress has to grow with each report, and the stages of a run start at 1, so it stays below 1.
+function waitProgressFor(ctx, total) {
+  const progressToken = ctx.mcpReq._meta?.progressToken;
+  if (progressToken === undefined) return undefined;
+  let reports = 0;
+  return (ahead) => {
+    reports++;
+    const message = `Waiting for its turn: ${ahead} ${ahead === 1 ? "call" : "calls"} ahead`;
+    return ctx.mcpReq.notify({ method: "notifications/progress", params: { progressToken, progress: reports / (reports + 1), ...(total ? { total } : {}), message } });
+  };
+}
+
+const stoppedAnswering = (limitMs) => `The page did not answer within ${limitMs / 1000} seconds`;
+
+// A page that stopped answering is closed, and the runs left of the call would only hold up the queue
+class PageStoppedError extends Error {}
+const endsTheCall = (err) => isMissingBrowser(err) || err instanceof PageStoppedError;
+
 // A page load measured once, or `count` times with the median run as the answer, as --runs of the CLI.
-// When the client gives up (a cancel, its timeout, or leaving), the runs left never start.
-async function measurePage(measure, count, ctx) {
+// `measure` gets the signal of its run, which closes its Chromium. When the client gives up (a cancel,
+// its timeout, or leaving), the run in progress ends and the runs left never start.
+async function measurePage(measure, count, ctx, limitMs) {
   const progress = progressFor(ctx, count);
-  if (count === 1) return measure(progress(1));
-  const { payload, runs, errors } = await measureRuns((i) => measure(progress(i)), count, { isFatal: isMissingBrowser, signal: ctx.mcpReq.signal });
+  const measureRun = async (run) => {
+    const limit = AbortSignal.timeout(limitMs);
+    let measured;
+    try {
+      measured = await measure(progress(run), AbortSignal.any([ctx.mcpReq.signal, limit]));
+    } catch (err) {
+      if (!limit.aborted) throw err;
+    }
+    // The runner keeps a failed evaluation as a result, and closing Chromium fails every one
+    if (limit.aborted) throw new PageStoppedError(stoppedAnswering(limitMs));
+    return measured;
+  };
+  if (count === 1) return measureRun(1);
+  const { payload, runs, errors } = await measureRuns(measureRun, count, { isFatal: endsTheCall, signal: ctx.mcpReq.signal });
   if (!payload) throw new Error(`Every run failed: ${[...new Set(errors.map(firstLine))].join("; ")}`);
   return { ...payload, runs };
 }
@@ -224,10 +262,18 @@ function registerRuns(server, runs) {
 
 // The MCP server of the CLI: the same snippets and runner, offered as tools an agent calls by name.
 // serveStdio creates one instance per connection, so the pages it keeps open belong to that client.
-export function createServer({ launchBrowser = () => launchChromium(), maxPages, idleMs, env = process.env, machine = machineOf } = {}) {
+export function createServer({ launchBrowser = () => launchChromium(), maxPages, idleMs, env = process.env, machine = machineOf, callLimitMs = CALL_LIMIT_MS, reportEveryMs } = {}) {
   const server = new McpServer({ name: "webperf-snippets", version: cliVersion }, { instructions: INSTRUCTIONS });
   const sessions = createSessions({ launchBrowser, maxPages, idleMs });
   const runs = createRuns();
+  // An agent sends several calls in one turn and the client runs them at once. The calls that make a page
+  // work take turns (run_snippet, run_workflow, open_page, interact): a load or a click competes for the
+  // CPU with any other, which inflates what each page reports. A call keeps its turn only while it runs,
+  // so it can wait only for something that ends on its own: never for a later call of the agent, and
+  // never for a page left open, which keeps no turn. read_results and close_page take no turn: they ask
+  // little of Chromium, and they are how an agent gets out of a page.
+  const queue = createQueue({ reportEveryMs });
+  const inTurn = (ctx, total, task) => queue.run(task, { signal: ctx.mcpReq.signal, onWait: waitProgressFor(ctx, total) });
   // The client left (end of stdin, or a closed transport): close the pages and Chromium
   server.server.onclose = () => sessions.closeAll();
   registerResources(server);
@@ -235,9 +281,12 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
   registerRuns(server, runs);
 
   // The machine goes in the conditions of every run, as in the JSON of the CLI, so a baseline measured
-  // on another one warns. It is measured once, with the first run, before its Chromium starts.
+  // on another one warns. It is measured once, in the turn of the first run, before its Chromium starts.
   let machineOfServer;
   const conditionsOf = (conditions) => measurementConditions({ ...conditions, machine: (machineOfServer ??= machine()) });
+
+  const measureInTurn = (conditions, measure, count, ctx) =>
+    inTurn(ctx, STAGES * count, async () => ({ conditions: conditionsOf(conditions), run: await measurePage(measure, count, ctx, callLimitMs) }));
 
   // A run of a page load, kept with its page in the shape of the JSON of the CLI: its runId is the
   // baseline of a later run, and the resources list it
@@ -292,7 +341,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a snippet",
       description:
-        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead. ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead. ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         snippet: z.string().describe("The snippet: its name (LCP-Subparts), an alias (render-blocking) or Category/Name"),
@@ -337,8 +386,12 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }
 
       try {
-        const conditions = conditionsOf({ viewport, snippet: path, waitMs });
-        const run = await measurePage((onProgress) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress }), count, ctx);
+        const { conditions, run } = await measureInTurn(
+          { viewport, snippet: path, waitMs },
+          (onProgress, signal) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress, signal }),
+          count,
+          ctx
+        );
         const shaped = shapeResults(run.results.map(({ id, ...result }) => result), detail);
         const { runId, current } = keepPage(run, run.results, conditions);
         const id = run.results[0].id;
@@ -369,7 +422,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a workflow",
       description:
-        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page. ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page. ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
@@ -405,9 +458,9 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         return toolError(err.message);
       }
       try {
-        const conditions = conditionsOf({ viewport, workflow, waitMs });
-        const run = await measurePage(
-          (onProgress) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress }),
+        const { conditions, run } = await measureInTurn(
+          { viewport, workflow, waitMs },
+          (onProgress, signal) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress, signal }),
           count,
           ctx
         );
@@ -537,27 +590,33 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         items.push({ id: path, path, source });
       }
 
-      let session;
-      try {
-        session = await sessions.create({ viewport: VIEWPORT_PRESETS[viewport], signal: ctx.mcpReq.signal });
-      } catch (err) {
-        if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
-        throw err;
-      }
-      try {
-        const navStart = Date.now();
-        await session.page.goto(url, { waitUntil: "load", timeout: NAV_TIMEOUT_MS });
-        if (waitMs > 0) await session.page.waitForTimeout(waitMs);
-        const navMs = Date.now() - navStart;
-        session.tracking = await evaluateItems(session.page, items);
-        session.stopListening();
-        const tracking = session.tracking.map(({ id, status }) => ({ snippet: id, status }));
-        return toolResult({ sessionId: session.id, url, viewport, navMs, tracking });
-      } catch (err) {
-        await sessions.close(session.id);
-        if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
-        return toolError(`Opening the page failed: ${firstLine(err.message)}`);
-      }
+      return inTurn(ctx, undefined, async () => {
+        const limit = AbortSignal.timeout(callLimitMs);
+        let session;
+        try {
+          session = await sessions.create({ viewport: VIEWPORT_PRESETS[viewport], signal: AbortSignal.any([ctx.mcpReq.signal, limit]) });
+        } catch (err) {
+          if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
+          throw err;
+        }
+        try {
+          const navStart = Date.now();
+          await session.page.goto(url, { waitUntil: "load", timeout: NAV_TIMEOUT_MS });
+          if (waitMs > 0) await session.page.waitForTimeout(waitMs);
+          const navMs = Date.now() - navStart;
+          session.tracking = await evaluateItems(session.page, items);
+          // evaluateItems keeps a failed evaluation as a result, and closing the page fails every one
+          if (limit.aborted) return toolError(`Opening the page failed: ${stoppedAnswering(callLimitMs)}`);
+          session.stopListening();
+          const tracking = session.tracking.map(({ id, status }) => ({ snippet: id, status }));
+          return toolResult({ sessionId: session.id, url, viewport, navMs, tracking });
+        } catch (err) {
+          await sessions.close(session.id);
+          if (limit.aborted) return toolError(`Opening the page failed: ${stoppedAnswering(callLimitMs)}`);
+          if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
+          return toolError(`Opening the page failed: ${firstLine(err.message)}`);
+        }
+      });
     })
   );
 
@@ -575,16 +634,28 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       // A click can submit a form or change data on the site, so this tool is not read-only
       annotations: { readOnlyHint: false, openWorldHint: true },
     },
-    withSession(async ({ sessionId, steps }) => {
-      const session = sessions.get(sessionId);
-      try {
-        await runInteractions(session.page, steps);
-      } catch (err) {
-        return toolError(`A step failed: ${firstLine(err.message)}`);
-      }
-      session.hadInput ||= steps.some(isInputStep);
-      await settle(session.page);
-      return toolResult({ sessionId, steps: steps.length, url: session.page.url() });
+    withSession(async ({ sessionId, steps }, ctx) => {
+      // A page that is not open answers now, not after a turn it does not need
+      sessions.get(sessionId);
+      return inTurn(ctx, undefined, async () => {
+        const session = sessions.get(sessionId);
+        // A wait step is time the agent asked for. Closing the page fails whatever it stopped answering.
+        const limitMs = callLimitMs + steps.reduce((sum, step) => sum + (step.ms ?? 0), 0);
+        const limit = AbortSignal.timeout(limitMs);
+        const closePage = () => sessions.close(sessionId);
+        limit.addEventListener("abort", closePage, { once: true });
+        try {
+          await runInteractions(session.page, steps);
+          session.hadInput ||= steps.some(isInputStep);
+          await settle(session.page);
+          if (!limit.aborted) return toolResult({ sessionId, steps: steps.length, url: session.page.url() });
+        } catch (err) {
+          if (!limit.aborted) return toolError(`A step failed: ${firstLine(err.message)}`);
+        } finally {
+          limit.removeEventListener("abort", closePage);
+        }
+        return toolError(`${stoppedAnswering(limitMs)}, and it was closed. Open it again with open_page.`);
+      });
     })
   );
 

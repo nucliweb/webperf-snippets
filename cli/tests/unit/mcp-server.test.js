@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { createServer } from "../../src/mcp/server.js";
+import { createQueue } from "../../src/mcp/queue.js";
 import { cliVersion } from "../../src/report-to.js";
 
 // A client and the server joined in memory, with no process in between. The in-memory transport
@@ -114,6 +115,188 @@ describe("several runs on the tools that measure", () => {
     const result = await client.callTool({ name: "run_snippet", arguments: { url: "http://127.0.0.1:9/", snippet: "LCP", runs } });
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toMatch(/runs/);
+  });
+});
+
+describe("several measuring calls at a time", () => {
+  it("says so in the tools that measure, and that it saves no time", async () => {
+    const { tools } = await client.listTools();
+    for (const name of ["run_snippet", "run_workflow"]) {
+      expect(tools.find((t) => t.name === name).description, name).toMatch(/one at a time[^.]*save no time/);
+    }
+  });
+});
+
+// The queue alone, with tasks the tests finish by hand; tests/e2e/mcp-queue.test.js has the tools on it
+describe("the queue of a connection", () => {
+  const task = () => {
+    const held = {};
+    held.finished = new Promise((resolve, reject) => Object.assign(held, { finish: resolve, fail: reject }));
+    return held;
+  };
+  // Lets the promises that can run, run
+  const settled = () => new Promise((resolve) => setImmediate(resolve));
+
+  it("runs one task at a time, in the order they arrive", async () => {
+    const queue = createQueue();
+    const tasks = [task(), task(), task()];
+    const started = [];
+    const answers = tasks.map((t, i) =>
+      queue.run(() => {
+        started.push(i);
+        return t.finished;
+      })
+    );
+
+    await settled();
+    expect(started).toEqual([0]);
+    tasks[0].finish("first");
+    await settled();
+    expect(started).toEqual([0, 1]);
+    tasks[1].finish("second");
+    await settled();
+    expect(started).toEqual([0, 1, 2]);
+    tasks[2].finish("third");
+    expect(await Promise.all(answers)).toEqual(["first", "second", "third"]);
+  });
+
+  it("reports nothing to a task with nothing ahead of it", async () => {
+    const onWait = vi.fn();
+    await createQueue().run(async () => {}, { onWait });
+    await settled();
+    expect(onWait).not.toHaveBeenCalled();
+  });
+
+  it("passes the turn when a task fails, and the failure stays with its caller", async () => {
+    const queue = createQueue();
+    const failing = task();
+    const failed = queue.run(() => failing.finished);
+    const threw = queue.run(() => {
+      throw new Error("failed at once");
+    });
+    const next = queue.run(async () => "next");
+
+    failing.fail(new Error("the page did not load"));
+    await expect(failed).rejects.toThrow("the page did not load");
+    await expect(threw).rejects.toThrow("failed at once");
+    await expect(next).resolves.toBe("next");
+  });
+
+  it("leaves out a caller that gives up while it waits: it answers at once, never runs, and holds up no one", async () => {
+    const queue = createQueue();
+    const first = task();
+    const controller = new AbortController();
+    const skipped = vi.fn();
+    const running = queue.run(() => first.finished);
+    const gaveUp = queue.run(skipped, { signal: controller.signal });
+    const next = queue.run(async () => "next");
+
+    controller.abort();
+    // The task ahead has not finished: the caller does not wait for it to learn that it left
+    await expect(gaveUp).rejects.toThrow(/gave up/);
+    first.finish();
+    await running;
+    await expect(next).resolves.toBe("next");
+    expect(skipped).not.toHaveBeenCalled();
+  });
+
+  it("does not run a caller that had already given up, with nothing ahead of it", async () => {
+    const queue = createQueue();
+    const skipped = vi.fn();
+    await expect(queue.run(skipped, { signal: AbortSignal.abort() })).rejects.toThrow(/gave up/);
+    expect(skipped).not.toHaveBeenCalled();
+    await expect(queue.run(async () => "next")).resolves.toBe("next");
+  });
+
+  it("takes a reason that is not an error, which is what a client sends", async () => {
+    const queue = createQueue();
+    const first = task();
+    const controller = new AbortController();
+    const running = queue.run(() => first.finished);
+    const gaveUp = queue.run(async () => {}, { signal: controller.signal });
+    controller.abort("the user stopped it");
+    await expect(gaveUp).rejects.toBeInstanceOf(Error);
+    first.finish();
+    await running;
+  });
+
+  it("tells a waiting caller how many calls are ahead, when it starts and when the line moves", async () => {
+    const queue = createQueue();
+    const first = task();
+    const second = task();
+    const controller = new AbortController();
+    const reports = [];
+    const running = [queue.run(() => first.finished), queue.run(() => second.finished)];
+    const leaving = queue.run(async () => {}, { signal: controller.signal });
+    const last = queue.run(async () => {}, { onWait: (ahead) => reports.push(ahead) });
+
+    await settled();
+    expect(reports).toEqual([3]);
+    controller.abort();
+    await expect(leaving).rejects.toThrow();
+    await settled();
+    expect(reports).toEqual([3, 2]);
+    first.finish();
+    await settled();
+    expect(reports).toEqual([3, 2, 1]);
+    second.finish();
+    await Promise.all([...running, last]);
+    expect(reports).toEqual([3, 2, 1]);
+  });
+
+  describe("while the line does not move", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it("keeps telling a waiting caller, so a client that resets its timeout on progress stays, and stops when its turn comes", async () => {
+      const queue = createQueue({ reportEveryMs: 1000 });
+      const first = task();
+      const reports = [];
+      const running = queue.run(() => first.finished);
+      const next = queue.run(async () => {}, { onWait: (ahead) => reports.push(ahead) });
+
+      await vi.advanceTimersByTimeAsync(2500);
+      expect(reports).toEqual([1, 1, 1]);
+      first.finish();
+      await Promise.all([running, next]);
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(reports).toEqual([1, 1, 1]);
+    });
+
+    it("stops telling a caller that gave up", async () => {
+      const queue = createQueue({ reportEveryMs: 1000 });
+      const first = task();
+      const controller = new AbortController();
+      const onWait = vi.fn();
+      const running = queue.run(() => first.finished);
+      const gaveUp = queue.run(async () => {}, { signal: controller.signal, onWait });
+
+      await vi.advanceTimersByTimeAsync(1500);
+      controller.abort();
+      await expect(gaveUp).rejects.toThrow();
+      const reported = onWait.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(onWait).toHaveBeenCalledTimes(reported);
+      first.finish();
+      await running;
+    });
+
+    it("survives a report that fails, as one to a client that left", async () => {
+      const queue = createQueue({ reportEveryMs: 1000 });
+      const first = task();
+      const running = queue.run(() => first.finished);
+      const rejects = queue.run(async () => "rejects", { onWait: () => Promise.reject(new Error("Not connected")) });
+      const throws = queue.run(async () => "throws", {
+        onWait: () => {
+          throw new Error("Not connected");
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(1500);
+      first.finish();
+      await running;
+      expect(await Promise.all([rejects, throws])).toEqual(["rejects", "throws"]);
+    });
   });
 });
 

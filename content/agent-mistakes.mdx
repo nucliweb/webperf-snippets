@@ -8,7 +8,7 @@ import { Callout } from '../components/Callout'
 
 The mistakes an agent makes when it measures a page with the [CLI](/CLI) and the [MCP server](/MCP), why each one gives a wrong result or wastes a turn, and the tool, argument or flag to use instead.
 
-The first five can change what the measurement says, often into a pass. The last three only cost turns. They come from the [evals of the MCP server](https://github.com/nucliweb/webperf-snippets/tree/main/scripts/eval-mcp), 82 runs of an agent on local pages, and from how the tools work.
+The first four can change what the measurement says, often into a pass. The last four cost turns or time. They come from the [evals of the MCP server](https://github.com/nucliweb/webperf-snippets/tree/main/scripts/eval-mcp), 82 runs of an agent on local pages, and from how the tools work.
 
 <Callout type="info">
 To give these rules to an agent, link the Markdown version of this page in its instructions: `https://webperf-snippets.net/agent-mistakes.md`.
@@ -107,11 +107,13 @@ npx webperf-snippets https://example.com --snippet INP --interact-script interac
 
 ## Measuring several times in one turn
 
-The agent sends two or more measurements in one turn, to save time or to get more samples. In the evals, 35 turns did it, most pairing `LCP-Subparts` with another snippet, or two workflows, and the client ran them at the same time.
+The agent sends two or more measurements in one turn, to save time or to get more samples. In the evals, 35 turns did it, most pairing `LCP-Subparts` with another snippet, or two workflows.
 
-Each call opens its own Chromium and the server does not queue them, so they compete for the CPU, which is why `--runs` measures one load after the other. On a laptop with ten cores, a page with an LCP of 424 ms stayed at 432 ms with two calls at a time, and went to 524 ms with eight and 612 ms with sixteen. The values also come from different page loads, so the sub-parts of one call do not add up to the LCP of the other.
+The MCP server measures one call at a time, so the values hold, but the turn saves no time and a long queue can reach the limit of the client on a tool call. The values also come from different page loads, so the sub-parts of one call do not add up to the LCP of the other.
 
-Instead, measure one thing at a time. `LCP-Subparts` already returns the LCP, a workflow runs all its steps on one page load, and `--runs` gives the repeated samples.
+Instead, measure one thing at a time. `LCP-Subparts` already returns the LCP, a workflow runs all its steps on one page load, and `runs` or `--runs` gives the repeated samples.
+
+The queue belongs to one connection: commands of the CLI, or two clients, still compete for the CPU when they run at the same time.
 
 ## Calling `get_details` after a full result
 
