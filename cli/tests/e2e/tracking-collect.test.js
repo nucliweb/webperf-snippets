@@ -25,9 +25,9 @@ let url;
 beforeAll(
   () =>
     new Promise((resolve) => {
-      server = createServer((_req, res) => {
+      server = createServer((req, res) => {
         res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(PAGE);
+        res.end(req.url === "/with-frame" ? `<!DOCTYPE html><title>t</title><iframe src="/" width="300" height="200"></iframe>` : PAGE);
       });
       server.listen(0, "127.0.0.1", () => {
         url = `http://127.0.0.1:${server.address().port}`;
@@ -108,6 +108,39 @@ describe("tracking snippets with interactions", () => {
     expect(results[0].status).toBe("error");
     expect(results[0].error).toMatch(/doesNotExist/);
     expect(results[1].status).toBe("ok");
+  }, 60000);
+});
+
+describe("a click or a key press that does not show in the snippet", () => {
+  const inp = item("INP", "CoreWebVitals/INP");
+
+  it("is reported when it paints nothing: a key press on a page that does not respond", async () => {
+    const [result] = await run([inp], [{ action: "type", selector: "h1", text: "a" }]);
+    expect(result).toEqual(expect.objectContaining({ status: "ok", metric: "INP", rating: "good" }));
+  }, 60000);
+
+  it.each([
+    ["INP", inp],
+    ["Interactions", item("Interactions", "Interaction/Interactions")],
+    ["Input-Latency-Breakdown", item("Input-Latency-Breakdown", "Interaction/Input-Latency-Breakdown")],
+  ])("%s says that it was sent when the document recorded nothing, as with a click inside an iframe", async (_name, snippet) => {
+    const { results } = await runSnippets({
+      url: `${url}/with-frame`,
+      items: [snippet],
+      interactions: [{ action: "click", selector: "iframe" }],
+      waitMs: 300,
+      viewport: VIEWPORT_PRESETS.desktop,
+    });
+    expect(results[0].status).toBe("tracking");
+    expect(results[0].message).toMatch(/was sent/);
+    expect(results[0].message).toMatch(/iframe/);
+    expect(results[0].getDataFn).toBeDefined();
+  }, 60000);
+
+  it("keeps the message of the snippet when nothing was sent: a scroll is no interaction", async () => {
+    const [result] = await run([inp], [{ action: "scroll", y: 100 }]);
+    expect(result.status).toBe("tracking");
+    expect(result.message).toMatch(/No interactions yet/);
   }, 60000);
 });
 

@@ -80,6 +80,10 @@
     durationThreshold: 0,
     buffered: true
   });
+  observer.observe({
+    type: "first-input",
+    buffered: true
+  });
   const groupByEventType = () => {
     const byEventType = {};
     for (const {name: name, duration: duration, phases: phases} of tracker.list()) {

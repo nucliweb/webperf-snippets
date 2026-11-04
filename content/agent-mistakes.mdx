@@ -102,7 +102,8 @@ npx webperf-snippets https://example.com --snippet INP --interact-script interac
 ```
 
 - For the shifts of a scroll, use the `interaction` workflow, or `Layout-Shift-Loading-and-Interaction` in `track` with `scroll` steps.
-- `status: "tracking"` after a click means nothing was recorded: read again, and check that the selector reaches an element that responds.
+- `status: "tracking"` after a click means that the document recorded no interaction, and the message says the click was sent. A click inside an iframe does it: the iframe records its own interactions, so check that the selector reaches an element of the page.
+- A value under 16 ms with the `no-paint-measured` issue means that the click ran and the page painted nothing. It rates `good` and passes a budget, and it says nothing about the page when the selector reached an element that does not respond: web-vitals gives the same value. Check the element before reporting it.
 - The value is the INP of those steps, not of the page: in the evals, the agent clicked the first `button` it could guess. Say which element was clicked, and use `get_crux` for what users get.
 
 ## Measuring several times in one turn

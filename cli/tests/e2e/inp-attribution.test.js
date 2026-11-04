@@ -275,6 +275,83 @@ describe("getINPDetails()", () => {
   }, 30000);
 });
 
+// With nothing to repaint, no frame follows the interaction as a rule, so the browser measures it under
+// the 16 ms below which there are no `event` entries, and it is in `first-input` only. A frame of the
+// page can still follow it, so these tests check that it is reported, whatever its value. They wait
+// first: right after the load a frame is on its way. What depends on the value uses fake entries.
+describe("an interaction that paints nothing", () => {
+  const readWhenRecorded = async (page) => {
+    await expect.poll(async () => (await page.evaluate(() => window.getINP())).status, { timeout: 3000 }).toBe("ok");
+    return readAll(page);
+  };
+
+  it("is reported by the three snippets", async () => {
+    const errors = [];
+    const { inp, interactions, breakdown, details } = await withPage(async (page) => {
+      page.on("pageerror", (err) => errors.push(err.message));
+      await page.waitForTimeout(300);
+      await runAll(page);
+      await page.keyboard.press("a");
+      return { ...(await readWhenRecorded(page)), details: await page.evaluate(() => window.getINPDetails()) };
+    });
+    expect(errors).toEqual([]);
+    expect(inp).toEqual(expect.objectContaining({ status: "ok", metric: "INP", rating: "good" }));
+    expect(inp.details.totalInteractions).toBe(1);
+    expect(interactions).toEqual(expect.objectContaining({ status: "ok", count: 1 }));
+    expect(breakdown).toEqual(expect.objectContaining({ status: "ok", count: 1 }));
+    expect(details).toEqual(expect.objectContaining({ status: "ok", count: 1 }));
+  }, 30000);
+
+  it("is read when it happened before the snippet ran, as a slow one is", async () => {
+    const inp = await withPage(async (page) => {
+      await page.waitForTimeout(300);
+      await page.keyboard.press("a");
+      await page.waitForTimeout(100);
+      await page.evaluate(source(SNIPPETS.inp.name));
+      await expect.poll(async () => (await page.evaluate(() => window.getINP())).status, { timeout: 3000 }).toBe("ok");
+      return page.evaluate(() => window.getINP());
+    });
+    expect(inp.details.totalInteractions).toBe(1);
+  }, 30000);
+
+  it("does not hide the slow interaction that follows it", async () => {
+    const inp = await withPage(async (page) => {
+      await page.waitForTimeout(300);
+      await runAll(page);
+      await page.keyboard.press("a");
+      await readWhenRecorded(page);
+      await page.click("#slow");
+      await expect.poll(async () => (await page.evaluate(() => window.getINP())).value, { timeout: 3000 }).toBeGreaterThanOrEqual(240);
+      return page.evaluate(() => window.getINP());
+    });
+    expect(inp.details.totalInteractions).toBe(2);
+    expect(inp.issues).toBeUndefined();
+  }, 30000);
+
+  const inpOf = (entry) =>
+    withPage(
+      async (page) => {
+        await page.evaluate((batches) => (window.__batches = batches), [[entry]]);
+        await page.evaluate(source(SNIPPETS.inp.name));
+        await page.waitForTimeout(100);
+        return page.evaluate(() => window.getINP());
+      },
+      { init: `(${FAKE_OBSERVER})(["event"])` }
+    );
+
+  it("gets a note with its value when it took under 16 ms, also at 0 ms with an input delay", async () => {
+    const inp = await inpOf(fakeEntry("pointerdown", 1, 100, 100.3, 100.5, 0));
+    expect(inp).toEqual(expect.objectContaining({ status: "ok", value: 0, rating: "good" }));
+    expect(inp.issues).toEqual([{ code: "no-paint-measured", severity: "info", message: expect.stringContaining("0 ms") }]);
+  }, 30000);
+
+  it("gets no note from 16 ms, where a frame was measured", async () => {
+    const inp = await inpOf(fakeEntry("click", 1, 100, 100.3, 100.5, 16));
+    expect(inp.value).toBe(16);
+    expect(inp.issues).toBeUndefined();
+  }, 30000);
+});
+
 describe("a browser without event timing entries", () => {
   it.each(Object.values(SNIPPETS).map((s) => s.name))("%s returns unsupported", async (name) => {
     const result = await withPage(

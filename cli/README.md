@@ -541,6 +541,7 @@ The `NPM_TOKEN` secret must be set in the repository settings with publish acces
 - **CLS in headless is conservative**: layout shifts that only happen on scroll are missed unless you script the scroll.
 - **First navigation only**: each `webperf-snippets` invocation runs one URL. SPAs need the post-route URL passed directly.
 - **Synthetic INP ≠ field INP**: `--interact-script` measures handler latency for a single scripted event. Real INP reflects the worst interaction across all user sessions; use RUM for field data.
+- **A click that paints nothing**: INP is under 16 ms with the `no-paint-measured` issue, as web-vitals reports it, so it rates `good` and passes `--budget-inp`. Check that the selector reaches an element that responds. `tracking` after a click means that the document recorded no interaction, as with a click inside an iframe: the run exits with code `0` unless it has a budget.
 
 ## Roadmap
 

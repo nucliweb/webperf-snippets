@@ -21,6 +21,12 @@ const DEFAULT_NAV_TIMEOUT = 30000;
 const LATE_ENTRIES_MS = 2000;
 const POLL_MS = 100;
 
+// A snippet still tracking after that wait has seen no interaction at all, and the browser agrees: a
+// click that paints nothing is recorded too. The message of the snippet (click on the page, then call
+// the function again) would ask for what the run has just done.
+const NOTHING_RECORDED =
+  "A click or key press was sent, and this document recorded no interaction. Check that it reaches an element of this document: an interaction inside an iframe is recorded by the iframe.";
+
 // Snippets are IIFEs. Playwright evaluates a string as an expression, so we
 // trim trailing semicolons to keep the IIFE call as a single expression and
 // recover its return value in Node.
@@ -83,7 +89,10 @@ export async function collectTrackingData(page, result, hasInput) {
       await page.waitForTimeout(POLL_MS);
       data = await read();
     }
-    if (data && typeof data === "object") return { id: result.id, ...data };
+    if (data && typeof data === "object") {
+      const sentAndMissed = hasInput && data.status === "tracking";
+      return { id: result.id, ...data, ...(sentAndMissed && { message: NOTHING_RECORDED }) };
+    }
     return { id: result.id, status: "error", error: `${result.getDataFn}() did not return an object` };
   } catch (err) {
     return { id: result.id, status: "error", error: `${result.getDataFn}() failed: ${err.message}` };

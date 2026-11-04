@@ -22,6 +22,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ### Fixed
 - A page that stops answering, with a main thread that never yields, no longer hangs a call of the MCP server for ever: the call fails after 2 minutes per run, plus the `wait` steps of `interact`, and closes the page. `run_snippet` and `run_workflow` stop at that run instead of measuring the others.
+- `--snippet INP` with `--interact-script`, the `interaction` workflow and `read_results` of the MCP server report a click or key press that painted nothing, with the value web-vitals gives and the `no-paint-measured` issue, instead of `tracking` with `No interactions yet` and a wait of two seconds. A run with `--budget-inp` that was `not measured` in this case now compares that value with the budget.
+- A tracking snippet with nothing recorded after a click or a key press says that one was sent and what to check, instead of asking for a click: the interaction went to an iframe, or never reached the document.
 
 ---
 

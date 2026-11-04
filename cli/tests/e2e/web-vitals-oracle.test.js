@@ -49,6 +49,16 @@ beforeAll(async () => {
       </script>`);
     if (path === "/shift")
       return page(`<p>Text before the banner</p><div id="banner" style="height:20px;background:#eee">banner</div><p>Text below</p><p>Text below</p>`);
+    // Nothing on this page responds or paints
+    if (path === "/inert") return page(`<h1>Inert title</h1>`);
+    if (path === "/painted")
+      return page(`<button id="work">Work</button><script>
+        document.getElementById("work").addEventListener("click", (e) => {
+          const end = performance.now() + 80;
+          while (performance.now() < end) {}
+          e.target.textContent = "Done";
+        });
+      </script>`);
     if (path === "/slow.png") return setTimeout(() => res.writeHead(200, { "Content-Type": "image/png" }).end(png), 300);
     if (path === "/hero.png") return res.writeHead(200, { "Content-Type": "image/png", "Cache-Control": "no-store" }).end(png);
     res.writeHead(404).end();
@@ -73,6 +83,7 @@ async function open(path) {
     const keep = (metric) => (window.__webVitals[metric.name] = { value: metric.value, attribution: metric.attribution });
     window.webVitals.onLCP(keep, { reportAllChanges: true });
     window.webVitals.onCLS(keep, { reportAllChanges: true });
+    window.webVitals.onINP(keep, { reportAllChanges: true });
   });
   await tab.goto(`${base}${path}`, { waitUntil: "load" });
   return tab;
@@ -95,6 +106,17 @@ async function webVitals(tab, name) {
   await expect.poll(async () => (await read())?.value > 0, { timeout: 5000 }).toBe(true);
   return read();
 }
+
+// The INP of both, once both answer. web-vitals reports 0 for an interaction that paints nothing, so
+// this waits for a report, not for a value above 0
+async function bothInp(tab) {
+  await expect
+    .poll(() => tab.evaluate(() => [window.getINP().status, window.__webVitals.INP?.value !== undefined]), { timeout: 3000 })
+    .toEqual(["ok", true]);
+  return { snippet: await tab.evaluate(() => window.getINP()), reference: await webVitalsNow(tab, "INP") };
+}
+
+const webVitalsNow = (tab, name) => tab.evaluate((n) => window.__webVitals[n], name);
 
 const expectClose = (actual, expected, label) =>
   expect(Math.abs(actual - expected), `${label}: snippet ${actual}, web-vitals ${expected}`).toBeLessThanOrEqual(TOLERANCE);
@@ -141,6 +163,48 @@ describe("The snippets give the numbers of web-vitals", () => {
       const result = await tab.evaluate(expression("CoreWebVitals/LCP-Subparts"));
       const reference = await webVitals(tab, "LCP");
       expectSameSubparts(result, reference.attribution);
+    } finally {
+      await tab.close();
+    }
+  }, 30000);
+
+  it("INP: the same value for a key press that paints nothing, which has no event entry", async () => {
+    const tab = await open("/inert");
+    try {
+      await tab.evaluate(expression("CoreWebVitals/INP"));
+      await tab.keyboard.press("a");
+      const { snippet, reference } = await bothInp(tab);
+      expectClose(snippet.value, reference.value, "INP");
+    } finally {
+      await tab.close();
+    }
+  }, 30000);
+
+  it("INP: the same value for a click that paints nothing, with the mouse already on the element", async () => {
+    const tab = await open("/inert");
+    try {
+      await tab.evaluate(expression("CoreWebVitals/INP"));
+      const box = await tab.locator("h1").boundingBox();
+      await tab.mouse.move(box.x + 5, box.y + 5);
+      // The move paints a frame of its own; a click during that frame would be measured to it
+      await tab.waitForTimeout(300);
+      await tab.mouse.down();
+      await tab.mouse.up();
+      const { snippet, reference } = await bothInp(tab);
+      expectClose(snippet.value, reference.value, "INP");
+    } finally {
+      await tab.close();
+    }
+  }, 30000);
+
+  it("INP: the same value for a click that paints", async () => {
+    const tab = await open("/painted");
+    try {
+      await tab.evaluate(expression("CoreWebVitals/INP"));
+      await tab.click("#work");
+      const { snippet, reference } = await bothInp(tab);
+      expect(snippet.value).toBeGreaterThanOrEqual(80);
+      expectClose(snippet.value, reference.value, "INP");
     } finally {
       await tab.close();
     }
