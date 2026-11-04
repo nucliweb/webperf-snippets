@@ -123,6 +123,10 @@
     durationThreshold: 0,
     buffered: true
   });
+  observer.observe({
+    type: "first-input",
+    buffered: true
+  });
   window.getInteractionSummary = () => {
     const allInteractions = tracker.list().map(i => ({
       duration: i.duration,

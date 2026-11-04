@@ -173,6 +173,10 @@
     buffered: true,
   });
 
+  // The browser gives no `event` entries under 16 ms, whatever the threshold, and an interaction that
+  // paints nothing can take less. `first-input` has no threshold, so the first one is still read.
+  observer.observe({ type: "first-input", buffered: true });
+
   // Summary function
   window.getInteractionSummary = () => {
     const allInteractions = tracker.list().map((i) => ({

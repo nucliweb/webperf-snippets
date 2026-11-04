@@ -185,6 +185,13 @@ One interaction fires several events: a tap fires `pointerdown`, `pointerup` and
 
 - Cause: Page hasn't had meaningful interactions yet. `getINP()` returns `status: "tracking"` with that message: nothing failed, the snippet is still recording.
 - Solution: Interact with the page (clicks, keypresses) then run `getINP()` again
+- A click inside an iframe is recorded by the iframe, not by the page. The CLI and the MCP server say that a click or key press was sent when this happens after one of their steps.
+
+### "INP is under 16 ms after a click"
+
+- Cause: The page painted nothing after the interaction. With no frame to measure to, the browser measures it to the end of its handlers, often 0 ms, and `getINP()` adds the `no-paint-measured` issue.
+- Solution: The value is real, so it only says the click reached a page that did not respond. Check that it reaches an element that does.
+- The browser gives this timing for the first interaction of the page. The later ones that short have no timing and do not change INP.
 
 ### "All interactions show 0ms for phases"
 

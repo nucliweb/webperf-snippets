@@ -169,8 +169,13 @@
   observer.observe({
     type: "event",
     buffered: true,
-    durationThreshold: 16, // Only interactions > 16ms (1 frame)
+    durationThreshold: 16, // The lowest the browser accepts
   });
+
+  // With no frame after it, an interaction that paints nothing is measured to the end of its handlers,
+  // under the 16 ms of `event` entries. `first-input` has no threshold, so the first one is still read;
+  // web-vitals does the same.
+  observer.observe({ type: "first-input", buffered: true });
 
   // Log INP summary
   const logINP = () => {
@@ -231,7 +236,7 @@
         console.log(`   Presentation Delay: ${formatMs(phases.presentationDelay)}`);
 
         // Visual bar
-        const total = inpEntry.duration;
+        const total = phases.inputDelay + phases.processingTime + phases.presentationDelay;
         const barWidth = 40;
         const inputBar = "▓".repeat(Math.round((phases.inputDelay / total) * barWidth));
         const processBar = "█".repeat(Math.round((phases.processingTime / total) * barWidth));
@@ -358,15 +363,26 @@
         details,
       };
     }
+    const value = Math.round(inpValue);
     return {
       script: "INP",
       status: "ok",
       metric: "INP",
-      value: Math.round(inpValue),
+      value,
       unit: "ms",
       rating,
       thresholds: { good: 200, needsImprovement: 500 },
       details,
+      // Under one frame there is no paint to measure to: the value is real, and says little about the page
+      ...(inpValue < 16 && {
+        issues: [
+          {
+            code: "no-paint-measured",
+            severity: "info",
+            message: `Worst interaction: ${value} ms, under the 16 ms of a frame, so the page most likely painted nothing after it. If it should respond, check that the click or key press reaches an element that does.`,
+          },
+        ],
+      }),
     };
   };
 
@@ -492,7 +508,7 @@
   });
 
   console.log("%c⚡ INP Tracking Active", "font-weight: bold; font-size: 14px;");
-  console.log("   Interactions with duration > 16ms will be tracked.");
+  console.log("   Interactions of 16ms or more are tracked, and the first one whatever it takes.");
   console.log(
     "   Call %cgetINP()%c to see current INP value.",
     "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",

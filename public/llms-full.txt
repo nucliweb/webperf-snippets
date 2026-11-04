@@ -298,8 +298,13 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
   observer.observe({
     type: "event",
     buffered: true,
-    durationThreshold: 16, // Only interactions > 16ms (1 frame)
+    durationThreshold: 16, // The lowest the browser accepts
   });
+
+  // With no frame after it, an interaction that paints nothing is measured to the end of its handlers,
+  // under the 16 ms of `event` entries. `first-input` has no threshold, so the first one is still read;
+  // web-vitals does the same.
+  observer.observe({ type: "first-input", buffered: true });
 
   // Log INP summary
   const logINP = () => {
@@ -360,7 +365,7 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
         console.log(`   Presentation Delay: ${formatMs(phases.presentationDelay)}`);
 
         // Visual bar
-        const total = inpEntry.duration;
+        const total = phases.inputDelay + phases.processingTime + phases.presentationDelay;
         const barWidth = 40;
         const inputBar = "▓".repeat(Math.round((phases.inputDelay / total) * barWidth));
         const processBar = "█".repeat(Math.round((phases.processingTime / total) * barWidth));
@@ -487,15 +492,26 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
         details,
       };
     }
+    const value = Math.round(inpValue);
     return {
       script: "INP",
       status: "ok",
       metric: "INP",
-      value: Math.round(inpValue),
+      value,
       unit: "ms",
       rating,
       thresholds: { good: 200, needsImprovement: 500 },
       details,
+      // Under one frame there is no paint to measure to: the value is real, and says little about the page
+      ...(inpValue < 16 && {
+        issues: [
+          {
+            code: "no-paint-measured",
+            severity: "info",
+            message: `Worst interaction: ${value} ms, under the 16 ms of a frame, so the page most likely painted nothing after it. If it should respond, check that the click or key press reaches an element that does.`,
+          },
+        ],
+      }),
     };
   };
 
@@ -621,7 +637,7 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
   });
 
   console.log("%c⚡ INP Tracking Active", "font-weight: bold; font-size: 14px;");
-  console.log("   Interactions with duration > 16ms will be tracked.");
+  console.log("   Interactions of 16ms or more are tracked, and the first one whatever it takes.");
   console.log(
     "   Call %cgetINP()%c to see current INP value.",
     "font-family: monospace; background: #f3f4f6; padding: 2px 4px;",
@@ -13680,6 +13696,9 @@ Aggregates interaction latency by event type to reveal which phase causes slowne
   const tracker = createInteractionTracker();
   const observer = new PerformanceObserver((list) => tracker.add(list.getEntries()));
   observer.observe({ type: "event", durationThreshold: 0, buffered: true });
+  // The browser gives no `event` entries under 16 ms, whatever the threshold, and an interaction that
+  // paints nothing can take less. `first-input` has no threshold, so the first one is still read.
+  observer.observe({ type: "first-input", buffered: true });
 
   // Interactions grouped by event type: "click", "keydown", "pointerdown", etc.
   const groupByEventType = () => {
@@ -14067,6 +14086,10 @@ Tracks all user interactions in real-time to help debug and improve Interaction 
     durationThreshold: 0,
     buffered: true,
   });
+
+  // The browser gives no `event` entries under 16 ms, whatever the threshold, and an interaction that
+  // paints nothing can take less. `first-input` has no threshold, so the first one is still read.
+  observer.observe({ type: "first-input", buffered: true });
 
   // Summary function
   window.getInteractionSummary = () => {

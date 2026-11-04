@@ -146,6 +146,10 @@
     buffered: true,
     durationThreshold: 16
   });
+  observer.observe({
+    type: "first-input",
+    buffered: true
+  });
   const logINP = () => {
     const rating = valueToRating(inpValue);
     const {icon: icon, color: color} = RATING[rating];
@@ -171,7 +175,7 @@
       }
       const phases = inpEntry.phases;
       if (phases.inputDelay > 0) {
-        const total = inpEntry.duration;
+        const total = phases.inputDelay + phases.processingTime + phases.presentationDelay;
         const barWidth = 40;
         "▓".repeat(Math.round(phases.inputDelay / total * barWidth));
         "█".repeat(Math.round(phases.processingTime / total * barWidth));
@@ -232,18 +236,26 @@
       getDataFn: "getINP",
       details: details
     };
+    const value = Math.round(inpValue);
     return {
       script: "INP",
       status: "ok",
       metric: "INP",
-      value: Math.round(inpValue),
+      value: value,
       unit: "ms",
       rating: rating,
       thresholds: {
         good: 200,
         needsImprovement: 500
       },
-      details: details
+      details: details,
+      ...inpValue < 16 && {
+        issues: [ {
+          code: "no-paint-measured",
+          severity: "info",
+          message: `Worst interaction: ${value} ms, under the 16 ms of a frame, so the page most likely painted nothing after it. If it should respond, check that the click or key press reaches an element that does.`
+        } ]
+      }
     };
   };
   window.getINPDetails = () => {

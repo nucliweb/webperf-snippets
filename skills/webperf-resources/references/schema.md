@@ -269,6 +269,24 @@ Returns buffered CLS immediately and keeps tracking. Always call `getCLS()` afte
 
 If no interactions yet, `getINP()` returns `status: "tracking"` with a `message` and `getDataFn: "getINP"`: interact with the page and call it again.
 
+An interaction that paints nothing has no frame to be measured to, so the browser measures it to the end of its handlers, often 0 ms, and gives no `event` entry under 16 ms at any `durationThreshold`. The first interaction of a page always has a `first-input` entry, which is how web-vitals reads it too, so `getINP()` returns it as `status: "ok"` with its value, and an `info` issue when the worst value is under 16 ms:
+
+```json
+{
+  "script": "INP",
+  "status": "ok",
+  "metric": "INP",
+  "value": 0,
+  "unit": "ms",
+  "rating": "good",
+  "thresholds": { "good": 200, "needsImprovement": 500 },
+  "details": { "totalInteractions": 1, "worstEvent": "pointerdown → h1", "phases": { "inputDelay": 0, "processingTime": 0, "presentationDelay": 0 } },
+  "issues": [{ "code": "no-paint-measured", "severity": "info", "message": "Worst interaction: 0 ms, under the 16 ms of a frame, so the page most likely painted nothing after it. If it should respond, check that the click or key press reaches an element that does." }]
+}
+```
+
+Later interactions that short have no entry of any kind: they only count in `performance.interactionCount`, and INP does not depend on them. `tracking` after a click means that the document recorded no interaction at all, as with a click inside an iframe, which records its own; the CLI and the MCP server replace the `message` to say that a click or key press was sent.
+
 The phases describe the whole interaction, not one of its events. A tap fires `pointerdown`, `pointerup` and `click`, and a key press `keydown` and `keyup`, with one `interactionId`. INP, Interactions and Input-Latency-Breakdown group the entries by `interactionId`, also when they arrive in separate observer callbacks, and measure the interaction over its entries painted in the frame of the longest one: `inputDelay` runs from the first `startTime` to the first `processingStart`, `processingTime` to the last `processingEnd`, and `presentationDelay` from there to the paint (`startTime + duration`, never below zero). The interaction is reported under the event whose handler ran longest, or under the `click` or `keydown` when no handler took a millisecond more than theirs; `worstEvent`, the Interactions `type` and the Input-Latency-Breakdown event type follow that rule.
 
 `getINPDetails()` returns the 15 slowest interactions, slowest first, with the total in `count`. `target` is a CSS selector built like `details.element` of LCP, or `null` when the browser reports no target. Use it when `getINP()` shows poor INP and you need to identify patterns across multiple slow interactions. With no interactions yet it returns `status: "tracking"`, a `message`, `count: 0` and no items.
@@ -853,6 +871,8 @@ With no usage the script returns `count: 0`, no items and an `info` issue.
 
 Tracking scripts return `status: "tracking"` first. The function named by `getDataFn` returns the full result. Items are capped at 50 (20 for frames) and sorted by relevance; `count` holds the total.
 
+Interactions and Input-Latency-Breakdown read `first-input` as INP does, so an interaction that paints nothing counts when it is the first one, and the later ones under 16 ms have no entry.
+
 #### Interactions (tracking)
 
 ```json
@@ -1201,6 +1221,12 @@ Same shape as Image-Element-Audit but for video elements.
 Every issue has a `code` that says what it is, so a comparison pairs the issues of two runs without reading their text: the message carries figures, and its wording can change from a version to the next. The code is kebab-case and unique within its snippet, so `script` and `code` together name an issue across the collection. A code never changes once published, and is never reused for another situation. The same situation keeps its code when its severity depends on a threshold.
 
 An issue about one thing among several, one issue per thing, also names it in `target`: the URL of a resource, a CSS selector, or a name such as an event type or a CSS property. Two issues with the same code and different targets are two issues.
+
+### INP
+
+| Code | Severity | When |
+|------|----------|------|
+| `no-paint-measured` | info | The worst interaction took under 16 ms, too short for a frame, so the page most likely painted nothing after it |
 
 ### LCP-Image-Entropy
 

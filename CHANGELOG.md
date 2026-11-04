@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- INP, Interactions and Input-Latency-Breakdown stayed in `tracking` after a click or a key press that painted nothing. The browser gives no `event` entries under 16 ms, at any `durationThreshold`, and such an interaction often takes 0 ms. The three snippets also read `first-input`, as web-vitals does, so they give the same value. INP adds the `no-paint-measured` issue when its value is under 16 ms. See also [`cli/CHANGELOG.md`](cli/CHANGELOG.md).
+
 ---
 
 ## [2.5.0] — 2026-11-02
