@@ -8,6 +8,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.5.1] — 2026-11-04
+
+Four snippets get fixes: INP, Interactions and Input-Latency-Breakdown read a first interaction that paints nothing, and LCP-Trail keeps the candidates removed from the DOM. The extension reaches 0.5.3 with them. The CLI reaches version 1.12.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)), whose MCP server runs the measurements of a connection one at a time.
+
+### Added
+- The CLI reaches version 1.12.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `--version`, a warning when a comparison has no statistics, suggestions of snippets by the words of their name, and an MCP server that runs the measurements of a connection one at a time, so they no longer compete for the CPU, and stops a call after 2 minutes per run when the page hangs.
+
 ### Fixed
 - INP, Interactions and Input-Latency-Breakdown stayed in `tracking` after a click or a key press that painted nothing. The browser gives no `event` entries under 16 ms, at any `durationThreshold`, and such an interaction often takes 0 ms. The three snippets also read `first-input`, as web-vitals does, so they give the same value. INP adds the `no-paint-measured` issue when its value is under 16 ms. See also [`cli/CHANGELOG.md`](cli/CHANGELOG.md).
 - LCP-Trail dropped every candidate whose element had left the DOM, such as a loading spinner that an app removes when it renders, so the trail missed it and `value` could be the time of an earlier candidate, or the snippet returned `No LCP elements in DOM`. Such a candidate stays in the trail as `(removed from DOM)`, and in `candidates` with `selector: null` and `removed: true`; `value` is the time of the last entry. Each candidate also gives its `sizePixels`, and a `data:` URL keeps only its media type (#389).

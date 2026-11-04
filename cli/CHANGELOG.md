@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.12.0] — 2026-11-04
+
+The measurements of an MCP connection take turns, so the calls an agent sends at once no longer compete for the CPU, and a page that hangs fails the call after 2 minutes per run. `--version` prints the version, an unknown snippet gets suggestions by the words of its name, a comparison without statistics says why, and a click that paints nothing gets the INP that web-vitals gives.
+
 ### Added
 - `--version` and `-v` print the version of the CLI, and nothing else, with exit code `0`.
 - `--baseline` and the `baseline` of `run_snippet` and `run_workflow` of the MCP server say in `warnings` when a metric compared on both sides has no statistics, in one line for the metrics that share their numbers: `no statistics for LCP: the baseline has 5 values, and this run 4 after 1 failed run; they need 5 a side, so measure both with 5 runs or more`. The numbers are the values left on each side, without the runs that failed or did not measure the metric. A baseline of one run keeps its own warning, and a metric that one side lacks stays `not measured`. A comparison of two to four runs a side, which had no warning, gets this one, so a script that expected empty `warnings` there needs to allow it.
