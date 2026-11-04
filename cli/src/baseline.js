@@ -204,8 +204,32 @@ function machineWarning(base, current) {
   return `the baseline was measured on another machine (${base.cpu}, ${base.cores} cores) than this run (${current.cpu}, ${current.cores} cores); timings can differ for that alone`;
 }
 
-// What differs in how both were measured. The comparison goes on: the warnings say how far to trust it.
-function warningsOf(base, current) {
+const valueCount = (payload, metric) => measured(payload, metric).values?.length ?? 1;
+
+// Why five runs can leave four values, when a run failed; a run that missed a metric alone does not count
+function afterFailedRuns(payload) {
+  const failed = payload.runs?.failed ?? 0;
+  return failed ? ` after ${failed} failed run${failed === 1 ? "" : "s"}` : "";
+}
+
+// The metrics compared on both sides that have no statistics, one line for each set of numbers. A
+// metric that one side lacks has no comparison to back, and its verdict already says "not measured".
+function statisticsWarnings(base, current, metrics) {
+  const metricsByNumbers = new Map();
+  for (const [metric, { stats, verdict }] of Object.entries(metrics)) {
+    if (stats || verdict === "not measured") continue;
+    const inBase = valueCount(base, metric);
+    const numbers = `the baseline has ${inBase} value${inBase === 1 ? "" : "s"}${afterFailedRuns(base)}, and this run ${valueCount(current, metric)}${afterFailedRuns(current)}`;
+    metricsByNumbers.set(numbers, [...(metricsByNumbers.get(numbers) ?? []), metric]);
+  }
+  return [...metricsByNumbers].map(
+    ([numbers, names]) => `no statistics for ${names.join(", ")}: ${numbers}; they need ${RUNS_FOR_STATISTICS} a side, so measure both with ${RUNS_FOR_STATISTICS} runs or more`
+  );
+}
+
+// What differs in how both were measured, and what it cost. The comparison goes on: the warnings say
+// how far to trust it.
+function warningsOf(base, current, metrics) {
   const warnings = [];
   const b = base.conditions;
   const c = current.conditions;
@@ -221,7 +245,10 @@ function warningsOf(base, current) {
   }
   // In words for both: the CLI asks for runs with --runs, and the tools of the MCP server with runs
   if (runCount(base) < 2) warnings.push(`the baseline has 1 run, so only the thresholds apply; measure both with ${RUNS_FOR_STATISTICS} runs or more`);
-  else if (runCount(base) !== runCount(current)) warnings.push(`the baseline has ${runCount(base)} runs, and this run ${runCount(current)}`);
+  else {
+    if (runCount(base) !== runCount(current)) warnings.push(`the baseline has ${runCount(base)} runs, and this run ${runCount(current)}`);
+    warnings.push(...statisticsWarnings(base, current, metrics));
+  }
   const machine = machineWarning(b?.machine, c?.machine);
   if (machine) warnings.push(machine);
   if (b && c && b.cliVersion !== c.cliVersion) {
@@ -235,13 +262,14 @@ function warningsOf(base, current) {
 // A page against its baseline, as the `baseline` field of its JSON. The runs of the baseline say how
 // much to trust its values, in the header of the reports.
 export function compareRun(base, current, { file, thresholds = DEFAULT_THRESHOLDS }) {
+  const metrics = compareMetrics(base, current, thresholds);
   return {
     file,
     url: base.url,
     runs: base.runs ? { count: base.runs.count, medianBy: base.runs.medianBy } : { count: 1 },
-    metrics: compareMetrics(base, current, thresholds),
+    metrics,
     errors: compareErrors(base, current),
-    warnings: warningsOf(base, current),
+    warnings: warningsOf(base, current, metrics),
   };
 }
 
