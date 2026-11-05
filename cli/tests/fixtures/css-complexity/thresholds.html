@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CSS thresholds fixture</title>
+  <script>
+    // 49 @font-face rules (over the 48 of the 90th percentile of The CSS Selection 2026), a selector
+    // repeated in 10 rules (uniqueness under 0.66) and !important on 30 of 140 declarations (over 13%)
+    const faces = Array.from({ length: 49 }, (_, i) => `@font-face { font-family: "F${i}"; src: url("/f${i}.woff2") format("woff2"); }`);
+    const repeated = Array.from({ length: 10 }, (_, i) => `.repeated { margin-top: ${i}px; }`);
+    const important = Array.from({ length: 10 }, (_, i) => `.i${i} { color: red !important; padding: 1px !important; margin: 1px !important; }`);
+    const keyframes = "@keyframes pulse { to { opacity: 0.5; } } @keyframes never { to { opacity: 0; } }";
+    window.__css = { inline: [...faces, ...repeated, ...important, keyframes].join("\n") };
+    const style = document.createElement("style");
+    style.textContent = window.__css.inline;
+    document.head.append(style);
+  </script>
+</head>
+<body><p style="animation: pulse 2s infinite">Pulse</p></body>
+</html>

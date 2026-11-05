@@ -13,7 +13,13 @@
     "embeddedCount": 0,
     "embeddedTypes": [],
     "importCount": 0,
-    "emptyRuleCount": 0
+    "emptyRuleCount": 0,
+    "selectorUniqueness": 1,
+    "importantCount": 0,
+    "importantPercent": 0,
+    "fontFaceCount": 0,
+    "keyframesCount": 0,
+    "unusedKeyframes": []
   },
   "items": [
     {
@@ -21,7 +27,8 @@
       "read": "cssom",
       "ruleCount": 80,
       "embeddedBytes": 0,
-      "importCount": 0
+      "importCount": 0,
+      "importantCount": 0
     }
   ],
   "issues": []

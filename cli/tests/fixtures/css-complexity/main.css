@@ -18,3 +18,8 @@ body { margin: 0; font-family: "Inline Sans", sans-serif; }
   .nested-child { margin: 0; }
   @supports (display: grid) { display: grid; }
 }
+.card { border-radius: 4px; }
+.badge { color: white !important; background: navy; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fade-old { from { opacity: 0; } to { opacity: 1; } }
+.spinner { animation: spin 1s linear infinite; }
