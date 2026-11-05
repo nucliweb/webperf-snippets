@@ -23,5 +23,7 @@ export function cssOracle(texts) {
     fontFaceCount: r.atrules.fontface.total,
     keyframesCount: r.atrules.keyframes.total,
     unusedKeyframes: [...r.atrules.keyframes.unused].sort(),
+    maxSelectorComplexity: r.selectors.complexity.max ?? 0,
+    commonSelectorComplexity: r.selectors.complexity.mode ?? 0,
   };
 }

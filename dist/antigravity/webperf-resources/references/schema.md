@@ -830,7 +830,7 @@ Issues keep `{ severity, message }`. The fix is the last sentence of the message
 
 Reads the CSSOM of every stylesheet of the page: of the document, adopted, in open shadow roots and imported with `@import`. One item per stylesheet, the most embedded bytes first, with `read: "cssom"`; `read: "fetched"` for a stylesheet of another origin whose rules the page cannot read and `fetch` can, as with `Access-Control-Allow-Origin` and a `<link>` without `crossorigin`, parsed with the same CSSOM, its `@import` rules included; or `read: "unreadable"` and only its `source` when neither works, which sets `corsLimitedAnalysis: true`. `source` is the URL of the sheet, or a label such as `<style> #1` or `adopted stylesheet #1`.
 
-`details` counts what the CSSOM keeps of the CSS as written, as [css-analyzer](https://github.com/projectwallace/css-analyzer) counts its text: rules (style rules, nested and inside at-rules), selectors (each one of a list), declarations (also those of `@font-face` and `@keyframes`), embedded content (`data:` URLs, in characters, and by MIME type), `@import` rules, empty rules, `!important` declarations, `@font-face` and `@keyframes` rules. `selectorUniqueness` is unique selectors over all selectors, without their context, so a selector repeated in two `@media` counts as repeated (1 without selectors). `unusedKeyframes` lists the `@keyframes` that no `animation` or `animation-name` of the stylesheets or of a `style` attribute names. The CSSOM drops comments, hacks, invalid declarations and rules with unsupported selectors, and writes a few shorthands as longhands, so these counts can differ slightly from those of the text.
+`details` counts what the CSSOM keeps of the CSS as written, as [css-analyzer](https://github.com/projectwallace/css-analyzer) counts its text: rules (style rules, nested and inside at-rules), selectors (each one of a list), declarations (also those of `@font-face` and `@keyframes`), embedded content (`data:` URLs, in characters, and by MIME type), `@import` rules, empty rules, `!important` declarations, `@font-face` and `@keyframes` rules. `selectorUniqueness` is unique selectors over all selectors, without their context, so a selector repeated in two `@media` counts as repeated (1 without selectors). `unusedKeyframes` lists the `@keyframes` that no `animation` or `animation-name` of the stylesheets or of a `style` attribute names. `maxSelectorComplexity` and `commonSelectorComplexity` (the mode, or the mean of the tied values) give the complexity of the selectors as css-analyzer computes it, and `complexSelectors` the 5 most complex, as `{ selectorText, complexity }`: `selectorText` is the selector of a rule, not of an element of the page. The CSSOM drops comments, hacks, invalid declarations and rules with unsupported selectors, and writes a few shorthands as longhands, so these counts can differ slightly from those of the text.
 
 ```json
 {
@@ -855,7 +855,10 @@ Reads the CSSOM of every stylesheet of the page: of the document, adopted, in op
     "importantPercent": 2.3,
     "fontFaceCount": 8,
     "keyframesCount": 9,
-    "unusedKeyframes": ["spin-old"]
+    "unusedKeyframes": ["spin-old"],
+    "maxSelectorComplexity": 18,
+    "commonSelectorComplexity": 1,
+    "complexSelectors": [{ "selectorText": ".nav > ul li:not(.active) a[href^=\"http\"]", "complexity": 11 }]
   },
   "items": [
     { "source": "https://example.com/app.css", "read": "cssom", "ruleCount": 790, "embeddedBytes": 41210, "importCount": 1, "importantCount": 48 },
@@ -1316,6 +1319,7 @@ An issue about one thing among several, one issue per thing, also names it in `t
 | `important-ratio` | info | More than 13% of the declarations use `!important`, the 90th percentile of homepages |
 | `font-face-count` | info | More than 48 `@font-face` rules, the 90th percentile of homepages |
 | `unused-keyframes` | info | A `@keyframes` that no animation of the stylesheets or of a `style` attribute uses, only when every stylesheet could be read; `target` is its name |
+| `selector-complexity` | info | A selector among the 5 most complex with a complexity above 29, the 90th percentile of the most complex selector of homepages; `target` is the selector of the rule |
 | `unreadable-stylesheets` | info | Cross-origin stylesheets whose rules the page cannot read and `fetch` cannot either |
 
 ### CSS-Media-Queries-Analysis

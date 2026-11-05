@@ -20,7 +20,31 @@
     "importantPercent": 0,
     "fontFaceCount": 0,
     "keyframesCount": 0,
-    "unusedKeyframes": []
+    "unusedKeyframes": [],
+    "maxSelectorComplexity": 1,
+    "commonSelectorComplexity": 1,
+    "complexSelectors": [
+      {
+        "selectorText": ".c0",
+        "complexity": 1
+      },
+      {
+        "selectorText": ".c1",
+        "complexity": 1
+      },
+      {
+        "selectorText": ".c2",
+        "complexity": 1
+      },
+      {
+        "selectorText": ".c3",
+        "complexity": 1
+      },
+      {
+        "selectorText": ".c4",
+        "complexity": 1
+      }
+    ]
   },
   "items": [
     {

@@ -9,7 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- [CSS complexity](https://webperf-snippets.net/Loading/CSS-Complexity) reads every stylesheet of the page, including imported and adopted ones and those in open shadow roots, and counts its rules, selectors, declarations, `data:` URLs, `@import` rules, `!important`, `@font-face` and `@keyframes` as css-analyzer by Project Wallace does. It reports a font embedded in the CSS, more embedded content than 90% of homepages in The CSS Selection 2026, each `@import`, empty rules, repeated selectors, a share of `!important` or a number of `@font-face` above 90% of homepages, `@keyframes` that nothing uses, and the stylesheets of another origin it could not read. A stylesheet of another origin loaded without `crossorigin` is read with `fetch` when its server allows it.
+- [CSS complexity](https://webperf-snippets.net/Loading/CSS-Complexity) reads every stylesheet of the page, including imported and adopted ones and those in open shadow roots, and counts its rules, selectors, declarations, `data:` URLs, `@import` rules, `!important`, `@font-face` and `@keyframes` as css-analyzer by Project Wallace does. It reports a font embedded in the CSS, more embedded content than 90% of homepages in The CSS Selection 2026, each `@import`, empty rules, repeated selectors, a share of `!important` or a number of `@font-face` above 90% of homepages, `@keyframes` that nothing uses, selectors more complex than the most complex one of 90% of homepages, and the stylesheets of another origin it could not read. A stylesheet of another origin loaded without `crossorigin` is read with `fetch` when its server allows it.
 
 ---
 

@@ -270,6 +270,7 @@ Use this decision tree to automatically run follow-up snippets based on results:
 - **If import** → Recommend linking the imported stylesheet from the HTML or bundling it, and run **Find-render-blocking-resources.js** to see the chain
 - **If font-face-count** → Run **Webfont-Usage-Analyzer.js** to find the faces that never load
 - **If unused-keyframes** → Check that no script sets the animation before suggesting to remove it
+- **If selector-complexity** → Treat it as maintainability: only a trace with CSS selector stats (Performance panel, CSS selector costs insight) shows whether matching it is slow
 - **If corsLimitedAnalysis is true** → Report the counts as a lower bound, and suggest `crossorigin` on the `<link>` with `Access-Control-Allow-Origin` on stylesheets you control
 
 ### After Back-Forward-Cache.js

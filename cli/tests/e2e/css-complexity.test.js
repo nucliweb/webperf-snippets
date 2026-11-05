@@ -170,6 +170,44 @@ describe("CSS-Complexity", () => {
     // css-analyzer reads only the CSS; the snippet also sees the animation of the style attribute
     expect(unusedKeyframes).toEqual(["never", "pulse"]);
     expect(result.details.unusedKeyframes).toEqual(["never"]);
+    // The selector above the 90th percentile of complexity, first among the most complex
+    const complex = 'html body div#main.content > ul.list li.item:first-child a.link[target="_blank"]:not(.a, .b, .c, .d, .e, .f, .g, .h, .i, .j)::after';
+    const complexity = cssOracle([`${complex} {}`]).maxSelectorComplexity;
+    expect(complexity).toBeGreaterThan(29);
+    expect(result.details.complexSelectors[0]).toEqual({ selectorText: complex, complexity });
+    expect(result.issues.filter((i) => i.code === "selector-complexity")).toEqual([
+      expect.objectContaining({ severity: "info", target: complex }),
+    ]);
+  }, 30000);
+
+  // The complexity of css-analyzer for each selector: every part counts 1, a vendor prefix and an
+  // attribute value 1 more, and :is(), :where(), :not(), :has() and :nth-child() add the selectors
+  // they hold. The CSSOM drops the * of *::selection and writes a nested .b as & .b, so those differ.
+  it.each([
+    "a", "*", ".a", "#x", ".a .b", ".a > .b", ".a + .b ~ .c", "a[href]", 'a[href^="http"]', "::-webkit-scrollbar",
+    "::before", "a:hover", "input:-webkit-autofill", ":where(#x > *)", ":is(.a, .b) .c", ":not(.a)", "img:has(> img)",
+    ":has(+ .a)", "li:nth-child(2n+1)", "li:nth-child(2n+1 of .a)", "li:nth-of-type(2)", "li:nth-last-child(1)",
+    ":lang(en)", ":dir(rtl)", ":host(.x)", "::slotted(.a)", "::part(label)", "&:hover", ".x\\:hover\\:bg-red:hover",
+    '.nav > ul li:not(.a) a[href^="http"]', ":root", ":where(.a, .b, .c)", ".a:not(.b, .c)", "button:focus-visible",
+    'html body div#main.content > ul.list li.item:first-child a.link[target="_blank"]::after',
+    // Nested pseudo-classes: css-analyzer adds the selectors they hold once more
+    ":where(select:is(.a))", ":is(:is(.a))", ":not(:not(.a))", ":where(select:is([multiple], [size])) optgroup option",
+    ":host(:is(.a))", ":where(:host(.a))", ":not(:where(:is(.a)))", "li:nth-child(2n of :is(.a))", ":where(:not(.a, .b))",
+  ])("gives %s the complexity css-analyzer gives it", async (selector) => {
+    const page = await browser.newPage();
+    try {
+      await page.goto(`${baseUrl}/empty.html`, { waitUntil: "load" });
+      await page.evaluate((css) => {
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+      }, `${selector} { color: red; }`);
+      const result = await page.evaluate(loadSnippet("Loading/CSS-Complexity").trim().replace(/;\s*$/, ""));
+      expect(result.details.ruleCount).toBe(1);
+      expect(result.details.maxSelectorComplexity).toBe(cssOracle([`${selector} {}`]).maxSelectorComplexity);
+    } finally {
+      await page.close();
+    }
   }, 30000);
 
   it("warns when the embedded content is above the 90th percentile of The CSS Selection 2026", async () => {
@@ -217,7 +255,7 @@ describe("CSS-Complexity", () => {
     const { result } = await run("empty.html");
     expect(result.status).toBe("ok");
     expect(result.count).toBe(0);
-    expect(result.details).toMatchObject({ stylesheetCount: 0, ruleCount: 0, embeddedBytes: 0, importCount: 0, selectorUniqueness: 1, importantCount: 0, importantPercent: 0, fontFaceCount: 0, keyframesCount: 0, unusedKeyframes: [] });
+    expect(result.details).toMatchObject({ stylesheetCount: 0, ruleCount: 0, embeddedBytes: 0, importCount: 0, selectorUniqueness: 1, importantCount: 0, importantPercent: 0, fontFaceCount: 0, keyframesCount: 0, unusedKeyframes: [], maxSelectorComplexity: 0, commonSelectorComplexity: 0, complexSelectors: [] });
     expect(result.issues).toEqual([]);
   }, 30000);
 });

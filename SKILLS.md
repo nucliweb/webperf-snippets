@@ -132,7 +132,7 @@ Comprehensive loading performance analysis and optimization with built-in workfl
 - Resource hints validation (preload, prefetch, preconnect)
 - Service Worker analysis
 - Critical CSS detection
-- CSS complexity (embedded content, @import, empty rules, repeated selectors, unused @keyframes)
+- CSS complexity (embedded content, @import, empty rules, repeated selectors, unused @keyframes, selector complexity)
 - Inline script/CSS analysis
 - Back/Forward Cache compatibility
 - Priority hints audit
