@@ -17,5 +17,11 @@ export function cssOracle(texts) {
       .sort((a, b) => b.bytes - a.bytes || a.type.localeCompare(b.type)),
     importCount: r.atrules.import.total,
     emptyRuleCount: r.rules.empty.total,
+    selectorUniqueness: r.selectors.total ? Math.round(r.selectors.uniquenessRatio * 1000) / 1000 : 1,
+    importantCount: r.declarations.importants.total,
+    importantPercent: Math.round(r.declarations.importants.ratio * 1000) / 10,
+    fontFaceCount: r.atrules.fontface.total,
+    keyframesCount: r.atrules.keyframes.total,
+    unusedKeyframes: [...r.atrules.keyframes.unused].sort(),
   };
 }

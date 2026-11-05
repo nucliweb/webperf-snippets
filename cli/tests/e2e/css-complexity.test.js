@@ -37,7 +37,7 @@ beforeAll(async () => {
     const path = req.url.split("?")[0];
     if (path === "/unreadable.html") {
       res.writeHead(200, { "Content-Type": "text/html" });
-      return res.end(`<!DOCTYPE html><title>u</title><link rel="stylesheet" href="${otherUrl}/remote.css"><style>.local { color: blue; }</style><h1>u</h1>`);
+      return res.end(`<!DOCTYPE html><title>u</title><link rel="stylesheet" href="${otherUrl}/remote.css"><style>.local { color: blue; } @keyframes local-only { to { opacity: 0; } }</style><h1>u</h1>`);
     }
     if (path === "/empty.html") {
       res.writeHead(200, { "Content-Type": "text/html" });
@@ -105,9 +105,10 @@ describe("CSS-Complexity", () => {
     expect(first).toEqual({
       source: `${baseUrl}/main.css`,
       read: "cssom",
-      ruleCount: 9,
+      ruleCount: 12,
       embeddedBytes: cssOracle([file("main.css")]).embeddedBytes,
       importCount: 1,
+      importantCount: 1,
     });
     expect(result.items.map((i) => i.source)).toEqual(
       expect.arrayContaining([`${baseUrl}/imported.css`, "<style> #1", "<style> in the shadow root of div#host", "adopted stylesheet #1"])
@@ -125,6 +126,33 @@ describe("CSS-Complexity", () => {
     expect(result.issues.find((i) => i.code === "empty-rules").message).toMatch(/^4 empty rules/);
   }, 30000);
 
+  it("reports an unused @keyframes, and none of the thresholds of duplicates, !important or @font-face below them", async () => {
+    const { result } = await run("index.html");
+    expect(result.details.unusedKeyframes).toEqual(["fade-old"]);
+    expect(result.issues.filter((i) => i.code === "unused-keyframes")).toEqual([
+      expect.objectContaining({ severity: "info", target: "fade-old" }),
+    ]);
+    const codes = result.issues.map((i) => i.code);
+    for (const code of ["duplicate-selectors", "important-ratio", "font-face-count"]) expect(codes).not.toContain(code);
+  }, 30000);
+
+  it("reports duplicate selectors, !important and @font-face above their thresholds, as css-analyzer counts them", async () => {
+    const { result, inline } = await run("thresholds.html");
+    const { unusedKeyframes, ...oracle } = cssOracle(inline);
+    expect(result.details).toMatchObject(oracle);
+    expect(result.details.selectorUniqueness).toBeLessThan(0.66);
+    expect(result.details.importantPercent).toBeGreaterThan(13);
+    expect(result.details.fontFaceCount).toBe(49);
+    const codes = result.issues.map((i) => i.code);
+    expect(codes).toEqual(expect.arrayContaining(["duplicate-selectors", "important-ratio", "font-face-count"]));
+    for (const code of ["duplicate-selectors", "important-ratio", "font-face-count"]) {
+      expect(result.issues.find((i) => i.code === code).severity).toBe("info");
+    }
+    // css-analyzer reads only the CSS; the snippet also sees the animation of the style attribute
+    expect(unusedKeyframes).toEqual(["never", "pulse"]);
+    expect(result.details.unusedKeyframes).toEqual(["never"]);
+  }, 30000);
+
   it("warns when the embedded content is above the 90th percentile of The CSS Selection 2026", async () => {
     const { result, inline } = await run("embedded-large.html");
     expect(result.details.embeddedBytes).toBe(cssOracle(inline).embeddedBytes);
@@ -138,13 +166,16 @@ describe("CSS-Complexity", () => {
     expect(result.details).toMatchObject({ stylesheetCount: 2, unreadableCount: 1, ruleCount: 1 });
     expect(result.items).toContainEqual({ source: `${otherUrl}/remote.css`, read: "unreadable" });
     expect(result.issues).toContainEqual(expect.objectContaining({ code: "unreadable-stylesheets", severity: "info" }));
+    // The unreadable sheet could use the @keyframes of the page, so none is reported as unused
+    expect(result.details.unusedKeyframes).toEqual(["local-only"]);
+    expect(result.issues.map((i) => i.code)).not.toContain("unused-keyframes");
   }, 30000);
 
   it("answers with zeros on a page without CSS", async () => {
     const { result } = await run("empty.html");
     expect(result.status).toBe("ok");
     expect(result.count).toBe(0);
-    expect(result.details).toMatchObject({ stylesheetCount: 0, ruleCount: 0, embeddedBytes: 0, importCount: 0 });
+    expect(result.details).toMatchObject({ stylesheetCount: 0, ruleCount: 0, embeddedBytes: 0, importCount: 0, selectorUniqueness: 1, importantCount: 0, importantPercent: 0, fontFaceCount: 0, keyframesCount: 0, unusedKeyframes: [] });
     expect(result.issues).toEqual([]);
   }, 30000);
 });

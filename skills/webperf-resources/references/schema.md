@@ -830,7 +830,7 @@ Issues keep `{ severity, message }`. The fix is the last sentence of the message
 
 Reads the CSSOM of every stylesheet of the page: of the document, adopted, in open shadow roots and imported with `@import`. One item per stylesheet, the most embedded bytes first, with `read: "cssom"`, or `read: "unreadable"` and only its `source` for a stylesheet of another origin loaded without CORS, which sets `corsLimitedAnalysis: true`. `source` is the URL of the sheet, or a label such as `<style> #1` or `adopted stylesheet #1`.
 
-`details` counts what the CSSOM keeps of the CSS as written, as [css-analyzer](https://github.com/projectwallace/css-analyzer) counts its text: rules (style rules, nested and inside at-rules), selectors (each one of a list), declarations (also those of `@font-face` and `@keyframes`), embedded content (`data:` URLs, in characters, and by MIME type), `@import` rules and empty rules. The CSSOM drops comments, hacks, invalid declarations and rules with unsupported selectors, and writes a few shorthands as longhands, so these counts can differ slightly from those of the text.
+`details` counts what the CSSOM keeps of the CSS as written, as [css-analyzer](https://github.com/projectwallace/css-analyzer) counts its text: rules (style rules, nested and inside at-rules), selectors (each one of a list), declarations (also those of `@font-face` and `@keyframes`), embedded content (`data:` URLs, in characters, and by MIME type), `@import` rules, empty rules, `!important` declarations, `@font-face` and `@keyframes` rules. `selectorUniqueness` is unique selectors over all selectors, without their context, so a selector repeated in two `@media` counts as repeated (1 without selectors). `unusedKeyframes` lists the `@keyframes` that no `animation` or `animation-name` of the stylesheets or of a `style` attribute names. The CSSOM drops comments, hacks, invalid declarations and rules with unsupported selectors, and writes a few shorthands as longhands, so these counts can differ slightly from those of the text.
 
 ```json
 {
@@ -848,11 +848,17 @@ Reads the CSSOM of every stylesheet of the page: of the document, adopted, in op
     "embeddedCount": 12,
     "embeddedTypes": [{ "type": "font/woff2", "count": 2, "bytes": 38090 }, { "type": "image/svg+xml", "count": 10, "bytes": 3120 }],
     "importCount": 1,
-    "emptyRuleCount": 14
+    "emptyRuleCount": 14,
+    "selectorUniqueness": 0.81,
+    "importantCount": 51,
+    "importantPercent": 2.3,
+    "fontFaceCount": 8,
+    "keyframesCount": 9,
+    "unusedKeyframes": ["spin-old"]
   },
   "items": [
-    { "source": "https://example.com/app.css", "read": "cssom", "ruleCount": 790, "embeddedBytes": 41210, "importCount": 1 },
-    { "source": "https://example.com/vendor.css", "read": "cssom", "ruleCount": 22, "embeddedBytes": 0, "importCount": 0 }
+    { "source": "https://example.com/app.css", "read": "cssom", "ruleCount": 790, "embeddedBytes": 41210, "importCount": 1, "importantCount": 48 },
+    { "source": "https://example.com/vendor.css", "read": "cssom", "ruleCount": 22, "embeddedBytes": 0, "importCount": 0, "importantCount": 3 }
   ],
   "issues": [{ "code": "import", "severity": "warning", "message": "https://example.com/app.css imports https://example.com/vendor.css with @import: ...", "target": "https://example.com/vendor.css" }]
 }
@@ -1305,6 +1311,10 @@ An issue about one thing among several, one issue per thing, also names it in `t
 | `embedded-content` | warning | The `data:` URLs of all the CSS add up to more than 36.6 kB, the 90th percentile of homepages in The CSS Selection 2026 |
 | `import` | warning | An `@import` rule, one issue per rule; `target` is the URL it imports |
 | `empty-rules` | info | One or more style rules without declarations |
+| `duplicate-selectors` | info | Fewer than 66% of the selectors are unique, the threshold of css-code-quality |
+| `important-ratio` | info | More than 13% of the declarations use `!important`, the 90th percentile of homepages |
+| `font-face-count` | info | More than 48 `@font-face` rules, the 90th percentile of homepages |
+| `unused-keyframes` | info | A `@keyframes` that no animation of the stylesheets or of a `style` attribute uses, only when every stylesheet could be read; `target` is its name |
 | `unreadable-stylesheets` | info | Cross-origin stylesheets whose rules cannot be read |
 
 ### CSS-Media-Queries-Analysis

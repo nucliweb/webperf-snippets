@@ -2,6 +2,9 @@
   const SCRIPT = "CSS-Complexity";
   const MAX_ITEMS = 50;
   const EMBEDDED_P90_BYTES = 36632;
+  const IMPORTANT_P90_PERCENT = 13;
+  const FONT_FACE_P90 = 48;
+  const MIN_SELECTOR_UNIQUENESS = 0.66;
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
     if (bytes === 0) return "0 B";
@@ -67,6 +70,24 @@
   }
   const imports = [];
   const embeddedTypes = new Map;
+  const selectorCounts = new Map;
+  const keyframesDefined = new Set;
+  const animationsUsed = new Set;
+  let keyframesCount = 0;
+  let fontFaceCount = 0;
+  const noteAnimations = style => {
+    for (const name of (style.animationName ?? "").split(",")) {
+      const n = name.trim();
+      if (n && n !== "none") animationsUsed.add(n);
+    }
+  };
+  function noteDeclarations(style, stats) {
+    const declarations = declarationsOf(style);
+    stats.declarationCount += declarations.length;
+    stats.importantCount += declarations.filter(d => /!\s*important$/i.test(d)).length;
+    noteAnimations(style);
+    return declarations;
+  }
   function walk(rules, stats, sheetUrl) {
     for (const rule of rules) if (rule instanceof window.CSSImportRule) {
       stats.importCount++;
@@ -80,23 +101,29 @@
       });
       addSheet(rule.styleSheet, href);
     } else if (rule instanceof window.CSSStyleRule) {
-      const declarations = declarationsOf(rule.style);
+      const declarations = noteDeclarations(rule.style, stats);
       const nested = rule.cssRules?.length ?? 0;
+      const selectors = splitTopLevel(rule.selectorText, ",");
       stats.ruleCount++;
-      stats.selectorCount += splitTopLevel(rule.selectorText, ",").length;
-      stats.declarationCount += declarations.length;
+      stats.selectorCount += selectors.length;
+      for (const selector of selectors) selectorCounts.set(selector, (selectorCounts.get(selector) ?? 0) + 1);
       if (declarations.length === 0 && nested === 0) stats.emptyRuleCount++;
       count(embeddedOf(rule.style.cssText, false), stats);
       if (nested) walk(rule.cssRules, stats, sheetUrl);
     } else if (window.CSSNestedDeclarations && rule instanceof window.CSSNestedDeclarations) {
-      stats.declarationCount += declarationsOf(rule.style).length;
+      noteDeclarations(rule.style, stats);
       count(embeddedOf(rule.style.cssText, false), stats);
     } else if (rule instanceof window.CSSFontFaceRule) {
+      fontFaceCount++;
       stats.declarationCount += declarationsOf(rule.style).length;
       count(embeddedOf(rule.style.cssText, true), stats);
-    } else if (rule instanceof window.CSSKeyframesRule) for (const keyframe of rule.cssRules) {
-      stats.declarationCount += declarationsOf(keyframe.style).length;
-      count(embeddedOf(keyframe.style.cssText, false), stats);
+    } else if (rule instanceof window.CSSKeyframesRule) {
+      keyframesCount++;
+      keyframesDefined.add(rule.name);
+      for (const keyframe of rule.cssRules) {
+        stats.declarationCount += declarationsOf(keyframe.style).length;
+        count(embeddedOf(keyframe.style.cssText, false), stats);
+      }
     } else if (rule.cssRules) walk(rule.cssRules, stats, sheetUrl);
   }
   function count(embedded, stats) {
@@ -137,6 +164,7 @@
       ruleCount: 0,
       selectorCount: 0,
       declarationCount: 0,
+      importantCount: 0,
       emptyRuleCount: 0,
       embeddedBytes: 0,
       embeddedCount: 0,
@@ -147,9 +175,15 @@
     walk(rules, stats, sheet.href || location.href);
     perSheet.push(stats);
   }
+  const roots = [ document, ...[ ...document.querySelectorAll("*") ].map(el => el.shadowRoot).filter(Boolean) ];
+  for (const root of roots) for (const el of root.querySelectorAll("[style]")) noteAnimations(el.style);
   const read = perSheet.filter(s => s.read !== "unreadable");
   const unreadable = perSheet.filter(s => s.read === "unreadable");
   const sum = key => read.reduce((total, s) => total + s[key], 0);
+  const selectorUniqueness = () => {
+    const total = [ ...selectorCounts.values() ].reduce((a, b) => a + b, 0);
+    return total ? Math.round(selectorCounts.size / total * 1000) / 1000 : 1;
+  };
   const details = {
     stylesheetCount: perSheet.length,
     unreadableCount: unreadable.length,
@@ -160,8 +194,15 @@
     embeddedCount: sum("embeddedCount"),
     embeddedTypes: [ ...embeddedTypes.values() ].sort((a, b) => b.bytes - a.bytes || a.type.localeCompare(b.type)),
     importCount: sum("importCount"),
-    emptyRuleCount: sum("emptyRuleCount")
+    emptyRuleCount: sum("emptyRuleCount"),
+    selectorUniqueness: selectorUniqueness(),
+    importantCount: sum("importantCount"),
+    importantPercent: 0,
+    fontFaceCount: fontFaceCount,
+    keyframesCount: keyframesCount,
+    unusedKeyframes: [ ...keyframesDefined ].filter(name => !animationsUsed.has(name)).sort()
   };
+  details.importantPercent = details.declarationCount ? Math.round(details.importantCount / details.declarationCount * 1000) / 10 : 0;
   const issues = [];
   for (const s of read.filter(s => s.fontCount > 0)) issues.push({
     code: "embedded-font",
@@ -185,6 +226,30 @@
     severity: "info",
     message: `${plural(details.emptyRuleCount, "empty rule")}, with no declarations: bytes to download and selectors to match that style nothing`
   });
+  if (details.selectorCount > 0 && details.selectorUniqueness < MIN_SELECTOR_UNIQUENESS) {
+    const repeated = [ ...selectorCounts.entries() ].filter(([, n]) => n > 1).sort((a, b) => b[1] - a[1]);
+    issues.push({
+      code: "duplicate-selectors",
+      severity: "info",
+      message: `Only ${Math.round(details.selectorUniqueness * 100)}% of the ${details.selectorCount} selectors are unique: the same selectors repeat across rules, which adds CSS to download and match. Some repeat inside @media on purpose; merge the others. Most repeated: ${repeated.slice(0, 3).map(([sel, n]) => `${sel} (${n})`).join(", ")}`
+    });
+  }
+  if (details.importantPercent > IMPORTANT_P90_PERCENT) issues.push({
+    code: "important-ratio",
+    severity: "info",
+    message: `${details.importantPercent}% of the declarations use !important, more than on 90% of homepages (${IMPORTANT_P90_PERCENT}%, The CSS Selection 2026): a sign of overrides on overrides, which make the CSS grow`
+  });
+  if (fontFaceCount > FONT_FACE_P90) issues.push({
+    code: "font-face-count",
+    severity: "info",
+    message: `${fontFaceCount} @font-face rules, more than on 90% of homepages (${FONT_FACE_P90}, The CSS Selection 2026). Run Webfont-Usage-Analyzer to see which faces load and which are never used`
+  });
+  if (unreadable.length === 0) for (const name of details.unusedKeyframes) issues.push({
+    code: "unused-keyframes",
+    severity: "info",
+    message: `@keyframes ${name} is defined, and no animation of the stylesheets or of a style attribute uses it: CSS that never runs, unless JavaScript sets it later`,
+    target: name
+  });
   if (unreadable.length > 0) issues.push({
     code: "unreadable-stylesheets",
     severity: "info",
@@ -198,7 +263,8 @@
     read: s.read,
     ruleCount: s.ruleCount,
     embeddedBytes: s.embeddedBytes,
-    importCount: s.importCount
+    importCount: s.importCount,
+    importantCount: s.importantCount
   }).sort((a, b) => (b.embeddedBytes ?? -1) - (a.embeddedBytes ?? -1) || (b.ruleCount ?? -1) - (a.ruleCount ?? -1));
   if (items.length > 0) void 0;
   if (issues.length > 0) issues.forEach(i => {}); else void 0;
