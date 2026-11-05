@@ -76,7 +76,7 @@
   let keyframesCount = 0;
   let fontFaceCount = 0;
   const noteAnimations = style => {
-    for (const name of (style.animationName ?? "").split(",")) {
+    for (const name of (style?.animationName ?? "").split(",")) {
       const n = name.trim();
       if (n && n !== "none") animationsUsed.add(n);
     }

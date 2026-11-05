@@ -16,5 +16,13 @@
     document.head.append(style);
   </script>
 </head>
-<body><p style="animation: pulse 2s infinite">Pulse</p></body>
+<body>
+  <p style="animation: pulse 2s infinite">Pulse</p>
+  <script>
+    // An element of another namespace has a style attribute and no style property
+    const other = document.createElementNS("urn:example", "x-data");
+    other.setAttribute("style", "color: red");
+    document.body.append(other);
+  </script>
+</body>
 </html>

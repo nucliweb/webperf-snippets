@@ -103,8 +103,9 @@
   let keyframesCount = 0;
   let fontFaceCount = 0;
 
+  // An element of another namespace than HTML, SVG or MathML has a style attribute and no style
   const noteAnimations = (style) => {
-    for (const name of (style.animationName ?? "").split(",")) {
+    for (const name of (style?.animationName ?? "").split(",")) {
       const n = name.trim();
       if (n && n !== "none") animationsUsed.add(n);
     }
