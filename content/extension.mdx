@@ -36,7 +36,7 @@ A Chrome DevTools panel that runs the snippets on the inspected page and shows t
 
 ## What it does
 
-- Lists the 56 snippets by category, with a search (`/`), and runs the chosen one on the inspected page (`Ctrl` `Enter` or `Cmd` `Enter`).
+- Lists the 57 snippets by category, with a search (`/`), and runs the chosen one on the inspected page (`Ctrl` `Enter` or `Cmd` `Enter`).
 - Shows each result by the [return contract](https://github.com/nucliweb/webperf-snippets/blob/main/snippets/SCHEMA.md): the metric and its rating, the issues sorted by severity, the items as a table and the details. A selector in the result opens its element in the Elements panel.
 - Runs snippets that record what happens, such as INP or long animation frames: run it, use the page, then press Read result.
 - Runs a structural audit: the 22 snippets of the [CLI](/CLI) audit workflow, one after the other, on a page it reloads first, as the CLI loads it. The table opens on the snippets with errors or warnings, to keep them in focus; Errors and All change the rows it shows, and the panel remembers the choice. Each audit says what changed since an earlier audit of the same page, the previous one unless you choose another: tables of new, changed and resolved issues, paired by their code and the resource they name, and of metrics whose rating moved. A changed issue shows only the numbers that moved, and an issue whose severity moves is a change. The panel keeps the last ten audits.

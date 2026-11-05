@@ -1,0 +1,20 @@
+@import url("imported.css");
+
+@font-face {
+  font-family: "Inline Sans";
+  src: url(data:font/woff2;base64,d09GMgABAAAAAAQUAA0AAAAABzQAAAPAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbHhwgBmAANBEICgAKBQsGAAE2AiQDCAQgBYJiBy4b) format("woff2");
+}
+
+body { margin: 0; font-family: "Inline Sans", sans-serif; }
+.title { font-size: 2rem; line-height: 1.2; }
+.hero { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==) no-repeat center / cover; }
+.card, .card--wide { padding: 1rem; border: 1px solid #ccc; }
+.unused-yet {}
+@supports (display: grid) {
+  .grid { display: grid; gap: 1rem; }
+}
+.nested { color: navy;
+  &:hover { color: teal; }
+  .nested-child { margin: 0; }
+  @supports (display: grid) { display: grid; }
+}

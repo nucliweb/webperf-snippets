@@ -71,6 +71,9 @@ export default {
   "CSS-Media-Queries-Analysis": {
     "title": "CSS Media Queries Analysis"
   },
+  "CSS-Complexity": {
+    "title": "CSS Complexity"
+  },
   "Critical-CSS-Detection": {
     "title": "Critical CSS Detection"
   },

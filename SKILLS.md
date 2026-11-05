@@ -6,7 +6,7 @@ A collection of [Agent Skills](https://agentskills.io/) for measuring and debugg
 
 ## Why WebPerf Skills?
 
-These skills transform 56 battle-tested JavaScript snippets into agent capabilities for any skills-compatible AI coding assistant:
+These skills transform 57 battle-tested JavaScript snippets into agent capabilities for any skills-compatible AI coding assistant:
 
 - **Browser Console Integration**: Run performance measurements directly in Chrome DevTools
 - **Real-time Analysis**: Measure actual user experience on live pages
@@ -22,7 +22,7 @@ These skills transform 56 battle-tested JavaScript snippets into agent capabilit
 | ------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
 | **[webperf](#webperf)**                                 | Meta-skill | "Audit performance", "check web vitals", "analyze this page" |
 | **[webperf-core-web-vitals](#webperf-core-web-vitals)** | 7          | "Debug LCP", "check CLS", "measure INP"                      |
-| **[webperf-loading](#webperf-loading)**                 | 34         | "Analyze TTFB", "check render-blocking", "audit scripts"     |
+| **[webperf-loading](#webperf-loading)**                 | 35         | "Analyze TTFB", "check render-blocking", "audit scripts"     |
 | **[webperf-interaction](#webperf-interaction)**         | 10         | "Debug jank", "long tasks", "animation frames"               |
 | **[webperf-media](#webperf-media)**                     | 4          | "Audit images", "optimize video", "lazy loading"             |
 | **[webperf-resources](#webperf-resources)**             | 1          | "Check bandwidth", "network quality"                         |
@@ -92,7 +92,7 @@ The main entry point that helps identify the right skill for your performance qu
 **What it does:**
 
 - Routes to the appropriate specialized skill
-- Provides overview of all 56 available snippets
+- Provides overview of all 57 available snippets
 - Suggests which skill to use based on your question
 
 ### webperf-core-web-vitals
@@ -122,7 +122,7 @@ Comprehensive loading performance analysis and optimization with built-in workfl
 
 **Trigger phrases:** "TTFB", "FCP", "render-blocking", "script loading", "font loading", "resource hints"
 
-**Snippets (34):**
+**Snippets (35):**
 
 - TTFB (Time to First Byte) with sub-parts
 - FCP (First Contentful Paint)
@@ -132,6 +132,7 @@ Comprehensive loading performance analysis and optimization with built-in workfl
 - Resource hints validation (preload, prefetch, preconnect)
 - Service Worker analysis
 - Critical CSS detection
+- CSS complexity (embedded content, @import, empty rules)
 - Inline script/CSS analysis
 - Back/Forward Cache compatibility
 - Priority hints audit

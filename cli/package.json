@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.3.1",
+    "@projectwallace/css-analyzer": "9.9.5",
     "vitest": "^5.0.5",
     "web-vitals": "^6.2.3"
   },

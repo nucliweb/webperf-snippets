@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CSS complexity fixture</title>
+  <!-- A linked sheet that imports another, an inline <style>, a sheet in an open shadow root and an
+       adopted one. The fixture keeps the text of the last two in window.__css, so the test can give
+       css-analyzer the same text the page parsed. -->
+  <link rel="stylesheet" href="main.css">
+  <style>
+    .empty-inline {}
+    .icon { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'/>"); }
+    @media (min-width: 600px) { .icon { width: 2rem; height: 2rem; } }
+  </style>
+</head>
+<body>
+  <h1 class="title">CSS complexity</h1>
+  <div id="host"></div>
+  <script>
+    window.__css = {
+      shadow: ".inner { color: teal; } .inner-empty {}",
+      adopted: ".adopted { margin: 0 auto; padding: 4px !important; }",
+    };
+    const root = document.getElementById("host").attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = window.__css.shadow;
+    root.append(style);
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(window.__css.adopted);
+    document.adoptedStyleSheets = [sheet];
+  </script>
+</body>
+</html>

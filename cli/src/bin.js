@@ -40,7 +40,7 @@ Options:
   --workflow <name>     Workflow to run (default: core-web-vitals)
                         Workflows: core-web-vitals, audit, loading, interaction
   --snippet <name>      Run a single snippet by name, alias or Category/Name path
-                        Any of the 56 snippets, such as Compression-Audit
+                        Any of the 57 snippets, such as Compression-Audit
                         Aliases: LCP, CLS, INP, LCP-Subparts, fonts,
                                  render-blocking, resource-hints, preload-scripts,
                                  priority-hints, critical-css, ttfb,

@@ -826,6 +826,38 @@ Issues keep `{ severity, message }`. The fix is the last sentence of the message
 }
 ```
 
+#### CSS-Complexity
+
+Reads the CSSOM of every stylesheet of the page: of the document, adopted, in open shadow roots and imported with `@import`. One item per stylesheet, the most embedded bytes first, with `read: "cssom"`, or `read: "unreadable"` and only its `source` for a stylesheet of another origin loaded without CORS, which sets `corsLimitedAnalysis: true`. `source` is the URL of the sheet, or a label such as `<style> #1` or `adopted stylesheet #1`.
+
+`details` counts what the CSSOM keeps of the CSS as written, as [css-analyzer](https://github.com/projectwallace/css-analyzer) counts its text: rules (style rules, nested and inside at-rules), selectors (each one of a list), declarations (also those of `@font-face` and `@keyframes`), embedded content (`data:` URLs, in characters, and by MIME type), `@import` rules and empty rules. The CSSOM drops comments, hacks, invalid declarations and rules with unsupported selectors, and writes a few shorthands as longhands, so these counts can differ slightly from those of the text.
+
+```json
+{
+  "script": "CSS-Complexity",
+  "status": "ok",
+  "count": 2,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "stylesheetCount": 2,
+    "unreadableCount": 0,
+    "ruleCount": 812,
+    "selectorCount": 1104,
+    "declarationCount": 2210,
+    "embeddedBytes": 41210,
+    "embeddedCount": 12,
+    "embeddedTypes": [{ "type": "font/woff2", "count": 2, "bytes": 38090 }, { "type": "image/svg+xml", "count": 10, "bytes": 3120 }],
+    "importCount": 1,
+    "emptyRuleCount": 14
+  },
+  "items": [
+    { "source": "https://example.com/app.css", "read": "cssom", "ruleCount": 790, "embeddedBytes": 41210, "importCount": 1 },
+    { "source": "https://example.com/vendor.css", "read": "cssom", "ruleCount": 22, "embeddedBytes": 0, "importCount": 0 }
+  ],
+  "issues": [{ "code": "import", "severity": "warning", "message": "https://example.com/app.css imports https://example.com/vendor.css with @import: ...", "target": "https://example.com/vendor.css" }]
+}
+```
+
 #### CSS-Media-Queries-Analysis
 
 One item per distinct media query that targets viewports wider than `details.minWidth`, largest first. `details` gives the totals, `totalUnique` and `uniquenessRatio`, and `bySource` breaks the rules down by stylesheet.
@@ -1264,6 +1296,16 @@ An issue about one thing among several, one issue per thing, also names it in `t
 | `large-blocking` | warning | Blocking scripts larger than 50 KB |
 | `could-defer` | info | Blocking scripts other than the last three of `<body>`, which could try `defer` |
 | `unknown-size` | info | Scripts whose size is hidden by a missing `Timing-Allow-Origin`, so the total is a lower bound |
+
+### CSS-Complexity
+
+| Code | Severity | When |
+|------|----------|------|
+| `embedded-font` | warning | A stylesheet embeds a font as a `data:` URL; `target` is the stylesheet |
+| `embedded-content` | warning | The `data:` URLs of all the CSS add up to more than 36.6 kB, the 90th percentile of homepages in The CSS Selection 2026 |
+| `import` | warning | An `@import` rule, one issue per rule; `target` is the URL it imports |
+| `empty-rules` | info | One or more style rules without declarations |
+| `unreadable-stylesheets` | info | Cross-origin stylesheets whose rules cannot be read |
 
 ### CSS-Media-Queries-Analysis
 

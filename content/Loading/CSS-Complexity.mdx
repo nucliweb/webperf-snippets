@@ -1,0 +1,60 @@
+---
+browserSupport:
+  - api.CSSStyleSheet.cssRules
+  - api.CSSImportRule.styleSheet
+  - api.Document.adoptedStyleSheets
+---
+
+import snippet from '../../snippets/Loading/CSS-Complexity.js?raw'
+import { Snippet } from '../../components/Snippet'
+
+# CSS complexity
+
+Find what the CSS of the page carries that costs bytes and can go: images and fonts embedded as `data:` URLs, `@import` rules that delay the stylesheets they load, and empty rules. The snippet reads every stylesheet of the page, including imported ones, adopted ones and those in shadow roots, and counts them the way [css-analyzer](https://github.com/projectwallace/css-analyzer) by Project Wallace does.
+
+### Snippet
+
+<Snippet code={snippet} />
+
+### Understanding the results
+
+Each item is a stylesheet, the one with the most embedded bytes first:
+
+- **source**: the URL of the stylesheet, or a label such as `<style> #1`, `adopted stylesheet #1` or `<style> in the shadow root of div#app`
+- **read**: `cssom` when its rules could be read, `unreadable` for a stylesheet of another origin loaded without CORS
+- **ruleCount**, **embeddedBytes** and **importCount**: its style rules, the size of its `data:` URLs and its `@import` rules
+
+`details` adds them up for the whole page:
+
+- **stylesheetCount** and **unreadableCount**: the stylesheets found, and those that could not be read
+- **ruleCount**, **selectorCount** and **declarationCount**: style rules (also nested and inside `@media` or `@supports`), selectors (each one of a list such as `.a, .b`) and declarations (also those of `@font-face` and `@keyframes`)
+- **embeddedBytes**, **embeddedCount** and **embeddedTypes**: the size of all the `data:` URLs, in characters, how many there are, and both by MIME type, such as `font/woff2` or `image/svg+xml`
+- **importCount** and **emptyRuleCount**: `@import` rules and style rules without declarations
+
+When a stylesheet could not be read, `corsLimitedAnalysis` is `true` and the counts are a lower bound. Load it with `crossorigin` on the `<link>` and `Access-Control-Allow-Origin` on the server, or run the snippet on a page of that origin.
+
+### Issues and thresholds
+
+The thresholds come from [The CSS Selection 2026](https://www.projectwallace.com/the-css-selection/2026) by Project Wallace, which analyzed the CSS of about 100,000 homepages. They describe what real websites ship, not a budget: none of them is an error.
+
+| Code | Severity | When |
+| --- | --- | --- |
+| `embedded-font` | warning | A stylesheet embeds a font as a `data:` URL. The font downloads with the stylesheet, blocks rendering with it and cannot be cached on its own |
+| `embedded-content` | warning | The `data:` URLs of the page add up to more than 36.6 kB, more than [90% of homepages](https://www.projectwallace.com/the-css-selection/2026#stylesheet-composition) embed (the median is 2.23 kB) |
+| `import` | warning | An `@import` rule: the browser only requests the imported stylesheet after it downloads and parses the one that imports it. [82% of homepages](https://www.projectwallace.com/the-css-selection/2026#at-rules) use none |
+| `empty-rules` | info | Style rules without declarations |
+| `unreadable-stylesheets` | info | Stylesheets of another origin that could not be read |
+
+### What the CSSOM does not show
+
+The snippet reads the CSS as the browser parsed it, not as it was written. The browser drops comments, hacks such as `*zoom`, invalid declarations and rules with a selector it does not support, writes a few shorthands as their longhands, and rewrites values such as colors. The counts match those of the text when the CSS has none of them, and on the CSS of a production site they differ by about 1%. For the same reason the snippet does not give the size of the stylesheets: [Critical CSS detection](/Loading/Critical-CSS-Detection) gives the bytes of the CSS that blocks rendering, and [Compression audit](/Loading/Compression-Audit) the transfer size of each file.
+
+### Browser support
+
+### Further reading
+
+- [The CSS Selection 2026](https://www.projectwallace.com/the-css-selection/2026) | Project Wallace
+- [css-analyzer](https://github.com/projectwallace/css-analyzer) | Project Wallace
+- [Avoid chaining critical requests](https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains) | Chrome for Developers
+- [Critical CSS detection](/Loading/Critical-CSS-Detection) | CSS that blocks rendering and its size
+- [Webfont usage analyzer](/Loading/Webfont-Usage-Analyzer) | Fonts that load, how they display and which are never used

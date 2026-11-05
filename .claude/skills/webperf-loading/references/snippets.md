@@ -3,6 +3,12 @@
 
 **Script:** `scripts/Back-Forward-Cache.js`
 ---
+## CSS complexity
+
+Find what the CSS of the page carries that costs bytes and can go: images and fonts embedded as data: URLs, @import rules that delay the stylesheets they load, and empty rules. The snippet reads every stylesheet of the page, including imported ones, adopted ones and those in shadow roots, and counts them the way css-analyzer by Project Wallace does.
+
+**Script:** `scripts/CSS-Complexity.js`
+---
 ## CSS media queries analysis
 
 Analyze all @media rules in CSS stylesheets that target viewports bigger than a breakpoint (default: 768px). Narrower screens download and parse that CSS without using it. The snippet groups the rules by distinct query, the way CSS analytics tools such as Project Wallace report at-rules, and breaks them down by stylesheet.

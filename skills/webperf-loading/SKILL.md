@@ -27,6 +27,7 @@ Without Chrome DevTools MCP, run the same snippet with the [webperf-snippets CLI
 ## Scripts
 
 - `scripts/Back-Forward-Cache.js` — Back Forward Cache
+- `scripts/CSS-Complexity.js` — CSS complexity
 - `scripts/CSS-Media-Queries-Analysis.js` — CSS media queries analysis
 - `scripts/Cache-Strategy-Analysis.js` — Cache Strategy Analysis
 - `scripts/Client-Side-Redirect-Detection.js` — Client Side Redirect Detection
@@ -261,6 +262,13 @@ Use this decision tree to automatically run follow-up snippets based on results:
 - **If render-blocking CSS > 14KB** → Recommend inlining critical CSS
 - **If no inline CSS but has blocking stylesheets** → Suggest critical CSS extraction
 - **If CSS > 50KB total** → Run **CSS-Media-Queries-Analysis.js** to find savings
+
+### After CSS-Complexity.js
+
+- **If embedded-font** → Recommend serving the font as a WOFF2 file, and run **Webfont-Usage-Analyzer.js** to check its `font-display`
+- **If embedded-content** → Run **Critical-CSS-Detection.js**: embedded bytes in render-blocking CSS delay the first paint
+- **If import** → Recommend linking the imported stylesheet from the HTML or bundling it, and run **Find-render-blocking-resources.js** to see the chain
+- **If corsLimitedAnalysis is true** → Report the counts as a lower bound, and suggest `crossorigin` on the `<link>` with `Access-Control-Allow-Origin` on stylesheets you control
 
 ### After Back-Forward-Cache.js
 
