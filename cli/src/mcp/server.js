@@ -664,7 +664,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Read the tracking snippets",
       description:
-        `Returns what the tracking snippets installed by open_page have recorded on the page so far, as the objects they return. A snippet with nothing recorded yet, such as INP before any interaction, answers with status tracking and a message: interact with the page and read again. ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Returns what the tracking snippets installed by open_page have recorded on the page so far, as the objects they return. A snippet with nothing recorded yet, such as INP before any interaction, answers with status tracking and a message: interact with the page and read again. After a click or key press that the document did not record, as one inside an iframe, it is an error that says so: interact with an element of the page and read again. ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({ sessionId: SessionId, detail: Detail }),
       outputSchema: z.object({ sessionId: z.string(), runId: SummaryRunId, detail: DetailOut, pageErrors: z.array(z.string()), results: z.array(SnippetResult) }),
       annotations: { readOnlyHint: true, openWorldHint: false },

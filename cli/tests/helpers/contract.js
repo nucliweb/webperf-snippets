@@ -133,6 +133,12 @@ const SMALL_PAGES = (other) => ({
       'document.getElementById("fast").addEventListener("click", function fastClick() { const t = performance.now(); while (performance.now() - t < 30) {} document.body.style.color = "#111"; });' +
       "</script>"
   ),
+  // An iframe, which records its own interactions, next to a button of the page that paints
+  "/with-frame": page(
+    "",
+    '<iframe src="/slow-click" width="300" height="200"></iframe>' +
+      '<button id="outside" style="width:200px;height:60px" onclick="document.body.style.background = \'#eee\'">outside</button>'
+  ),
   // The LCP element is a heading (text) while a small image is also in the viewport
   "/lcp-text": page("", '<h1 style="font-size:90px;margin:0">A large heading is the largest paint</h1><img src="/hero.png" width="40" height="30" alt="small">'),
   // The LCP element is the image

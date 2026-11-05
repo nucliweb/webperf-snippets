@@ -123,7 +123,7 @@ describe("a click or a key press that does not show in the snippet", () => {
     ["INP", inp],
     ["Interactions", item("Interactions", "Interaction/Interactions")],
     ["Input-Latency-Breakdown", item("Input-Latency-Breakdown", "Interaction/Input-Latency-Breakdown")],
-  ])("%s says that it was sent when the document recorded nothing, as with a click inside an iframe", async (_name, snippet) => {
+  ])("%s is an error that says it was sent when the document recorded nothing, as with a click inside an iframe", async (_name, snippet) => {
     const { results } = await runSnippets({
       url: `${url}/with-frame`,
       items: [snippet],
@@ -131,10 +131,11 @@ describe("a click or a key press that does not show in the snippet", () => {
       waitMs: 300,
       viewport: VIEWPORT_PRESETS.desktop,
     });
-    expect(results[0].status).toBe("tracking");
-    expect(results[0].message).toMatch(/was sent/);
-    expect(results[0].message).toMatch(/iframe/);
-    expect(results[0].getDataFn).toBeDefined();
+    expect(results[0].status).toBe("error");
+    expect(results[0].error).toMatch(/was sent/);
+    expect(results[0].error).toMatch(/iframe/);
+    expect(results[0].script).toBe(_name);
+    expect(results[0].getDataFn).toBeUndefined();
   }, 60000);
 
   it("keeps the message of the snippet when nothing was sent: a scroll is no interaction", async () => {
@@ -173,5 +174,30 @@ describe("the CLI with --interact-script", () => {
     const [result] = JSON.parse(stdout).results;
     expect(result.status).toBe("ok");
     expect(result.count).toBeGreaterThanOrEqual(1);
+  }, 60000);
+
+  it("exits with 1 when a click was sent and INP recorded nothing, as with a click inside an iframe", async () => {
+    const { execFile } = await import("node:child_process");
+    const { writeFileSync, mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join, dirname } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const { cliEnv } = await import("../helpers/cli-env.js");
+    const bin = join(dirname(fileURLToPath(import.meta.url)), "../../src/bin.js");
+    const script = join(mkdtempSync(join(tmpdir(), "webperf-")), "interactions.json");
+    writeFileSync(script, JSON.stringify({ interactions: [{ action: "click", selector: "iframe" }] }));
+
+    const { code, stdout } = await new Promise((resolve) => {
+      execFile(
+        "node",
+        [bin, `${url}/with-frame`, "--snippet", "INP", "--interact-script", script, "--json", "--wait", "300", "--viewport", "desktop"],
+        { env: cliEnv() },
+        (error, stdout) => resolve({ code: error?.code ?? 0, stdout })
+      );
+    });
+    expect(code).toBe(1);
+    const [result] = JSON.parse(stdout).results;
+    expect(result.status).toBe("error");
+    expect(result.error).toMatch(/was sent/);
   }, 60000);
 });

@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Changed
+- A tracking snippet with nothing recorded after a click or a key press, as with a click inside an iframe, is an error: `status: "error"`, with the `error` that says the interaction was sent and what to check, so the CLI exits with code `1` without a budget too, and `read_results` of the MCP server reports it as an error. It was `tracking` with that `message`, and exit code `0`. A script that read `message` there needs to read `error`.
+
 ---
 
 ## [1.12.0] — 2026-11-04

@@ -87,6 +87,21 @@ describe("a page that stays open", () => {
     expect(read.structuredContent.results[0]).toMatchObject({ script: "Interactions", status: "tracking", message: expect.stringMatching(/No interactions yet/) });
   }, 60000);
 
+  it("reports a click the document did not record as an error, and reads the snippet again after one it records", async () => {
+    await connect();
+    const { sessionId } = (await open({ url: `${servers.base}/with-frame`, track: ["INP"] })).structuredContent;
+
+    const clicked = await call("interact", { sessionId, steps: [{ action: "click", selector: "iframe" }] });
+    expect(clicked.isError).toBeFalsy();
+    const missed = await call("read_results", { sessionId });
+    expect(missed.isError).toBeFalsy();
+    expect(missed.structuredContent.results[0]).toMatchObject({ script: "INP", status: "error", error: expect.stringMatching(/was sent.*iframe/) });
+
+    await call("interact", { sessionId, steps: [{ action: "click", selector: "#outside" }] });
+    const read = await call("read_results", { sessionId });
+    expect(read.structuredContent.results[0]).toMatchObject({ script: "INP", status: "ok" });
+  }, 60000);
+
   it("only installs tracking snippets, and points to run_snippet for the others", async () => {
     await connect();
     const result = await open({ url: `${servers.base}/slow-click`, track: ["LCP"] });
