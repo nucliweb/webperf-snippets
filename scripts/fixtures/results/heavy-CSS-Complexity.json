@@ -6,6 +6,7 @@
   "details": {
     "stylesheetCount": 1,
     "unreadableCount": 0,
+    "fetchedCount": 0,
     "ruleCount": 80,
     "selectorCount": 80,
     "declarationCount": 160,

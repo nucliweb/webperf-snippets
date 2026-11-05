@@ -13,6 +13,15 @@ import { cssOracle } from "../helpers/css-oracle.js";
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), "../fixtures/css-complexity");
 const file = (name) => readFileSync(join(FIXTURES, name), "utf8");
 const TYPES = { ".html": "text/html", ".css": "text/css" };
+const CORS_CSS = {
+  "/cors.css": `/* A stylesheet of a CDN, loaded without crossorigin */
+@import url("cors-imported.css");
+.cdn { color: red !important; background: url("data:image/png;base64,iVBORw0KGgo=") no-repeat; }
+.cdn-empty {}
+@keyframes cdn-spin { to { transform: rotate(1turn); } }
+.cdn-spinner { animation: cdn-spin 1s infinite; }`,
+  "/cors-imported.css": ".cdn-imported { margin: 0; }",
+};
 
 let main;
 let other;
@@ -27,8 +36,14 @@ const listen = (handler) =>
   });
 
 beforeAll(async () => {
-  // Another origin that serves a stylesheet without Access-Control-Allow-Origin
+  // Another origin: remote.css without Access-Control-Allow-Origin, and two stylesheets with it,
+  // one importing the other
   other = await listen((req, res) => {
+    const path = req.url.split("?")[0];
+    if (path === "/cors.css" || path === "/cors-imported.css") {
+      res.writeHead(200, { "Content-Type": "text/css", "Access-Control-Allow-Origin": "*" });
+      return res.end(CORS_CSS[path]);
+    }
     res.writeHead(200, { "Content-Type": "text/css" });
     res.end(".remote { color: red; }");
   });
@@ -38,6 +53,10 @@ beforeAll(async () => {
     if (path === "/unreadable.html") {
       res.writeHead(200, { "Content-Type": "text/html" });
       return res.end(`<!DOCTYPE html><title>u</title><link rel="stylesheet" href="${otherUrl}/remote.css"><style>.local { color: blue; } @keyframes local-only { to { opacity: 0; } }</style><h1>u</h1>`);
+    }
+    if (path === "/cross-origin.html") {
+      res.writeHead(200, { "Content-Type": "text/html" });
+      return res.end(`<!DOCTYPE html><title>c</title><link rel="stylesheet" href="${otherUrl}/cors.css"><style>.local { color: blue; }</style><h1>c</h1>`);
     }
     if (path === "/empty.html") {
       res.writeHead(200, { "Content-Type": "text/html" });
@@ -160,10 +179,33 @@ describe("CSS-Complexity", () => {
     expect(result.issues.map((i) => i.code)).not.toContain("embedded-font");
   }, 30000);
 
+  it("reads a stylesheet of another origin without crossorigin with fetch, and the one it imports, as css-analyzer counts them", async () => {
+    const page = await browser.newPage();
+    try {
+      await page.goto(`${baseUrl}/cross-origin.html`, { waitUntil: "load" });
+      const result = await page.evaluate(loadSnippet("Loading/CSS-Complexity").trim().replace(/;\s*$/, ""));
+      const inline = await inlineTexts(page);
+      expect(result.corsLimitedAnalysis).toBe(false);
+      expect(result.details).toMatchObject({ stylesheetCount: 3, fetchedCount: 2, unreadableCount: 0 });
+      const { unusedKeyframes, ...oracle } = cssOracle([CORS_CSS["/cors.css"], CORS_CSS["/cors-imported.css"], ...inline]);
+      expect(result.details).toMatchObject(oracle);
+      expect(result.details.unusedKeyframes).toEqual(unusedKeyframes);
+      expect(result.items).toContainEqual(expect.objectContaining({ source: `${otherUrl}/cors.css`, read: "fetched", importCount: 1, importantCount: 1 }));
+      expect(result.items).toContainEqual(expect.objectContaining({ source: `${otherUrl}/cors-imported.css`, read: "fetched", ruleCount: 1 }));
+      expect(result.issues).toContainEqual(expect.objectContaining({ code: "import", target: `${otherUrl}/cors-imported.css` }));
+      expect(result.issues.map((i) => i.code)).not.toContain("unreadable-stylesheets");
+      // The requests of the snippet carry the fragment that the resource snippets leave out
+      const names = await page.evaluate(() => performance.getEntriesByType("resource").map((e) => e.name).filter((n) => n.includes("cors")));
+      expect(names).toEqual(expect.arrayContaining([`${otherUrl}/cors.css#webperf-snippets`, `${otherUrl}/cors-imported.css#webperf-snippets`]));
+    } finally {
+      await page.close();
+    }
+  }, 30000);
+
   it("counts a stylesheet of another origin without CORS as unreadable, and the result as a lower bound", async () => {
     const { result } = await run("unreadable.html");
     expect(result.corsLimitedAnalysis).toBe(true);
-    expect(result.details).toMatchObject({ stylesheetCount: 2, unreadableCount: 1, ruleCount: 1 });
+    expect(result.details).toMatchObject({ stylesheetCount: 2, unreadableCount: 1, fetchedCount: 0, ruleCount: 1 });
     expect(result.items).toContainEqual({ source: `${otherUrl}/remote.css`, read: "unreadable" });
     expect(result.issues).toContainEqual(expect.objectContaining({ code: "unreadable-stylesheets", severity: "info" }));
     // The unreadable sheet could use the @keyframes of the page, so none is reported as unused

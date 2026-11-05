@@ -2277,10 +2277,11 @@ Find what the CSS of the page carries that costs bytes and can go: images and fo
 ```js
 // CSS Complexity
 // What in the CSS of the page costs bytes or style work and can go: embedded content, @import, empty
-// rules, repeated selectors and unused @keyframes, read from the CSSOM of every stylesheet
+// rules, repeated selectors and unused @keyframes, read from the CSSOM of every stylesheet, and with
+// fetch for a stylesheet of another origin whose rules the page cannot read
 // https://webperf-snippets.net
 
-(() => {
+(async () => {
   const SCRIPT = "CSS-Complexity";
   const MAX_ITEMS = 50;
   // The 90th percentile of the embedded content of a homepage in The CSS Selection 2026 (Project
@@ -2301,6 +2302,23 @@ Find what the CSS of the page carries that costs bytes and can go: images and fo
     return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
   }
   // @end-shared formatBytes
+
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
 
   const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -2350,6 +2368,7 @@ Find what the CSS of the page carries that costs bytes and can go: images and fo
 
   // --- The stylesheets: of the document, adopted, of open shadow roots, and imported -----------
 
+  // Each entry is a stylesheet of the page, or the URL of one to fetch, imported by a fetched one
   const sheets = [];
   const seenSheets = new Set();
   const addSheet = (sheet, source) => {
@@ -2357,6 +2376,32 @@ Find what the CSS of the page carries that costs bytes and can go: images and fo
     seenSheets.add(sheet);
     sheets.push({ sheet, source });
   };
+  const addUrl = (href) => {
+    if (seenSheets.has(href)) return;
+    seenSheets.add(href);
+    sheets.push({ href, source: href });
+  };
+
+  // A stylesheet of another origin loaded without CORS: its rules throw, but fetch can read it when
+  // the server sends Access-Control-Allow-Origin, as a CDN often does. replaceSync parses it with
+  // the same CSSOM, and drops @import, so the imports are read from the text and left out of it.
+  async function fetchSheet(href) {
+    try {
+      const response = await fetch(ownRequestUrl(href));
+      if (!response.ok) return null;
+      const text = (await response.text()).replace(/\/\*[\s\S]*?\*\//g, "");
+      const statements = text.match(/@import\s[^;]*;/gi) ?? [];
+      const imports = statements
+        .map((statement) => statement.match(/@import\s+(?:url\(\s*)?(["']?)([^"')\s;]+)\1/i)?.[2])
+        .filter(Boolean)
+        .map((url) => new URL(url, href).href);
+      const sheet = new window.CSSStyleSheet({ baseURL: href });
+      sheet.replaceSync(statements.reduce((css, statement) => css.replace(statement, ""), text));
+      return { rules: sheet.cssRules, imports };
+    } catch {
+      return null;
+    }
+  }
   let styleIndex = 0;
   let adoptedIndex = 0;
   for (const sheet of document.styleSheets) addSheet(sheet, sheet.href || `<style> #${++styleIndex}`);
@@ -2459,19 +2504,35 @@ Find what the CSS of the page carries that costs bytes and can go: images and fo
   const perSheet = [];
   // The list grows while it is read: each @import adds the sheet it imports
   for (let i = 0; i < sheets.length; i++) {
-    const { sheet, source } = sheets[i];
+    const { sheet, href, source } = sheets[i];
     let rules = null;
+    let read = "cssom";
+    let fetchedImports = [];
     try {
-      rules = sheet.cssRules;
+      rules = sheet?.cssRules ?? null;
     } catch {
       // A stylesheet of another origin, loaded without CORS
+    }
+    const url = href ?? sheet?.href;
+    if (!rules && url) {
+      const fetched = await fetchSheet(url);
+      if (fetched) {
+        rules = fetched.rules;
+        fetchedImports = fetched.imports;
+        read = "fetched";
+      }
     }
     if (!rules) {
       perSheet.push({ source, read: "unreadable" });
       continue;
     }
-    const stats = { source, read: "cssom", ruleCount: 0, selectorCount: 0, declarationCount: 0, importantCount: 0, emptyRuleCount: 0, embeddedBytes: 0, embeddedCount: 0, fontCount: 0, fontBytes: 0, importCount: 0 };
-    walk(rules, stats, sheet.href || location.href);
+    const stats = { source, read, ruleCount: 0, selectorCount: 0, declarationCount: 0, importantCount: 0, emptyRuleCount: 0, embeddedBytes: 0, embeddedCount: 0, fontCount: 0, fontBytes: 0, importCount: 0 };
+    walk(rules, stats, url || location.href);
+    for (const imported of fetchedImports) {
+      stats.importCount++;
+      imports.push({ from: source, href: imported });
+      addUrl(imported);
+    }
     perSheet.push(stats);
   }
 
@@ -2490,6 +2551,7 @@ Find what the CSS of the page carries that costs bytes and can go: images and fo
   const details = {
     stylesheetCount: perSheet.length,
     unreadableCount: unreadable.length,
+    fetchedCount: perSheet.filter((s) => s.read === "fetched").length,
     ruleCount: sum("ruleCount"),
     selectorCount: sum("selectorCount"),
     declarationCount: sum("declarationCount"),
@@ -2577,7 +2639,7 @@ Find what the CSS of the page carries that costs bytes and can go: images and fo
     issues.push({
       code: "unreadable-stylesheets",
       severity: "info",
-      message: `${plural(unreadable.length, "cross-origin stylesheet")} could not be read without CORS, so the counts are a lower bound: ${unreadable.map((s) => s.source).join(", ")}`,
+      message: `${plural(unreadable.length, "cross-origin stylesheet")} could not be read, by the page or with fetch (no Access-Control-Allow-Origin), so the counts are a lower bound: ${unreadable.map((s) => s.source).join(", ")}`,
     });
   }
 
@@ -2590,7 +2652,8 @@ Find what the CSS of the page carries that costs bytes and can go: images and fo
   // --- Console -----------------------------------------------------------------------------------
 
   console.group("%c🎨 CSS Complexity", "font-weight: bold; font-size: 14px;");
-  console.log(`Stylesheets: ${details.stylesheetCount}${unreadable.length ? ` (${unreadable.length} unreadable)` : ""}`);
+  const readNotes = [details.fetchedCount && `${details.fetchedCount} read with fetch`, unreadable.length && `${unreadable.length} unreadable`].filter(Boolean);
+  console.log(`Stylesheets: ${details.stylesheetCount}${readNotes.length ? ` (${readNotes.join(", ")})` : ""}`);
   console.log(`Rules: ${details.ruleCount} · Selectors: ${details.selectorCount} · Declarations: ${details.declarationCount}`);
   console.log(`Embedded content: ${formatBytes(details.embeddedBytes)} in ${plural(details.embeddedCount, "data: URL")}`);
   console.log(`@import: ${details.importCount} · Empty rules: ${details.emptyRuleCount}`);
