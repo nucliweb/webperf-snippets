@@ -4,6 +4,8 @@
   const EMBEDDED_P90_BYTES = 36632;
   const IMPORTANT_P90_PERCENT = 13;
   const FONT_FACE_P90 = 48;
+  const SELECTOR_COMPLEXITY_P90 = 29;
+  const MAX_COMPLEX_SELECTORS = 5;
   const MIN_SELECTOR_UNIQUENESS = 0.66;
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
@@ -55,6 +57,98 @@
       });
     }
     return found;
+  }
+  const SELECTOR_FUNCTIONS = new Set([ "is", "where", "not", "has", "matches", "-webkit-any", "-moz-any" ]);
+  const total = values => values.reduce((a, b) => a + b, 0);
+  const selectorsIn = text => splitTopLevel(text, ",").flatMap(selector => {
+    const {complexity: complexity, nested: nested} = analyzeSelector(selector);
+    return [ complexity, ...nested ];
+  });
+  const complexityOf = selectorText => analyzeSelector(selectorText).complexity;
+  function analyzeSelector(selectorText) {
+    const s = selectorText.trim();
+    let complexity = 0;
+    const nested = [];
+    let i = 0;
+    let afterCombinator = false;
+    const readIdent = () => {
+      const start = i;
+      while (i < s.length) if (s[i] === "\\") i += 2; else if (/[\w-]/.test(s[i]) || s.charCodeAt(i) > 127) i++; else break;
+      return s.slice(start, i);
+    };
+    const readGroup = (open, close) => {
+      const start = i + 1;
+      let depth = 0;
+      let quote = null;
+      for (;i < s.length; i++) {
+        const c = s[i];
+        if (quote) {
+          if (c === "\\") i++; else if (c === quote) quote = null;
+        } else if (c === '"' || c === "'") quote = c; else if (c === open) depth++; else if (c === close && --depth === 0) return s.slice(start, i++);
+      }
+      return s.slice(start);
+    };
+    while (i < s.length) {
+      const c = s[i];
+      if (/\s/.test(c)) {
+        while (i < s.length && /\s/.test(s[i])) i++;
+        if (i < s.length && !">+~".includes(s[i]) && complexity > 0 && !afterCombinator) {
+          complexity++;
+          afterCombinator = true;
+        }
+        continue;
+      }
+      if (">+~".includes(c)) {
+        complexity++;
+        i++;
+        afterCombinator = true;
+        continue;
+      }
+      afterCombinator = false;
+      if (c === "*" || c === "&") {
+        complexity++;
+        i++;
+      } else if (c === "#" || c === ".") {
+        i++;
+        readIdent();
+        complexity++;
+      } else if (c === "[") {
+        const inner = readGroup("[", "]");
+        complexity += /=/.test(inner) ? 2 : 1;
+      } else if (c === ":") {
+        i += s[i + 1] === ":" ? 2 : 1;
+        const name = readIdent().toLowerCase();
+        complexity += name.startsWith("-") ? 2 : 1;
+        if (s[i] === "(") {
+          const arg = readGroup("(", ")").trim();
+          const of = name === "nth-child" || name === "nth-last-child" ? arg.match(/\sof\s([\s\S]+)$/i) : null;
+          if (SELECTOR_FUNCTIONS.has(name) || of) {
+            const found = selectorsIn(of ? of[1] : arg);
+            complexity += total(found);
+            nested.push(...found);
+          } else if (name === "nth-child" || name === "nth-last-child" || name === "nth-of-type" || name === "nth-last-of-type" || name === "lang") complexity += arg ? 1 : 0; else {
+            const found = selectorsIn(arg);
+            const own = splitTopLevel(arg, ",").map(complexityOf);
+            complexity += 1 + total(own);
+            nested.push(...found);
+          }
+        }
+      } else if (/[\w-\\]/.test(c) || s.charCodeAt(i) > 127) {
+        readIdent();
+        complexity++;
+      } else i++;
+    }
+    return {
+      complexity: complexity,
+      nested: nested
+    };
+  }
+  function modeOf(values) {
+    const frequencies = new Map;
+    for (const v of values) frequencies.set(v, (frequencies.get(v) ?? 0) + 1);
+    const top = Math.max(0, ...frequencies.values());
+    const tied = [ ...frequencies.entries() ].filter(([, n]) => n === top).map(([v]) => v);
+    return tied.length ? tied.reduce((a, b) => a + b, 0) / tied.length : 0;
   }
   const describeHost = el => el.localName + (el.id ? `#${el.id}` : el.classList[0] ? `.${el.classList[0]}` : "");
   const sheets = [];
@@ -108,6 +202,8 @@
   const imports = [];
   const embeddedTypes = new Map;
   const selectorCounts = new Map;
+  const complexities = [];
+  const complexityBySelector = new Map;
   const keyframesDefined = new Set;
   const animationsUsed = new Set;
   let keyframesCount = 0;
@@ -143,7 +239,12 @@
       const selectors = splitTopLevel(rule.selectorText, ",");
       stats.ruleCount++;
       stats.selectorCount += selectors.length;
-      for (const selector of selectors) selectorCounts.set(selector, (selectorCounts.get(selector) ?? 0) + 1);
+      for (const selector of selectors) {
+        selectorCounts.set(selector, (selectorCounts.get(selector) ?? 0) + 1);
+        const complexity = complexityBySelector.get(selector) ?? complexityOf(selector);
+        complexityBySelector.set(selector, complexity);
+        complexities.push(complexity);
+      }
       if (declarations.length === 0 && nested === 0) stats.emptyRuleCount++;
       count(embeddedOf(rule.style.cssText, false), stats);
       if (nested) walk(rule.cssRules, stats, sheetUrl);
@@ -257,7 +358,13 @@
     importantPercent: 0,
     fontFaceCount: fontFaceCount,
     keyframesCount: keyframesCount,
-    unusedKeyframes: [ ...keyframesDefined ].filter(name => !animationsUsed.has(name)).sort()
+    unusedKeyframes: [ ...keyframesDefined ].filter(name => !animationsUsed.has(name)).sort(),
+    maxSelectorComplexity: Math.max(0, ...complexities),
+    commonSelectorComplexity: modeOf(complexities),
+    complexSelectors: [ ...complexityBySelector.entries() ].map(([selectorText, complexity]) => ({
+      selectorText: selectorText,
+      complexity: complexity
+    })).sort((a, b) => b.complexity - a.complexity).slice(0, MAX_COMPLEX_SELECTORS)
   };
   details.importantPercent = details.declarationCount ? Math.round(details.importantCount / details.declarationCount * 1000) / 10 : 0;
   const issues = [];
@@ -300,6 +407,12 @@
     code: "font-face-count",
     severity: "info",
     message: `${fontFaceCount} @font-face rules, more than on 90% of homepages (${FONT_FACE_P90}, The CSS Selection 2026). Run Webfont-Usage-Analyzer to see which faces load and which are never used`
+  });
+  for (const {selectorText: selectorText, complexity: complexity} of details.complexSelectors.filter(c => c.complexity > SELECTOR_COMPLEXITY_P90)) issues.push({
+    code: "selector-complexity",
+    severity: "info",
+    message: `${selectorText} has a complexity of ${complexity}, more than the most complex selector of 90% of homepages (${SELECTOR_COMPLEXITY_P90}, The CSS Selection 2026). Complexity counts the parts of a selector, not its cost: the CSS selector costs insight of the DevTools Performance panel measures how long matching takes`,
+    target: selectorText
   });
   if (unreadable.length === 0) for (const name of details.unusedKeyframes) issues.push({
     code: "unused-keyframes",

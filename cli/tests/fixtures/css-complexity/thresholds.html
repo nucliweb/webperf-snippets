@@ -10,7 +10,9 @@
     const repeated = Array.from({ length: 10 }, (_, i) => `.repeated { margin-top: ${i}px; }`);
     const important = Array.from({ length: 10 }, (_, i) => `.i${i} { color: red !important; padding: 1px !important; margin: 1px !important; }`);
     const keyframes = "@keyframes pulse { to { opacity: 0.5; } } @keyframes never { to { opacity: 0; } }";
-    window.__css = { inline: [...faces, ...repeated, ...important, keyframes].join("\n") };
+    // A selector of complexity 31, over the 29 of the 90th percentile
+    const complex = 'html body div#main.content > ul.list li.item:first-child a.link[target="_blank"]:not(.a, .b, .c, .d, .e, .f, .g, .h, .i, .j)::after { color: red; }';
+    window.__css = { inline: [...faces, ...repeated, ...important, keyframes, complex].join("\n") };
     const style = document.createElement("style");
     style.textContent = window.__css.inline;
     document.head.append(style);

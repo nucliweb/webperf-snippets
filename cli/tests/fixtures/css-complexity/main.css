@@ -15,7 +15,7 @@ body { margin: 0; font-family: "Inline Sans", sans-serif; }
 }
 .nested { color: navy;
   &:hover { color: teal; }
-  .nested-child { margin: 0; }
+  & .nested-child { margin: 0; }
   @supports (display: grid) { display: grid; }
 }
 .card { border-radius: 4px; }

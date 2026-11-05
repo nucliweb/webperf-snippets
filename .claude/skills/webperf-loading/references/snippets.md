@@ -5,7 +5,7 @@
 ---
 ## CSS complexity
 
-Find what the CSS of the page carries that costs bytes and can go: images and fonts embedded as data: URLs, @import rules that delay the stylesheets they load, empty rules, repeated selectors and @keyframes that nothing uses. The snippet reads every stylesheet of the page, including imported ones, adopted ones and those in shadow roots, and counts them the way css-analyzer by Project Wallace does.
+Find what the CSS of the page carries that costs bytes and can go: images and fonts embedded as data: URLs, @import rules that delay the stylesheets they load, empty rules, repeated selectors, @keyframes that nothing uses and atypically complex selectors. The snippet reads every stylesheet of the page, including imported ones, adopted ones and those in shadow roots, and counts them the way css-analyzer by Project Wallace does.
 
 **Script:** `scripts/CSS-Complexity.js`
 ---

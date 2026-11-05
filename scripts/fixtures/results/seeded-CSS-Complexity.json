@@ -20,7 +20,23 @@
     "importantPercent": 0,
     "fontFaceCount": 0,
     "keyframesCount": 0,
-    "unusedKeyframes": []
+    "unusedKeyframes": [],
+    "maxSelectorComplexity": 1,
+    "commonSelectorComplexity": 1,
+    "complexSelectors": [
+      {
+        "selectorText": "h1",
+        "complexity": 1
+      },
+      {
+        "selectorText": "body",
+        "complexity": 1
+      },
+      {
+        "selectorText": ".box",
+        "complexity": 1
+      }
+    ]
   },
   "items": [
     {
