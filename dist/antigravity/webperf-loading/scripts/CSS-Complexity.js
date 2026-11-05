@@ -1,4 +1,4 @@
-(() => {
+(async () => {
   const SCRIPT = "CSS-Complexity";
   const MAX_ITEMS = 50;
   const EMBEDDED_P90_BYTES = 36632;
@@ -11,6 +11,16 @@
     const units = [ "B", "KB", "MB", "GB" ];
     const i = Math.max(0, Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1));
     return (bytes / Math.pow(1024, i)).toFixed(1) + " " + units[i];
+  }
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
   }
   const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
   function splitTopLevel(text, separator) {
@@ -57,6 +67,33 @@
       source: source
     });
   };
+  const addUrl = href => {
+    if (seenSheets.has(href)) return;
+    seenSheets.add(href);
+    sheets.push({
+      href: href,
+      source: href
+    });
+  };
+  async function fetchSheet(href) {
+    try {
+      const response = await fetch(ownRequestUrl(href));
+      if (!response.ok) return null;
+      const text = (await response.text()).replace(/\/\*[\s\S]*?\*\//g, "");
+      const statements = text.match(/@import\s[^;]*;/gi) ?? [];
+      const imports = statements.map(statement => statement.match(/@import\s+(?:url\(\s*)?(["']?)([^"')\s;]+)\1/i)?.[2]).filter(Boolean).map(url => new URL(url, href).href);
+      const sheet = new window.CSSStyleSheet({
+        baseURL: href
+      });
+      sheet.replaceSync(statements.reduce((css, statement) => css.replace(statement, ""), text));
+      return {
+        rules: sheet.cssRules,
+        imports: imports
+      };
+    } catch {
+      return null;
+    }
+  }
   let styleIndex = 0;
   let adoptedIndex = 0;
   for (const sheet of document.styleSheets) addSheet(sheet, sheet.href || `<style> #${++styleIndex}`);
@@ -146,11 +183,22 @@
   }
   const perSheet = [];
   for (let i = 0; i < sheets.length; i++) {
-    const {sheet: sheet, source: source} = sheets[i];
+    const {sheet: sheet, href: href, source: source} = sheets[i];
     let rules = null;
+    let read = "cssom";
+    let fetchedImports = [];
     try {
-      rules = sheet.cssRules;
+      rules = sheet?.cssRules ?? null;
     } catch {}
+    const url = href ?? sheet?.href;
+    if (!rules && url) {
+      const fetched = await fetchSheet(url);
+      if (fetched) {
+        rules = fetched.rules;
+        fetchedImports = fetched.imports;
+        read = "fetched";
+      }
+    }
     if (!rules) {
       perSheet.push({
         source: source,
@@ -160,7 +208,7 @@
     }
     const stats = {
       source: source,
-      read: "cssom",
+      read: read,
       ruleCount: 0,
       selectorCount: 0,
       declarationCount: 0,
@@ -172,7 +220,15 @@
       fontBytes: 0,
       importCount: 0
     };
-    walk(rules, stats, sheet.href || location.href);
+    walk(rules, stats, url || location.href);
+    for (const imported of fetchedImports) {
+      stats.importCount++;
+      imports.push({
+        from: source,
+        href: imported
+      });
+      addUrl(imported);
+    }
     perSheet.push(stats);
   }
   const roots = [ document, ...[ ...document.querySelectorAll("*") ].map(el => el.shadowRoot).filter(Boolean) ];
@@ -187,6 +243,7 @@
   const details = {
     stylesheetCount: perSheet.length,
     unreadableCount: unreadable.length,
+    fetchedCount: perSheet.filter(s => s.read === "fetched").length,
     ruleCount: sum("ruleCount"),
     selectorCount: sum("selectorCount"),
     declarationCount: sum("declarationCount"),
@@ -253,7 +310,7 @@
   if (unreadable.length > 0) issues.push({
     code: "unreadable-stylesheets",
     severity: "info",
-    message: `${plural(unreadable.length, "cross-origin stylesheet")} could not be read without CORS, so the counts are a lower bound: ${unreadable.map(s => s.source).join(", ")}`
+    message: `${plural(unreadable.length, "cross-origin stylesheet")} could not be read, by the page or with fetch (no Access-Control-Allow-Origin), so the counts are a lower bound: ${unreadable.map(s => s.source).join(", ")}`
   });
   const items = perSheet.map(s => s.read === "unreadable" ? {
     source: s.source,
@@ -266,6 +323,7 @@
     importCount: s.importCount,
     importantCount: s.importantCount
   }).sort((a, b) => (b.embeddedBytes ?? -1) - (a.embeddedBytes ?? -1) || (b.ruleCount ?? -1) - (a.ruleCount ?? -1));
+  [ details.fetchedCount && `${details.fetchedCount} read with fetch`, unreadable.length && `${unreadable.length} unreadable` ].filter(Boolean);
   if (items.length > 0) void 0;
   if (issues.length > 0) issues.forEach(i => {}); else void 0;
   return {
