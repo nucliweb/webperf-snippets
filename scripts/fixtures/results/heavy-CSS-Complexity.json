@@ -1,0 +1,28 @@
+{
+  "script": "CSS-Complexity",
+  "status": "ok",
+  "count": 1,
+  "corsLimitedAnalysis": false,
+  "details": {
+    "stylesheetCount": 1,
+    "unreadableCount": 0,
+    "ruleCount": 80,
+    "selectorCount": 80,
+    "declarationCount": 160,
+    "embeddedBytes": 0,
+    "embeddedCount": 0,
+    "embeddedTypes": [],
+    "importCount": 0,
+    "emptyRuleCount": 0
+  },
+  "items": [
+    {
+      "source": "<style> #1",
+      "read": "cssom",
+      "ruleCount": 80,
+      "embeddedBytes": 0,
+      "importCount": 0
+    }
+  ],
+  "issues": []
+}

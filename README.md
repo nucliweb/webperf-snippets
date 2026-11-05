@@ -4,7 +4,7 @@ Tested JavaScript snippets that measure and debug web performance. Your AI agent
 
 [![CI](https://github.com/nucliweb/webperf-snippets/actions/workflows/ci.yml/badge.svg)](https://github.com/nucliweb/webperf-snippets/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/nucliweb/webperf-snippets)](https://github.com/nucliweb/webperf-snippets/releases)
-[![Snippets](https://img.shields.io/badge/snippets-56-0f766e)](https://webperf-snippets.net)
+[![Snippets](https://img.shields.io/badge/snippets-57-0f766e)](https://webperf-snippets.net)
 [![License](https://img.shields.io/github/license/nucliweb/webperf-snippets)](./LICENSE)
 [![Star History](https://img.shields.io/github/stars/nucliweb/webperf-snippets?style=social)](https://star-history.com/#nucliweb/webperf-snippets&Date)
 
@@ -73,9 +73,9 @@ Without it the skills still work: the server answers `Access denied` and the age
 
 | Skill                     | Snippets | What it covers                                                   |
 | ------------------------- | -------- | ---------------------------------------------------------------- |
-| `webperf`                 | 56       | Main entry point for all web performance analysis                |
+| `webperf`                 | 57       | Main entry point for all web performance analysis                |
 | `webperf-core-web-vitals` | 7        | LCP, CLS, INP measurements with detailed breakdowns              |
-| `webperf-loading`         | 34       | TTFB, FCP, script and font analysis, resource hints, service workers |
+| `webperf-loading`         | 35       | TTFB, FCP, script and font analysis, resource hints, service workers |
 | `webperf-interaction`     | 10       | Long tasks, animation frames, scroll jank, INP debugging         |
 | `webperf-media`           | 4        | Image and video audits, lazy loading validation, SVG analysis    |
 | `webperf-resources`       | 1        | Network bandwidth, connection quality, adaptive loading          |

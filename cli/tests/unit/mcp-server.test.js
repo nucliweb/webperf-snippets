@@ -68,7 +68,7 @@ describe("list_snippets", () => {
   it("returns every snippet the CLI can run, as structured content and as text", async () => {
     const result = await call();
     const { snippets } = result.structuredContent;
-    expect(snippets).toHaveLength(56);
+    expect(snippets).toHaveLength(57);
     expect(JSON.parse(result.content[0].text)).toEqual(result.structuredContent);
     for (const s of snippets) {
       expect(s.name).toBe(`${s.category}/${s.name.split("/")[1]}`);

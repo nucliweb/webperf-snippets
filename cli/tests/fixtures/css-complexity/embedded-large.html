@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Large embedded content fixture</title>
+  <script>
+    // About 40 kB of a data: URL, above the 36.6 kB of the 90th percentile of The CSS Selection 2026
+    window.__css = { inline: `.banner { background-image: url("data:image/png;base64,${"A".repeat(40000)}"); }` };
+    const style = document.createElement("style");
+    style.textContent = window.__css.inline;
+    document.head.append(style);
+  </script>
+</head>
+<body><div class="banner">Banner</div></body>
+</html>

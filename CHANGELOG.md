@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- [CSS complexity](https://webperf-snippets.net/Loading/CSS-Complexity) reads every stylesheet of the page, including imported and adopted ones and those in open shadow roots, and counts its rules, selectors, declarations, `data:` URLs and `@import` rules as css-analyzer by Project Wallace does. It reports a font embedded in the CSS, more embedded content than 90% of homepages in The CSS Selection 2026, each `@import` and empty rules, and the stylesheets of another origin it could not read.
+
 ---
 
 ## [2.5.1] — 2026-11-04
