@@ -4,7 +4,7 @@ description: Web performance measurement and debugging toolkit. Use when the use
 license: MIT
 metadata:
   author: Joan Leon | @nucliweb
-  version: 2.5.1
+  version: 2.6.0
   mcp-server: chrome-devtools
   category: web-performance
   repository: https://github.com/nucliweb/webperf-snippets

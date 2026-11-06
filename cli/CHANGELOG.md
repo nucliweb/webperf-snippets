@@ -8,6 +8,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.13.0] — 2026-11-06
+
+The CLI and the MCP server run CSS-Complexity, the new snippet of the collection 2.6.0, and a click or key press that the page did not record is an error, so the CLI exits with code `1`.
+
+### Added
+- `--snippet CSS-Complexity` and `run_snippet` of the MCP server run the new snippet of the collection, which counts what the CSS of the page carries that costs bytes: embedded content, `@import`, empty rules, repeated selectors, `!important`, `@font-face`, unused `@keyframes` and selector complexity.
+
 ### Changed
 - A tracking snippet with nothing recorded after a click or a key press, as with a click inside an iframe, is an error: `status: "error"`, with the `error` that says the interaction was sent and what to check, so the CLI exits with code `1` without a budget too, and `read_results` of the MCP server reports it as an error. It was `tracking` with that `message`, and exit code `0`. A script that read `message` there needs to read `error`.
 
