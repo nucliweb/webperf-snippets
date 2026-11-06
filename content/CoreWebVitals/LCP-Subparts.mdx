@@ -7,7 +7,8 @@ browserSupport:
 ---
 
 import snippet from '../../snippets/CoreWebVitals/LCP-Subparts.js?raw'
-import { Snippet } from '../../components/Snippet'
+import examples from '../../snippets/CoreWebVitals/examples.json'
+import { Snippet, SnippetExample } from '../../components/Snippet'
 import { Demo } from '../../components/Demo'
 import { Callout } from '../../components/Callout'
 import { LcpPhasesDiagram, LcpDecisionTree } from '../../components/diagrams/LcpSubparts'
@@ -53,6 +54,10 @@ LCP is a critical Core Web Vital that measures when the largest content element 
 ### Snippet
 
 <Snippet code={snippet} />
+
+### Returned object
+
+<SnippetExample example={examples.examples["LCP-Subparts"]} />
 
 ### Understanding the results
 

@@ -6,7 +6,8 @@ browserSupport:
 ---
 
 import snippet from '../../snippets/CoreWebVitals/LCP-Trail.js?raw'
-import { Snippet } from '../../components/Snippet'
+import examples from '../../snippets/CoreWebVitals/examples.json'
+import { Snippet, SnippetExample } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
 import { Demo } from '../../components/Demo'
 
@@ -33,6 +34,10 @@ Replay four loads, or move the slider through one, to see when each element beco
 ### Snippet
 
 <Snippet code={snippet} />
+
+### Returned object
+
+<SnippetExample example={examples.examples["LCP-Trail"]} />
 
 ### How it works
 

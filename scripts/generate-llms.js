@@ -20,7 +20,7 @@ function readFile(filePath) {
 }
 
 function extractSnippetImports(content) {
-  const matches = [...content.matchAll(/import\s+\w+\s+from\s+['"]\.\.\/\.\.\/snippets\/([^/'"]+)\/([^'"?]+)/g)]
+  const matches = [...content.matchAll(/import\s+\w+\s+from\s+['"]\.\.\/\.\.\/snippets\/([^/'"]+)\/([^'"?]+\.js)/g)]
   return matches.map((m) => ({ category: m[1], file: m[2] }))
 }
 
