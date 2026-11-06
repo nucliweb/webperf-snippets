@@ -18,10 +18,15 @@ export async function copyText(text, env = globalThis) {
 // A URL as one shell argument: in single quotes, so ? or & do not break the command
 const shellQuote = (value) => `'${value.replaceAll("'", "'\\''")}'`
 
-// The Copy prompt of a snippet for the inspected page: the URL goes in the place of <url> in the
-// command, quoted for the shell, and at the end as the page to measure, so an agent can run it as it
-// is. A page the CLI cannot load, such as chrome://, keeps the prompt as it is, which asks for the URL.
+// Whether the CLI can load the page: chrome:// or a file of an extension cannot be measured
+export const isLoadable = (url) => /^https?:\/\//.test(url ?? '')
+
+// The inspected page in the place of <url> in a command, quoted for the shell, so an agent can run it
+// as it is. A page the CLI cannot load keeps <url>, and the prompt asks for the URL.
+export const withPageUrl = (text, url) => (isLoadable(url) ? text.replaceAll('<url>', shellQuote(url)) : text)
+
+// The Copy prompt of a snippet for the inspected page, which also ends with the page to measure
 export function promptForPage(prompt, url) {
-  if (!/^https?:\/\//.test(url ?? '')) return prompt
-  return `${prompt.replaceAll('<url>', shellQuote(url))}\nPage to measure: ${url}\n`
+  if (!isLoadable(url)) return prompt
+  return `${withPageUrl(prompt, url)}\nPage to measure: ${url}\n`
 }

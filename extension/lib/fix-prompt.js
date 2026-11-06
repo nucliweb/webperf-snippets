@@ -5,6 +5,7 @@
 // (lib/snippet-prompt.mjs).
 
 import { describeResult } from './view/index.js'
+import { isLoadable, withPageUrl } from './clipboard.js'
 
 const TO_FIX = ['error', 'warning']
 // What fits in a prompt without burying the issues: the rest is counted, and the run of the CLI lists it
@@ -66,12 +67,17 @@ You are working in the repository of this site. The WebPerf Snippets DevTools ex
 
 const measuredOn = (date, extensionVersion) => `Measured: ${date} with the WebPerf Snippets extension${extensionVersion ? ` ${extensionVersion}` : ''}`
 
-// How to check the fix: a run of the CLI before the change and one after it, compared with the first.
-// --baseline compares the errors; the warnings are compared by hand, by what names each issue
-function checkSection(command, { interactive = false, sameIssue }) {
+// How to check the fix: a run of the CLI before the change and one after it, compared with the first,
+// on the measured page. --baseline compares the errors; the warnings are compared by hand, by what
+// names each issue
+function checkSection(template, { url, interactive = false, sameIssue }) {
+  const command = withPageUrl(template, url)
+  const where = isLoadable(url)
+    ? 'The commands measure the page above. If it is in production, ask for the URL of a local or staging server where you can test the change, and use it in both commands instead.'
+    : 'Ask for the URL where you can test the change, such as a local or staging server, and use it as `<url>` below.'
   return `## Check the fix
 
-The page above may be in production. Ask for the URL where you can test the change, such as a local or staging server, and use it as \`<url>\` below.${
+${where}${
     interactive
       ? ' This snippet records interactions: write `interactions.json` with the clicks or key presses that reproduce the issues, as its prompt to measure explains.'
       : ''
@@ -112,7 +118,7 @@ export function fixPrompt({ snippet, result, url: measured, date, extensionVersi
   const view = describeResult(result)
   const issues = issuesToFix(result).sort(bySeverity)
   const details = detailLines(view)
-  const check = checkSection(snippet.command, { interactive: snippet.command.includes('--interact-script'), sameIssue: '`code` and `target`' })
+  const check = checkSection(snippet.command, { url: measured, interactive: snippet.command.includes('--interact-script'), sameIssue: '`code` and `target`' })
 
   return fitting(
     (rowLimit) => `${intro(url, 'measured the page below')}
@@ -163,7 +169,7 @@ ${pageData(`## Issues
 
 ${issuesBySnippet(limit)}${moreIssues(found.length - limit)}`)}
 
-${checkSection(command, { sameIssue: 'the `id` of their step, `code` and `target`' })}`,
+${checkSection(command, { url: measured, sameIssue: 'the `id` of their step, `code` and `target`' })}`,
     Math.min(MAX_ISSUES, found.length)
   )
 }
