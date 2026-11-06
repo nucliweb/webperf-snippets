@@ -1,5 +1,7 @@
 import { filterSnippets, groupByCategory } from './lib/catalog.js'
 import { renderResult } from './lib/render.js'
+import { escape } from './lib/html.js'
+import { EXPAND_URLS, textWithUrls, toggleUrls, withLongUrls } from './lib/long-url.js'
 import { readTrackingData, reloadPage, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
 import { auditFixPrompt, fixPrompt, hasIssuesToFix } from './lib/fix-prompt.js'
@@ -18,9 +20,13 @@ const evaluate = (expression) =>
     })
   })
 
-const escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 const list = document.getElementById('list')
 const main = document.getElementById('main')
+// The button after a long URL shows it whole, in any view
+main.addEventListener('click', (event) => {
+  const button = event.target.closest('.expand-urls')
+  if (button) toggleUrls(button)
+})
 const search = document.getElementById('search')
 const toTop = document.getElementById('to-top')
 let snippets = []
@@ -188,6 +194,12 @@ let auditScroll = 0
 // The earlier audit the one shown is compared with, when it is not the one just before
 let compareWith = {}
 
+// The page of a saved audit, the button that opens it; a long URL gets the button that shows it whole
+function auditUrl(saved) {
+  const { html, long } = withLongUrls(saved.url ?? 'unknown page')
+  return `<span class="audit-url"><button type="button" class="open-audit row-link" data-date="${escape(saved.date)}">${html}</button>${long ? EXPAND_URLS : ''}</span>`
+}
+
 function auditList() {
   if (audits.length === 0) return ''
   const items = audits
@@ -195,7 +207,7 @@ function auditList() {
       const a = fromReport(saved, snippets)
       const when = new Date(saved.date).toLocaleString()
       return `<li>
-        <button type="button" class="open-audit row-link" data-date="${escape(saved.date)}">${escape(saved.url ?? 'unknown page')}</button>
+        ${auditUrl(saved)}
         <span class="when">${escape(when)}</span>
         <span class="summary-line">${escape(a ? overview(a.rows) : '')}</span>
         <span class="audit-actions">
@@ -308,7 +320,7 @@ function comparison() {
     table(
       kind,
       ['Severity', 'Snippet', 'Issue'],
-      items.map((i) => `<tr><td>${sev(i.severity)}</td><td>${escape(title(i.id))}</td><td class="long">${escape(i.message)}</td></tr>`)
+      items.map((i) => `<tr><td>${sev(i.severity)}</td><td>${escape(title(i.id))}</td><td class="long">${textWithUrls(i.message)}</td></tr>`)
     )
   // The issue as it is now, and only the numbers that moved; the text before when its words changed
   const changed = table(
@@ -317,7 +329,7 @@ function comparison() {
     c.changed.map((i) => {
       const severity = i.severityBefore ? `${sev(i.severityBefore)} → ${sev(i.severity)}` : sev(i.severity)
       const moved = i.before === i.after ? '' : (changeOf(i.before, i.after) ?? `Was: ${i.before}`)
-      return `<tr><td>${severity}</td><td>${escape(title(i.id))}</td><td class="long">${escape(i.after)}</td><td${moved.length > 40 ? ' class="long"' : ''}>${escape(moved)}</td></tr>`
+      return `<tr><td>${severity}</td><td>${escape(title(i.id))}</td><td class="long">${textWithUrls(i.after)}</td><td${moved.length > 40 ? ' class="long"' : ''}>${escape(moved)}</td></tr>`
     })
   )
   const metrics = table(

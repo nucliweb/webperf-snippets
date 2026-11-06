@@ -224,6 +224,14 @@ tr.highlight .resource-actions, tr:nth-child(even) .resource-actions { backgroun
 .resource-actions button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
 .resource-actions button:hover, .resource-actions button:focus-visible { color: var(--accent); border-color: var(--accent); }
 .resource-actions .copied { color: var(--good); border-color: var(--good); }
+
+/* A long URL, shortened in the middle, and the button after it that shows it whole */
+.long-url { overflow-wrap: anywhere; }
+.expand-urls { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 4px; padding: 0; vertical-align: middle; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.expand-urls:hover, .expand-urls:focus-visible { color: var(--accent); border-color: var(--accent); }
+.expand-urls svg { transition: transform 0.15s; }
+.expand-urls[aria-expanded="true"] svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .expand-urls svg { transition: none; } }
 /* The file of a URL can be long, with a hash: it wraps anywhere */
 td.url { min-width: 80px; max-width: 280px; white-space: normal; overflow-wrap: anywhere; }
 .raw pre { overflow: auto; padding: 8px; background: var(--hover); border-radius: 4px; }
@@ -263,6 +271,8 @@ fieldset label { display: flex; gap: 6px; align-items: center; padding: 2px 0; c
 .audits { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); border-radius: 6px; }
 .audits li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 8px 12px; border-top: 1px solid var(--border); }
 .audits li:first-child { border-top: 0; }
+.audits .audit-url { display: flex; align-items: flex-start; gap: 4px; min-width: 0; }
+.audits .audit-url .expand-urls { flex: none; margin: 1px 0 0; }
 .audits .open-audit { overflow-wrap: anywhere; }
 .audits .when { color: var(--muted); text-align: right; }
 .audits .summary-line { color: var(--muted); }

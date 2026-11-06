@@ -3,13 +3,13 @@
 // value comes from the inspected page, so all of it is escaped.
 
 import { describeResult, formatValue } from './view/index.js'
+import { escape } from './html.js'
+import { EXPAND_URLS, textWithUrls, withLongUrls } from './long-url.js'
 
 // The labels, formats and order of the fields come from the view of the result (snippets/_view/,
 // copied to lib/view/ by npm run extension:build)
 export { formatValue }
 
-const escape = (value) =>
-  String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
 const RATING = { good: 'Good', 'needs-improvement': 'Needs improvement', poor: 'Poor' }
 const STATUS = { ok: 'OK', tracking: 'Tracking', error: 'Error', unsupported: 'Unsupported' }
@@ -87,7 +87,7 @@ function field(f) {
     case 'fields':
       return `<dl class="details nested">${f.fields.map((n) => `<dt>${escape(n.label)}</dt><dd>${field(n)}</dd>`).join('')}</dl>`
     default:
-      return escape(f.text)
+      return textWithUrls(f.text)
   }
 }
 
@@ -136,6 +136,15 @@ function metric(result) {
 
 const plural = (n, word) => `${n} ${word}${n === 1 || word === 'info' ? '' : 's'}`
 
+// The message of an issue, which leads to its row when it has one; the button that shows its long URLs
+// whole goes after it, since a button cannot hold another
+function message(i) {
+  const { html, long } = withLongUrls(i.message)
+  const text = i.row === undefined ? html : `<button type="button" class="to-row" data-row="${i.row}" title="Show its row">${html}</button>`
+  // In one span with its button, so both take the column of the text
+  return long ? `<span class="issue-text">${text}${EXPAND_URLS}</span>` : text
+}
+
 function issues(list) {
   if (!Array.isArray(list) || list.length === 0) return ''
   const sorted = bySeverity(list)
@@ -143,9 +152,7 @@ function issues(list) {
   const items = sorted
     .map(
       (i) =>
-        `<li class="issue issue-${escape(i.severity)}">${
-          i.row === undefined ? escape(i.message) : `<button type="button" class="to-row" data-row="${i.row}" title="Show its row">${escape(i.message)}</button>`
-        }</li>`
+        `<li class="issue issue-${escape(i.severity)}">${message(i)}</li>`
     )
     .join('')
   const count = SEVERITY.map((s) => [s, list.filter((i) => i.severity === s).length])
