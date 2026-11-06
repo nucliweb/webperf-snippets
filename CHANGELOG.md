@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Prompt to fix of the extension wrote `<url>` in the commands that check the fix, although it knew the inspected page. The commands carry that page, quoted for the shell as in Prompt to measure, and the prompt asks for a local or staging URL only when the page is in production.
+
 ---
 
 ## [2.6.0] — 2026-11-06
@@ -17,9 +20,6 @@ A new snippet, CSS complexity, finds what the CSS of a page carries that costs b
 ### Added
 - The CLI reaches version 1.13.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): it runs CSS-Complexity, and a click or key press that the page did not record, as one inside an iframe, is an error that makes it exit with code `1`.
 - [CSS complexity](https://webperf-snippets.net/Loading/CSS-Complexity) reads every stylesheet of the page, including imported and adopted ones and those in open shadow roots, and counts its rules, selectors, declarations, `data:` URLs, `@import` rules, `!important`, `@font-face` and `@keyframes` as css-analyzer by Project Wallace does. It reports a font embedded in the CSS, more embedded content than 90% of homepages in The CSS Selection 2026, each `@import`, empty rules, repeated selectors, a share of `!important` or a number of `@font-face` above 90% of homepages, `@keyframes` that nothing uses, selectors more complex than the most complex one of 90% of homepages, and the stylesheets of another origin it could not read. A stylesheet of another origin loaded without `crossorigin` is read with `fetch` when its server allows it, and the stylesheets that browser extensions link to the page are left out.
-
-### Fixed
-- Prompt to fix of the extension wrote `<url>` in the commands that check the fix, although it knew the inspected page. The commands carry that page, quoted for the shell as in Prompt to measure, and the prompt asks for a local or staging URL only when the page is in production.
 
 ---
 
