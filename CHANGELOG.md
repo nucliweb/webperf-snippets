@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Prompt to fix of the extension wrote `<url>` in the commands that check the fix, although it knew the inspected page. The commands carry that page, quoted for the shell as in Prompt to measure, and the prompt asks for a local or staging URL only when the page is in production.
+
 ---
 
 ## [2.6.0] — 2026-11-06

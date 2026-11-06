@@ -34,11 +34,13 @@ test('the prompt says what is wrong, where and with which values, for an agent i
   assert.match(prompt, /^\| #hero \| http:\/\/127\.0\.0\.1:8000\/hero\.png \|/m)
 })
 
-test('the prompt checks the fix with the CLI, before and after, on a URL where the change can be tested', () => {
+test('the prompt checks the fix with the CLI, before and after, on the measured page, quoted for the shell', () => {
   const prompt = promptFor(fixture('seeded-Oversized-Images'))
-  assert.match(prompt, /Ask for the URL where you can test the change/)
-  assert.match(prompt, /webperf-snippets@\d+\.\d+\.\d+ -p playwright@[\d.]+ webperf-snippets <url> --snippet Oversized-Images --json > before\.json/)
-  assert.match(prompt, /webperf-snippets <url> --snippet Oversized-Images --baseline before\.json --json > after\.json/)
+  assert.match(prompt, /webperf-snippets@\d+\.\d+\.\d+ -p playwright@[\d.]+ webperf-snippets 'https:\/\/example\.test\/products\?id=1' --snippet Oversized-Images --json > before\.json/)
+  assert.match(prompt, /webperf-snippets 'https:\/\/example\.test\/products\?id=1' --snippet Oversized-Images --baseline before\.json --json > after\.json/)
+  assert.doesNotMatch(prompt, /<url>/)
+  // The page may be in production, where the agent cannot test the change
+  assert.match(prompt, /If it is in production, ask for the URL of a local or staging server where you can test the change, and use it in both commands instead/)
   assert.match(prompt, /compare the `issues` of both files by `code` and `target`/)
   // A run of a page with errors exits with 1, and still writes its JSON
   assert.match(prompt, /exits with `1` while the page has errors/)
@@ -114,10 +116,10 @@ test('the prompt to fix an audit lists the errors and warnings of each snippet u
   assert.doesNotMatch(prompt, /^- info/m)
 })
 
-test('the prompt to fix an audit checks the fix with the audit workflow of the CLI', () => {
+test('the prompt to fix an audit checks the fix with the audit workflow of the CLI, on the measured page', () => {
   const prompt = auditPromptFor(auditRows('seeded'))
-  assert.match(prompt, /webperf-snippets@\d+\.\d+\.\d+ -p playwright@[\d.]+ webperf-snippets <url> --workflow audit --json > before\.json/)
-  assert.match(prompt, /webperf-snippets <url> --workflow audit --baseline before\.json --json > after\.json/)
+  assert.match(prompt, /webperf-snippets@\d+\.\d+\.\d+ -p playwright@[\d.]+ webperf-snippets 'https:\/\/example\.test\/products\?id=1' --workflow audit --json > before\.json/)
+  assert.match(prompt, /webperf-snippets 'https:\/\/example\.test\/products\?id=1' --workflow audit --baseline before\.json --json > after\.json/)
   assert.match(prompt, /by the `id` of their step, `code` and `target`/)
   assert.match(prompt, /exits with `1` while the page has errors/)
 })
@@ -184,4 +186,17 @@ test('the prompt to fix an audit puts the issues of every snippet in one block o
   assert.doesNotMatch(outsidePageData(prompt), new RegExp(HOSTILE))
   assert.equal(prompt.split(END).length, 2)
   assert.match(outsidePageData(prompt), /## Check the fix/)
+})
+
+test('a page the CLI cannot load, such as chrome://, keeps <url> in the commands and asks for a URL', () => {
+  const result = fixture('seeded-Oversized-Images')
+  const prompt = fixPrompt({ snippet: snippetOf(result), result, url: 'chrome://newtab/', date: '2026-10-26T20:00:00.000Z', extensionVersion: '0.3.0' })
+  assert.match(prompt, /webperf-snippets <url> --snippet Oversized-Images --json > before\.json/)
+  assert.match(prompt, /Ask for the URL where you can test the change, such as a local or staging server, and use it as `<url>` below/)
+})
+
+test('a URL with a quote stays one argument of the shell', () => {
+  const result = fixture('seeded-Oversized-Images')
+  const prompt = fixPrompt({ snippet: snippetOf(result), result, url: "https://example.test/it's?a=1&b=2", date: '2026-10-26T20:00:00.000Z', extensionVersion: '0.3.0' })
+  assert.ok(prompt.includes(`webperf-snippets 'https://example.test/it'\\''s?a=1&b=2' --snippet Oversized-Images --json > before.json`))
 })
