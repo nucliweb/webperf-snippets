@@ -675,6 +675,30 @@ test('an issue about a row leads to it, and the row shows its issues as dots', a
   assert.equal(await panel.evaluate(() => document.activeElement?.dataset.row), String(row))
 })
 
+test('a long URL is shortened in the middle, and its button shows it whole and folds it again', async () => {
+  const url = 'https://shop.example/es-es?aid=branding&source=mkt&utm_source=search&utm_campaign=ES_Branding&gclid=Cj0KCQ&tid=01m6s2916cmsmexczn3f3y120v'
+  const saved = { workflow: 'audit', url, date: '2026-01-03T00:00:00.000Z', overview: {}, issues: [], results: [] }
+  await panel.evaluate((s) => localStorage.setItem('local:audits', JSON.stringify([s, ...JSON.parse(localStorage.getItem('local:audits') ?? '[]')])), saved)
+  await reopenPanel()
+  await panel.click('#go-home')
+  const item = panel.locator(`main .audits li:has(.open-audit[data-date="${saved.date}"])`)
+  const text = () => item.locator('.long-url').textContent()
+  const toggle = item.locator('.expand-urls')
+  const short = await text()
+  assert.ok(short.length < url.length && short.includes('…'), short)
+  assert.ok(short.startsWith('https://shop.example/es-es?aid=') && short.endsWith('tid=01m6s2916cmsmexczn3f3y120v'), short)
+  assert.equal(await item.locator('.long-url').getAttribute('title'), url)
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'false')
+  await toggle.click()
+  assert.equal(await text(), url)
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'true')
+  await toggle.click()
+  assert.equal(await text(), short)
+  // The URL still opens its audit
+  await item.locator('.open-audit').click()
+  await panel.waitForSelector('#audit')
+})
+
 test('a resource opens in Sources, and its URL copies to filter Network by it', async () => {
   await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
   await panel.click('#list button[data-id="Find-render-blocking-resources"]')

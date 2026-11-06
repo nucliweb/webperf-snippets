@@ -300,3 +300,33 @@ test('a URL comes with Open in Sources and Copy URL, which panel.js gives their 
   )
   assert.match(html, /<button type="button" class="copy-url" data-url="https:\/\/example.com\/assets\/app.js\?v=3" title="Copy URL, to filter Network by it" aria-label="Copy the URL of app.js">/)
 })
+
+const LONG_URL = 'https://shop.example/es-es?aid=branding&source=mkt&utm_source=search&utm_campaign=ES_Branding&gclid=Cj0KCQ&tid=01m6s2916cmsmexczn3f3y120v'
+
+test('a long URL in an issue is shortened in the middle, with a button after the issue to show it whole', () => {
+  const html = renderResult({
+    script: 'X',
+    status: 'ok',
+    items: [{ url: 'https://shop.example/a.png' }],
+    issues: [
+      { severity: 'warning', message: `${LONG_URL} has no width`, target: 'https://shop.example/a.png' },
+      { severity: 'info', message: `Measured on ${LONG_URL}` },
+    ],
+  })
+  assert.match(html, /<span class="long-url" data-full="[^"]+" title="[^"]+">https:\/\/shop\.example\/es-es\?aid=[^<]*…[^<]*tid=01m6s2916cmsmexczn3f3y120v<\/span>/)
+  // The button of an issue about a row goes after it, not inside it
+  assert.match(html, /<button type="button" class="to-row"[^>]*>.*?<\/button><button type="button" class="expand-urls"/)
+  assert.match(html, /Measured on <span class="long-url"[^>]*>[^<]*<\/span><button type="button" class="expand-urls"/)
+})
+
+test('an issue with short URLs only has no button to expand them', () => {
+  const html = renderResult({ script: 'X', status: 'ok', issues: [{ severity: 'info', message: 'See https://shop.example/a.png' }] })
+  assert.doesNotMatch(html, /expand-urls/)
+})
+
+test('a long URL in a text field of the details is shortened, with its button; a field that is a URL stays a resource', () => {
+  const html = renderResult({ script: 'X', status: 'ok', details: { note: `Measured on ${LONG_URL}`, page: LONG_URL } })
+  assert.match(html, /<dd>Measured on <span class="long-url"[^>]*>[^<]*…[^<]*<\/span><button type="button" class="expand-urls"/)
+  assert.match(html, /<dd><span class="resource"><span class="url" title="[^"]+">es-es<\/span>/)
+})
+

@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- The extension shortens a long URL in the middle, as the title of the DevTools window does: the start and the end of a page of a saved audit, or of a URL in an issue, a field or the comparison of two audits, with a button after it that shows the whole URL and folds it again. Two pages that start alike, such as the same page with other query parameters, stay apart, and a URL no longer takes several lines.
+
 ### Fixed
 - Prompt to fix of the extension wrote `<url>` in the commands that check the fix, although it knew the inspected page. The commands carry that page, quoted for the shell as in Prompt to measure, and the prompt asks for a local or staging URL only when the page is in production.
 
