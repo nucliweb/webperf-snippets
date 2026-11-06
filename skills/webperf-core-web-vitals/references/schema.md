@@ -828,7 +828,7 @@ Issues keep `{ severity, message }`. The fix is the last sentence of the message
 
 #### CSS-Complexity
 
-Reads the CSSOM of every stylesheet of the page: of the document, adopted, in open shadow roots and imported with `@import`. One item per stylesheet, the most embedded bytes first, with `read: "cssom"`; `read: "fetched"` for a stylesheet of another origin whose rules the page cannot read and `fetch` can, as with `Access-Control-Allow-Origin` and a `<link>` without `crossorigin`, parsed with the same CSSOM, its `@import` rules included; or `read: "unreadable"` and only its `source` when neither works, which sets `corsLimitedAnalysis: true`. `source` is the URL of the sheet, or a label such as `<style> #1` or `adopted stylesheet #1`.
+Reads the CSSOM of every stylesheet of the page: of the document, adopted, in open shadow roots and imported with `@import`. One item per stylesheet, the most embedded bytes first, with `read: "cssom"`; `read: "fetched"` for a stylesheet of another origin whose rules the page cannot read and `fetch` can, as with `Access-Control-Allow-Origin` and a `<link>` without `crossorigin`, parsed with the same CSSOM, its `@import` rules included; or `read: "unreadable"` and only its `source` when neither works, which sets `corsLimitedAnalysis: true`. `source` is the URL of the sheet, or a label such as `<style> #1` or `adopted stylesheet #1`. A stylesheet a browser extension links to the page (`chrome-extension:`, `moz-extension:`, `safari-web-extension:`) is left out and counted in `details.extensionCount`; the `<style>` elements and shadow roots an extension injects cannot be told apart from those of the page, so in a browser with extensions, as with Chrome DevTools MCP connected to the user's Chrome, the counts can include them.
 
 `details` counts what the CSSOM keeps of the CSS as written, as [css-analyzer](https://github.com/projectwallace/css-analyzer) counts its text: rules (style rules, nested and inside at-rules), selectors (each one of a list), declarations (also those of `@font-face` and `@keyframes`), embedded content (`data:` URLs, in characters, and by MIME type), `@import` rules, empty rules, `!important` declarations, `@font-face` and `@keyframes` rules. `selectorUniqueness` is unique selectors over all selectors, without their context, so a selector repeated in two `@media` counts as repeated (1 without selectors). `unusedKeyframes` lists the `@keyframes` that no `animation` or `animation-name` of the stylesheets or of a `style` attribute names. `maxSelectorComplexity` and `commonSelectorComplexity` (the mode, or the mean of the tied values) give the complexity of the selectors as css-analyzer computes it, and `complexSelectors` the 5 most complex, as `{ selectorText, complexity }`: `selectorText` is the selector of a rule, not of an element of the page. The CSSOM drops comments, hacks, invalid declarations and rules with unsupported selectors, and writes a few shorthands as longhands, so these counts can differ slightly from those of the text.
 
@@ -840,6 +840,7 @@ Reads the CSSOM of every stylesheet of the page: of the document, adopted, in op
   "corsLimitedAnalysis": false,
   "details": {
     "stylesheetCount": 2,
+    "extensionCount": 0,
     "unreadableCount": 0,
     "fetchedCount": 1,
     "ruleCount": 812,
