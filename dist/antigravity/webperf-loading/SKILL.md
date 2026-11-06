@@ -272,6 +272,7 @@ Use this decision tree to automatically run follow-up snippets based on results:
 
 ### After CSS-Complexity.js
 
+- **If it ran in the user's browser** (Chrome DevTools MCP connected to their Chrome) → Extensions can inject CSS that the snippet counts: before reporting, check `items` for `<style>` or shadow root sources the page does not have, or measure again in a profile without extensions or with the CLI
 - **If embedded-font** → Recommend serving the font as a WOFF2 file, and run **Webfont-Usage-Analyzer.js** to check its `font-display`
 - **If embedded-content** → Run **Critical-CSS-Detection.js**: embedded bytes in render-blocking CSS delay the first paint
 - **If import** → Recommend linking the imported stylesheet from the HTML or bundling it, and run **Find-render-blocking-resources.js** to see the chain

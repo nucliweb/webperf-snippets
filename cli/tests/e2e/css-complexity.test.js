@@ -58,6 +58,11 @@ beforeAll(async () => {
       res.writeHead(200, { "Content-Type": "text/html" });
       return res.end(`<!DOCTYPE html><title>c</title><link rel="stylesheet" href="${otherUrl}/cors.css"><style>.local { color: blue; }</style><h1>c</h1>`);
     }
+    if (path === "/extension-link.html") {
+      // What a browser extension adds to the page: a <link> to a file of the extension
+      res.writeHead(200, { "Content-Type": "text/html" });
+      return res.end('<!DOCTYPE html><title>x</title><style>.page { color: red; }</style><link rel="stylesheet" href="chrome-extension://abcdefghijklmnopabcdefghijklmnop/inject.css"><h1>x</h1>');
+    }
     if (path === "/empty.html") {
       res.writeHead(200, { "Content-Type": "text/html" });
       return res.end("<!DOCTYPE html><title>e</title><h1>No CSS</h1>");
@@ -251,11 +256,51 @@ describe("CSS-Complexity", () => {
     expect(result.issues.map((i) => i.code)).not.toContain("unused-keyframes");
   }, 30000);
 
+  // Far above the 9,118 rules of the 90th percentile of homepages in The CSS Selection 2026, and
+  // close to its largest homepage, with 210,695
+  it("reads a page with 200,000 rules in a few seconds", async () => {
+    const page = await browser.newPage();
+    try {
+      await page.goto(`${baseUrl}/empty.html`, { waitUntil: "load" });
+      await page.evaluate((n) => {
+        const rules = [];
+        for (let i = 0; i < n; i++) {
+          const selector = i % 7 === 0 ? `.nav-${i % 300} > ul li:not(.a-${i % 40}) a[href^="http"]` : i % 3 === 0 ? `:is(.btn-${i}, .link-${i}):hover` : `.c-${i}`;
+          const rule = `${selector} { color: red; margin: ${i % 8}px auto; padding: 1px${i % 11 === 0 ? " !important" : ""}; }`;
+          rules.push(i % 50 === 0 ? `@media (min-width: ${300 + (i % 900)}px) { ${rule} }` : rule);
+        }
+        const style = document.createElement("style");
+        style.textContent = rules.join("\n");
+        document.head.append(style);
+      }, 200000);
+      const { result, ms } = await page.evaluate(async (source) => {
+        const start = performance.now();
+        const result = await (0, eval)(source);
+        return { result, ms: performance.now() - start };
+      }, loadSnippet("Loading/CSS-Complexity").trim().replace(/;\s*$/, ""));
+      expect(result.status).toBe("ok");
+      expect(result.details.ruleCount).toBe(200000);
+      expect(result.details.maxSelectorComplexity).toBe(11);
+      // About 1.5 s on a laptop; the margin is for a loaded CI runner
+      expect(ms).toBeLessThan(10000);
+    } finally {
+      await page.close();
+    }
+  }, 120000);
+
+  it("leaves out the stylesheets of browser extensions, which are not part of the page", async () => {
+    const { result } = await run("extension-link.html");
+    expect(result.details).toMatchObject({ stylesheetCount: 1, extensionCount: 1, unreadableCount: 0, ruleCount: 1 });
+    expect(result.corsLimitedAnalysis).toBe(false);
+    expect(result.items.map((i) => i.source)).toEqual(["<style> #1"]);
+    expect(result.issues.map((i) => i.code)).not.toContain("unreadable-stylesheets");
+  }, 30000);
+
   it("answers with zeros on a page without CSS", async () => {
     const { result } = await run("empty.html");
     expect(result.status).toBe("ok");
     expect(result.count).toBe(0);
-    expect(result.details).toMatchObject({ stylesheetCount: 0, ruleCount: 0, embeddedBytes: 0, importCount: 0, selectorUniqueness: 1, importantCount: 0, importantPercent: 0, fontFaceCount: 0, keyframesCount: 0, unusedKeyframes: [], maxSelectorComplexity: 0, commonSelectorComplexity: 0, complexSelectors: [] });
+    expect(result.details).toMatchObject({ stylesheetCount: 0, extensionCount: 0, ruleCount: 0, embeddedBytes: 0, importCount: 0, selectorUniqueness: 1, importantCount: 0, importantPercent: 0, fontFaceCount: 0, keyframesCount: 0, unusedKeyframes: [], maxSelectorComplexity: 0, commonSelectorComplexity: 0, complexSelectors: [] });
     expect(result.issues).toEqual([]);
   }, 30000);
 });

@@ -10,10 +10,15 @@ browserSupport:
 
 import snippet from '../../snippets/Loading/CSS-Complexity.js?raw'
 import { Snippet } from '../../components/Snippet'
+import { Callout } from '../../components/Callout'
 
 # CSS complexity
 
 Find what the CSS of the page carries that costs bytes and can go: images and fonts embedded as `data:` URLs, `@import` rules that delay the stylesheets they load, empty rules, repeated selectors, `@keyframes` that nothing uses and atypically complex selectors. The snippet reads every stylesheet of the page, including imported ones, adopted ones and those in shadow roots, and counts them the way [css-analyzer](https://github.com/projectwallace/css-analyzer) by Project Wallace does.
+
+<Callout type="warning">
+Run it in a window without browser extensions, such as a private window or a profile of its own. An extension can add its own CSS to every page, and the snippet counts it as part of the page: the stylesheets an extension links from its own files are left out (`extensionCount`), but the `<style>` elements and shadow roots it injects look like those of the page. The same goes for an agent that measures in your browser, such as Chrome DevTools MCP connected to your Chrome; the [CLI](/CLI) measures in a Chromium without extensions.
+</Callout>
 
 ### Snippet
 
@@ -30,6 +35,7 @@ Each item is a stylesheet, the one with the most embedded bytes first:
 `details` adds them up for the whole page:
 
 - **stylesheetCount**, **fetchedCount** and **unreadableCount**: the stylesheets found, those read with `fetch`, and those that could not be read
+- **extensionCount**: stylesheets that a browser extension links to the page, left out of the counts
 - **ruleCount**, **selectorCount** and **declarationCount**: style rules (also nested and inside `@media` or `@supports`), selectors (each one of a list such as `.a, .b`) and declarations (also those of `@font-face` and `@keyframes`)
 - **embeddedBytes**, **embeddedCount** and **embeddedTypes**: the size of all the `data:` URLs, in characters, how many there are, and both by MIME type, such as `font/woff2` or `image/svg+xml`
 - **importCount** and **emptyRuleCount**: `@import` rules and style rules without declarations

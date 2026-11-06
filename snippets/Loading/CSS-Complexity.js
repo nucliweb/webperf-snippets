@@ -202,7 +202,8 @@
   function modeOf(values) {
     const frequencies = new Map();
     for (const v of values) frequencies.set(v, (frequencies.get(v) ?? 0) + 1);
-    const top = Math.max(0, ...frequencies.values());
+    let top = 0;
+    for (const n of frequencies.values()) if (n > top) top = n;
     const tied = [...frequencies.entries()].filter(([, n]) => n === top).map(([v]) => v);
     return tied.length ? tied.reduce((a, b) => a + b, 0) / tied.length : 0;
   }
@@ -214,13 +215,26 @@
   // Each entry is a stylesheet of the page, or the URL of one to fetch, imported by a fetched one
   const sheets = [];
   const seenSheets = new Set();
+  // A stylesheet a browser extension links to the page is not part of it. The <style> elements an
+  // extension injects carry no such mark, so the page tells to measure without extensions.
+  const EXTENSION_URL = /^(chrome|moz|safari-web)-extension:/i;
+  let extensionCount = 0;
   const addSheet = (sheet, source) => {
     if (!sheet || seenSheets.has(sheet)) return;
     seenSheets.add(sheet);
+    if (sheet.href && EXTENSION_URL.test(sheet.href)) {
+      extensionCount++;
+      return;
+    }
     sheets.push({ sheet, source });
   };
   const addUrl = (href) => {
     if (seenSheets.has(href)) return;
+    if (EXTENSION_URL.test(href)) {
+      seenSheets.add(href);
+      extensionCount++;
+      return;
+    }
     seenSheets.add(href);
     sheets.push({ href, source: href });
   };
@@ -401,6 +415,7 @@
   };
   const details = {
     stylesheetCount: perSheet.length,
+    extensionCount,
     unreadableCount: unreadable.length,
     fetchedCount: perSheet.filter((s) => s.read === "fetched").length,
     ruleCount: sum("ruleCount"),
@@ -417,7 +432,8 @@
     fontFaceCount,
     keyframesCount,
     unusedKeyframes: [...keyframesDefined].filter((name) => !animationsUsed.has(name)).sort(),
-    maxSelectorComplexity: Math.max(0, ...complexities),
+    // A loop, not Math.max(...complexities): a spread of hundreds of thousands of values overflows the stack
+    maxSelectorComplexity: complexities.reduce((max, c) => (c > max ? c : max), 0),
     commonSelectorComplexity: modeOf(complexities),
     complexSelectors: [...complexityBySelector.entries()]
       .map(([selectorText, complexity]) => ({ selectorText, complexity }))
