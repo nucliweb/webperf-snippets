@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- The extension page explains how to measure without other browser extensions: they add CSS, elements and scripts to every page, which the snippets that read the page count as part of it, and their content scripts run on the main thread of the page. A private window with only WebPerf Snippets allowed, or a profile of its own, measures the page alone; the CLI already measures in a Chromium without extensions.
+
 ### Changed
 - The extension shortens a long URL in the middle, as the title of the DevTools window does: the start and the end of a page of a saved audit, or of a URL in an issue, a field or the comparison of two audits, with a button after it that shows the whole URL and folds it again. Two pages that start alike, such as the same page with other query parameters, stay apart, and a URL no longer takes several lines.
 
