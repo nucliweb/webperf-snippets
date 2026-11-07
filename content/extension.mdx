@@ -56,6 +56,17 @@ The extension needs Chrome 120 or later.
 
 To update it, download the new zip, remove the extension in `chrome://extensions` and load the new folder.
 
+## Measure without other extensions
+
+Other browser extensions can add CSS, elements and scripts to every page, and a snippet that reads the page counts them as part of it: the stylesheets of [CSS complexity](/Loading/CSS-Complexity), the nodes of [DOM size and depth](/Interaction/DOM-Size-and-Depth), the inline styles and scripts of the inline size snippets. Their content scripts also run on the main thread of the page, so their work can show up in long tasks, long animation frames and INP.
+
+To measure the page alone, use a window where only this extension runs:
+
+- A private window. In `chrome://extensions`, open the details of WebPerf Snippets and turn on **Allow in Incognito**; the other extensions stay off in private windows unless you allow them too.
+- A Chrome profile of its own, with only this extension installed.
+
+The [CLI](/CLI) measures in a Chromium without extensions. An agent that measures in your browser, such as Chrome DevTools MCP connected to your Chrome, sees what your extensions add, as the panel does.
+
 ## Privacy
 
 The extension asks for no permission beyond storage, and runs a snippet only when you press Run or start an audit. It sends nothing anywhere: the results stay in the panel, the last audits in the local storage of the browser, and the settings, the theme and the side of the list, in the storage that Chrome syncs with your account.
