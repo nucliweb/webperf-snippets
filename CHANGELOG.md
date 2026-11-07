@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.6.1] — 2026-11-07
+
+The extension reaches 0.6.1: Prompt to fix carries the inspected page in the commands that check the fix, and long URLs are shortened in the middle. The extension page explains how to measure without other browser extensions. The snippets and the CLI do not change.
+
 ### Added
 - The extension page explains how to measure without other browser extensions: they add CSS, elements and scripts to every page, which the snippets that read the page count as part of it, and their content scripts run on the main thread of the page. A private window with only WebPerf Snippets allowed, or a profile of its own, measures the page alone; the CLI already measures in a Chromium without extensions.
 
