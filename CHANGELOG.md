@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.6.3] — 2026-11-08
+
+Image Element Audit counts the images without `src` that carousels fill in with JavaScript and names them in one issue, instead of two issues for each of them, and the extension reaches 0.6.3 with it. The CLI reaches version 1.14.1 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)), which ships the snippet.
+
 ### Fixed
 - Image Element Audit checked each `<img>` without `src` or `srcset` as one more image, so a page with carousels that fill in their slides with JavaScript got two issues per slide, one of them a format it could not know, which buried the issues that matter. The snippet counts those images in `details.withoutSrc`, leaves them out of `items` and of the checks of one image, and names the practice in one `images-without-src` issue: the real URL in `src` with `loading="lazy"` and `width` and `height`.
 

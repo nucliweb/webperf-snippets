@@ -10,6 +10,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ---
 
+## [1.14.1] — 2026-11-08
+
+The CLI ships Image Element Audit of the collection 2.6.3.
+
+### Fixed
+- Image Element Audit, the snippet of the collection 2.6.3, counts the `<img>` without `src` or `srcset` that carousels fill in with JavaScript in `details.withoutSrc`, leaves them out of `items` and of the checks of one image, and names them in one `images-without-src` issue, where it gave two issues for each of them.
+
+---
+
 ## [1.14.0] — 2026-11-08
 
 The tools of the MCP server measure under the conditions of the CLI: `cpu` and `network` throttle the page as `--cpu` and `--network`, and `interactions` runs clicks and key presses after the load of each run, as `--interact-script`, so one call measures INP over several throttled runs against a baseline. A measurement of interactions picks its median run by INP, and Scroll-Performance no longer counts the listeners Playwright adds when it clicks.

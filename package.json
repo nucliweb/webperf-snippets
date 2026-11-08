@@ -1,7 +1,7 @@
 {
   "name": "webperf-snippets-docs",
   "private": true,
-  "version": "2.6.2",
+  "version": "2.6.3",
   "description": "Web Performance Snippets — documentation site",
   "workspaces": [
     "cli"
