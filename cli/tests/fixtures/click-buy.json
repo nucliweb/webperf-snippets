@@ -1,0 +1,6 @@
+{
+  "interactions": [
+    { "action": "click", "selector": "#buy" },
+    { "action": "wait", "ms": 300 }
+  ]
+}
