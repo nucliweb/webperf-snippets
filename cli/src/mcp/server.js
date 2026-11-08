@@ -80,11 +80,15 @@ const Cpu = z
   .number()
   .min(MIN_CPU_FACTOR)
   .optional()
-  .describe("Slow the CPU of the page down by this factor, as --cpu of the CLI, such as 4 for a mid-range phone (no throttling by default)");
+  .describe(
+    "Slow the CPU of the page down by this factor, as --cpu of the CLI. Leave it out unless the user asks for throttling or the baseline was throttled: compared with a baseline, use the cpu it was measured with (no throttling by default)"
+  );
 const Network = z
   .enum(Object.keys(NETWORK_PRESETS))
   .optional()
-  .describe("Throttle the network as DevTools does, as --network of the CLI (no throttling by default)");
+  .describe(
+    "Throttle the network as DevTools does, as --network of the CLI. Leave it out unless the user asks for throttling or the baseline was throttled: compared with a baseline, use the network it was measured with (no throttling by default)"
+  );
 
 const LooseObject = (shape) => z.looseObject(shape).meta({ additionalProperties: true });
 const Throttling = LooseObject({})

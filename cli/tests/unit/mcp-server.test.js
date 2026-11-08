@@ -140,6 +140,20 @@ describe("throttling on the tools that load a page", () => {
     }
   });
 
+  // An agent read "such as 4" as advice and throttled every run nobody asked to throttle, which a
+  // baseline measured without throttling then warns about
+  it("asks to leave them out unless throttling is asked for, and to match the baseline, without suggesting a value", async () => {
+    const { tools } = await client.listTools();
+    for (const name of TOOLS) {
+      const { cpu, network } = tools.find((t) => t.name === name).inputSchema.properties;
+      for (const [input, { description }] of Object.entries({ cpu, network })) {
+        expect(description, `${name}.${input}`).toMatch(/leave it out unless/i);
+        expect(description, `${name}.${input}`).toMatch(/baseline/);
+        expect(description, `${name}.${input}`).not.toMatch(/such as/);
+      }
+    }
+  });
+
   it.each(TOOLS)("%s refuses a CPU factor under 1 or a network that is not a preset, before any page loads", async (name) => {
     const cpu = await client.callTool({ name, arguments: { ...argsOf(name), cpu: 0.5 } });
     expect(cpu.isError).toBe(true);
