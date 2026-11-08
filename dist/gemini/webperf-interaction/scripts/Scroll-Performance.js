@@ -21,9 +21,10 @@
   const fpsRating = fps => fps >= 55 ? "good" : fps >= 40 ? "needs-improvement" : "poor";
   const nonPassiveListeners = [];
   const SCROLL_EVENT_TYPES = new Set([ "scroll", "wheel", "touchstart", "touchmove", "touchend" ]);
+  const addedByPlaywright = () => /\bInjectedScript\b/.test((new Error).stack || "");
   const _origAddEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function(type, listener, options) {
-    if (SCROLL_EVENT_TYPES.has(type)) {
+    if (SCROLL_EVENT_TYPES.has(type) && !addedByPlaywright()) {
       const isPassive = options === true ? false : typeof options === "object" && options !== null ? options.passive === true : false;
       if (!isPassive) {
         const entry = {

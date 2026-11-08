@@ -16357,9 +16357,13 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
     "scroll", "wheel", "touchstart", "touchmove", "touchend",
   ]);
 
+  // When Playwright clicks, as the CLI does, its injected script can add touch listeners of its own to
+  // window, without passive, to check that the click lands on the element. They are not the page's.
+  const addedByPlaywright = () => /\bInjectedScript\b/.test(new Error().stack || "");
+
   const _origAddEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function (type, listener, options) {
-    if (SCROLL_EVENT_TYPES.has(type)) {
+    if (SCROLL_EVENT_TYPES.has(type) && !addedByPlaywright()) {
       const isPassive =
         options === true
           ? false // old-style capture boolean, not passive

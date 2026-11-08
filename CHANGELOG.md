@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Scroll-Performance counted as the page's the `touchstart`, `touchend` and `touchcancel` listeners that Playwright adds to `window`, without `passive`, when it clicks, so the CLI and the MCP server reported non-passive listeners that the page does not have. The snippet leaves out the listeners added by the injected script of Playwright; in the console and the extension nothing changes.
+
 ---
 
 ## [2.6.1] — 2026-11-07
