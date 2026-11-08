@@ -49,13 +49,25 @@ jobs:
         run: cp -r snippets cli/
 
       # Trusted publishing: npm exchanges the OIDC token of this workflow for a short-lived one, and adds
-      # the provenance of the package
+      # the provenance of the package. A rerun after a later step failed finds the version on npm already,
+      # which npm refuses to publish again: it goes on to the MCP Registry instead.
       - name: Publish to npm
-        run: npm publish
         working-directory: cli
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "webperf-snippets@$version" version > /dev/null 2>&1; then
+            echo "webperf-snippets@$version is on npm already"
+          else
+            npm publish
+          fi
 
+      # A download from GitHub releases can answer 504: --fail stops an error page from reaching tar,
+      # and the retries cover a failure that lasts a few seconds
       - name: Install mcp-publisher
-        run: curl -sSL "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+        run: |
+          curl -sSL --fail --retry 5 --retry-all-errors --retry-delay 10 -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz"
+          tar xzf mcp-publisher.tar.gz mcp-publisher
 
       # The registry checks that the npm package of cli/server.json carries its name in mcpName, so it
       # waits for npm to list the version it has just published: 1.1.0 took about two and a half minutes
