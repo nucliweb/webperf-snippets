@@ -33,6 +33,15 @@ describe("followUpCalls", () => {
     ]);
   });
 
+  it("measures under the throttling of the run that called for the follow-up", () => {
+    const lcp = [{ id: "CoreWebVitals/LCP", script: "LCP", status: "ok", value: 3100 }];
+    const [snippet] = followUpCalls({ results: lcp, url, viewport: "mobile", cpu: 4, network: "slow-4g", isTracking });
+    expect(snippet.args).toEqual({ url, snippet: "CoreWebVitals/LCP-Subparts", viewport: "mobile", cpu: 4, network: "slow-4g" });
+    const cls = [{ id: "CoreWebVitals/CLS", script: "CLS", status: "ok", value: 0.15 }];
+    const [page] = followUpCalls({ results: cls, url, viewport: "mobile", cpu: 4, isTracking });
+    expect(page.args).toEqual({ url, track: ["Interaction/Layout-Shift-Loading-and-Interaction"], viewport: "mobile", cpu: 4 });
+  });
+
   it("suggests nothing for a good result, an error, or a snippet that already ran", () => {
     expect(followUpCalls({ results: [{ id: "CoreWebVitals/LCP", script: "LCP", status: "ok", value: 1200 }], url, viewport: "mobile", isTracking })).toEqual([]);
     expect(followUpCalls({ results: [{ id: "CoreWebVitals/LCP", script: "LCP", status: "error" }], url, viewport: "mobile", isTracking })).toEqual([]);
@@ -48,5 +57,9 @@ describe("trackingCall", () => {
       args: { url, track: ["CoreWebVitals/INP", "Interaction/Interactions"], viewport: "mobile" },
       reason: expect.stringMatching(/interact/),
     });
+  });
+
+  it("opens it under the throttling of the workflow", () => {
+    expect(trackingCall({ paths: ["CoreWebVitals/INP"], url, viewport: "mobile", network: "3g" }).args).toEqual({ url, track: ["CoreWebVitals/INP"], viewport: "mobile", network: "3g" });
   });
 });

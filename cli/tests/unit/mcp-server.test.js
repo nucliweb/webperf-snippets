@@ -118,6 +118,38 @@ describe("several runs on the tools that measure", () => {
   });
 });
 
+describe("throttling on the tools that load a page", () => {
+  const TOOLS = ["run_snippet", "run_workflow", "open_page"];
+  // Nothing listens on this port: a tool that loaded the page would answer with ERR_CONNECTION_REFUSED
+  const unreachable = "http://127.0.0.1:9/";
+  const argsOf = (name) => ({ url: unreachable, ...(name === "run_snippet" ? { snippet: "LCP" } : name === "open_page" ? { track: ["INP"] } : {}) });
+
+  it("takes an optional cpu and network, as --cpu and --network of the CLI, and answers with the throttling", async () => {
+    const { tools } = await client.listTools();
+    for (const name of TOOLS) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool.inputSchema.properties.cpu, name).toMatchObject({ type: "number", minimum: 1 });
+      expect(tool.inputSchema.properties.cpu.description, name).toMatch(/--cpu/);
+      expect(tool.inputSchema.properties.network, name).toMatchObject({ type: "string", enum: ["fast-4g", "slow-4g", "3g"] });
+      expect(tool.inputSchema.properties.network.description, name).toMatch(/--network/);
+      expect(tool.inputSchema.required ?? [], name).not.toContain("cpu");
+      expect(tool.inputSchema.required ?? [], name).not.toContain("network");
+      expect(tool.outputSchema.properties.throttling, name).toBeDefined();
+      expect(tool.outputSchema.required ?? [], name).not.toContain("throttling");
+      expect(tool.description, name).toMatch(/cpu and network/);
+    }
+  });
+
+  it.each(TOOLS)("%s refuses a CPU factor under 1 or a network that is not a preset, before any page loads", async (name) => {
+    const cpu = await client.callTool({ name, arguments: { ...argsOf(name), cpu: 0.5 } });
+    expect(cpu.isError).toBe(true);
+    expect(cpu.content[0].text).toMatch(/cpu/);
+    const network = await client.callTool({ name, arguments: { ...argsOf(name), network: "5g" } });
+    expect(network.isError).toBe(true);
+    expect(network.content[0].text).toMatch(/network/);
+  });
+});
+
 describe("several measuring calls at a time", () => {
   it("says so in the tools that measure, and that it saves no time", async () => {
     const { tools } = await client.listTools();
