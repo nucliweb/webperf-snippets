@@ -30,10 +30,21 @@ describe("the median run", () => {
     expect(summarizeRuns(runs).runs.medianRun).toBe(4);
   });
 
-  it("follows LCP, FCP, TTFB and navMs, the first one the runs measured", () => {
+  it("follows LCP, FCP, TTFB, INP and navMs, the first one the runs measured", () => {
     expect(summarizeRuns([run(1, { FCP: 300, TTFB: 50 }), run(1, { FCP: 100, TTFB: 90 }), run(1, { FCP: 200, TTFB: 70 })]).runs).toMatchObject({ medianBy: "FCP", medianRun: 3 });
     expect(summarizeRuns([run(1, { TTFB: 90 }), run(1, { TTFB: 50 }), run(1, { TTFB: 70 })]).runs).toMatchObject({ medianBy: "TTFB", medianRun: 3 });
     expect(summarizeRuns([run(700), run(300), run(500)]).runs).toMatchObject({ medianBy: "navMs", medianRun: 3 });
+  });
+
+  // A measurement of interactions has no LCP, FCP or TTFB: the run that answers is the one with the median
+  // INP, so its INP and the details of its slowest interaction are the median ones, not those of the run
+  // that loaded in the median time
+  it("follows INP before navMs, so a measurement of interactions answers with its median INP", () => {
+    const runs = [run(300, { INP: 320 }), run(500, { INP: 328 }), run(400, { INP: 324 })];
+    const { payload, runs: field } = summarizeRuns(runs);
+    expect(field).toMatchObject({ medianBy: "INP", medianRun: 3 });
+    expect(payload).toBe(runs[2]);
+    expect(summarizeRuns([run(1, { LCP: 300, INP: 90 }), run(1, { LCP: 100, INP: 50 }), run(1, { LCP: 200, INP: 70 })]).runs).toMatchObject({ medianBy: "LCP" });
   });
 
   it("follows the metric asked for", () => {

@@ -14,6 +14,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 - The conditions of a run, in the JSON of the CLI and in the runs of the MCP server, name `cpu` and `network` when the run was throttled, also for each combination of `--matrix`. A run without throttling keeps the conditions it had, so the baselines it wrote compare as before.
 
 ### Changed
+- With several runs and no `--median-by`, a measurement without LCP, FCP or TTFB, such as INP or the `interaction` workflow with a click, picks its median run by INP, before the navigation time: the INP of the answer and the details of its slowest interaction are the median ones. The same goes for `runs` of `run_snippet` and `run_workflow`.
 - Without `interactions`, `run_snippet` answers a tracking snippet with an error that names both ways to measure it: `interactions` with a click or a key press, or `open_page`, `interact` and `read_results`. The steps the `interaction` workflow skips say the same, and its `nextSteps` offer the workflow again with `interactions` before `open_page`.
 
 ---

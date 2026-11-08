@@ -336,7 +336,7 @@ One page load is one sample, and lab values vary from one load to the next. `--r
 npx webperf-snippets https://example.com --runs 5 --budget-lcp 2500
 ```
 
-The median run is the one with the median LCP. A workflow without LCP uses the first of FCP, TTFB and the navigation time that it measures, and `--median-by <metric>` picks another one (`LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`). With an even count it takes the lower of the two middle runs, so the report is always a run that happened. The report adds the median, min and max of each metric across the runs, and how much the runs agree, and the JSON output carries them in `runs`:
+The median run is the one with the median LCP. A workflow without LCP uses the first of FCP, TTFB, INP and the navigation time that it measures, so a measurement of interactions answers with its median INP, and `--median-by <metric>` picks another one (`LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`). With an even count it takes the lower of the two middle runs, so the report is always a run that happened. The report adds the median, min and max of each metric across the runs, and how much the runs agree, and the JSON output carries them in `runs`:
 
 ```json
 "runs": {
@@ -466,7 +466,7 @@ npx webperf-snippets https://example.com --verbose
 | `--header "Name: value"` | Request header for the origin of the URL only, such as the token of an access proxy. Repeat it for more headers. |
 | `--own-domains <list>`   | Domains of the site to count as first party, such as its own CDN. Comma-separated or repeated. |
 | `--runs <n>`             | Measure the page n times, from 1 to 9, one after the other, and report the median run. |
-| `--median-by <metric>`   | Metric that picks the median run: `LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`. Default: the first of LCP, FCP, TTFB and `navMs` measured. |
+| `--median-by <metric>`   | Metric that picks the median run: `LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`. Default: the first of LCP, FCP, TTFB, INP and `navMs` measured. |
 | `--matrix <file>`        | Measure every URL of a JSON file on every device and in every variant it lists, and report a table of the medians. |
 | `--baseline <file>`      | Compare the page, or each combination of a matrix, with the `--json` output of an earlier run: which metrics got worse or better beyond the noise, and which errors are new or fixed. |
 | `--threshold <metric>=<v>` | The threshold of a metric for `--baseline`, such as `LCP=15%`, `LCP=200ms` or `CLS=0.1`. Repeat it for more metrics. |
