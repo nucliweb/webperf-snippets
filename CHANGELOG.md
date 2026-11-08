@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Image Element Audit checked each `<img>` without `src` or `srcset` as one more image, so a page with carousels that fill in their slides with JavaScript got two issues per slide, one of them a format it could not know, which buried the issues that matter. The snippet counts those images in `details.withoutSrc`, leaves them out of `items` and of the checks of one image, and names the practice in one `images-without-src` issue: the real URL in `src` with `loading="lazy"` and `width` and `height`.
+
 ---
 
 ## [2.6.2] — 2026-11-08

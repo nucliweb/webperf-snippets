@@ -172,6 +172,18 @@
     return { script: "Image-Element-Audit", status: "ok", count: 0, corsLimitedAnalysis: false, items: [], issues: [] };
   }
 
+  // An <img> with no src or srcset, and no <source> of its <picture> with one, loads nothing yet: a
+  // carousel or a lazy loader fills it in later with JavaScript. The checks of one image (its format,
+  // its loading, its dimensions) say nothing about it, so it is counted, and the practice named once.
+  const hasSource = (img) =>
+    Boolean(img.currentSrc) ||
+    Boolean(img.getAttribute("src")?.trim()) ||
+    Boolean(img.getAttribute("srcset")?.trim()) ||
+    (img.parentElement?.tagName === "PICTURE" &&
+      Array.from(img.parentElement.querySelectorAll("source")).some((source) => source.getAttribute("srcset")?.trim()));
+  const withoutSrc = images.filter((img) => !hasSource(img));
+  const withSrc = images.filter(hasSource);
+
   const { candidate: lcpCandidate, nonImageTag } = await findLcpCandidate(images);
   const imagePreloads = Array.from(document.querySelectorAll('link[rel="preload"][as="image"]'));
 
@@ -179,7 +191,7 @@
   // Uses the browser cache (force-cache) so already-loaded images
   // don't trigger new network requests. Falls back to URL detection
   // if the server does not expose CORS headers.
-  const formats = await Promise.all(images.map((img) => fetchFormat(img.currentSrc || img.src)));
+  const formats = await Promise.all(withSrc.map((img) => fetchFormat(img.currentSrc || img.src)));
 
   // @shared uniqueSelector
   // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
@@ -215,7 +227,7 @@
   }
   // @end-shared uniqueSelector
 
-  const audited = images.map((img, i) => {
+  const audited = withSrc.map((img, i) => {
     const inViewport = isInViewport(img);
     const isLcp = img === lcpCandidate;
     const rect = img.getBoundingClientRect();
@@ -282,6 +294,8 @@
     };
   });
 
+  const WITHOUT_SRC_MESSAGE = `${withoutSrc.length} <img> without src or srcset load nothing until JavaScript fills them in, as in a carousel: put the real URL in src with loading="lazy" and width/height, so the browser loads them without waiting for the script and reserves their space`;
+
   const withIssues = audited.filter((r) => r.issues.length > 0);
   const totalErrors = audited.flatMap((r) => r.issues.filter((i) => i.s === "error")).length;
   const totalWarnings = audited.flatMap((r) => r.issues.filter((i) => i.s === "warning")).length;
@@ -293,6 +307,7 @@
   console.log("");
   console.log("%cSummary", "font-weight: bold;");
   console.log(`   Total images  : ${images.length}`);
+  if (withoutSrc.length > 0) console.log(`   Without src   : ${withoutSrc.length} (filled in later by JavaScript, not audited one by one)`);
   console.log(`   In viewport   : ${audited.filter((r) => r.inViewport).length}`);
   console.log(`   Off viewport  : ${audited.filter((r) => !r.inViewport).length}`);
   console.log(
@@ -326,7 +341,7 @@
 
   // Full table
   console.log("");
-  console.group(`%c📋 All Images (${images.length})`, "font-weight: bold;");
+  console.group(`%c📋 Images with a source (${audited.length})`, "font-weight: bold;");
   console.table(
     audited.map((r) => ({
       src: shortSrc(r.src),
@@ -376,6 +391,12 @@
     console.log("%c✅ No issues found.", "color: #22c55e; font-weight: bold;");
   }
 
+  if (withoutSrc.length > 0) {
+    console.log("");
+    console.log(`%cℹ️ ${WITHOUT_SRC_MESSAGE}`, "color: #3b82f6;");
+    console.log("   First of them:", withoutSrc[0]);
+  }
+
   // Quick reference
   console.log("");
   console.group("%c📝 Quick Reference", "color: #3b82f6; font-weight: bold;");
@@ -420,6 +441,7 @@
     corsLimitedAnalysis: formatGuessedCount > 0,
     details: {
       totalImages: images.length,
+      withoutSrc: withoutSrc.length,
       formatGuessedCount,
       inViewport: audited.filter((r) => r.inViewport).length,
       offViewport: audited.filter((r) => !r.inViewport).length,
@@ -464,6 +486,7 @@
           ...(r.src ? { target: r.src.startsWith("data:") ? r.src.slice(0, 60) : r.src } : {}),
         }))
       ),
+      ...(withoutSrc.length > 0 ? [{ code: "images-without-src", severity: "info", message: WITHOUT_SRC_MESSAGE }] : []),
     ],
   };
 })();
