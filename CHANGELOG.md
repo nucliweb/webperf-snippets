@@ -8,6 +8,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [2.6.2] — 2026-11-08
+
+Scroll-Performance no longer counts the touch listeners Playwright adds when it clicks, and the extension reaches 0.6.2 with it. The CLI reaches version 1.14.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)), whose MCP server throttles the page and runs interactions in the tools that measure a page load.
+
+### Added
+- The CLI reaches version 1.14.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)): `run_snippet`, `run_workflow` and `open_page` of its MCP server take `cpu` and `network`, `run_snippet` and `run_workflow` take `interactions`, and a measurement of interactions picks its median run by INP. The [MCP server](https://webperf-snippets.net/MCP) page documents them.
+
 ### Fixed
 - Scroll-Performance counted as the page's the `touchstart`, `touchend` and `touchcancel` listeners that Playwright adds to `window`, without `passive`, when it clicks, so the CLI and the MCP server reported non-passive listeners that the page does not have. The snippet leaves out the listeners added by the injected script of Playwright; in the console and the extension nothing changes.
 
