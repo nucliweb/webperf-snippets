@@ -408,7 +408,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
 
       try {
         const { conditions, run } = await measureInTurn(
-          { viewport, snippet: path, waitMs },
+          { viewport, snippet: path, waitMs, cpu, network },
           (onProgress, signal) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, onProgress, signal }),
           count,
           ctx
@@ -484,7 +484,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }
       try {
         const { conditions, run } = await measureInTurn(
-          { viewport, workflow, waitMs },
+          { viewport, workflow, waitMs, cpu, network },
           (onProgress, signal) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, onProgress, signal }),
           count,
           ctx

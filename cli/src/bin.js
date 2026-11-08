@@ -313,8 +313,8 @@ async function main() {
   // What the JSON records of how each page was measured, for a later run to compare with. The machine is
   // measured once, before Chromium starts, so its processes do not slow the benchmark down.
   const machine = machineOf();
-  const conditionsFor = (viewport) =>
-    measurementConditions({ viewport, waitMs, machine, ...(items ? { snippet: items[0].path } : { workflow: values.workflow ?? "core-web-vitals" }) });
+  const conditionsFor = ({ viewport, cpu, network }) =>
+    measurementConditions({ viewport, waitMs, cpu, network, machine, ...(items ? { snippet: items[0].path } : { workflow: values.workflow ?? "core-web-vitals" }) });
 
   if (matrixPath) {
     let matrix;
@@ -336,7 +336,7 @@ async function main() {
     if (!median.payload) throw new Error(`Every run failed: ${median.errors.join("; ")}`);
     payload = { ...median.payload, runs: median.runs };
   }
-  payload.conditions = conditionsFor(viewportName);
+  payload.conditions = conditionsFor({ viewport: viewportName, cpu, network });
 
   if (cruxKey) payload.crux = await fieldDataOf(url, formFactorFor(viewportName));
 
@@ -422,8 +422,8 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
     const identity = { id: c.id, name: c.name, device: c.device, ...(c.variant ? { variant: c.variant } : {}), url: c.url };
     combinations.push(
       median.payload
-        ? { ...identity, ...median.payload, runs: median.runs, conditions: conditionsFor(c.viewport) }
-        : { ...identity, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs }, conditions: conditionsFor(c.viewport) }
+        ? { ...identity, ...median.payload, runs: median.runs, conditions: conditionsFor(c) }
+        : { ...identity, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs }, conditions: conditionsFor(c) }
     );
   }
 

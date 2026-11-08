@@ -18,6 +18,27 @@ describe("the conditions of a measurement", () => {
     expect(conditions).not.toHaveProperty("workflow");
   });
 
+  it("name the CPU factor and the network of a throttled run", () => {
+    expect(measurementConditions({ viewport: "mobile", workflow: "interaction", waitMs: 3000, cpu: 4, network: "slow-4g" })).toEqual({
+      viewport: "mobile",
+      workflow: "interaction",
+      waitMs: 3000,
+      cpu: 4,
+      network: "slow-4g",
+      cliVersion,
+    });
+  });
+
+  // A run without throttling keeps the conditions of earlier versions, so the baselines they wrote compare
+  // with it as before
+  it("name only the throttling that was given, and none without it", () => {
+    const cpuOnly = measurementConditions({ viewport: "mobile", workflow: "core-web-vitals", waitMs: 3000, cpu: 2 });
+    expect(cpuOnly).toMatchObject({ cpu: 2 });
+    expect(cpuOnly).not.toHaveProperty("network");
+    const plain = measurementConditions({ viewport: "mobile", workflow: "core-web-vitals", waitMs: 3000, cpu: undefined, network: undefined });
+    expect(Object.keys(plain)).toEqual(["viewport", "workflow", "waitMs", "cliVersion"]);
+  });
+
   it("name the machine when it is given: its cores and its benchmark index", () => {
     const machine = { cores: 8, benchmarkIndex: 1234 };
     expect(measurementConditions({ viewport: "mobile", workflow: "core-web-vitals", waitMs: 3000, machine })).toMatchObject({ machine });

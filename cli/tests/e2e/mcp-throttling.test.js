@@ -42,6 +42,21 @@ describe("throttling on the tools of the MCP server", () => {
     expect(result.structuredContent.throttling).toEqual({ cpu: 2 });
   }, 60000);
 
+  it("keeps the throttling in the conditions of the run, and warns against a baseline measured under another", async () => {
+    const throttled = await call("run_snippet", { url: `${servers.base}/lcp-image`, snippet: "TTFB", waitMs: 0, cpu: 4 });
+    const { runId } = throttled.structuredContent;
+    const resource = await client.readResource({ uri: `webperf://runs/${runId}` });
+    expect(JSON.parse(resource.contents[0].text).conditions).toMatchObject({ snippet: "Loading/TTFB", cpu: 4 });
+
+    const plain = await call("run_snippet", { url: `${servers.base}/lcp-image`, snippet: "TTFB", waitMs: 0, baseline: runId });
+    const { warnings } = plain.structuredContent.baseline;
+    expect(warnings).toContain("the baseline was measured with CPU 4x, and this run without throttling");
+    const { runId: plainId } = plain.structuredContent;
+    const conditions = JSON.parse((await client.readResource({ uri: `webperf://runs/${plainId}` })).contents[0].text).conditions;
+    expect(conditions).not.toHaveProperty("cpu");
+    expect(conditions).not.toHaveProperty("network");
+  }, 60000);
+
   // 3G has a round trip of 2 s, so a throttled load takes longer than that; a local one takes milliseconds
   it("open_page throttles the page before it loads, and says so", async () => {
     const opened = await call("open_page", { url: `${servers.base}/slow-click`, track: ["INP"], waitMs: 0, cpu: 4, network: "3g" });
