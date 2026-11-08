@@ -13,7 +13,7 @@ export const MAX_RUNS = 9;
 export const MEDIAN_METRICS = ["LCP", "FCP", "TTFB", "CLS", "INP", "navMs"];
 
 // Without --median-by, the median follows the first of these that the runs measured
-const DEFAULT_ORDER = ["LCP", "FCP", "TTFB", "navMs"];
+const DEFAULT_ORDER = ["LCP", "FCP", "TTFB", "INP", "navMs"];
 
 const SUMMARY_METRICS = MEDIAN_METRICS.filter((metric) => metric !== "navMs");
 

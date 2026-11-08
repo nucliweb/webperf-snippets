@@ -71,7 +71,8 @@ Options:
   --matrix <file>           Measure every URL of a JSON file on every device and in every
                             variant it lists, and report a table of the medians
   --median-by <metric>      Metric that picks the median run: LCP, FCP, TTFB, CLS, INP,
-                            navMs (default: the first of LCP, FCP, TTFB, navMs measured)
+                            navMs (default: the first of LCP, FCP, TTFB, INP, navMs
+                            measured)
   --baseline <file>         Compare the page, or each combination of a matrix, with the --json
                             output of an earlier run: which metrics got worse or better beyond
                             the noise, and which errors are new or fixed. It only informs,
