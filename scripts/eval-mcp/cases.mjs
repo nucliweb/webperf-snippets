@@ -21,6 +21,8 @@ import { isInputStep } from '../../cli/src/interactions.js'
 // Whether open_page installed one of the snippets that match, by name, alias or Category/Name
 const tracks = (pattern) => ({ input }) => [input.track ?? []].flat().some((name) => pattern.test(String(name)))
 const steps = (input) => (Array.isArray(input.steps) ? input.steps : [])
+// The interactions of run_snippet and run_workflow, which run after the load of each run
+const clicksOrTypes = (input) => (Array.isArray(input.interactions) ? input.interactions : []).some(isInputStep)
 
 // 40 weeks of field data where INP gets worse week by week (170 to 287 ms) and LCP and CLS hold still
 const WEEKS = 40
@@ -93,8 +95,9 @@ export const CASES = [
   // Tool choice: the cases below check the tools the agent calls and their order, not only the report,
   // so they run with the webperf server only.
   {
-    // INP comes from interactions: measured on a page nobody used, it is empty. The page has to stay
-    // open with an INP snippet installed, get a click or a key press, and be read after it.
+    // INP comes from interactions: measured on a page nobody used, it is empty. The page has to get a
+    // click or a key press, either kept open with an INP snippet installed and read after it, or in the
+    // interactions of run_snippet or of the interaction workflow, which measure it in one call.
     id: 'inp-tool-order',
     fixture: 'inp-slow-click.html',
     arms: ['webperf'],
@@ -108,6 +111,8 @@ export const CASES = [
             { tool: 'interact', label: 'interact with a click or a key press', match: ({ input }) => steps(input).some(isInputStep) },
             { tool: 'read_results' },
           ],
+          [{ tool: 'run_snippet', label: 'run_snippet INP with a click or a key press', match: ({ input }) => /\bINP\b|Interactions|Input-Latency/i.test(String(input.snippet)) && clicksOrTypes(input) }],
+          [{ tool: 'run_workflow', label: 'run_workflow interaction with a click or a key press', match: ({ input }) => input.workflow === 'interaction' && clicksOrTypes(input) }],
         ],
       },
     },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { followUpCalls, trackingCall } from "../../src/mcp/next-steps.js";
+import { followUpCalls, trackingCall, inputStepsCalls } from "../../src/mcp/next-steps.js";
 
 const url = "https://example.test/";
 const isTracking = (path) => path === "Interaction/Layout-Shift-Loading-and-Interaction";
@@ -33,6 +33,15 @@ describe("followUpCalls", () => {
     ]);
   });
 
+  it("measures under the throttling of the run that called for the follow-up", () => {
+    const lcp = [{ id: "CoreWebVitals/LCP", script: "LCP", status: "ok", value: 3100 }];
+    const [snippet] = followUpCalls({ results: lcp, url, viewport: "mobile", cpu: 4, network: "slow-4g", isTracking });
+    expect(snippet.args).toEqual({ url, snippet: "CoreWebVitals/LCP-Subparts", viewport: "mobile", cpu: 4, network: "slow-4g" });
+    const cls = [{ id: "CoreWebVitals/CLS", script: "CLS", status: "ok", value: 0.15 }];
+    const [page] = followUpCalls({ results: cls, url, viewport: "mobile", cpu: 4, isTracking });
+    expect(page.args).toEqual({ url, track: ["Interaction/Layout-Shift-Loading-and-Interaction"], viewport: "mobile", cpu: 4 });
+  });
+
   it("suggests nothing for a good result, an error, or a snippet that already ran", () => {
     expect(followUpCalls({ results: [{ id: "CoreWebVitals/LCP", script: "LCP", status: "ok", value: 1200 }], url, viewport: "mobile", isTracking })).toEqual([]);
     expect(followUpCalls({ results: [{ id: "CoreWebVitals/LCP", script: "LCP", status: "error" }], url, viewport: "mobile", isTracking })).toEqual([]);
@@ -48,5 +57,28 @@ describe("trackingCall", () => {
       args: { url, track: ["CoreWebVitals/INP", "Interaction/Interactions"], viewport: "mobile" },
       reason: expect.stringMatching(/interact/),
     });
+  });
+
+  it("opens it under the throttling of the workflow", () => {
+    expect(trackingCall({ paths: ["CoreWebVitals/INP"], url, viewport: "mobile", network: "3g" }).args).toEqual({ url, track: ["CoreWebVitals/INP"], viewport: "mobile", network: "3g" });
+  });
+});
+
+describe("inputStepsCalls", () => {
+  const paths = ["CoreWebVitals/INP", "Interaction/Interactions", "Interaction/Input-Latency-Breakdown"];
+
+  it("offers the workflow again with interactions first, then a page to open with the steps it skipped", () => {
+    const [again, open] = inputStepsCalls({ workflow: "interaction", paths, url, viewport: "mobile", waitMs: 1000 });
+    expect(again).toEqual({
+      tool: "run_workflow",
+      args: { url, workflow: "interaction", viewport: "mobile", waitMs: 1000, interactions: [{ action: "click", selector: expect.stringMatching(/^<.*>$/) }] },
+      reason: expect.stringMatching(/interactions.*click or type.*selector/),
+    });
+    expect(open).toEqual(trackingCall({ paths, url, viewport: "mobile" }));
+  });
+
+  it("keeps the throttling of the workflow in both", () => {
+    const calls = inputStepsCalls({ workflow: "interaction", paths, url, viewport: "mobile", cpu: 4, network: "slow-4g" });
+    for (const call of calls) expect(call.args, call.tool).toMatchObject({ cpu: 4, network: "slow-4g" });
   });
 });

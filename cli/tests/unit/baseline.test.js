@@ -331,6 +331,15 @@ describe("the warnings of a comparison", () => {
     );
   });
 
+  // Pages that name their throttling in their conditions too, as the CLI and the MCP server write them:
+  // one warning for it, and none when both ran under the same one
+  it("name a different throttling once when the conditions name it too", () => {
+    const throttled = (cpu, network) => page({ throttling: { cpu, ...(network ? { network } : {}) }, conditions: { ...CONDITIONS, cpu, ...(network ? { network } : {}) } });
+    const warnings = warningsOf(throttled(4), throttled(2, "slow-4g"));
+    expect(warnings.filter((w) => /throttling|CPU/.test(w))).toEqual(["the baseline was measured with CPU 4x, and this run with CPU 2x, Slow 4G"]);
+    expect(warningsOf(throttled(4), throttled(4)).filter((w) => /throttling|CPU/.test(w))).toEqual([]);
+  });
+
   it("say that a baseline of one run has no range, and name a different number of runs", () => {
     expect(warningsOf(page(), page())).toContain("the baseline has 1 run, so only the thresholds apply; measure both with 5 runs or more");
     expect(warningsOf(page({ runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) }), page({ runs: runsOf({ LCP: [1, 2, 3] }) }))).toContain(

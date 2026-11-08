@@ -404,14 +404,29 @@ It needs the Chromium of Playwright (`npx playwright install chromium`); without
 | Tool            | What it does                                                                 |
 | --------------- | ---------------------------------------------------------------------------- |
 | `list_snippets` | Lists the snippets with their category, title, short aliases and whether they track interactions. Takes an optional `category`. |
-| `run_snippet`   | Opens a URL in a headless Chromium, runs one snippet and returns a summary of its result. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport`, `waitMs`, `runs`, `baseline` and `thresholds`. The snippets that record interactions run on a page opened with `open_page`. |
-| `run_workflow`  | Runs a workflow of the CLI (`core-web-vitals`, `audit`, `loading`, `interaction`) and the follow-ups of its decision tree. Takes `url`, `workflow`, and optional `viewport`, `waitMs`, `runs`, `baseline` and `thresholds`. |
+| `run_snippet`   | Opens a URL in a headless Chromium, runs one snippet and returns a summary of its result. Takes `url`, `snippet` (name, alias or `Category/Name`), and optional `viewport`, `waitMs`, `cpu`, `network`, `interactions`, `runs`, `baseline` and `thresholds`. The snippets that record interactions need `interactions` with a click or a key press, or a page opened with `open_page`. |
+| `run_workflow`  | Runs a workflow of the CLI (`core-web-vitals`, `audit`, `loading`, `interaction`) and the follow-ups of its decision tree. Takes `url`, `workflow`, and optional `viewport`, `waitMs`, `cpu`, `network`, `interactions`, `runs`, `baseline` and `thresholds`. |
 | `get_crux`      | Returns the CrUX p75 of LCP, CLS and INP for a URL, or its origin. Takes `url` and an optional `formFactor` (`phone`, `desktop`, `tablet`). Needs `CRUX_API_KEY` in the environment of the server. |
-| `open_page`     | Opens a URL in a page that stays open between calls and installs tracking snippets (`track`, such as `INP`). Returns a `sessionId`. |
+| `open_page`     | Opens a URL in a page that stays open between calls and installs tracking snippets (`track`, such as `INP`). Takes optional `viewport`, `waitMs`, `cpu` and `network`. Returns a `sessionId`. |
 | `interact`      | Runs steps on an open page: `click`, `type`, `hover`, `scroll` or `wait`. |
 | `read_results`  | Returns what the tracking snippets of an open page have recorded. |
 | `get_details`   | Returns the whole object of one snippet of a run, by the `runId` that `run_snippet`, `run_workflow` or `read_results` returned, without measuring again. Takes `runId` and `snippet`. |
 | `close_page`    | Closes an open page. |
+
+`run_snippet`, `run_workflow` and `open_page` take `cpu` and `network`, as `--cpu` and `--network`: a CPU factor of at least 1, such as `4`, and a DevTools preset (`fast-4g`, `slow-4g`, `3g`), applied before the page loads. The answer adds `throttling`, as the JSON does, and the conditions of the run name them, so a baseline measured under other throttling gives a warning.
+
+`run_snippet` and `run_workflow` take `interactions`, the steps of `interact` (up to 50), as `--interact-script`: they run after the load of each run, so `runs`, `baseline` and `thresholds` work with them. With a click or a key press, `run_snippet` runs INP, Interactions and Input-Latency-Breakdown, and the `interaction` workflow runs its steps that need input instead of skipping them. The INP of a page over five runs with a click each, with the CPU 4 times slower, against an earlier run:
+
+```json
+{
+  "url": "http://localhost:3000/product",
+  "snippet": "INP",
+  "interactions": [{ "action": "click", "selector": "#buy" }, { "action": "wait", "ms": 300 }],
+  "runs": 5,
+  "cpu": 4,
+  "baseline": "<runId of the run before the change>"
+}
+```
 
 `run_snippet` and `run_workflow` take `runs`, from 1 to 9, as `--runs`: the page loads that many times, one after the other, and the answer is the median run plus a `runs` field, the one of the JSON, with the median, min, max, the value of each run and the agreement of each metric. A run that fails counts in `failed` and is left out; when every run fails, the answer is a tool error. The server keeps the results of the median run only, as the JSON does, so `get_details` answers from that run and names it in `medianRun`; a metric other than the one that picked it (`medianBy`) can differ there from its median in `runs`.
 

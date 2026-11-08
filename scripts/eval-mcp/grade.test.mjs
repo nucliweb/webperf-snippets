@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { snippetRuns, gradeRun, toolCalls, followsOrder } from './grade.mjs'
+import { CASES } from './cases.mjs'
 
 const CATALOG = ['CoreWebVitals/LCP', 'CoreWebVitals/LCP-Subparts', 'CoreWebVitals/INP', 'Interaction/Interactions']
 
@@ -160,4 +161,18 @@ test('gradeRun leaves out the tool checks of a case without expect.tools, and ta
   const ids = gradeRun(toolCase(undefined), transcript([webperf('run_snippet', { snippet: 'LCP' })]), CATALOG).map((c) => c.id)
   assert.deepEqual(ids, ['measured'])
   assert.equal(gradeRun(LCP_CASE, transcript([]), CATALOG).some((c) => c.id === 'tool-order'), false)
+})
+
+// INP in one call: run_snippet or run_workflow with interactions that click or type, as right as the
+// page kept open with open_page, interact and read_results
+test('inp-tool-order takes INP measured in one call with a click or a key press in interactions', () => {
+  const { tools } = CASES.find((c) => c.id === 'inp-tool-order').expect
+  const pass = (calls) => toolIds(tools, calls)['tool-order'].pass
+  const click = [{ action: 'click', selector: '#add' }]
+  assert.equal(pass([webperf('run_snippet', { snippet: 'INP', interactions: click })]), true)
+  assert.equal(pass([webperf('run_snippet', { snippet: 'CoreWebVitals/INP', interactions: [{ action: 'type', selector: '#q', text: 'a' }] })]), true)
+  assert.equal(pass([webperf('run_workflow', { workflow: 'interaction', interactions: click })]), true)
+  assert.equal(pass([webperf('run_snippet', { snippet: 'INP' })]), false)
+  assert.equal(pass([webperf('run_workflow', { workflow: 'interaction', interactions: [{ action: 'scroll' }] })]), false)
+  assert.equal(pass([webperf('run_snippet', { snippet: 'LCP', interactions: click })]), false)
 })

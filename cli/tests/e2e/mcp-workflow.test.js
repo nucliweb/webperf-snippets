@@ -125,10 +125,15 @@ describe("run_workflow", () => {
     expect(fast.structuredContent.nextSteps).toBeUndefined();
   }, 60000);
 
-  it("gives the call that opens a page with the steps a workflow skipped", async () => {
+  it("gives the calls that measure the steps a workflow skipped: the workflow with interactions, then a page to open", async () => {
     await connect();
     const result = await call("run_workflow", { url: `${servers.base}/seeded`, workflow: "interaction", waitMs: 0 });
     expect(result.structuredContent.nextSteps).toEqual([
+      {
+        tool: "run_workflow",
+        args: { url: `${servers.base}/seeded`, workflow: "interaction", viewport: "mobile", waitMs: 0, interactions: [{ action: "click", selector: expect.any(String) }] },
+        reason: expect.stringMatching(/clicks and key presses/),
+      },
       {
         tool: "open_page",
         args: { url: `${servers.base}/seeded`, track: ["CoreWebVitals/INP", "Interaction/Interactions", "Interaction/Input-Latency-Breakdown"], viewport: "mobile" },

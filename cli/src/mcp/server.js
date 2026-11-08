@@ -15,12 +15,13 @@ import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
 import { shapeResults, createRuns, RunError } from "./summary.js";
-import { followUpCalls, trackingCall } from "./next-steps.js";
+import { followUpCalls, inputStepsCalls } from "./next-steps.js";
 import { isHttpUrl } from "../url.js";
 import { machineOf } from "../machine.js";
 import { measurementConditions } from "../conditions.js";
 import { prepareBaseline, compareWithBaseline } from "./baseline.js";
 import { MAX_RUNS, measureRuns } from "../runs.js";
+import { MIN_CPU_FACTOR, NETWORK_PRESETS, applyThrottling, throttlingOf } from "../throttling.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
 const STAGES = 3;
@@ -72,7 +73,27 @@ const Runs = z
     "Measure the page this many times, one after the other, as --runs of the CLI: the answer is the median run, plus runs with the median, min, max and agreement of each metric. With baseline, 5 or more on both sides give the statistical verdict: use 5 for a comparison, and more only when agreement says noisy. Each run is a full page load and wait, so it takes that much longer"
   );
 
+// The throttling of --cpu and --network, applied to the page before it loads. Without them the page runs
+// at the speed of the machine, as the CLI does. A network of the tools is a preset: its own values are
+// for --matrix.
+const Cpu = z
+  .number()
+  .min(MIN_CPU_FACTOR)
+  .optional()
+  .describe(
+    "Slow the CPU of the page down by this factor, as --cpu of the CLI. Leave it out unless the user asks for throttling or the baseline was throttled: compared with a baseline, use the cpu it was measured with (no throttling by default)"
+  );
+const Network = z
+  .enum(Object.keys(NETWORK_PRESETS))
+  .optional()
+  .describe(
+    "Throttle the network as DevTools does, as --network of the CLI. Leave it out unless the user asks for throttling or the baseline was throttled: compared with a baseline, use the network it was measured with (no throttling by default)"
+  );
+
 const LooseObject = (shape) => z.looseObject(shape).meta({ additionalProperties: true });
+const Throttling = LooseObject({})
+  .optional()
+  .describe("With cpu or network, the throttling the page ran under, as the throttling field of the JSON of the CLI");
 const RunsSummary = LooseObject({
   count: z.number(),
   failed: z.number().describe("Runs left out because they failed"),
@@ -117,6 +138,7 @@ const DETAIL_NOTE =
   "Large results come as summaries with a runId for get_details; nextSteps, when present, is the call to make next.";
 const BASELINE_NOTE = "With baseline, it also compares the run with an earlier one, as --baseline of the CLI, and says what regressed.";
 const QUEUE_NOTE = "Measurements run one at a time, so several in one turn save no time.";
+const THROTTLING_NOTE = "cpu and network throttle the page as --cpu and --network of the CLI, and the answer says so in throttling.";
 
 // A page can put instructions for the agent in what a snippet returns: an alt text, a class in a
 // selector, the URL of a script. The tools that return what a page holds say how to read it, and so
@@ -132,6 +154,16 @@ const Step = z.discriminatedUnion("action", [
   z.object({ action: z.literal("scroll"), y: z.number().int().optional().describe("Pixels down, 300 by default") }),
   z.object({ action: z.literal("wait"), ms: z.number().int().min(0).max(10000) }),
 ]);
+
+// The steps of interact, run after the load of each run, as --interact-script of the CLI
+const Interactions = z
+  .array(Step)
+  .min(1)
+  .max(50)
+  .optional()
+  .describe(
+    "Steps to run on the page after the load, as --interact-script of the CLI: click, type, hover, scroll or wait, as in interact. A click or a key press is what INP, Interactions and Input-Latency-Breakdown measure. Each run repeats them, so runs and baseline work with them"
+  );
 
 const SnippetInfo = z.object({
   name: z.string().describe("Category/Name, the name other tools take"),
@@ -341,12 +373,15 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a snippet",
       description:
-        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead. ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) need interactions with a click or a key press, which run after the load of each run; open_page explores a page step by step instead. ${THROTTLING_NOTE} ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         snippet: z.string().describe("The snippet: its name (LCP-Subparts), an alias (render-blocking) or Category/Name"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the snippet, in ms"),
+        cpu: Cpu,
+        network: Network,
+        interactions: Interactions,
         runs: Runs,
         detail: Detail,
         baseline: Baseline,
@@ -360,6 +395,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         viewport: z.enum(VIEWPORTS),
         navMs: z.number().describe("From the start of the navigation to the end of the wait"),
         pageErrors: z.array(z.string()).describe("Uncaught errors of the page during the run"),
+        throttling: Throttling,
         result: SnippetResult,
         runs: RunsSummary,
         baseline: Comparison,
@@ -367,7 +403,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, snippet, viewport, waitMs, runs: count, detail, baseline, thresholds }, ctx) => {
+    async ({ url, snippet, viewport, waitMs, cpu, network, interactions, runs: count, detail, baseline, thresholds }, ctx) => {
       let path;
       try {
         path = resolveSnippetName(snippet);
@@ -375,8 +411,11 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         return toolError(err.message);
       }
       const source = loadSnippet(path);
-      if (isTrackingSnippet(path, source)) {
-        return toolError(`${path} records interactions: open the page with open_page and this snippet in track, use it with interact, and read it with read_results.`);
+      // With interactions, the runner installs it before the steps and reads it after them
+      if (isTrackingSnippet(path, source) && !interactions) {
+        return toolError(
+          `${path} records interactions: run it with interactions that click or type on an element of the page, which run after the load, or open the page with open_page and this snippet in track, use it with interact, and read it with read_results.`
+        );
       }
       let base;
       try {
@@ -387,15 +426,15 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
 
       try {
         const { conditions, run } = await measureInTurn(
-          { viewport, snippet: path, waitMs },
-          (onProgress, signal) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress, signal }),
+          { viewport, snippet: path, waitMs, cpu, network },
+          (onProgress, signal) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, interactions, onProgress, signal }),
           count,
           ctx
         );
         const shaped = shapeResults(run.results.map(({ id, ...result }) => result), detail);
         const { runId, current } = keepPage(run, run.results, conditions);
         const id = run.results[0].id;
-        const nextSteps = followUpCalls({ results: run.results, url, viewport, waitMs, ran: [path] });
+        const nextSteps = followUpCalls({ results: run.results, url, viewport, waitMs, cpu, network, ran: [path] });
         return toolResult({
           url,
           runId,
@@ -404,6 +443,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           viewport,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
+          ...(run.throttling ? { throttling: run.throttling } : {}),
           result: shaped.results[0],
           ...(run.runs ? { runs: run.runs } : {}),
           ...(base ? { baseline: compareWithBaseline(base, current) } : {}),
@@ -422,12 +462,15 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a workflow",
       description:
-        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page. ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page, or while it runs interactions, which with a click or a key press also measure INP, Interactions and Input-Latency-Breakdown. ${THROTTLING_NOTE} ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the workflow, in ms"),
+        cpu: Cpu,
+        network: Network,
+        interactions: Interactions,
         runs: Runs,
         detail: Detail,
         baseline: Baseline,
@@ -441,6 +484,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         viewport: z.enum(VIEWPORTS),
         navMs: z.number(),
         pageErrors: z.array(z.string()),
+        throttling: Throttling,
         results: z
           .array(z.looseObject({ id: z.string(), status: z.string() }).meta({ additionalProperties: true }))
           .describe("One object per step, in order, then the follow-ups, each with the reason it was added"),
@@ -450,7 +494,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, workflow, viewport, waitMs, runs: count, detail, baseline, thresholds }, ctx) => {
+    async ({ url, workflow, viewport, waitMs, cpu, network, interactions, runs: count, detail, baseline, thresholds }, ctx) => {
       let base;
       try {
         base = baselineFor({ baseline, thresholds });
@@ -459,15 +503,19 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }
       try {
         const { conditions, run } = await measureInTurn(
-          { viewport, workflow, waitMs },
-          (onProgress, signal) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], onProgress, signal }),
+          { viewport, workflow, waitMs, cpu, network },
+          (onProgress, signal) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, interactions, onProgress, signal }),
           count,
           ctx
         );
         // The runner explains a skipped step with the flag of the CLI; here the tools are what the model has
         const results = run.results.map((r) =>
           r.status === "skipped"
-            ? { ...r, reason: "This step measures clicks and key presses: open the page with open_page and this snippet in track, use it with interact, and read it with read_results." }
+            ? {
+                ...r,
+                reason:
+                  "This step measures clicks and key presses: run the workflow with interactions that click or type on an element of the page, or open the page with open_page and this snippet in track, use it with interact, and read it with read_results.",
+              }
             : r
         );
         const shaped = shapeResults(results, detail);
@@ -477,7 +525,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           .filter((r) => r.status === "skipped")
           .map((r) => WORKFLOWS[workflow].steps.find((s) => s.id === r.id)?.path)
           .filter(Boolean);
-        const nextSteps = skipped.length ? [trackingCall({ paths: skipped, url, viewport })] : [];
+        const nextSteps = skipped.length ? inputStepsCalls({ workflow, paths: skipped, url, viewport, waitMs, cpu, network }) : [];
         return toolResult({
           url,
           runId,
@@ -486,6 +534,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           viewport,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
+          ...(run.throttling ? { throttling: run.throttling } : {}),
           ...(run.runs ? { runs: run.runs } : {}),
           ...(base ? { baseline: compareWithBaseline(base, current) } : {}),
           ...(nextSteps.length ? { nextSteps } : {}),
@@ -558,23 +607,26 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Open a page",
       description:
-        `Opens the URL in a headless Chromium that stays open between calls, and installs the snippets that record interactions (INP, Interactions, Input-Latency-Breakdown, and the other tracking snippets in list_snippets). Returns a sessionId for interact, read_results and close_page. At most 3 pages are open at a time, and a page closes after 10 minutes without use. ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium that stays open between calls, and installs the snippets that record interactions (INP, Interactions, Input-Latency-Breakdown, and the other tracking snippets in list_snippets). Returns a sessionId for interact, read_results and close_page. ${THROTTLING_NOTE} The throttling stays for the interactions on the page. At most 3 pages are open at a time, and a page closes after 10 minutes without use. ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         track: z.array(z.string()).min(1).describe("The tracking snippets to install, by name, alias or Category/Name"),
         viewport: z.enum(VIEWPORTS).default("mobile").describe("Device size of the page"),
         waitMs: z.number().int().min(0).max(10000).default(1000).describe("Wait after the load event before installing the snippets, in ms"),
+        cpu: Cpu,
+        network: Network,
       }),
       outputSchema: z.object({
         sessionId: z.string(),
         url: z.string(),
         viewport: z.enum(VIEWPORTS),
         navMs: z.number(),
+        throttling: Throttling,
         tracking: z.array(z.object({ snippet: z.string(), status: z.string() })).describe("The installed snippets"),
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    withSession(async ({ url, track, viewport, waitMs }, ctx) => {
+    withSession(async ({ url, track, viewport, waitMs, cpu, network }, ctx) => {
       const items = [];
       for (const name of track) {
         let path;
@@ -600,6 +652,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           throw err;
         }
         try {
+          // Before the load, as the runner applies it: the load and every interaction run throttled
+          await applyThrottling(session.context, session.page, { cpu, network });
           const navStart = Date.now();
           await session.page.goto(url, { waitUntil: "load", timeout: NAV_TIMEOUT_MS });
           if (waitMs > 0) await session.page.waitForTimeout(waitMs);
@@ -609,7 +663,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           if (limit.aborted) return toolError(`Opening the page failed: ${stoppedAnswering(callLimitMs)}`);
           session.stopListening();
           const tracking = session.tracking.map(({ id, status }) => ({ snippet: id, status }));
-          return toolResult({ sessionId: session.id, url, viewport, navMs, tracking });
+          const throttling = throttlingOf({ cpu, network });
+          return toolResult({ sessionId: session.id, url, viewport, navMs, ...(throttling ? { throttling } : {}), tracking });
         } catch (err) {
           await sessions.close(session.id);
           if (limit.aborted) return toolError(`Opening the page failed: ${stoppedAnswering(callLimitMs)}`);

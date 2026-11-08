@@ -10,10 +10,13 @@ export const NETWORK_PRESETS = {
   "3g": { title: "3G", download: (500 * 1000) / 8 * 0.8, upload: (500 * 1000) / 8 * 0.8, latency: 400 * 5 },
 };
 
+// The smallest CPU factor, no slowdown, for --cpu and the cpu of the tools of the MCP server
+export const MIN_CPU_FACTOR = 1;
+
 // The factor given to --cpu, or null when it is not a number of at least 1
 export function parseCpuFactor(raw) {
   const factor = Number(raw);
-  return raw.trim() !== "" && Number.isFinite(factor) && factor >= 1 ? factor : null;
+  return raw.trim() !== "" && Number.isFinite(factor) && factor >= MIN_CPU_FACTOR ? factor : null;
 }
 
 const NETWORK_VALUES = ["downloadKbps", "uploadKbps", "latencyMs"];

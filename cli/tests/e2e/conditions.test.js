@@ -83,6 +83,24 @@ describe("the conditions in the JSON", () => {
     expect(combinations[0].conditions.machine).toEqual(combinations[1].conditions.machine);
   }, 120000);
 
+  it("of a throttled page name its CPU factor and its network", async () => {
+    const { code, stdout, said: output } = await cli(`${baseUrl}/home`, "--json", "--snippet", "TTFB", "--cpu", "4", "--network", "fast-4g");
+    expect(code, output).toBe(0);
+    expect(JSON.parse(stdout).conditions).toEqual({ viewport: "mobile", snippet: "Loading/TTFB", waitMs: 500, cpu: 4, network: "fast-4g", cliVersion, machine });
+  }, 60000);
+
+  it("of a matrix name the throttling of each combination, and none where it has none", async () => {
+    const matrixPath = join(dir, "matrix-throttled.json");
+    const network = { downloadKbps: 50000, uploadKbps: 10000, latencyMs: 20 };
+    writeFileSync(matrixPath, JSON.stringify({ urls: { home: `${baseUrl}/home` }, devices: { phone: { viewport: "mobile", cpu: 4, network }, wide: { viewport: "desktop" } } }));
+    const { stdout, said: output } = await cli("--matrix", matrixPath, "--json", "--snippet", "TTFB");
+    const { combinations } = JSON.parse(stdout);
+    expect(combinations.map((c) => c.conditions), output).toEqual([
+      { viewport: "mobile", snippet: "Loading/TTFB", waitMs: 500, cpu: 4, network, cliVersion, machine },
+      { viewport: "desktop", snippet: "Loading/TTFB", waitMs: 500, cliVersion, machine },
+    ]);
+  }, 120000);
+
   it("leave the human and markdown reports as they are", async () => {
     const human = await cli(`${baseUrl}/home`);
     expect(human.code, human.said).toBe(0);
