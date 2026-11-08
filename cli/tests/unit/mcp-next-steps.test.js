@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { followUpCalls, trackingCall } from "../../src/mcp/next-steps.js";
+import { followUpCalls, trackingCall, inputStepsCalls } from "../../src/mcp/next-steps.js";
 
 const url = "https://example.test/";
 const isTracking = (path) => path === "Interaction/Layout-Shift-Loading-and-Interaction";
@@ -61,5 +61,24 @@ describe("trackingCall", () => {
 
   it("opens it under the throttling of the workflow", () => {
     expect(trackingCall({ paths: ["CoreWebVitals/INP"], url, viewport: "mobile", network: "3g" }).args).toEqual({ url, track: ["CoreWebVitals/INP"], viewport: "mobile", network: "3g" });
+  });
+});
+
+describe("inputStepsCalls", () => {
+  const paths = ["CoreWebVitals/INP", "Interaction/Interactions", "Interaction/Input-Latency-Breakdown"];
+
+  it("offers the workflow again with interactions first, then a page to open with the steps it skipped", () => {
+    const [again, open] = inputStepsCalls({ workflow: "interaction", paths, url, viewport: "mobile", waitMs: 1000 });
+    expect(again).toEqual({
+      tool: "run_workflow",
+      args: { url, workflow: "interaction", viewport: "mobile", waitMs: 1000, interactions: [{ action: "click", selector: expect.stringMatching(/^<.*>$/) }] },
+      reason: expect.stringMatching(/interactions.*click or type.*selector/),
+    });
+    expect(open).toEqual(trackingCall({ paths, url, viewport: "mobile" }));
+  });
+
+  it("keeps the throttling of the workflow in both", () => {
+    const calls = inputStepsCalls({ workflow: "interaction", paths, url, viewport: "mobile", cpu: 4, network: "slow-4g" });
+    for (const call of calls) expect(call.args, call.tool).toMatchObject({ cpu: 4, network: "slow-4g" });
   });
 });

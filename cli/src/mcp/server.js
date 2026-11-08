@@ -15,7 +15,7 @@ import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
 import { shapeResults, createRuns, RunError } from "./summary.js";
-import { followUpCalls, trackingCall } from "./next-steps.js";
+import { followUpCalls, inputStepsCalls } from "./next-steps.js";
 import { isHttpUrl } from "../url.js";
 import { machineOf } from "../machine.js";
 import { measurementConditions } from "../conditions.js";
@@ -150,6 +150,16 @@ const Step = z.discriminatedUnion("action", [
   z.object({ action: z.literal("scroll"), y: z.number().int().optional().describe("Pixels down, 300 by default") }),
   z.object({ action: z.literal("wait"), ms: z.number().int().min(0).max(10000) }),
 ]);
+
+// The steps of interact, run after the load of each run, as --interact-script of the CLI
+const Interactions = z
+  .array(Step)
+  .min(1)
+  .max(50)
+  .optional()
+  .describe(
+    "Steps to run on the page after the load, as --interact-script of the CLI: click, type, hover, scroll or wait, as in interact. A click or a key press is what INP, Interactions and Input-Latency-Breakdown measure. Each run repeats them, so runs and baseline work with them"
+  );
 
 const SnippetInfo = z.object({
   name: z.string().describe("Category/Name, the name other tools take"),
@@ -359,7 +369,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a snippet",
       description:
-        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) run on a page opened with open_page instead. ${THROTTLING_NOTE} ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium, runs one web performance snippet on the loaded page and returns the object the snippet returns, as defined in snippets/SCHEMA.md. Use list_snippets for the names. The snippets that record interactions (INP, Interactions, Input-Latency-Breakdown) need interactions with a click or a key press, which run after the load of each run; open_page explores a page step by step instead. ${THROTTLING_NOTE} ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         snippet: z.string().describe("The snippet: its name (LCP-Subparts), an alias (render-blocking) or Category/Name"),
@@ -367,6 +377,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the snippet, in ms"),
         cpu: Cpu,
         network: Network,
+        interactions: Interactions,
         runs: Runs,
         detail: Detail,
         baseline: Baseline,
@@ -388,7 +399,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, snippet, viewport, waitMs, cpu, network, runs: count, detail, baseline, thresholds }, ctx) => {
+    async ({ url, snippet, viewport, waitMs, cpu, network, interactions, runs: count, detail, baseline, thresholds }, ctx) => {
       let path;
       try {
         path = resolveSnippetName(snippet);
@@ -396,8 +407,11 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         return toolError(err.message);
       }
       const source = loadSnippet(path);
-      if (isTrackingSnippet(path, source)) {
-        return toolError(`${path} records interactions: open the page with open_page and this snippet in track, use it with interact, and read it with read_results.`);
+      // With interactions, the runner installs it before the steps and reads it after them
+      if (isTrackingSnippet(path, source) && !interactions) {
+        return toolError(
+          `${path} records interactions: run it with interactions that click or type on an element of the page, which run after the load, or open the page with open_page and this snippet in track, use it with interact, and read it with read_results.`
+        );
       }
       let base;
       try {
@@ -409,7 +423,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       try {
         const { conditions, run } = await measureInTurn(
           { viewport, snippet: path, waitMs, cpu, network },
-          (onProgress, signal) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, onProgress, signal }),
+          (onProgress, signal) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, interactions, onProgress, signal }),
           count,
           ctx
         );
@@ -444,7 +458,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a workflow",
       description:
-        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page. ${THROTTLING_NOTE} ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page, or while it runs interactions, which with a click or a key press also measure INP, Interactions and Input-Latency-Breakdown. ${THROTTLING_NOTE} ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
@@ -452,6 +466,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         waitMs: z.number().int().min(0).max(10000).default(3000).describe("Wait after the load event before running the workflow, in ms"),
         cpu: Cpu,
         network: Network,
+        interactions: Interactions,
         runs: Runs,
         detail: Detail,
         baseline: Baseline,
@@ -475,7 +490,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ url, workflow, viewport, waitMs, cpu, network, runs: count, detail, baseline, thresholds }, ctx) => {
+    async ({ url, workflow, viewport, waitMs, cpu, network, interactions, runs: count, detail, baseline, thresholds }, ctx) => {
       let base;
       try {
         base = baselineFor({ baseline, thresholds });
@@ -485,14 +500,18 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       try {
         const { conditions, run } = await measureInTurn(
           { viewport, workflow, waitMs, cpu, network },
-          (onProgress, signal) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, onProgress, signal }),
+          (onProgress, signal) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, interactions, onProgress, signal }),
           count,
           ctx
         );
         // The runner explains a skipped step with the flag of the CLI; here the tools are what the model has
         const results = run.results.map((r) =>
           r.status === "skipped"
-            ? { ...r, reason: "This step measures clicks and key presses: open the page with open_page and this snippet in track, use it with interact, and read it with read_results." }
+            ? {
+                ...r,
+                reason:
+                  "This step measures clicks and key presses: run the workflow with interactions that click or type on an element of the page, or open the page with open_page and this snippet in track, use it with interact, and read it with read_results.",
+              }
             : r
         );
         const shaped = shapeResults(results, detail);
@@ -502,7 +521,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           .filter((r) => r.status === "skipped")
           .map((r) => WORKFLOWS[workflow].steps.find((s) => s.id === r.id)?.path)
           .filter(Boolean);
-        const nextSteps = skipped.length ? [trackingCall({ paths: skipped, url, viewport, cpu, network })] : [];
+        const nextSteps = skipped.length ? inputStepsCalls({ workflow, paths: skipped, url, viewport, waitMs, cpu, network }) : [];
         return toolResult({
           url,
           runId,

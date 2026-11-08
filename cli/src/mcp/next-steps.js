@@ -29,3 +29,21 @@ export function trackingCall({ paths, url, viewport, cpu, network }) {
     reason: "These steps measure clicks and key presses: open the page with them, interact with it and read them with read_results",
   };
 }
+
+// A click the agent completes: only the agent can choose the element of the page to click
+const CLICK_TO_COMPLETE = { action: "click", selector: "<selector of the element to click>" };
+
+// The steps a workflow skipped because they measure clicks and key presses. First the workflow again
+// with interactions, which measures them in one call, with the runs and the baseline of a page load; then
+// a page to open with them, for an agent that explores the page step by step.
+export function inputStepsCalls({ workflow, paths, url, viewport, waitMs, cpu, network }) {
+  return [
+    {
+      tool: "run_workflow",
+      args: { url, workflow, viewport, ...(waitMs !== undefined ? { waitMs } : {}), ...throttlingOf({ cpu, network }), interactions: [CLICK_TO_COMPLETE] },
+      reason:
+        "These steps measure clicks and key presses: run the workflow again with interactions, a click or type step on an element of the page in place of this selector; runs and baseline work with them",
+    },
+    trackingCall({ paths, url, viewport, cpu, network }),
+  ];
+}
