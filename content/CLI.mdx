@@ -516,7 +516,7 @@ Each snippet page has a **Copy prompt to measure** button above the code. The pr
 
 The snippets an agent cannot run in a meaningful way have no button: the [Fetch & XHR Timeline](/DevTools-Overrides/Fetch-XHR-Timeline) overrides, which need DevTools Local Overrides, the [Long Animation Frames helpers](/Interaction/Long-Animation-Frames-Helpers), and [Network Bandwidth & Connection Quality](/Resources/Network-Bandwidth-Connection-Quality), because headless Chromium reports the connection of the machine it runs on. The [Back/forward cache](/Loading/Back-Forward-Cache) prompt says that the result is partial, since the CLI does not navigate back.
 
-An agent in an MCP client can also call the snippets as tools, and compare a run with an earlier one: `webperf-snippets mcp` starts the [MCP server](/MCP) of the CLI.
+An agent in an MCP client can also call the snippets as tools, under the conditions of the CLI, and compare a run with an earlier one: `webperf-snippets mcp` starts the [MCP server](/MCP) of the CLI. Its tools take `cpu` and `network`, as `--cpu` and `--network`, and `interactions`, as `--interact-script`, so one call [measures INP](/MCP#measure-interactions-in-one-call) over several throttled runs against a baseline.
 
 Before you hand the CLI to an agent, read [What agents get wrong](/agent-mistakes): raising a budget to pass a check, lowering `--runs`, changing a wait and the other mistakes that change a verdict, with what to do instead.
 
