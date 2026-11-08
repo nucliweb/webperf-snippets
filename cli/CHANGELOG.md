@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.14.0] — 2026-11-08
+
+The tools of the MCP server measure under the conditions of the CLI: `cpu` and `network` throttle the page as `--cpu` and `--network`, and `interactions` runs clicks and key presses after the load of each run, as `--interact-script`, so one call measures INP over several throttled runs against a baseline. A measurement of interactions picks its median run by INP, and Scroll-Performance no longer counts the listeners Playwright adds when it clicks.
+
 ### Added
 - `run_snippet`, `run_workflow` and `open_page` of the MCP server take `cpu` and `network`, as `--cpu` and `--network`: a CPU factor of at least 1 and a DevTools preset (`fast-4g`, `slow-4g`, `3g`), applied before the page loads, and on a page of `open_page` for its interactions too. The answer adds `throttling`, as the JSON of the CLI does, and the calls in `nextSteps` keep the throttling of the run.
 - `run_snippet` and `run_workflow` take `interactions`, the steps of `interact` (up to 50), as `--interact-script`: they run after the load of each run, so one call measures INP over several runs, under throttling and against a baseline. With a click or a key press, `run_snippet` runs INP, Interactions and Input-Latency-Breakdown, and the `interaction` workflow runs its steps that need input instead of skipping them.
@@ -16,6 +22,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ### Changed
 - With several runs and no `--median-by`, a measurement without LCP, FCP or TTFB, such as INP or the `interaction` workflow with a click, picks its median run by INP, before the navigation time: the INP of the answer and the details of its slowest interaction are the median ones. The same goes for `runs` of `run_snippet` and `run_workflow`.
 - Without `interactions`, `run_snippet` answers a tracking snippet with an error that names both ways to measure it: `interactions` with a click or a key press, or `open_page`, `interact` and `read_results`. The steps the `interaction` workflow skips say the same, and its `nextSteps` offer the workflow again with `interactions` before `open_page`.
+
+### Fixed
+- Scroll-Performance, the snippet of the collection 2.6.2, leaves out the `touchstart`, `touchend` and `touchcancel` listeners that Playwright adds to `window` when it clicks, which the CLI and the MCP server reported as non-passive listeners of the page.
 
 ---
 
