@@ -143,9 +143,12 @@
       issues: []
     };
   }
+  const hasSource = img => Boolean(img.currentSrc) || Boolean(img.getAttribute("src")?.trim()) || Boolean(img.getAttribute("srcset")?.trim()) || img.parentElement?.tagName === "PICTURE" && Array.from(img.parentElement.querySelectorAll("source")).some(source => source.getAttribute("srcset")?.trim());
+  const withoutSrc = images.filter(img => !hasSource(img));
+  const withSrc = images.filter(hasSource);
   const {candidate: lcpCandidate, nonImageTag: nonImageTag} = await findLcpCandidate(images);
   const imagePreloads = Array.from(document.querySelectorAll('link[rel="preload"][as="image"]'));
-  const formats = await Promise.all(images.map(img => fetchFormat(img.currentSrc || img.src)));
+  const formats = await Promise.all(withSrc.map(img => fetchFormat(img.currentSrc || img.src)));
   function uniqueSelector(el) {
     const root = el.getRootNode();
     const matchesOne = selector => {
@@ -172,7 +175,7 @@
     }
     return parts.join(" > ");
   }
-  const audited = images.map((img, i) => {
+  const audited = withSrc.map((img, i) => {
     const inViewport = isInViewport(img);
     const isLcp = img === lcpCandidate;
     const rect = img.getBoundingClientRect();
@@ -263,10 +266,12 @@
       issues: issues
     };
   });
+  const WITHOUT_SRC_MESSAGE = `${withoutSrc.length} <img> without src or srcset load nothing until JavaScript fills them in, as in a carousel: put the real URL in src with loading="lazy" and width/height, so the browser loads them without waiting for the script and reserves their space`;
   const withIssues = audited.filter(r => r.issues.length > 0);
   const totalErrors = audited.flatMap(r => r.issues.filter(i => i.s === "error")).length;
   const totalWarnings = audited.flatMap(r => r.issues.filter(i => i.s === "warning")).length;
   const totalInfos = audited.flatMap(r => r.issues.filter(i => i.s === "info")).length;
+  if (withoutSrc.length > 0) void 0;
   if (nonImageTag) {
   }
   if (lcpCandidate) {
@@ -284,6 +289,8 @@
     });
   } else {
   }
+  if (withoutSrc.length > 0) {
+  }
   const lcpData = lcpCandidate ? audited.find(r => r.isLcp) : null;
   const MAX_ITEMS = 50;
   const countBy = (r, severity) => r.issues.filter(i => i.s === severity).length;
@@ -295,6 +302,7 @@
     corsLimitedAnalysis: formatGuessedCount > 0,
     details: {
       totalImages: images.length,
+      withoutSrc: withoutSrc.length,
       formatGuessedCount: formatGuessedCount,
       inViewport: audited.filter(r => r.inViewport).length,
       offViewport: audited.filter(r => !r.inViewport).length,
@@ -339,6 +347,10 @@
       ...r.src ? {
         target: r.src.startsWith("data:") ? r.src.slice(0, 60) : r.src
       } : {}
-    }))) ]
+    }))), ...withoutSrc.length > 0 ? [ {
+      code: "images-without-src",
+      severity: "info",
+      message: WITHOUT_SRC_MESSAGE
+    } ] : [] ]
   };
 })();

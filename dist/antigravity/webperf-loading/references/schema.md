@@ -1152,7 +1152,7 @@ Returns buffered long tasks immediately. Ongoing tracking continues. `items` lis
 
 #### Image-Element-Audit (async)
 
-`items` holds the 50 images to look at first: the LCP image, then those with the most errors and warnings. `count` and `details` cover every image. The format comes from the `Content-Type` of the response; when a cross-origin image blocks `fetch()` it is guessed from the URL, `details.formatGuessedCount` counts those images and `corsLimitedAnalysis` is `true`.
+`items` holds the 50 images to look at first: the LCP image, then those with the most errors and warnings. `count` and `details` cover every image. The format comes from the `Content-Type` of the response; when a cross-origin image blocks `fetch()` it is guessed from the URL, `details.formatGuessedCount` counts those images and `corsLimitedAnalysis` is `true`. An `<img>` without `src` or `srcset`, and without a `<source>` of its `<picture>` that has one, loads nothing yet, as the slides a carousel fills in with JavaScript: `details.withoutSrc` counts those images, they stay out of `items` and of the checks of one image, and one `images-without-src` issue names them all.
 
 ```json
 {
@@ -1649,7 +1649,7 @@ Each issue about one hint names its URL in `target`.
 
 ### Image-Element-Audit
 
-Each issue names its image in `target`, except `lcp-not-img`.
+Each issue names its image in `target`, except `lcp-not-img` and `images-without-src`.
 
 | Code | Severity | When |
 |------|----------|------|
@@ -1665,6 +1665,7 @@ Each issue names its image in `target`, except `lcp-not-img`.
 | `lazy-and-high-priority` | error | An image with both `loading="lazy"` and `fetchpriority="high"` |
 | `missing-dimensions` | warning | An image without `width` and `height` |
 | `no-modern-format` | info | An image that is not WebP, AVIF, JPEG XL or SVG, outside a `<picture>` |
+| `images-without-src` | info | One or more `<img>` without `src` or `srcset`, which JavaScript fills in later; one issue for all of them |
 
 ### Oversized-Images
 

@@ -181,6 +181,20 @@ The browser already assigns low priority to off-viewport images during initial l
 <img src="slide-3.avif" fetchpriority="low" loading="lazy" width="1200" height="630" alt="..." />
 ```
 
+#### Images without `src`
+
+An `<img>` without `src` or `srcset` loads nothing until JavaScript fills it in, as in a carousel that sets the URL of each slide when it mounts or when the slide comes into view. The snippet counts these images in `withoutSrc`, leaves them out of the table and of the checks of one image, since they have no format or loading yet, and reports them in one note.
+
+`loading="lazy"` on such an image does nothing until the script sets its `src`; from then on it defers the request while the image is outside the viewport. Putting the real URL in `src` lets the browser do this without the script, and `width` and `height` reserve the space of each slide:
+
+```html
+<!-- ❌ Loads nothing until the script sets src, and has no size -->
+<img data-src="slide-2.avif" loading="lazy" alt="..." />
+
+<!-- ✅ The browser defers it and reserves its space -->
+<img src="slide-2.avif" loading="lazy" width="1200" height="630" alt="..." />
+```
+
 ### Browser support
 
 Browsers that do not support `fetchpriority` or `loading` ignore the attributes safely, no polyfill is needed.
