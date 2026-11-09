@@ -526,18 +526,7 @@ LCP, CLS and INP vary by 15 to 30% on shared runners; prefer the deterministic `
 
 ## Publishing
 
-The CLI package is published to npm via a tag-based workflow. Publishing is explicit and intentional; it only happens when a `cli-v*` tag is pushed.
-
-### Release steps
-
-1. Bump the version in `cli/package.json`.
-2. Commit the version change.
-3. Tag and push:
-   ```bash
-   git tag cli-v0.2.0
-   git push origin cli-v0.2.0
-   ```
-4. The `publish-cli` CI job runs, executes the full test suite, and publishes to npm.
+The CLI package is published to npm and to the MCP Registry via a tag-based workflow. Publishing is explicit and intentional; it only happens when a `cli-v*` tag is pushed, and it waits for a maintainer to approve it in the `npm-publish` environment. [`RELEASING.md`](https://github.com/nucliweb/webperf-snippets/blob/main/RELEASING.md) has the steps: the versions to bump, the checks, the tags, and what to do when a publication fails halfway.
 
 ### Why tag-based and not path-based
 
@@ -547,9 +536,9 @@ An alternative is to publish automatically on every push to `main` that touches 
 
 Tag protection rules restrict who can push `cli-v*` tags. Configure them under **Settings → Rules → New ruleset** in the repository, targeting the `cli-v*` tag pattern and limiting push access to admins or maintainers. This ensures only authorized collaborators can trigger a publish.
 
-### Required secret
+### No stored token
 
-The `NPM_TOKEN` secret must be set in the repository settings with publish access to the `webperf-snippets` npm package.
+The workflow publishes with npm trusted publishing: npm exchanges the OIDC token of the run for a short-lived one, so no npm token is stored in the repository. The MCP Registry takes the same OIDC token.
 
 ## Known limitations
 
