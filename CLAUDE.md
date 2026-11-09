@@ -111,4 +111,5 @@ Writing rules for pages are in "Writing documentation pages" of `CONTRIBUTING.md
 - `agentRules: false` in `next.config.mjs` stops `next dev` from writing a Next.js block into `CLAUDE.md` and `AGENTS.md`.
 - The code block and the demo are components of this repository, and `Callout` wraps the one of the theme (`components/`); their styles use `wp-*` classes and `--wp-*` tokens in `styles/globals.css`, never the utility classes of the theme.
 - The dev server does not pick up changes in `lib/`; restart it after editing a plugin.
+- `RELEASING.md` describes how to release the collection, the CLI and the extension: versions, changelogs, checks, tags and recovery.
 - Images in MDX are Cloudinary URLs in a plain `<img>` with a `srcSet` of transformations (`content/CLI.mdx`); videos use `components/LazyVideoPlayer.js`, a native `<video>` that loads on click.

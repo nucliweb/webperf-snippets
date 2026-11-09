@@ -12,7 +12,7 @@ Run `npm run extension:build` again after a snippet changes, then reload the ext
 
 ## Release the beta
 
-`npm run extension:zip` builds the snippets and writes `webperf-snippets-extension-<version>.zip`, without the tests. A tag `extension-v<version>`, with the version of `manifest.json`, makes the Release extension workflow test the zip and publish it as a prerelease, the file the beta page links to.
+`npm run extension:zip` builds the snippets and writes `webperf-snippets-extension-<version>.zip`, without the tests. A tag `extension-v<version>`, with the version of `manifest.json`, makes the Release extension workflow test the zip and publish it as a prerelease, the file the beta page links to. [`RELEASING.md`](../RELEASING.md) has the steps of a release.
 
 ## Copy buttons
 
