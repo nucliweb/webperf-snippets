@@ -369,7 +369,9 @@ describe("a call that waits", () => {
     const measuring = lcp("measuring");
     await untilHeld("measuring");
 
-    const timeout = 2000;
+    // Once its turn comes, the run reports its stages only, so the timeout also has to hold the longest
+    // of them on a busy machine: from "Opening Chromium" to the page loaded and the wait after it
+    const timeout = 4000;
     const next = lcp("next", { timeout, resetTimeoutOnProgress: true, onprogress: () => {} });
     await new Promise((resolve) => setTimeout(resolve, timeout * 2));
     release();

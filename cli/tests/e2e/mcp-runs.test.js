@@ -10,6 +10,7 @@ import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { createServer } from "../../src/mcp/server.js";
 import { compareRun, DEFAULT_THRESHOLDS } from "../../src/baseline.js";
 import { cliEnv } from "../helpers/cli-env.js";
+import { failLoad } from "../helpers/failed-load.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "../../src/bin.js");
@@ -44,7 +45,7 @@ beforeAll(async () => {
       const { pathname, searchParams } = new URL(req.url, "http://localhost");
       if (pathname === "/product") {
         loads++;
-        if (fails.includes(loads)) return req.socket.destroy();
+        if (fails.includes(loads)) return failLoad(res);
         delayOfLoad.set(String(loads), delays.shift() ?? delay);
         return res.writeHead(200, { "Content-Type": "text/html", "Cache-Control": "no-store" }).end(html(image(`/hero.png?load=${loads}`)));
       }

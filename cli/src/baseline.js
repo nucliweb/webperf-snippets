@@ -204,6 +204,23 @@ function machineWarning(base, current) {
   return `the baseline was measured on another machine (${base.cpu}, ${base.cores} cores) than this run (${current.cpu}, ${current.cores} cores); timings can differ for that alone`;
 }
 
+// The full Chromium and the headless shell are two builds, and a version of either can move the timings
+// of the same page. A baseline without a browser comes from a CLI that launched the headless shell, with
+// Playwright 1.49 or later, so it warns only when this run used another browser.
+const BUILDS = { chromium: "the full Chromium", "chromium-headless-shell": "the headless shell" };
+const describeBrowser = ({ build, mode, version }) => `${BUILDS[build] ?? build} ${version}${mode === "headed" ? ", headed" : ""}`;
+
+function browserWarning(base, current) {
+  if (!base || !current?.browser) return null;
+  if (!base.browser) {
+    const { build, mode } = current.browser;
+    if (build === "chromium-headless-shell" && mode === "headless") return null;
+    return `the baseline does not name its browser (CLI ${base.cliVersion} launched the headless shell with Playwright 1.49 or later), and this run used ${describeBrowser(current.browser)}; timings can differ for that alone`;
+  }
+  const [was, is] = [describeBrowser(base.browser), describeBrowser(current.browser)];
+  return was === is ? null : `the baseline was measured with ${was}, and this run with ${is}; timings can differ for that alone`;
+}
+
 const valueCount = (payload, metric) => measured(payload, metric).values?.length ?? 1;
 
 // Why five runs can leave four values, when a run failed; a run that missed a metric alone does not count
@@ -251,6 +268,8 @@ function warningsOf(base, current, metrics) {
   }
   const machine = machineWarning(b?.machine, c?.machine);
   if (machine) warnings.push(machine);
+  const browser = browserWarning(b, c);
+  if (browser) warnings.push(browser);
   if (b && c && b.cliVersion !== c.cliVersion) {
     warnings.push(`the baseline was measured with CLI ${b.cliVersion}, and this run with ${c.cliVersion}; the snippets may have changed`);
   }

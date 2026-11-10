@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { cliEnv } from "../helpers/cli-env.js";
+import { failLoad } from "../helpers/failed-load.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BIN = join(HERE, "../../src/bin.js");
@@ -32,7 +33,7 @@ let slowProduct = false;
 // /scripts blocks rendering with one script of its own in <head>, and with one more from another site
 // once a test adds it
 let thirdPartyScript = false;
-// The load of /fast that fails, counted from when a test sets it: its connection closes, a run that fails
+// The load of /fast that fails, counted from when a test sets it: a run that fails
 let loadsUntilFailure = 0;
 
 beforeAll(async () => {
@@ -40,7 +41,7 @@ beforeAll(async () => {
     const s = createServer((req, res) => {
       requests++;
       const path = req.url.split("?")[0];
-      if (path === "/fast" && loadsUntilFailure > 0 && --loadsUntilFailure === 0) return req.socket.destroy();
+      if (path === "/fast" && loadsUntilFailure > 0 && --loadsUntilFailure === 0) return failLoad(res);
       if (path === "/fast" || path === "/news") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png"));
       if (path === "/product") return res.writeHead(200, { "Content-Type": "text/html" }).end(page(slowProduct ? "/hero.png?slow" : "/hero.png"));
       if (path === "/slow") return res.writeHead(200, { "Content-Type": "text/html" }).end(page("/hero.png?slow"));
@@ -152,6 +153,20 @@ describe("--baseline with a page", () => {
     expect(markdown.stdout).toContain("> ⚠️ the baseline was measured with workflow core-web-vitals, and this run with snippet CoreWebVitals/LCP");
   }, 120000);
 
+  // A CLI that does not record its browser launched the headless shell, with Playwright 1.49 or later;
+  // this one launches the full Chromium when it is installed, which can move the timings of the same page
+  it("warns when the baseline does not name its browser and this run used the full Chromium", async () => {
+    const file = await saveBaseline("no-browser.json", `${base}/fast`, "--snippet", "LCP");
+    const { conditions: { browser, ...earlier }, ...old } = JSON.parse(readFileSync(file, "utf8"));
+    writeFileSync(file, JSON.stringify({ ...old, conditions: { ...earlier, cliVersion: "1.14.1" } }));
+    const { code, stdout, said: output } = await cli(`${base}/fast`, "--snippet", "LCP", "--wait", WAIT_MS, "--baseline", file, "--json");
+    expect(code, output).toBe(0);
+    const report = JSON.parse(stdout);
+    const warning = expect.stringMatching(/^the baseline does not name its browser \(CLI 1\.14\.1 launched the headless shell with Playwright 1\.49 or later\), and this run used the full Chromium \d/);
+    if (report.conditions.browser.build === "chromium") expect(report.baseline.warnings, output).toContainEqual(warning);
+    else expect(report.baseline.warnings, output).not.toContainEqual(warning);
+  }, 120000);
+
   it("lists an error that only this run has as new", async () => {
     const plain = await saveBaseline("plain.json", `${base}/fast`, "--snippet", "render-blocking");
     const { stdout, said: output } = await cli(`${base}/styled`, "--snippet", "render-blocking", "--wait", WAIT_MS, "--baseline", plain, "--json");
@@ -220,8 +235,9 @@ describe("--baseline with a matrix", () => {
   it("adds a change column to the table, and the comparison below it, in the human and markdown reports", async () => {
     const human = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek);
     expect(human.code, human.said).toBe(0);
-    expect(human.stdout).toMatch(/product\s+mobile\s+\S+ \S+\s+▲ \+\d+ms/);
-    expect(human.stdout).toMatch(/about\s+mobile\s+\S+ \S+\s+new/);
+    // A cell is the rating and the value, and ±N% when the runs of the combination vary
+    expect(human.stdout).toMatch(/product\s+mobile\s+\S+ \S+(?: ±\d+%)?\s+▲ \+\d+ms/);
+    expect(human.stdout).toMatch(/about\s+mobile\s+\S+ \S+(?: ±\d+%)?\s+new/);
     expect(human.stdout).toContain(`Compared with ${lastWeek}`);
     expect(human.stdout).toContain("Added: about · mobile");
     expect(human.stdout).toContain("Missing: legacy · mobile");
@@ -233,7 +249,7 @@ describe("--baseline with a matrix", () => {
     const markdown = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, "--markdown");
     expect(markdown.code, markdown.said).toBe(0);
     expect(markdown.stdout).toMatch(/\| Page \| Device \| LCP \| Δ \|/);
-    expect(markdown.stdout).toMatch(/\| product \| mobile \| \S+ \S+ \| ▲ \+\d+ms \|/);
+    expect(markdown.stdout).toMatch(/\| product \| mobile \| \S+ \S+(?: ±\d+%)? \| ▲ \+\d+ms \|/);
     expect(markdown.stdout).toContain("- Added: `about · mobile`");
     // The report of each combination, folded in its details block, carries its own comparison
     const details = markdown.stdout.slice(markdown.stdout.indexOf("<details><summary>product · mobile</summary>"));

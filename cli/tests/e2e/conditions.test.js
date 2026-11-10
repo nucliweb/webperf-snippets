@@ -7,6 +7,8 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { cliEnv } from "../helpers/cli-env.js";
+import { existsSync } from "node:fs";
+import { chromium } from "playwright";
 import { cliVersion } from "../../src/report-to.js";
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), "../../src/bin.js");
@@ -48,19 +50,23 @@ const cli = (...args) =>
 
 // The machine the CLI ran on, as the operating system reports it, and a benchmark index measured once
 // per command
+// The browser the CLI launched: the full Chromium in its headless mode, or the headless shell when it is
+// the only one installed (chromium-binary.test.js checks the binary itself)
+const browser = { build: existsSync(chromium.executablePath()) ? "chromium" : "chromium-headless-shell", mode: "headless", version: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/) };
+
 const machine = { cpu: cpus()[0].model, cores: cpus().length, arch: arch(), memoryGB: Math.round(totalmem() / 2 ** 30), benchmarkIndex: expect.any(Number) };
 
 describe("the conditions in the JSON", () => {
-  it("of a page measured with a workflow name its viewport, workflow, wait and CLI version", async () => {
+  it("of a page measured with a workflow name its viewport, workflow, wait, browser and CLI version", async () => {
     const { code, stdout, said: output } = await cli(`${baseUrl}/home`, "--json", "--viewport", "desktop");
     expect(code, output).toBe(0);
-    expect(JSON.parse(stdout).conditions).toEqual({ viewport: "desktop", workflow: "core-web-vitals", waitMs: 500, cliVersion, machine });
+    expect(JSON.parse(stdout).conditions).toEqual({ viewport: "desktop", workflow: "core-web-vitals", waitMs: 500, browser, cliVersion, machine });
   }, 60000);
 
   it("of a page measured with one snippet name the snippet, the same for its alias and its path", async () => {
     const alias = await cli(`${baseUrl}/home`, "--json", "--snippet", "LCP");
     expect(alias.code, alias.said).toBe(0);
-    expect(JSON.parse(alias.stdout).conditions).toEqual({ viewport: "mobile", snippet: "CoreWebVitals/LCP", waitMs: 500, cliVersion, machine });
+    expect(JSON.parse(alias.stdout).conditions).toEqual({ viewport: "mobile", snippet: "CoreWebVitals/LCP", waitMs: 500, browser, cliVersion, machine });
 
     // The same conditions but the benchmark index, which is measured again
     const path = await cli(`${baseUrl}/home`, "--json", "--snippet", "CoreWebVitals/LCP");
@@ -76,8 +82,8 @@ describe("the conditions in the JSON", () => {
     const { stdout } = await cli("--matrix", matrixPath, "--json", "--workflow", "loading");
     const { combinations } = JSON.parse(stdout);
     expect(combinations.map((c) => c.conditions)).toEqual([
-      { viewport: "mobile", workflow: "loading", waitMs: 500, cliVersion, machine },
-      { viewport: "desktop", workflow: "loading", waitMs: 500, cliVersion, machine },
+      { viewport: "mobile", workflow: "loading", waitMs: 500, browser, cliVersion, machine },
+      { viewport: "desktop", workflow: "loading", waitMs: 500, browser, cliVersion, machine },
     ]);
     // Measured once for the whole matrix
     expect(combinations[0].conditions.machine).toEqual(combinations[1].conditions.machine);
@@ -86,7 +92,7 @@ describe("the conditions in the JSON", () => {
   it("of a throttled page name its CPU factor and its network", async () => {
     const { code, stdout, said: output } = await cli(`${baseUrl}/home`, "--json", "--snippet", "TTFB", "--cpu", "4", "--network", "fast-4g");
     expect(code, output).toBe(0);
-    expect(JSON.parse(stdout).conditions).toEqual({ viewport: "mobile", snippet: "Loading/TTFB", waitMs: 500, cpu: 4, network: "fast-4g", cliVersion, machine });
+    expect(JSON.parse(stdout).conditions).toEqual({ viewport: "mobile", snippet: "Loading/TTFB", waitMs: 500, cpu: 4, network: "fast-4g", browser, cliVersion, machine });
   }, 60000);
 
   it("of a matrix name the throttling of each combination, and none where it has none", async () => {
@@ -96,8 +102,8 @@ describe("the conditions in the JSON", () => {
     const { stdout, said: output } = await cli("--matrix", matrixPath, "--json", "--snippet", "TTFB");
     const { combinations } = JSON.parse(stdout);
     expect(combinations.map((c) => c.conditions), output).toEqual([
-      { viewport: "mobile", snippet: "Loading/TTFB", waitMs: 500, cpu: 4, network, cliVersion, machine },
-      { viewport: "desktop", snippet: "Loading/TTFB", waitMs: 500, cliVersion, machine },
+      { viewport: "mobile", snippet: "Loading/TTFB", waitMs: 500, cpu: 4, network, browser, cliVersion, machine },
+      { viewport: "desktop", snippet: "Loading/TTFB", waitMs: 500, browser, cliVersion, machine },
     ]);
   }, 120000);
 

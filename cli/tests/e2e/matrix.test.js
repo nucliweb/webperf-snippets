@@ -37,6 +37,8 @@ const conditionsOf = (req) => ({
 beforeAll(async () => {
   await new Promise((resolve) => {
     server = createServer((req, res) => {
+      // The full Chromium asks for the icon of the page too: it is not a document of the matrix
+      if (req.url === "/favicon.ico") return res.writeHead(404).end();
       if (req.url.startsWith("/beacon")) {
         beacons.push({ ...conditionsOf(req), width: Number(new URL(req.url, baseUrl).searchParams.get("w")) });
         res.writeHead(204);

@@ -303,6 +303,36 @@ describe("the warnings of a comparison", () => {
     expect(warningsOf(page({ runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) }), on(m4))).toEqual([]);
   });
 
+  it("say when the baseline was measured with another browser, another mode or another version of it", () => {
+    const full = { build: "chromium", mode: "headless", version: "153.0.8010.12" };
+    const shell = { build: "chromium-headless-shell", mode: "headless", version: "153.0.8010.12" };
+    const on = (browser) => page({ conditions: { ...CONDITIONS, browser }, runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) });
+    expect(warningsOf(on(shell), on(full))).toContain(
+      "the baseline was measured with the headless shell 153.0.8010.12, and this run with the full Chromium 153.0.8010.12; timings can differ for that alone"
+    );
+    expect(warningsOf(on({ ...full, version: "152.0.7900.4" }), on(full))).toContain(
+      "the baseline was measured with the full Chromium 152.0.7900.4, and this run with the full Chromium 153.0.8010.12; timings can differ for that alone"
+    );
+    expect(warningsOf(on(full), on({ ...full, mode: "headed" }))).toContain(
+      "the baseline was measured with the full Chromium 153.0.8010.12, and this run with the full Chromium 153.0.8010.12, headed; timings can differ for that alone"
+    );
+    expect(warningsOf(on(full), on(full))).toEqual([]);
+  });
+
+  // A CLI that does not record its browser launched the headless shell, with Playwright 1.49 or later
+  it("say when the baseline does not name its browser and this run used another than the headless shell", () => {
+    const full = { build: "chromium", mode: "headless", version: "153.0.8010.12" };
+    const shell = { build: "chromium-headless-shell", mode: "headless", version: "153.0.8010.12" };
+    const old = page({ conditions: { ...CONDITIONS, cliVersion: "1.14.1" }, runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) });
+    const on = (browser) => page({ conditions: { ...CONDITIONS, cliVersion: "1.14.1", browser }, runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) });
+    expect(warningsOf(old, on(full))).toContain(
+      "the baseline does not name its browser (CLI 1.14.1 launched the headless shell with Playwright 1.49 or later), and this run used the full Chromium 153.0.8010.12; timings can differ for that alone"
+    );
+    expect(warningsOf(old, on(shell))).toEqual([]);
+    // A run that does not name its browser either says nothing of it
+    expect(warningsOf(old, old)).toEqual([]);
+  });
+
   it("say when the baseline comes from a CLI without conditions", () => {
     expect(warningsOf(page({ conditions: null }), page())).toContain(
       "the baseline comes from a CLI without conditions (1.3.0 or earlier); it cannot say how it was measured"

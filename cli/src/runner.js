@@ -1,4 +1,4 @@
-import { launchChromium } from "./browser.js";
+import { chromiumLaunchOptions, launchChromium, launchedBrowser } from "./browser.js";
 import { loadSnippet } from "./load-snippet.js";
 import { runInteractions, loadInteractionSteps, isInputStep, settle } from "./interactions.js";
 import { isTrackingSnippet } from "./tracking.js";
@@ -131,7 +131,9 @@ export async function runSnippets({
   signal,
 }) {
   await onProgress(1, "Opening Chromium");
-  const browser = await launchChromium({ headless });
+  const launchOptions = chromiumLaunchOptions({ headless });
+  const browser = await launchChromium(launchOptions);
+  const launched = launchedBrowser(launchOptions, browser);
   const stopListening = closeOnAbort(browser, signal);
   try {
     const context = await browser.newContext({ viewport, storageState });
@@ -148,7 +150,7 @@ export async function runSnippets({
     const prepared = items.map((item) => ({ ...item, source: withOwnDomains(item.source, ownDomains) }));
     const results = await evaluateAroundInteractions(page, prepared, interactions);
     await onProgress(3, "Snippets evaluated");
-    return { url, navMs, results, pageErrors, throttling: throttlingOf({ cpu, network }) };
+    return { url, navMs, results, pageErrors, throttling: throttlingOf({ cpu, network }), browser: launched };
   } finally {
     stopListening();
     await browser.close();
@@ -174,7 +176,9 @@ export async function runMeasurement({
   signal,
 }) {
   await onProgress(1, "Opening Chromium");
-  const browser = await launchChromium({ headless });
+  const launchOptions = chromiumLaunchOptions({ headless });
+  const browser = await launchChromium(launchOptions);
+  const launched = launchedBrowser(launchOptions, browser);
   const stopListening = closeOnAbort(browser, signal);
   try {
     const context = await browser.newContext({ viewport, storageState });
@@ -237,7 +241,7 @@ export async function runMeasurement({
     }
 
     await onProgress(3, "Workflow and follow-ups evaluated");
-    return { url, navMs, results: [...initialResults, ...followUpResults], pageErrors, throttling: throttlingOf({ cpu, network }) };
+    return { url, navMs, results: [...initialResults, ...followUpResults], pageErrors, throttling: throttlingOf({ cpu, network }), browser: launched };
   } finally {
     stopListening();
     await browser.close();

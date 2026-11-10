@@ -65,7 +65,7 @@ describe("decision tree follow-ups", () => {
       reason: "test",
     };
     const twice = { ...rule, append: { id: "extra2", path: "Loading/Priority-Hints-Audit" } };
-    const { results } = await measure("/", { id: "t", steps: [auditWorkflow.steps[0], { id: "priority-hints", path: "Loading/Priority-Hints-Audit" }] }, [rule, twice, twice]);
+    const { results } = await measure("/empty", { id: "t", steps: [auditWorkflow.steps[0], { id: "priority-hints", path: "Loading/Priority-Hints-Audit" }] }, [rule, twice, twice]);
     expect(results.map((r) => r.id)).toEqual(["render-blocking", "priority-hints"]);
   }, 60000);
 });

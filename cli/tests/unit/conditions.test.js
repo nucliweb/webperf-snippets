@@ -39,6 +39,12 @@ describe("the conditions of a measurement", () => {
     expect(Object.keys(plain)).toEqual(["viewport", "workflow", "waitMs", "cliVersion"]);
   });
 
+  it("name the browser when it is given: its build, its mode and its version", () => {
+    const browser = { build: "chromium", mode: "headless", version: "153.0.8010.12" };
+    expect(measurementConditions({ viewport: "mobile", workflow: "core-web-vitals", waitMs: 3000, browser })).toMatchObject({ browser });
+    expect(measurementConditions({ viewport: "mobile", workflow: "core-web-vitals", waitMs: 3000 })).not.toHaveProperty("browser");
+  });
+
   it("name the machine when it is given: its cores and its benchmark index", () => {
     const machine = { cores: 8, benchmarkIndex: 1234 };
     expect(measurementConditions({ viewport: "mobile", workflow: "core-web-vitals", waitMs: 3000, machine })).toMatchObject({ machine });

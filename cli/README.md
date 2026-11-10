@@ -24,6 +24,12 @@ npm install --save-dev webperf-snippets playwright
 npx playwright install chromium
 ```
 
+`npx playwright install chromium` downloads two builds of Chromium: the full Chromium and the headless shell. The CLI and its MCP server run the full Chromium in its headless mode, the binary of Chrome DevTools MCP and of a `--headed` run, and the headless shell only when it is the one installed (`--only-shell`). The full Chromium alone is enough, and skips the download of the headless shell (266 MB on Linux ARM64):
+
+```bash
+npx playwright install --no-shell chromium
+```
+
 ## Usage
 
 ```bash
@@ -70,10 +76,10 @@ JSON output (for piping into `jq` or CI):
 npx webperf-snippets https://example.com --json
 ```
 
-The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait, the version of the CLI and the machine: its CPU model, cores, architecture and memory, as the operating system reports them, and a benchmark index, a short CPU test in Node before Chromium starts, which only informs, since on the same machine it moves by up to 40 % with the load.
+The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait, the browser (`build` `chromium` for the full Chromium or `chromium-headless-shell`, its `mode` and its `version`), the version of the CLI and the machine: its CPU model, cores, architecture and memory, as the operating system reports them, and a benchmark index, a short CPU test in Node before Chromium starts, which only informs, since on the same machine it moves by up to 40 % with the load.
 
 ```json
-"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "cliVersion": "1.14.1", "machine": { "cpu": "Apple M4", "cores": 10, "arch": "arm64", "memoryGB": 16, "benchmarkIndex": 2371 } }
+"conditions": { "viewport": "mobile", "workflow": "core-web-vitals", "waitMs": 3000, "browser": { "build": "chromium", "mode": "headless", "version": "153.0.8010.12" }, "cliVersion": "1.14.1", "machine": { "cpu": "Apple M4", "cores": 10, "arch": "arm64", "memoryGB": 16, "benchmarkIndex": 2371 } }
 ```
 
 Single snippet:
@@ -297,7 +303,7 @@ The report adds the comparison after the usual one, and `--markdown` a table for
 }
 ```
 
-When both runs were measured differently, with another workflow or snippet, viewport, wait, throttling, number of runs or version of the CLI, on another CPU model or with other cores, or on another path or query, the CLI compares anyway and warns on stderr, in the reports and in `warnings`: whoever reads the pull request comment does not see the stderr of the CI. Another host does not warn, since it is the review app of a pull request against production. A baseline of one run warns that only the thresholds apply, and any other metric compared without statistics gets a line with the values left on each side, as in `no statistics for LCP: the baseline has 5 values, and this run 4 after 1 failed run; they need 5 a side, so measure both with 5 runs or more`.
+When both runs were measured differently, with another workflow or snippet, viewport, wait, throttling, number of runs, browser (build, mode or version) or version of the CLI, on another CPU model or with other cores, or on another path or query, the CLI compares anyway and warns on stderr, in the reports and in `warnings`: whoever reads the pull request comment does not see the stderr of the CI. Another host does not warn, since it is the review app of a pull request against production. A baseline of one run warns that only the thresholds apply, and any other metric compared without statistics gets a line with the values left on each side, as in `no statistics for LCP: the baseline has 5 values, and this run 4 after 1 failed run; they need 5 a side, so measure both with 5 runs or more`.
 
 The comparison only informs, and the exit code is the same as without it, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new, and names them on stderr. A baseline that does not exist or is not an output of the CLI, a baseline of a page for a matrix or of a matrix for a page, or a `--threshold` the CLI does not understand exits with code `2`, before the page loads.
 

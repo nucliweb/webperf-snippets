@@ -314,8 +314,9 @@ async function main() {
   // What the JSON records of how each page was measured, for a later run to compare with. The machine is
   // measured once, before Chromium starts, so its processes do not slow the benchmark down.
   const machine = machineOf();
-  const conditionsFor = ({ viewport, cpu, network }) =>
-    measurementConditions({ viewport, waitMs, cpu, network, machine, ...(items ? { snippet: items[0].path } : { workflow: values.workflow ?? "core-web-vitals" }) });
+  // The browser is the one of the run the report keeps: the run itself, or the median one
+  const conditionsFor = ({ viewport, cpu, network, browser }) =>
+    measurementConditions({ viewport, waitMs, cpu, network, browser, machine, ...(items ? { snippet: items[0].path } : { workflow: values.workflow ?? "core-web-vitals" }) });
 
   if (matrixPath) {
     let matrix;
@@ -337,7 +338,8 @@ async function main() {
     if (!median.payload) throw new Error(`Every run failed: ${median.errors.join("; ")}`);
     payload = { ...median.payload, runs: median.runs };
   }
-  payload.conditions = conditionsFor({ viewport: viewportName, cpu, network });
+  const { browser, ...measured } = payload;
+  payload = { ...measured, conditions: conditionsFor({ viewport: viewportName, cpu, network, browser }) };
 
   if (cruxKey) payload.crux = await fieldDataOf(url, formFactorFor(viewportName));
 
@@ -421,9 +423,10 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
     const conditions = { url: c.url, viewport: VIEWPORT_PRESETS[c.viewport], storageState: c.storageState, headers: c.headers, cpu: c.cpu, network: c.network, ownDomains: c.ownDomains };
     const median = await measureRunsWithProgress(() => measureWith(conditions), matrix.runs, matrix.medianBy, (i) => `[${String(++started).padStart(width)}/${total}] ${c.id} · run ${i}/${matrix.runs}`);
     const identity = { id: c.id, name: c.name, device: c.device, ...(c.variant ? { variant: c.variant } : {}), url: c.url };
+    const { browser, ...measured } = median.payload ?? {};
     combinations.push(
       median.payload
-        ? { ...identity, ...median.payload, runs: median.runs, conditions: conditionsFor(c) }
+        ? { ...identity, ...measured, runs: median.runs, conditions: conditionsFor({ ...c, browser }) }
         : { ...identity, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs }, conditions: conditionsFor(c) }
     );
   }
