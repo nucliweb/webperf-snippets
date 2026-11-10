@@ -314,11 +314,14 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
 
   // The machine goes in the conditions of every run, as in the JSON of the CLI, so a baseline measured
   // on another one warns. It is measured once, in the turn of the first run, before its Chromium starts.
+  // The browser is the one the run launched, the median one with several runs.
   let machineOfServer;
-  const conditionsOf = (conditions) => measurementConditions({ ...conditions, machine: (machineOfServer ??= machine()) });
-
   const measureInTurn = (conditions, measure, count, ctx) =>
-    inTurn(ctx, STAGES * count, async () => ({ conditions: conditionsOf(conditions), run: await measurePage(measure, count, ctx, callLimitMs) }));
+    inTurn(ctx, STAGES * count, async () => {
+      machineOfServer ??= machine();
+      const { browser, ...run } = await measurePage(measure, count, ctx, callLimitMs);
+      return { conditions: measurementConditions({ ...conditions, browser, machine: machineOfServer }), run };
+    });
 
   // A run of a page load, kept with its page in the shape of the JSON of the CLI: its runId is the
   // baseline of a later run, and the resources list it

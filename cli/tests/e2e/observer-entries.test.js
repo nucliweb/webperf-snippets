@@ -21,10 +21,13 @@ beforeAll(
     new Promise((resolve) => {
       server = createServer((req, res) => {
         const name = req.url.replace(/^\//, "") || "index.html";
+        // The fixture is read before the headers go: a name with no fixture, such as the favicon.ico the
+        // full Chromium asks for, is a 404
         try {
+          const body = fixture(name);
           const type = name.endsWith(".png") ? "image/png" : name.endsWith(".webm") ? "video/webm" : "text/html";
           res.writeHead(200, { "Content-Type": type });
-          res.end(fixture(name));
+          res.end(body);
         } catch {
           res.writeHead(404);
           res.end();

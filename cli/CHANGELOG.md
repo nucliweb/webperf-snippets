@@ -8,6 +8,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- The conditions of a run name the browser it launched, `browser: { build, mode, version }`, with `build` `chromium` (the full Chromium) or `chromium-headless-shell` and `mode` `headless` or `headed`: in the JSON of the CLI, in each combination of `--matrix` (its median run) and in the runs of the MCP server. `--baseline`, and `baseline` of the MCP tools, warn when the baseline was measured with another build, mode or version (`the baseline was measured with the headless shell 153.0.8010.12, and this run with the full Chromium 153.0.8010.12; timings can differ for that alone`), and when a baseline from a CLI that did not record its browser, which launched the headless shell with Playwright 1.49 or later, is compared with a run of another browser.
+
+### Changed
+- Headless, the CLI and the MCP server launch the full Chromium of Playwright in its headless mode (`channel: "chromium"`), the binary Chrome DevTools MCP runs, so a gate of the CLI and the traces of an agent measure with the same browser. `npx playwright install chromium` installs it next to the headless shell, and `npx playwright install --no-shell chromium` installs it alone, without the 266 MB of the headless shell. With the headless shell only (`--only-shell`) the CLI launches it as before, and with Playwright 1.48 or earlier, which has no headless shell, the launch is the same as before. `--headed` does not change.
+- What the full Chromium does differently on a page: it requests `/favicon.ico` after the load; it sends the request of the document again, once, when its connection closes with no answer; and a document with a 4xx or 5xx status and an empty body fails to load (`net::ERR_HTTP_RESPONSE_CODE_FAILURE`), where the headless shell loaded it. Metrics can move a little against a baseline measured with the headless shell.
+
 ---
 
 ## [1.14.1] — 2026-11-08

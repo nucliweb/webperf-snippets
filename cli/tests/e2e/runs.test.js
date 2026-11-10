@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { cliEnv } from "../helpers/cli-env.js";
+import { failLoad } from "../helpers/failed-load.js";
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), "../../src/bin.js");
 const run = promisify(execFile);
@@ -18,8 +19,8 @@ const WAIT_MS = "500";
 const said = (stdout = "", stderr = "") => `stderr:\n${stderr}\nstdout:\n${stdout.slice(0, 3000)}`;
 
 // /delays/600,50,350/<id> answers its first load after 600 ms, its second after 50 ms and its third
-// after 350 ms, so the order of the LCP of the runs is the server's and not noise. "destroy" closes
-// the connection instead, so that load fails. Each test uses its own id, which counts its loads.
+// after 350 ms, so the order of the LCP of the runs is the server's and not noise. "fail" fails
+// that load instead. Each test uses its own id, which counts its loads.
 let server;
 let baseUrl;
 const loads = new Map();
@@ -35,7 +36,7 @@ beforeAll(async () => {
       const n = (loads.get(id) ?? 0) + 1;
       loads.set(id, n);
       const delay = list.split(",")[n - 1];
-      if (delay === "destroy") return req.socket.destroy();
+      if (delay === "fail") return failLoad(res);
       setTimeout(() => {
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(`<!doctype html><title>Load ${n}</title><h1>Load ${n} of a page measured several times</h1>`);
@@ -97,7 +98,7 @@ describe("--runs", () => {
   }, 120000);
 
   it("leaves out a load that fails and counts it", async () => {
-    const { code, stdout, said: output } = await cli(pageWith("300,destroy,100"), "--runs", "3", "--json");
+    const { code, stdout, said: output } = await cli(pageWith("300,fail,100"), "--runs", "3", "--json");
     expect(code, output).toBe(0);
     expect(JSON.parse(stdout).runs).toMatchObject({ count: 3, failed: 1, medianRun: 3 });
   }, 90000);
