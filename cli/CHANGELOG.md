@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.15.0] — 2026-11-10
+
+The CLI and the MCP server measure with the full Chromium of Playwright in its headless mode, the binary Chrome DevTools MCP runs, and fall back to the headless shell when it is the only one installed, so `npx playwright install --no-shell chromium` is enough. The conditions of a run name the browser, and `--baseline` warns when the browser of the baseline was another.
+
 ### Added
 - The conditions of a run name the browser it launched, `browser: { build, mode, version }`, with `build` `chromium` (the full Chromium) or `chromium-headless-shell` and `mode` `headless` or `headed`: in the JSON of the CLI, in each combination of `--matrix` (its median run) and in the runs of the MCP server. `--baseline`, and `baseline` of the MCP tools, warn when the baseline was measured with another build, mode or version (`the baseline was measured with the headless shell 153.0.8010.12, and this run with the full Chromium 153.0.8010.12; timings can differ for that alone`), and when a baseline from a CLI that did not record its browser, which launched the headless shell with Playwright 1.49 or later, is compared with a run of another browser.
 
@@ -348,7 +354,13 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.10.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.15.0...HEAD
+[1.15.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.14.1...cli-v1.15.0
+[1.14.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.14.0...cli-v1.14.1
+[1.14.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.13.0...cli-v1.14.0
+[1.13.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.12.0...cli-v1.13.0
+[1.12.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.11.0...cli-v1.12.0
+[1.11.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.10.0...cli-v1.11.0
 [1.10.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.9.0...cli-v1.10.0
 [1.9.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.8.0...cli-v1.9.0
 [1.8.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.7.1...cli-v1.8.0
