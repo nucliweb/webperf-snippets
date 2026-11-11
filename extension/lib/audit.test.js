@@ -137,6 +137,36 @@ test('fromReport gives nothing for a missing or broken report, and leaves out re
   assert.deepEqual(audit.rows.map((r) => r.snippet.id), ['TTFB-Sub-Parts'])
 })
 
+// webperf-snippets <url> --workflow audit --json names its workflow in its conditions, not at the root
+test('fromReport opens the JSON of the audit of the CLI', () => {
+  const snippets = [
+    { id: 'TTFB-Sub-Parts', path: 'Loading/TTFB-Sub-Parts', audit: 0, auditId: 'ttfb' },
+    { id: 'Webfont-Usage-Analyzer', path: 'Loading/Webfont-Usage-Analyzer', audit: 1, auditId: 'webfonts' },
+  ]
+  const result = { script: 'Webfont-Usage-Analyzer', status: 'ok', issues: [{ severity: 'warning', message: 'A font for nothing' }] }
+  const cli = {
+    url: 'https://example.com/',
+    date: '2026-11-11T09:00:00.000Z',
+    navMs: 1200,
+    overview: { snippets: 2, withErrors: 0, withWarnings: 1, withNothingToFix: 1 },
+    issues: [{ severity: 'warning', id: 'webfonts', path: 'Loading/Webfont-Usage-Analyzer', message: 'A font for nothing' }],
+    results: [{ id: 'ttfb', script: 'TTFB-Sub-Parts', status: 'ok', issues: [] }, { id: 'webfonts', ...result }],
+    pageErrors: [],
+    conditions: { viewport: 'mobile', workflow: 'audit', waitMs: 3000, cliVersion: '1.16.0' },
+  }
+  const audit = fromReport(cli, snippets)
+  assert.equal(audit.url, 'https://example.com/')
+  assert.equal(audit.date, '2026-11-11T09:00:00.000Z')
+  assert.deepEqual(audit.rows.map((r) => r.snippet.auditId), ['ttfb', 'webfonts'])
+  assert.deepEqual(audit.rows[1].result, result)
+  // Its overview and issues are the ones the extension would export
+  const exported = report({ url: audit.url, date: audit.date, rows: audit.rows })
+  assert.deepEqual(exported.overview, cli.overview)
+  assert.deepEqual(exported.issues, cli.issues)
+  // Another workflow of the CLI is not an audit
+  assert.equal(fromReport({ ...cli, conditions: { ...cli.conditions, workflow: 'loading' } }, snippets), null)
+})
+
 test('the history keeps the last audits, newest first, and drops the oldest past its limit', () => {
   const at = (n) => ({ workflow: 'audit', url: `https://example.com/${n}`, date: `2026-10-13T10:0${n}:00.000Z`, results: [] })
   let history = []

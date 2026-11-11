@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { auditReport, describeOverview, issuesOf, overviewOf, summarizeIssues } from '../snippets/_view/index.js'
+import { auditReport, describeOverview, issueList, issuesOf, overviewOf, summarizeIssues } from '../snippets/_view/index.js'
 
 // What a set of results found, the same for the audit of the extension and the reports of the CLI: the
 // issues of each result by severity, the overview of all of them and every issue in one list.
@@ -61,6 +61,26 @@ test('issuesOf lists every issue of the results, in their order, with the id of 
   // The code and the target of an issue go with it; a result that failed gives its error, with no code
   assert.equal(issues[0].code, renderBlocking.issues[0].code)
   assert.deepEqual(issues[3], { severity: 'error', id: 'dom-size', message: 'It failed' })
+})
+
+test('issueList puts every issue by severity, with the path its result maps to, and keeps the order within a severity', () => {
+  const results = [
+    { id: 'compression', ...compression },
+    { id: 'render-blocking', ...renderBlocking },
+  ]
+  const paths = { compression: 'Loading/Compression-Audit', 'render-blocking': 'Loading/Find-render-blocking-resources' }
+  const issues = issueList(results, (result) => paths[result.id])
+  assert.deepEqual(
+    issues.map((i) => [i.severity, i.id, i.path]),
+    [
+      ['error', 'render-blocking', 'Loading/Find-render-blocking-resources'],
+      ['warning', 'compression', 'Loading/Compression-Audit'],
+      ['info', 'compression', 'Loading/Compression-Audit'],
+    ]
+  )
+  assert.equal(issues[0].code, renderBlocking.issues[0].code)
+  // Without a function, the path is the one each result carries
+  assert.equal(issueList([{ id: 'x', path: 'A/B', ...renderBlocking }])[0].path, 'A/B')
 })
 
 test('auditReport gives the overview, every issue by severity with the path of its snippet, and the results as they are', () => {

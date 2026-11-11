@@ -9,7 +9,7 @@ import en from './locales/en.js'
 import { formatOfKey, formatValue, SUFFIXES } from './format.js'
 
 export { formatValue }
-export { auditReport, describeOverview, issuesOf, overviewOf, summarizeIssues } from './report.js'
+export { auditReport, describeOverview, issueList, issuesOf, overviewOf, summarizeIssues } from './report.js'
 
 const LOCALES = { en }
 

@@ -20,6 +20,7 @@ import { loadMatrix } from "./matrix.js";
 import { blockingErrors } from "./blocking.js";
 import { MEASURED_BY, checkBudgets, parseBudgets, unmeasuredMetrics, violationsOf } from "./budgets.js";
 import { measurementConditions } from "./conditions.js";
+import { pathsOfRun, reportOf } from "./overview.js";
 import { machineOf } from "./machine.js";
 import { isHttpUrl } from "./url.js";
 import { loadBaseline, parseThreshold, thresholdsWith, compareRun, compareMatrix } from "./baseline.js";
@@ -318,6 +319,9 @@ async function main() {
   const conditionsFor = ({ viewport, cpu, network, browser }) =>
     measurementConditions({ viewport, waitMs, cpu, network, browser, machine, ...(items ? { snippet: items[0].path } : { workflow: values.workflow ?? "core-web-vitals" }) });
 
+  // The path of the snippet of each result, for the list of issues of the report
+  const pathOf = pathsOfRun({ items: items ?? [], workflow, rules: RULES });
+
   if (matrixPath) {
     let matrix;
     try {
@@ -325,11 +329,13 @@ async function main() {
     } catch (err) {
       fail(err.message);
     }
-    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds, budgets, cruxKey, fieldDataOf });
+    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, pathOf, baseline, thresholds, budgets, cruxKey, fieldDataOf });
     return;
   }
 
   const conditions = { url, viewport, storageState, headers, cpu, network, ownDomains };
+  // When the measurement started, in UTC
+  const date = new Date().toISOString();
   let payload;
   if (runCount == null) {
     payload = await measureWith(conditions);
@@ -338,8 +344,9 @@ async function main() {
     if (!median.payload) throw new Error(`Every run failed: ${median.errors.join("; ")}`);
     payload = { ...median.payload, runs: median.runs };
   }
+  // What the results found goes before them, so a reader, or an agent, sees it first
   const { browser, ...measured } = payload;
-  payload = { ...measured, conditions: conditionsFor({ viewport: viewportName, cpu, network, browser }) };
+  payload = { url: measured.url, date, navMs: measured.navMs, ...reportOf(measured.results, pathOf), ...measured, conditions: conditionsFor({ viewport: viewportName, cpu, network, browser }) };
 
   if (cruxKey) payload.crux = await fieldDataOf(url, formFactorFor(viewportName));
 
@@ -371,6 +378,8 @@ async function main() {
         ...(values.snippet ? { snippet: values.snippet } : {}),
         timestamp: new Date().toISOString(),
         navMs: payload.navMs,
+        overview: payload.overview,
+        issues: payload.issues,
         results: payload.results,
         ...(payload.budgets ? { budgets: payload.budgets } : {}),
         meta: { viewport: viewportName, waitMs, ...(payload.throttling ? { throttling: payload.throttling } : {}), ...(payload.runs ? { runs: payload.runs } : {}), cli_version: cliVersion },
@@ -411,7 +420,7 @@ const measureRunsWithProgress = (measure, count, medianBy, progress) =>
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code follows the same rules as one page, for every combination.
-async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, baseline, thresholds, budgets, cruxKey, fieldDataOf }) {
+async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, pathOf, baseline, thresholds, budgets, cruxKey, fieldDataOf }) {
   for (const warning of matrix.warnings) process.stderr.write(`Warning: ${warning}\n`);
   const viewportOf = new Map(matrix.combinations.map((c) => [c.id, c.viewport]));
 
@@ -419,15 +428,17 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
   const width = String(total).length;
   let started = 0;
   const combinations = [];
+  const startedAt = new Date().toISOString();
   for (const c of matrix.combinations) {
+    const date = new Date().toISOString();
     const conditions = { url: c.url, viewport: VIEWPORT_PRESETS[c.viewport], storageState: c.storageState, headers: c.headers, cpu: c.cpu, network: c.network, ownDomains: c.ownDomains };
     const median = await measureRunsWithProgress(() => measureWith(conditions), matrix.runs, matrix.medianBy, (i) => `[${String(++started).padStart(width)}/${total}] ${c.id} · run ${i}/${matrix.runs}`);
     const identity = { id: c.id, name: c.name, device: c.device, ...(c.variant ? { variant: c.variant } : {}), url: c.url };
     const { browser, ...measured } = median.payload ?? {};
     combinations.push(
       median.payload
-        ? { ...identity, ...measured, runs: median.runs, conditions: conditionsFor({ ...c, browser }) }
-        : { ...identity, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs }, conditions: conditionsFor(c) }
+        ? { ...identity, date, navMs: measured.navMs, ...reportOf(measured.results, pathOf), ...measured, runs: median.runs, conditions: conditionsFor({ ...c, browser }) }
+        : { ...identity, date, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs }, conditions: conditionsFor(c) }
     );
   }
 
@@ -456,7 +467,7 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
 
   const withBaseline = comparison ? { baseline: comparison } : {};
   const report = { matrix: matrixPath, runs: matrix.runs, combinations, verbose: values.verbose, ...withBaseline };
-  const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, runs: matrix.runs, ...withBaseline, combinations }) : reportMatrixHuman(report);
+  const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, date: startedAt, runs: matrix.runs, ...withBaseline, combinations }) : reportMatrixHuman(report);
   process.stdout.write(output + "\n");
 
   // One report for each combination, with the body of one page and the device, variant and runs of
@@ -472,6 +483,8 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
           ...(values.snippet ? { snippet: values.snippet } : {}),
           timestamp: new Date().toISOString(),
           navMs: c.navMs,
+          overview: c.overview,
+          issues: c.issues,
           results: c.results,
           ...(c.budgets ? { budgets: c.budgets } : {}),
           meta: {

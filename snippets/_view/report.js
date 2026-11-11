@@ -42,13 +42,19 @@ export function issuesOf(results) {
   })
 }
 
-// The audit as JSON: the results, each with the id and the path of its step, plus the overview and every
-// issue of every result in one list, by severity, with the path of its snippet. Array.prototype.sort
-// keeps the order of the audit within a severity
-export function auditReport({ url, date, results }) {
-  const pathOf = new Map(results.map((r) => [r.id, r.path]))
-  const issues = issuesOf(results)
-    .map(({ code, severity, id, message, target }) => ({ ...(code ? { code } : {}), severity, id, path: pathOf.get(id), message, ...(target ? { target } : {}) }))
+// Every issue of the results in one list, by severity, each with the id of its result and the path of
+// its snippet: the one the result carries, or the one pathOf gives for it. Array.prototype.sort keeps the
+// order of the results within a severity
+export function issueList(results, pathOf = (result) => result?.path) {
+  return results
+    .flatMap((result) =>
+      issuesOf([result]).map(({ code, severity, id, message, target }) => ({ ...(code ? { code } : {}), severity, id, path: pathOf(result), message, ...(target ? { target } : {}) }))
+    )
     .sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity))
-  return { workflow: 'audit', url: url ?? null, date, overview: overviewOf(results.map(summarizeIssues)), issues, results }
+}
+
+// The audit as JSON: the results, each with the id and the path of its step, plus the overview and every
+// issue of every result in one list, by severity, with the path of its snippet
+export function auditReport({ url, date, results }) {
+  return { workflow: 'audit', url: url ?? null, date, overview: overviewOf(results.map(summarizeIssues)), issues: issueList(results), results }
 }
