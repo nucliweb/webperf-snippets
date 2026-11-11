@@ -2,30 +2,19 @@
 // the other on the inspected page, and summed up in one row each
 
 import { formatValue } from './render.js'
+import { auditReport, describeOverview, issuesOf, overviewOf, summarizeIssues } from './view/index.js'
 
 const SEVERITY = ['error', 'warning', 'info']
 const COUNT_NAMES = { error: 'errors', warning: 'warnings', info: 'infos' }
 const RATING = { good: 'good', 'needs-improvement': 'needs improvement', poor: 'poor' }
 
-// What a result found: its issues by severity and the worst of them, and for a metric its value and
-// rating. A result that failed counts as an error, and a rating that is not good as a warning when no
-// issue says more
+// What a result found (the view of the results, snippets/_view/report.js: its issues by severity and the
+// worst of them), and for a metric its value and rating, as the row of the audit shows it
 export function summarize(result) {
-  if (!result || typeof result !== 'object' || result.status === 'error') {
-    return { status: 'error', errors: 1, warnings: 0, infos: 0, top: result?.error ?? 'The snippet returned nothing' }
-  }
-  const issues = Array.isArray(result.issues) ? result.issues : []
-  const count = (severity) => issues.filter((i) => i.severity === severity).length
-  const worst = [...issues].sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity))[0]
-  const summary = { status: result.status, errors: count('error'), warnings: count('warning'), infos: count('info'), top: worst?.message ?? '' }
-  if (typeof result.value === 'number') {
-    const rating = RATING[result.rating]
-    summary.metric = rating ? `${formatValue(result.value, result.unit)} · ${rating}` : formatValue(result.value, result.unit)
-  }
-  if (issues.length === 0 && (result.rating === 'poor' || result.rating === 'needs-improvement')) {
-    return { ...summary, warnings: 1, top: `Rated ${RATING[result.rating]}` }
-  }
-  return summary
+  const summary = summarizeIssues(result)
+  if (summary.status === 'error' || typeof result.value !== 'number') return summary
+  const rating = RATING[result.rating]
+  return { ...summary, metric: rating ? `${formatValue(result.value, result.unit)} · ${rating}` : formatValue(result.value, result.unit) }
 }
 
 // Errors first, then warnings, then the rest; Array.prototype.sort keeps the order of the audit otherwise
@@ -44,31 +33,18 @@ const FILTERS = {
 export const filterRows = (rows, filter) => rows.filter(FILTERS[filter] ?? FILTERS.all)
 export const filterCounts = (rows) => Object.fromEntries(Object.keys(FILTERS).map((f) => [f, filterRows(rows, f).length]))
 
-function counts(rows) {
-  const withErrors = rows.filter((r) => r.summary.errors > 0).length
-  const withWarnings = rows.filter((r) => r.summary.errors === 0 && r.summary.warnings > 0).length
-  return { snippets: rows.length, withErrors, withWarnings, withNothingToFix: rows.length - withErrors - withWarnings }
-}
-
-export function overview(rows) {
-  const c = counts(rows)
-  return `${c.snippets} snippets: ${c.withErrors} with errors, ${c.withWarnings} with warnings, ${c.withNothingToFix} with nothing to fix`
-}
+export const overview = (rows) => describeOverview(overviewOf(rows.map((r) => r.summary)))
 
 // The audit as JSON, to export or analyze: the results in the shape of the CLI
 // (webperf-snippets <url> --workflow audit --json), each with the id of its step, plus the overview and
-// every issue of every snippet in one list, by severity. A snippet that failed gives an error issue
+// every issue of every snippet in one list, by severity. A snippet that returned nothing gives an error
 export function report({ url, date, rows }) {
   const results = rows.map(({ snippet, result }) => ({
     id: snippet.auditId,
     path: snippet.path,
     ...(result && typeof result === 'object' ? result : { status: 'error', error: 'The snippet returned nothing' }),
   }))
-  const pathOf = new Map(results.map((r) => [r.id, r.path]))
-  const issues = issuesOf(results)
-    .map(({ id, code, target, severity, message }) => ({ ...(code ? { code } : {}), severity, id, path: pathOf.get(id), message, ...(target ? { target } : {}) }))
-    .sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity))
-  return { workflow: 'audit', url: url ?? null, date, overview: counts(rows), issues, results }
+  return auditReport({ url, date, results })
 }
 
 // webperf-audit-<host>-<YYYY-MM-DD-HHMM>.json, in UTC like the date of the report. The host goes
@@ -103,16 +79,6 @@ export function addToHistory(history, saved, max = 10) {
 }
 
 export const removeFromHistory = (history, date) => history.filter((r) => r.date !== date)
-
-// Every issue of a list of results, each with the id of its step; a result that failed gives an error
-function issuesOf(results) {
-  return results.flatMap((result) => {
-    const own = Array.isArray(result?.issues) ? result.issues : []
-    const failed = !result || result.status === 'error'
-    const list = failed ? [{ severity: 'error', message: result?.error ?? 'The snippet returned nothing' }] : own
-    return list.map((i) => ({ ...(i.code ? { code: i.code } : {}), severity: i.severity, id: result.id, message: i.message, ...(i.target ? { target: i.target } : {}) }))
-  })
-}
 
 // The text of an issue without its times, which move on every run: "until 1543ms", "2.4 s"
 const withoutTimes = (message) => String(message).replace(/\d+(?:[.,]\d+)?\s?m?s\b/g, '#t')
