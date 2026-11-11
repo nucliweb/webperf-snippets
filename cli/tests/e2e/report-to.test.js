@@ -93,6 +93,9 @@ describe("--report-to", () => {
     expect(Number.isNaN(Date.parse(body.timestamp))).toBe(false);
     expect(typeof body.navMs).toBe("number");
     expect(body.results[0].id).toBe("LCP");
+    // What the results found, as in the JSON of the CLI
+    expect(body.overview).toEqual({ snippets: 1, withErrors: 0, withWarnings: 0, withNothingToFix: 1 });
+    expect(body.issues).toEqual([]);
     expect(body.meta).toEqual({ viewport: "desktop", waitMs: 600, cli_version: CLI_VERSION });
   }, 30000);
 

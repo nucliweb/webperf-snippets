@@ -76,6 +76,16 @@ JSON output (for piping into `jq` or CI):
 npx webperf-snippets https://example.com --json
 ```
 
+Before its `results`, the JSON output says when the page was measured and what the results found, as the JSON the audit of the [DevTools extension](https://webperf-snippets.net/extension) exports, so a script or an agent reads it without going through every result: `date`, when the measurement started, in UTC; `overview`, how many snippets have errors, warnings only or nothing to fix (a snippet that failed counts as an error, and a rating that is not good as a warning when no issue says more); and `issues`, every issue of every result in one list, errors first, then warnings and info, each with its `code`, `severity`, the `id` of its step, the `path` of its snippet, its `message` and, when it has one, its `target`. A follow-up of the decision tree lists its issues too, and they do not change the exit code.
+
+```json
+"date": "2026-11-11T09:00:00.000Z",
+"overview": { "snippets": 22, "withErrors": 5, "withWarnings": 6, "withNothingToFix": 11 },
+"issues": [
+  { "code": "render-blocking", "severity": "error", "id": "render-blocking", "path": "Loading/Find-render-blocking-resources", "message": "2 render-blocking resources delay the first paint until 532ms" }
+]
+```
+
 The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait, the browser (`build` `chromium` for the full Chromium or `chromium-headless-shell`, its `mode` and its `version`), the version of the CLI and the machine: its CPU model, cores, architecture and memory, as the operating system reports them, and a benchmark index, a short CPU test in Node before Chromium starts, which only informs, since on the same machine it moves by up to 40 % with the load.
 
 ```json
@@ -176,12 +186,14 @@ Without `--report-to` the CLI makes no external calls. With it, the results are 
   "workflow": "audit",
   "timestamp": "2026-05-06T10:00:00.000Z",
   "navMs": 1240,
+  "overview": { "snippets": 22, "withErrors": 5, "withWarnings": 6, "withNothingToFix": 11 },
+  "issues": [],
   "results": [],
   "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "1.15.0" }
 }
 ```
 
-For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the name. With `--cpu` or `--network`, `meta` carries the conditions in `throttling`, and with `--runs`, the summary of the runs in `runs`. `results` is the same list the `--json` output contains, so it can include URLs and details of the measured page; send it only to an endpoint you trust.
+For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the name. With `--cpu` or `--network`, `meta` carries the conditions in `throttling`, and with `--runs`, the summary of the runs in `runs`. `overview`, `issues` and `results` are the ones of the `--json` output, so it can include URLs and details of the measured page; send it only to an endpoint you trust.
 
 - The URL must be `https`. `http` is accepted only for `localhost`, so a key is never sent in clear text.
 - `--api-key` is sent as `Authorization: Bearer <key>`. Prefer the `PERF_REVIEWS_API_KEY` environment variable, because a flag ends up in shell history and CI logs. The key is never printed.
@@ -257,7 +269,7 @@ npx webperf-snippets --matrix matrix.json --budget-lcp 2500
 
 The options of the command line apply to every combination: `--workflow`, `--snippet`, `--wait`, `--interact-script`, `--header`, `--own-domains`, `--storage-state`, `--cpu`, `--network` and the budgets. The file replaces `cpu`, `network` and `storageState` where it sets them, and its `headers` and `ownDomains` add to the ones of the command line, the variant winning on the same header. A matrix file is meant to be versioned, so pass secrets, such as the token of an access proxy, with `--header` and an environment variable; a header of the file whose name looks like a secret raises a warning. A key the CLI does not know is an error, so a typo does not measure without its condition.
 
-The report is a table with one row per combination and the rated median of each metric, a variable or noisy one followed by the coefficient of variation of its runs (`🟡 2.71s ±14%`), then the errors that decide the exit code; `--verbose` adds the report of the median run of each combination. `--markdown` gives the same table and folds the report of each combination into a `<details>` block, to keep a pull request comment readable. With `--json`, it is `{ "matrix", "runs", "combinations" }`, each combination being the report of its median run with its `id`, `name`, `device`, `variant` (when the file defines variants), `runs` and `conditions`, with the viewport of its device. The budgets compare the median of each combination. The command exits with code `1` when a combination exceeds a budget, has an error or fails every run, and with code `2` for an invalid file, before any page load, naming the place of the problem in the JSON. `--viewport` does not apply, since each device sets its own.
+The report is a table with one row per combination and the rated median of each metric, a variable or noisy one followed by the coefficient of variation of its runs (`🟡 2.71s ±14%`), then the errors that decide the exit code; `--verbose` adds the report of the median run of each combination. `--markdown` gives the same table and folds the report of each combination into a `<details>` block, to keep a pull request comment readable. With `--json`, it is `{ "matrix", "date", "runs", "combinations" }`, with the `date` the matrix started, each combination being the report of its median run with its `id`, `name`, `device`, `variant` (when the file defines variants), `date`, `overview`, `issues`, `runs` and `conditions`, with the viewport of its device. The budgets compare the median of each combination. The command exits with code `1` when a combination exceeds a budget, has an error or fails every run, and with code `2` for an invalid file, before any page load, naming the place of the problem in the JSON. `--viewport` does not apply, since each device sets its own.
 
 With CrUX, the CLI asks once for each URL and form factor, so the variants of a device share their field data. With `--report-to`, it posts one report for each combination, the body of one page with `meta.device`, `meta.variant` and `meta.runs`; the headers of the command line and of the file are conditions of the load, and no report carries their values.
 

@@ -61,9 +61,10 @@ export function reportFileName(url, date) {
 }
 
 // The audit of a report, to show the last one again after the panel closes: each result goes back to
-// its snippet by the id of its step, and a result of a snippet that is gone is left out
+// its snippet by the id of its step, and a result of a snippet that is gone is left out. The JSON of the
+// CLI names its workflow in its conditions
 export function fromReport(saved, snippets) {
-  if (!saved || saved.workflow !== 'audit' || !Array.isArray(saved.results)) return null
+  if (!saved || (saved.workflow ?? saved.conditions?.workflow) !== 'audit' || !Array.isArray(saved.results)) return null
   const byAuditId = new Map(snippets.filter((s) => s.auditId).map((s) => [s.auditId, s]))
   const rows = saved.results.flatMap(({ id, path, ...result }) => {
     const snippet = byAuditId.get(id)

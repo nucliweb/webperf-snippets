@@ -8,4 +8,4 @@ import { SNIPPET_DIRS } from "./load-snippet.js";
 const dir = SNIPPET_DIRS.find((d) => existsSync(join(d, "_view", "index.js")));
 if (!dir) throw new Error("The view of the results is missing: snippets/_view/index.js");
 
-export const { describeResult } = await import(pathToFileURL(join(dir, "_view", "index.js")).href);
+export const { describeResult, describeOverview, issueList, overviewOf, summarizeIssues } = await import(pathToFileURL(join(dir, "_view", "index.js")).href);
