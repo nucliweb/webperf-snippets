@@ -1,5 +1,6 @@
 import { fieldDataView, historyView, subPartsView, navigationView } from "../crux.js";
 import { describeResult } from "../view.js";
+import { overviewLine } from "../overview.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { describeThrottling } from "../throttling.js";
 import { describeRuns, describeAgreement } from "../runs.js";
@@ -30,21 +31,21 @@ function renderAuditRow(r) {
   const warnings = (r.issues ?? []).filter((i) => i.severity === "warning");
   const icon = errors.length ? "🔴" : warnings.length ? "🟡" : "🟢";
   const label = errors.length ? "fail" : warnings.length ? "warning" : "pass";
-  const detail = r.issues?.length ? r.issues.map((i) => i.message).join("; ") : "No issues";
+  const detail = r.issues?.length ? cell(r.issues.map((i) => i.message).join("; ")) : "No issues";
   return `| ${r.id} | ${icon} ${label} | ${detail} |`;
 }
 
 function renderErrorRow(r) {
-  return `| ${r.id} | ❌ error | ${r.error} |`;
+  return `| ${r.id} | ❌ error | ${cell(r.error)} |`;
 }
 
 function renderSkippedRow(r) {
-  return `| ${r.id} | ⏭ skipped | ${r.reason} |`;
+  return `| ${r.id} | ⏭ skipped | ${cell(r.reason)} |`;
 }
 
 // A tracking snippet with nothing recorded, such as INP without interactions, measured nothing
 function renderNotMeasuredRow(r) {
-  return `| ${r.id} | · not measured | ${r.message ?? "nothing recorded"} |`;
+  return `| ${r.id} | · not measured | ${cell(r.message ?? "nothing recorded")} |`;
 }
 
 // A result with a count and no value: its count, and its first numbers as the human report gives them
@@ -68,8 +69,9 @@ function sectionHeader(results) {
   return ["| Metric | Value | Status |", "|--------|-------|--------|"];
 }
 
-// Text from the page in a list item: the characters that markdown reads as emphasis or code, escaped
-const md = (text) => String(text).replace(/[\\`*_[\]]/g, "\\$&");
+// Text from the page in a list item: the characters that markdown reads as emphasis, code or HTML, escaped.
+// GitHub reads <head> or <link rel="preload"> as HTML and drops it from a comment
+const md = (text) => String(text).replace(/[\\`*_[\]<]/g, "\\$&");
 
 // A field of the view as a list item, with the labels and formats of the extension: a nested table is
 // a line per row, and the fields of an object are items under it
@@ -186,13 +188,36 @@ function renderBudgets(budgets) {
   return ["", "### Budgets", "| Metric | Value | Budget | Verdict |", "|--------|-------|--------|---------|", ...rows];
 }
 
-export function reportMarkdown({ url, navMs, results, pageErrors, crux, throttling, runs, baseline, budgets, title = `WebPerf Results — ${url}` }) {
+// The issues of the list of what to fix: the errors and warnings, as the JSON lists them, errors first.
+// More than that buries them, and the results below have every one
+const MAX_ISSUES = 30;
+const SEVERITY_ICON = { error: "🔴", warning: "🟡" };
+// Text from the page on one line, so a line break in a message cannot start a heading or a list
+const oneLine = (text) => String(text).replace(/\s*\n\s*/g, " ");
+// Text from the page in a cell of a table: on one line, escaped, and its pipes too, which end a cell
+const cell = (text) => md(oneLine(text)).replace(/\|/g, "\\|");
+
+// What the results found, before them: the overview in one line, and the errors and warnings to fix
+function renderOverview({ overview, issues = [], results }) {
+  const line = overviewLine({ overview, results });
+  if (!line) return [];
+  const lines = [line, ""];
+  const toFix = issues.filter((i) => SEVERITY_ICON[i.severity]);
+  if (toFix.length === 0) return lines;
+  lines.push("### Errors and warnings");
+  for (const i of toFix.slice(0, MAX_ISSUES)) lines.push(`- ${SEVERITY_ICON[i.severity]} \`${i.id}\`: ${md(oneLine(i.message))}`);
+  if (toFix.length > MAX_ISSUES) lines.push(`- …and ${toFix.length - MAX_ISSUES} more, in the results below`);
+  return [...lines, ""];
+}
+
+export function reportMarkdown({ url, navMs, overview, issues, results, pageErrors, crux, throttling, runs, baseline, budgets, title = `WebPerf Results — ${url}` }) {
   const lines = [];
   if (title) lines.push(`## ${title}`);
   lines.push(`> Navigated in ${navMs}ms`);
   if (throttling) lines.push(">", `> Throttling: ${describeThrottling(throttling)}`);
   if (runs) lines.push(">", `> ${describeRuns(runs)}`);
   lines.push("");
+  lines.push(...renderOverview({ overview, issues, results }));
   if (runs) lines.push(...renderRuns(runs), "");
 
   const initial = results.filter((r) => !r.reason);

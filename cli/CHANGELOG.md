@@ -10,6 +10,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ### Added
 - The JSON output says, before its `results`, when the page was measured and what the results found, as the JSON the audit of the DevTools extension exports: `date`, when the measurement started, in UTC; `overview`, how many snippets have errors, warnings only or nothing to fix; and `issues`, every issue of every result in one list, errors first, with its `code`, `severity`, the `id` of its step, the `path` of its snippet, its `message` and its `target`. With every workflow and with `--snippet`; with `--runs`, those of the run the report keeps; with `--matrix`, in each combination, and the matrix adds the `date` it started. The body of `--report-to` carries `overview` and `issues` too.
+- The human and markdown reports start with the overview in one line when the results count issues, as those of the `audit` workflow do (`22 snippets: 5 with errors, 6 with warnings, 11 with nothing to fix`), and the markdown report lists the errors and warnings under Errors and warnings, errors first and up to 30, before its tables, so a pull request comment shows what to fix first.
+
+### Fixed
+- The markdown report escapes the `<` of the text from the page, in its lists and in the cells of its tables, and the `|` in the cells: GitHub read `<head>` or `<link rel="preload" as="image">` in a comment as HTML and dropped it, so a message read `1 blocking script(s) in `, and a `|` in a message ended its cell.
 
 ---
 

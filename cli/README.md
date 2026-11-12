@@ -86,6 +86,8 @@ Before its `results`, the JSON output says when the page was measured and what t
 ]
 ```
 
+The human and markdown reports start the same way, when the results count issues, as those of the `audit` workflow do: the overview in one line, and, in markdown, the errors and warnings in a list under Errors and warnings, errors first and up to 30, before the tables, so a pull request comment shows what to fix first. The text from the page keeps the `<` and `|` it names, escaped, where GitHub would read `<head>` as HTML and drop it.
+
 The JSON output records how the page was measured in `conditions`, so a later run can tell whether it measured the same way: the viewport, the workflow (or the path of the snippet with `--snippet`), the wait, the browser (`build` `chromium` for the full Chromium or `chromium-headless-shell`, its `mode` and its `version`), the version of the CLI and the machine: its CPU model, cores, architecture and memory, as the operating system reports them, and a benchmark index, a short CPU test in Node before Chromium starts, which only informs, since on the same machine it moves by up to 40 % with the load.
 
 ```json

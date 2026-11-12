@@ -1,5 +1,6 @@
 import { styleText } from "node:util";
 import { describeResult } from "../view.js";
+import { overviewLine } from "../overview.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { fieldDataView, historyView, subPartsView, navigationView } from "../crux.js";
 import { describeThrottling } from "../throttling.js";
@@ -285,13 +286,15 @@ function renderBaseline(comparison) {
   return lines;
 }
 
-export function reportHuman({ url, navMs, results, pageErrors, verbose, crux, throttling, runs, baseline, budgets, title = `WebPerf Snippets — ${url}` }) {
+export function reportHuman({ url, navMs, overview, results, pageErrors, verbose, crux, throttling, runs, baseline, budgets, title = `WebPerf Snippets — ${url}` }) {
   const lines = [];
   lines.push(styleText(["bold"], title));
   lines.push(styleText("dim", `Navigated in ${navMs}ms`));
   if (throttling) lines.push(styleText("dim", `Throttling: ${describeThrottling(throttling)}`));
   if (runs) lines.push(...renderRuns(runs));
   lines.push("");
+  const summary = overviewLine({ overview, results });
+  if (summary) lines.push(summary, "");
   for (const r of results) lines.push(renderResult(r, verbose));
   if (crux) {
     lines.push("");

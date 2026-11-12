@@ -30,7 +30,7 @@ export function overviewOf(summaries) {
 }
 
 export const describeOverview = ({ snippets, withErrors, withWarnings, withNothingToFix }) =>
-  `${snippets} snippets: ${withErrors} with errors, ${withWarnings} with warnings, ${withNothingToFix} with nothing to fix`
+  `${snippets} snippet${snippets === 1 ? '' : 's'}: ${withErrors} with errors, ${withWarnings} with warnings, ${withNothingToFix} with nothing to fix`
 
 // Every issue of a list of results, in their order, each with the id of its result; a result that
 // failed gives an error issue with its message
