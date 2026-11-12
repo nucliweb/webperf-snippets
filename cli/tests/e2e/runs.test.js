@@ -18,9 +18,10 @@ const WAIT_MS = "500";
 // which code came out, not why.
 const said = (stdout = "", stderr = "") => `stderr:\n${stderr}\nstdout:\n${stdout.slice(0, 3000)}`;
 
-// /delays/600,50,350/<id> answers its first load after 600 ms, its second after 50 ms and its third
-// after 350 ms, so the order of the LCP of the runs is the server's and not noise. "fail" fails
-// that load instead. Each test uses its own id, which counts its loads.
+// /delays/1200,50,700/<id> answers its first load after 1200 ms, its second after 50 ms and its third
+// after 700 ms, so the order of the LCP of the runs is the server's and not noise: gaps of 500 ms or
+// more, where 300 ms was not enough on a busy runner of CI. "fail" fails that load instead. Each test
+// uses its own id, which counts its loads.
 let server;
 let baseUrl;
 const loads = new Map();
@@ -62,7 +63,7 @@ const cli = (url, ...args) =>
 
 describe("--runs", () => {
   it("measures the page N times and reports the median run by LCP, with the summary of each metric", async () => {
-    const url = pageWith("600,50,350");
+    const url = pageWith("1200,50,700");
     const { code, stdout, said: output } = await cli(url, "--runs", "3", "--json");
     expect(code, output).toBe(0);
     const payload = JSON.parse(stdout);
@@ -112,11 +113,11 @@ describe("--runs", () => {
   }, 120000);
 
   it("names the runs and the median in the human and markdown reports", async () => {
-    const human = await cli(pageWith("600,50,350"), "--runs", "3");
+    const human = await cli(pageWith("1200,50,700"), "--runs", "3");
     expect(human.stdout).toContain("3 runs, median by LCP: run 3");
     expect(human.stdout).toMatch(/LCP\s+median \S+\s+min \S+\s+max \S+/);
 
-    const markdown = await cli(pageWith("600,50,350"), "--runs", "3", "--markdown");
+    const markdown = await cli(pageWith("1200,50,700"), "--runs", "3", "--markdown");
     expect(markdown.stdout).toContain("3 runs, median by LCP: run 3");
     expect(markdown.stdout).toContain("| Metric | Median | Min | Max |");
   }, 120000);
