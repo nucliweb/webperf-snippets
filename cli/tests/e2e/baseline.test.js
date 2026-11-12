@@ -107,8 +107,10 @@ describe("--baseline with a page", () => {
     expect(stderr).toMatch(/Regression against .*fast\.json: LCP ▲ \+\d+ms/);
   }, 120000);
 
+  // With three runs a side, the noise of a busy machine took the same page past the threshold of 100 ms
+  // (improved): 400 ms is still far below the 800 ms of /slow
   it("reports the same page as unchanged, and exits with 0 with --fail-on-regression", async () => {
-    const { code, stdout, said: output } = await cli(`${base}/fast`, "--runs", "3", "--wait", WAIT_MS, "--baseline", fastBaseline, "--fail-on-regression", "--json");
+    const { code, stdout, said: output } = await cli(`${base}/fast`, "--runs", "3", "--wait", WAIT_MS, "--baseline", fastBaseline, "--threshold", "LCP=400ms", "--fail-on-regression", "--json");
     expect(code, output).toBe(0);
     const { baseline } = JSON.parse(stdout);
     expect(baseline.metrics.LCP.verdict).toBe("unchanged");
@@ -197,6 +199,9 @@ describe("--baseline with a matrix", () => {
   };
   let lastWeek;
   let today;
+  // The product page is 800 ms slower; the home page is the same, and with two runs a side its noise on a
+  // busy runner of CI went past the threshold of 100 ms. 400 ms keeps both verdicts apart
+  const THRESHOLD = ["--threshold", "LCP=400ms"];
 
   beforeAll(async () => {
     slowProduct = false;
@@ -215,7 +220,7 @@ describe("--baseline with a matrix", () => {
   });
 
   it("compares each combination with the one of the same id, and lists the ones only one side has", async () => {
-    const { code, stdout, said: output } = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, "--json");
+    const { code, stdout, said: output } = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, ...THRESHOLD, "--json");
     expect(code, output).toBe(0);
     const report = JSON.parse(stdout);
     expect(report.baseline).toEqual({ file: lastWeek, added: ["about · mobile"], missing: ["legacy · mobile"], warnings: [] });
@@ -226,14 +231,14 @@ describe("--baseline with a matrix", () => {
   }, 180000);
 
   it("exits with 1 when any combination regressed with --fail-on-regression, and names it", async () => {
-    const { code, stderr, said: output } = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, "--fail-on-regression");
+    const { code, stderr, said: output } = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, ...THRESHOLD, "--fail-on-regression");
     expect(code, output).toBe(1);
     expect(stderr).toMatch(/Regression against .*last-week\.json in product · mobile: LCP ▲ \+\d+ms/);
     expect(stderr).not.toMatch(/in home · mobile/);
   }, 180000);
 
   it("adds a change column to the table, and the comparison below it, in the human and markdown reports", async () => {
-    const human = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek);
+    const human = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, ...THRESHOLD);
     expect(human.code, human.said).toBe(0);
     // A cell is the rating and the value, and ±N% when the runs of the combination vary
     expect(human.stdout).toMatch(/product\s+mobile\s+\S+ \S+(?: ±\d+%)?\s+▲ \+\d+ms/);
@@ -246,7 +251,7 @@ describe("--baseline with a matrix", () => {
     expect(warnings.length, human.said).toBeGreaterThan(0);
     for (const warning of warnings) expect(warning).toMatch(/no statistics for .*: the baseline has 2 values, and this run 2; they need 5 a side/);
 
-    const markdown = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, "--markdown");
+    const markdown = await cli("--matrix", today, "--wait", WAIT_MS, "--baseline", lastWeek, ...THRESHOLD, "--markdown");
     expect(markdown.code, markdown.said).toBe(0);
     expect(markdown.stdout).toMatch(/\| Page \| Device \| LCP \| Δ \|/);
     expect(markdown.stdout).toMatch(/\| product \| mobile \| \S+ \S+(?: ±\d+%)? \| ▲ \+\d+ms \|/);

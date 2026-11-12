@@ -16,10 +16,11 @@ const CLICK = join(HERE, "../fixtures/click-buy.json");
 const run = promisify(execFile);
 const said = (stdout = "", stderr = "") => `stderr:\n${stderr}\nstdout:\n${stdout.slice(0, 3000)}`;
 
-// The handler of the baseline takes 40 ms and the slower one 300 ms: far beyond the 50 ms threshold of
-// INP, so the verdict does not depend on the noise of the machine
+// The handler of the baseline takes 40 ms and the slower one 800 ms: far beyond the 50 ms threshold of
+// INP and the noise of the machine. With 300 ms, a busy runner of CI gave one baseline run as slow as a
+// slower one, and the five runs a side did not reach p < 0.05 (p = 0.068)
 const FAST_MS = 40;
-const SLOW_MS = 300;
+const SLOW_MS = 800;
 const FLAGS = ["--snippet", "INP", "--interact-script", CLICK, "--runs", "5", "--cpu", "4", "--wait", "500"];
 
 let pages;

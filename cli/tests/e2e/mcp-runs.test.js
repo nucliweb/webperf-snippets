@@ -131,7 +131,7 @@ describe("several runs on the tools that measure", () => {
   }, 60000);
 
   it("work on run_workflow, by LCP, and get_details gives the median run of the summary", async () => {
-    delays = [600, 0, 300];
+    delays = [1200, 0, 600];
     const { runId, runs, results, detail } = await call("run_workflow", { url: url(), workflow: "core-web-vitals", waitMs: WAIT_MS, runs: 3, detail: "summary" });
     expect(detail).toBe("summary");
     expect(runs).toMatchObject({ count: 3, medianRun: 3, medianBy: "LCP" });

@@ -65,11 +65,18 @@ describe("throttling in the runner", () => {
     expect(custom.throttling).toEqual({ network: { downloadKbps: 50000, uploadKbps: 10000, latencyMs: 600 } });
   }, 30000);
 
+  // The fastest of three runs each: other work of a busy runner only makes a run slower, and in CI one
+  // slow unthrottled run gave a ratio of 1.15 or 1.70 for a factor of 4
   it("slows the main thread by the CPU factor", async () => {
-    const plain = await measure();
-    const slow = await measure({ cpu: 4 });
-    expect(slow.results[0].workMs / plain.results[0].workMs).toBeGreaterThan(2);
-  }, 30000);
+    const fastest = async (options) => {
+      const times = [];
+      for (let i = 0; i < 3; i++) times.push((await measure(options)).results[0].workMs);
+      return Math.min(...times);
+    };
+    const plain = await fastest();
+    const slow = await fastest({ cpu: 4 });
+    expect(slow / plain).toBeGreaterThan(2);
+  }, 60000);
 
   it("throttles a page that also receives request headers", async () => {
     secrets = [];

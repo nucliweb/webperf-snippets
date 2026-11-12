@@ -27,7 +27,9 @@ afterEach(async () => {
   await client.close();
 });
 
-const run = (args, options) => client.callTool({ name: "run_snippet", arguments: { waitMs: 0, ...args } }, options);
+// The LCP entry needs a moment after the load: with no wait, a busy runner of CI returned "No LCP entries
+// buffered", as the other tests of the CLI note
+const run = (args, options) => client.callTool({ name: "run_snippet", arguments: { waitMs: 500, ...args } }, options);
 
 describe("run_snippet", () => {
   it("is listed with the URL and the snippet as required arguments, and as a tool that reaches the web", async () => {
