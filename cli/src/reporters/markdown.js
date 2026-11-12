@@ -194,8 +194,9 @@ const MAX_ISSUES = 30;
 const SEVERITY_ICON = { error: "🔴", warning: "🟡" };
 // Text from the page on one line, so a line break in a message cannot start a heading or a list
 const oneLine = (text) => String(text).replace(/\s*\n\s*/g, " ");
-// Text from the page in a cell of a table: on one line, escaped, and its pipes too, which end a cell
-const cell = (text) => md(oneLine(text)).replace(/\|/g, "\\|");
+// Text from the page in a cell of a table: on one line, and escaped as in a list item plus its pipes,
+// which end a cell. One pass, so a backslash before a pipe is escaped too
+const cell = (text) => oneLine(text).replace(/[\\`*_[\]<|]/g, "\\$&");
 
 // What the results found, before them: the overview in one line, and the errors and warnings to fix
 function renderOverview({ overview, issues = [], results }) {

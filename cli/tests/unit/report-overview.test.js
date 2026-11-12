@@ -79,6 +79,13 @@ describe("the markdown report", () => {
     expect(md).toContain('| script-loading | 🔴 fail | 1 blocking script(s) in \\<head> \\| LCP image has no \\<link rel="preload" as="image"> |');
   });
 
+  // A backslash before a pipe is escaped too, or it would escape the pipe and the cell would end
+  it("keeps a backslash before a pipe in a cell", () => {
+    const message = "a\\|b";
+    const md = reportMarkdown({ ...audit, results: [{ id: "x", status: "ok", issues: [{ severity: "error", message }] }] });
+    expect(md).toContain("| x | 🔴 fail | a\\\\\\|b |");
+  });
+
   it("says the overview with no list when nothing is to fix", () => {
     const md = reportMarkdown({ ...audit, overview: { snippets: 1, withErrors: 0, withWarnings: 0, withNothingToFix: 1 }, issues: [issue("info", "content-visibility", "An info")] });
     expect(md).toContain("1 snippet: 0 with errors, 0 with warnings, 1 with nothing to fix");
