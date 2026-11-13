@@ -45,6 +45,8 @@ test('overviewOf counts the snippets with errors, with warnings only and with no
 
 test('describeOverview says the overview in one line', () => {
   assert.equal(describeOverview({ snippets: 22, withErrors: 2, withWarnings: 5, withNothingToFix: 15 }), '22 snippets: 2 with errors, 5 with warnings, 15 with nothing to fix')
+  // One snippet, as with --snippet in the CLI
+  assert.equal(describeOverview({ snippets: 1, withErrors: 1, withWarnings: 0, withNothingToFix: 0 }), '1 snippet: 1 with errors, 0 with warnings, 0 with nothing to fix')
 })
 
 test('issuesOf lists every issue of the results, in their order, with the id of its result', () => {

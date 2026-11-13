@@ -1,4 +1,4 @@
-import { issueList, overviewOf, summarizeIssues } from "./view.js";
+import { describeOverview, issueList, overviewOf, summarizeIssues } from "./view.js";
 
 // What the results of a page found, as the export of the audit of the extension does (snippets/_view/
 // report.js): how many snippets have errors, warnings or nothing to fix, and every issue in one list,
@@ -14,3 +14,7 @@ export function pathsOfRun({ items = [], workflow, rules = [] }) {
 }
 
 export const reportOf = (results, pathOf) => ({ overview: overviewOf(results.map(summarizeIssues)), issues: issueList(results, pathOf) });
+
+// The overview in one line, for the reports to start with: only for results that count issues, the ones
+// of an audit, and for a report that has the overview (a page of an older CLI does not)
+export const overviewLine = ({ overview, results = [] }) => (overview && results.some((r) => Array.isArray(r.issues)) ? describeOverview(overview) : null);
