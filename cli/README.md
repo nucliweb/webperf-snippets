@@ -359,6 +359,7 @@ Each budget compares the value measured, or the median with `--runs`, and fails 
 | `--baseline <file>`          | Compare the page, or each combination of a matrix, with the `--json` output of an earlier run: which metrics got worse or better beyond the noise, and which errors are new or fixed. |
 | `--threshold <metric>=<v>`   | The threshold of a metric for `--baseline`, such as `LCP=15%`, `LCP=200ms` or `CLS=0.1`. Repeat it for more metrics. |
 | `--fail-on-regression`       | Exit `1` when a metric regressed or an error is new against `--baseline`. |
+| `--fail-on <level>`          | The issues of the snippets that exit `1`: `error` (default), `warning` (errors and warnings) or `never`. Budgets, `--fail-on-regression` and runs that fail keep exiting `1`. |
 | `--crux-key <key>`           | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`. |
 | `--crux-history <weeks>`     | Add the trend of the field data over the last 1 to 40 weeks. Needs a CrUX key. |
 | `--report-to <url>`          | POST the results to this `https` URL after the run. No external calls without it. |
@@ -408,7 +409,7 @@ The results of a run can add steps on the same page load: LCP over 2.5 s adds `L
 | Code | Meaning                                       |
 | ---- | --------------------------------------------- |
 | `0`  | All checks passed.                            |
-| `1`  | Budget violation, a snippet errored, a step of the workflow reported an `error` issue, or, with `--fail-on-regression`, a regression against the baseline. |
+| `1`  | Budget violation, a snippet errored, a step of the workflow reported an `error` issue (or a `warning` one with `--fail-on warning`; neither with `--fail-on never`), or, with `--fail-on-regression`, a regression against the baseline. |
 | `2`  | Usage error (missing URL, unknown workflow, a baseline or threshold that is not valid). |
 
 ## MCP server
@@ -532,6 +533,7 @@ jobs:
 | `budget-ttfb`    |                     | TTFB budget in ms, for `loading` or `audit`.                                                  |
 | `budget-cls`     | `auto`              | CLS budget. `auto` is `0.1` with `core-web-vitals` and no budget with the other workflows. An empty value disables the check. |
 | `budget-inp`     |                     | INP budget in ms, for `interaction` with a click or a key press.                             |
+| `fail-on`        |                     | The issues that make the CLI exit with `1`, as `--fail-on`: `error`, `warning` or `never`. Empty leaves the default of the CLI, `error`. |
 | `fail-on-budget` | `true`              | Fail the step when a budget is exceeded or a snippet errors. Use `"false"` to read `exit-code` and decide yourself. |
 | `cli-version`    | `latest`            | Version of the `webperf-snippets` npm package to run.                                        |
 

@@ -30,6 +30,8 @@ budget --budget-fcp "${WEBPERF_BUDGET_FCP:-}"
 budget --budget-ttfb "${WEBPERF_BUDGET_TTFB:-}"
 budget --budget-cls "${WEBPERF_BUDGET_CLS:-}" 0.1
 budget --budget-inp "${WEBPERF_BUDGET_INP:-}"
+# The issues that make the CLI exit with 1, when the input names them
+[ -n "${WEBPERF_FAIL_ON:-}" ] && args+=(--fail-on "$WEBPERF_FAIL_ON")
 
 markdown=$("${cmd[@]}" "${args[@]}")
 code=$?

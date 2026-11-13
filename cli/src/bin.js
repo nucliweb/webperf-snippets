@@ -17,7 +17,7 @@ import { NETWORK_PRESETS, parseCpuFactor } from "./throttling.js";
 import { parseOwnDomains } from "./own-domains.js";
 import { MEDIAN_METRICS, measureRuns } from "./runs.js";
 import { loadMatrix } from "./matrix.js";
-import { blockingErrors } from "./blocking.js";
+import { failingIssues, parseFailOn } from "./blocking.js";
 import { MEASURED_BY, checkBudgets, parseBudgets, unmeasuredMetrics, violationsOf } from "./budgets.js";
 import { measurementConditions } from "./conditions.js";
 import { pathsOfRun, reportOf } from "./overview.js";
@@ -81,6 +81,9 @@ Options:
   --threshold <metric>=<v>  The threshold of a metric for --baseline, such as LCP=15%,
                             LCP=200ms or CLS=0.1. Repeat it for more metrics
   --fail-on-regression      Exit 1 when a metric regressed or an error is new against --baseline
+  --fail-on <level>         The issues of the snippets that exit 1: error (default), warning
+                            (errors and warnings) or never. Budgets, --fail-on-regression
+                            and runs that fail keep exiting 1
   --crux-key <key>          Add CrUX field data (p75) next to the measured values.
   --crux-history <weeks>    Add the trend of the field data over the last 1 to 40 weeks (needs a CrUX key).
                             Also read from the CRUX_API_KEY environment variable
@@ -178,6 +181,7 @@ async function main() {
         baseline: { type: "string" },
         threshold: { type: "string", multiple: true },
         "fail-on-regression": { type: "boolean" },
+        "fail-on": { type: "string" },
         "crux-key": { type: "string" },
         "crux-history": { type: "string" },
         "report-to": { type: "string" },
@@ -294,6 +298,13 @@ async function main() {
     if (values["fail-on-regression"]) fail("--fail-on-regression needs --baseline");
   }
 
+  let failOn;
+  try {
+    failOn = parseFailOn(values["fail-on"]);
+  } catch (err) {
+    fail(err.message);
+  }
+
   let budgets;
   try {
     budgets = parseBudgets(values);
@@ -329,7 +340,7 @@ async function main() {
     } catch (err) {
       fail(err.message);
     }
-    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, pathOf, baseline, thresholds, budgets, cruxKey, fieldDataOf });
+    await runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, pathOf, failOn, baseline, thresholds, budgets, cruxKey, fieldDataOf });
     return;
   }
 
@@ -404,7 +415,7 @@ async function main() {
     for (const r of regressions) process.stderr.write(`Regression against ${baseline.file}: ${r}\n`);
     process.exit(1);
   }
-  process.exit(blockingErrors(payload.results).length > 0 ? 1 : 0);
+  process.exit(failingIssues(payload.results, failOn).length > 0 ? 1 : 0);
 }
 
 // Each run is reported on stderr as it starts, so stdout keeps only the report
@@ -420,7 +431,7 @@ const measureRunsWithProgress = (measure, count, medianBy, progress) =>
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code follows the same rules as one page, for every combination.
-async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, pathOf, baseline, thresholds, budgets, cruxKey, fieldDataOf }) {
+async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, reportUrl, conditionsFor, pathOf, failOn, baseline, thresholds, budgets, cruxKey, fieldDataOf }) {
   for (const warning of matrix.warnings) process.stderr.write(`Warning: ${warning}\n`);
   const viewportOf = new Map(matrix.combinations.map((c) => [c.id, c.viewport]));
 
@@ -508,7 +519,7 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
 
   const violations = combinations.flatMap((c) => violationsOf(c.budgets ?? []).map((v) => `${v} (${c.id})`));
   for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
-  const failed = combinations.some((c) => c.error || blockingErrors(c.results).length > 0);
+  const failed = combinations.some((c) => c.error || failingIssues(c.results, failOn).length > 0);
   // Without --fail-on-regression the comparison only informs
   const regressions = values["fail-on-regression"] ? describeMatrixRegressions(combinations) : [];
   for (const r of regressions) process.stderr.write(`Regression against ${baseline.file} in ${r}\n`);
