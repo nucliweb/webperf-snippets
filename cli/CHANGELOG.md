@@ -8,6 +8,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+---
+
+## [1.16.0] — 2026-11-13
+
+The CLI gives the same general audit as the DevTools extension, ready for a script, a hook, an agent or a CI: its JSON output and the answers of the MCP server start with the date of the measurement, the overview of the snippets with errors, warnings or nothing to fix, and every issue in one list, errors first; the human and markdown reports start with the overview, and the markdown one lists what to fix before its tables. `--fail-on` chooses which issues exit with `1`, and the README and the CLI page show how to audit a page from an npm script, a Claude Code hook and the MCP server.
+
 ### Added
 - The JSON output says, before its `results`, when the page was measured and what the results found, as the JSON the audit of the DevTools extension exports: `date`, when the measurement started, in UTC; `overview`, how many snippets have errors, warnings only or nothing to fix; and `issues`, every issue of every result in one list, errors first, with its `code`, `severity`, the `id` of its step, the `path` of its snippet, its `message` and its `target`. With every workflow and with `--snippet`; with `--runs`, those of the run the report keeps; with `--matrix`, in each combination, and the matrix adds the `date` it started. The body of `--report-to` carries `overview` and `issues` too.
 - The human and markdown reports start with the overview in one line when the results count issues, as those of the `audit` workflow do (`22 snippets: 5 with errors, 6 with warnings, 11 with nothing to fix`), and the markdown report lists the errors and warnings under Errors and warnings, errors first and up to 30, before its tables, so a pull request comment shows what to fix first.
@@ -363,7 +369,8 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.15.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.16.0...HEAD
+[1.16.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.15.0...cli-v1.16.0
 [1.15.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.14.1...cli-v1.15.0
 [1.14.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.14.0...cli-v1.14.1
 [1.14.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.13.0...cli-v1.14.0
