@@ -186,6 +186,14 @@ describe("run.sh arguments", () => {
     expect(argsSeen()).toEqual(["https://example.com", "--workflow", "audit", "--markdown"]);
   });
 
+  it("forwards fail-on, and no flag when it is empty", async () => {
+    const none = { WEBPERF_BUDGET_LCP: "", WEBPERF_BUDGET_CLS: "" };
+    await runAction({ ...none, WEBPERF_WORKFLOW: "audit", WEBPERF_FAIL_ON: "warning" });
+    expect(argsSeen()).toEqual(["https://example.com", "--workflow", "audit", "--markdown", "--fail-on", "warning"]);
+    await runAction({ ...none, WEBPERF_WORKFLOW: "audit", WEBPERF_FAIL_ON: "" });
+    expect(argsSeen()).toEqual(["https://example.com", "--workflow", "audit", "--markdown"]);
+  });
+
   it("omits a budget flag when its input is empty", async () => {
     await runAction({ WEBPERF_BUDGET_LCP: "", WEBPERF_BUDGET_CLS: "" });
     expect(argsSeen()).toEqual(["https://example.com", "--workflow", "core-web-vitals", "--markdown"]);
