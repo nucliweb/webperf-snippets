@@ -19,6 +19,7 @@ import { followUpCalls, inputStepsCalls } from "./next-steps.js";
 import { isHttpUrl } from "../url.js";
 import { machineOf } from "../machine.js";
 import { measurementConditions } from "../conditions.js";
+import { pathsOfRun, reportOf } from "../overview.js";
 import { prepareBaseline, compareWithBaseline } from "./baseline.js";
 import { MAX_RUNS, measureRuns } from "../runs.js";
 import { MIN_CPU_FACTOR, NETWORK_PRESETS, applyThrottling, throttlingOf } from "../throttling.js";
@@ -104,6 +105,16 @@ const RunsSummary = LooseObject({
   .optional()
   .describe("With several runs, the runs field of the JSON of the CLI");
 const BaselineError = LooseObject({ id: z.string(), message: z.string().optional() });
+// What the results found, as in the JSON of the CLI
+const FoundOut = {
+  date: z.string().describe("When the run started, in UTC (ISO 8601)"),
+  overview: LooseObject({ snippets: z.number(), withErrors: z.number(), withWarnings: z.number(), withNothingToFix: z.number() }).describe(
+    "How many snippets have errors, warnings only or nothing to fix"
+  ),
+  issues: z
+    .array(LooseObject({ severity: z.string(), id: z.string(), message: z.string() }))
+    .describe("Every issue of every result in one list, errors first, then warnings and info, with its code, the id of its step, the path of its snippet and its target"),
+};
 const Comparison = z
   .object({
     runId: z.string().optional().describe("The run the baseline was, when it was a runId"),
@@ -319,14 +330,16 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
   const measureInTurn = (conditions, measure, count, ctx) =>
     inTurn(ctx, STAGES * count, async () => {
       machineOfServer ??= machine();
+      // When the run started, in its turn: the time it waited in the queue is not part of it
+      const date = new Date().toISOString();
       const { browser, ...run } = await measurePage(measure, count, ctx, callLimitMs);
-      return { conditions: measurementConditions({ ...conditions, browser, machine: machineOfServer }), run };
+      return { conditions: measurementConditions({ ...conditions, browser, machine: machineOfServer }), run, date };
     });
 
   // A run of a page load, kept with its page in the shape of the JSON of the CLI: its runId is the
   // baseline of a later run, and the resources list it
-  const keepPage = (run, results, conditions) => {
-    const page = { url: run.url, navMs: run.navMs, pageErrors: run.pageErrors, ...(run.throttling ? { throttling: run.throttling } : {}), ...(run.runs ? { runs: run.runs } : {}), conditions };
+  const keepPage = (run, results, conditions, found) => {
+    const page = { url: run.url, ...found, navMs: run.navMs, pageErrors: run.pageErrors, ...(run.throttling ? { throttling: run.throttling } : {}), ...(run.runs ? { runs: run.runs } : {}), conditions };
     const runId = runs.keep(results, page);
     server.sendResourceListChanged();
     return { runId, current: { ...page, results } };
@@ -396,6 +409,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         detail: DetailOut,
         snippet: z.string().describe("Category/Name of the snippet that ran"),
         viewport: z.enum(VIEWPORTS),
+        ...FoundOut,
         navMs: z.number().describe("From the start of the navigation to the end of the wait"),
         pageErrors: z.array(z.string()).describe("Uncaught errors of the page during the run"),
         throttling: Throttling,
@@ -428,14 +442,15 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
       }
 
       try {
-        const { conditions, run } = await measureInTurn(
+        const { conditions, run, date } = await measureInTurn(
           { viewport, snippet: path, waitMs, cpu, network },
           (onProgress, signal) => runSnippets({ url, items: [{ id: path, path, source }], waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, interactions, onProgress, signal }),
           count,
           ctx
         );
         const shaped = shapeResults(run.results.map(({ id, ...result }) => result), detail);
-        const { runId, current } = keepPage(run, run.results, conditions);
+        const found = { date, ...reportOf(run.results, pathsOfRun({ items: [{ id: path, path }] })) };
+        const { runId, current } = keepPage(run, run.results, conditions, found);
         const id = run.results[0].id;
         const nextSteps = followUpCalls({ results: run.results, url, viewport, waitMs, cpu, network, ran: [path] });
         return toolResult({
@@ -444,6 +459,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           detail: shaped.detail,
           snippet: id,
           viewport,
+          ...found,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
           ...(run.throttling ? { throttling: run.throttling } : {}),
@@ -465,7 +481,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
     {
       title: "Run a workflow",
       description:
-        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page, or while it runs interactions, which with a click or a key press also measure INP, Interactions and Input-Latency-Breakdown. ${THROTTLING_NOTE} ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
+        `Opens the URL in a headless Chromium and runs a workflow: a sequence of snippets plus the follow-ups its decision tree adds from the results (for example LCP-Subparts when LCP is over 2.5 s, with the reason). core-web-vitals: LCP and CLS. audit: render-blocking resources, resource hints, critical CSS, TTFB, scripts, images and more. loading: TTFB, FCP, render-blocking, scripts and fonts. interaction: long tasks, animation frames, scroll and layout shifts while it scrolls the page, or while it runs interactions, which with a click or a key press also measure INP, Interactions and Input-Latency-Breakdown. The answer starts with what the results found, as the JSON of the CLI: overview (how many snippets have errors, warnings only or nothing to fix) and issues (every issue in one list, errors first, with the id of its step and the path of its snippet), whole even when the results are summaries. ${THROTTLING_NOTE} ${QUEUE_NOTE} ${BASELINE_NOTE} ${DETAIL_NOTE} ${PAGE_DATA}`,
       inputSchema: z.object({
         url: HttpUrl,
         workflow: z.enum(Object.keys(WORKFLOWS)).default("core-web-vitals"),
@@ -485,6 +501,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         detail: DetailOut,
         workflow: z.string(),
         viewport: z.enum(VIEWPORTS),
+        ...FoundOut,
         navMs: z.number(),
         pageErrors: z.array(z.string()),
         throttling: Throttling,
@@ -505,7 +522,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         return toolError(err.message);
       }
       try {
-        const { conditions, run } = await measureInTurn(
+        const { conditions, run, date } = await measureInTurn(
           { viewport, workflow, waitMs, cpu, network },
           (onProgress, signal) => runMeasurement({ url, workflow: WORKFLOWS[workflow], rules: RULES, waitMs, viewport: VIEWPORT_PRESETS[viewport], cpu, network, interactions, onProgress, signal }),
           count,
@@ -522,7 +539,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
             : r
         );
         const shaped = shapeResults(results, detail);
-        const { runId, current } = keepPage(run, results, conditions);
+        const found = { date, ...reportOf(results, pathsOfRun({ workflow: WORKFLOWS[workflow], rules: RULES })) };
+        const { runId, current } = keepPage(run, results, conditions, found);
         // The runner already ran the follow-ups of the decision tree; what is left is the steps it skipped
         const skipped = results
           .filter((r) => r.status === "skipped")
@@ -535,6 +553,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           ...shaped,
           workflow,
           viewport,
+          ...found,
           navMs: run.navMs,
           pageErrors: run.pageErrors,
           ...(run.throttling ? { throttling: run.throttling } : {}),
