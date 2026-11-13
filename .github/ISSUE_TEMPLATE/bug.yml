@@ -55,6 +55,6 @@ body:
     id: environment
     attributes:
       label: Browser, Node.js and operating system
-      placeholder: Chrome 141, Node.js 22, macOS
+      placeholder: Chrome 141, Node.js 26, macOS
     validations:
       required: true

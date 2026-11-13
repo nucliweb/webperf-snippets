@@ -49,6 +49,7 @@ workspace/              Local notes, ignored by git
 npm run dev                  # development server (port 3000)
 npm run build                # production build (regenerates llms files first)
 npm run lint                 # eslint
+npm test                     # every fast suite: the tests below without a build or a browser, and the CLI unit tests
 npm run generate-skills      # regenerate skills/, dist/, .claude/skills/ from snippets/
 npm run generate-skills:check  # CI check: generation leaves no diff
 npm run test:skills            # every skill script keeps the result objects of its snippet
