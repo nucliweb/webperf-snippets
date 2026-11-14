@@ -42,7 +42,7 @@
     "prepare": "git config core.hooksPath .githooks",
     "test": "npm run test:demos && npm run test:icons && npm run test:support && npm run test:prompt && npm run test:view && npm run test:extension && npm run test:skills && npm run test:ci && npm run test:components && npm run test:site && npm run test:unit --prefix cli",
     "postbuild": "node scripts/build-search-index.js",
-    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs lib/markdown-path.test.mjs scripts/generate-llms.test.js lib/page-info.test.js lib/webmcp-registry.test.mjs scripts/example-domains.test.js",
+    "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs lib/markdown-path.test.mjs scripts/generate-llms.test.js lib/page-info.test.js lib/webmcp-registry.test.mjs scripts/example-domains.test.js scripts/which-snippet.test.js",
     "check:built-snippets": "node scripts/check-built-snippets.js",
     "generate-llms:check": "node scripts/generate-llms.js && node scripts/check-generated.js public/llms.txt public/llms-full.txt"
   },
