@@ -25,15 +25,14 @@
     "test:view": "node --test scripts/view.test.mjs scripts/view-report.test.mjs",
     "view:fixtures": "node scripts/capture-result-fixtures.mjs",
     "test:extension:e2e": "node scripts/build-extension.mjs && node --test --test-concurrency=1 extension/tests/panel.e2e.test.js extension/tests/width.e2e.test.js extension/tests/package.test.js",
-    "test:ci": "node --test scripts/ci-skip-slow-steps.test.js scripts/check-tag-version.test.js scripts/agentic-audit.test.mjs",
+    "test:ci": "node --test scripts/ci-skip-slow-steps.test.js scripts/check-tag-version.test.js scripts/agentic-audit.test.mjs scripts/check-generated.test.js",
     "audit:agentic": "node scripts/agentic-audit.mjs",
-    "test:diagrams": "vitest run components/diagrams",
     "test:components": "vitest run components lib/page-metadata.test.js lib/analytics.test.js lib/webmcp.test.js",
     "generate-icons": "node scripts/generate-icons.mjs",
     "generate-demo-heights": "node scripts/generate-demo-heights.mjs",
     "generate-skills": "node scripts/generate-skills.js",
-    "generate-skills:check": "node scripts/generate-skills.js && git diff --exit-code -- skills dist .claude/skills",
-    "test:skills": "node --test scripts/skill-scripts.test.js scripts/skill-guidance.test.js",
+    "generate-skills:check": "node scripts/generate-skills.js && node scripts/check-generated.js skills dist .claude/skills",
+    "test:skills": "node --test scripts/skill-scripts.test.js scripts/skill-guidance.test.js scripts/generate-skills.test.js",
     "install-skills": "node scripts/install-skills.js",
     "install-global": "node scripts/install-global.js",
     "install-from-release": "node scripts/install-from-release.js",
@@ -41,10 +40,11 @@
     "lint:fix": "eslint . --fix",
     "validate": "npm run lint && npm run build",
     "prepare": "git config core.hooksPath .githooks",
-    "test": "echo \"No tests configured\"",
+    "test": "npm run test:demos && npm run test:icons && npm run test:support && npm run test:prompt && npm run test:view && npm run test:extension && npm run test:skills && npm run test:ci && npm run test:components && npm run test:site && npm run test:unit --prefix cli",
     "postbuild": "node scripts/build-search-index.js",
     "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs lib/markdown-path.test.mjs scripts/generate-llms.test.js lib/page-info.test.js lib/webmcp-registry.test.mjs scripts/example-domains.test.js",
-    "check:built-snippets": "node scripts/check-built-snippets.js"
+    "check:built-snippets": "node scripts/check-built-snippets.js",
+    "generate-llms:check": "node scripts/generate-llms.js && node scripts/check-generated.js public/llms.txt public/llms-full.txt"
   },
   "keywords": [
     "webperf",
@@ -67,8 +67,9 @@
   },
   "devDependencies": {
     "eslint": "^10.14.0",
+    "pagefind": "^1.6.0",
     "terser": "^5.36.0",
-    "pagefind": "^1.6.0"
+    "vitest": "^5.1.0"
   },
   "overrides": {
     "next-mdx-remote": "^6.0.0",

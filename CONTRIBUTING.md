@@ -16,6 +16,8 @@ npm install
 npm run dev
 ```
 
+The repository is developed and tested on the Node.js version of `.nvmrc` (`nvm use` picks it up), the same one every workflow installs. `npm test` runs every suite that needs neither a build nor a browser.
+
 The site runs on http://localhost:3000. Use `npm run dev` rather than `npx next dev`: the script runs Next.js with webpack, which loads the remark and rehype plugins of `lib/` (browser support, icons). The dev server does not pick up changes in `lib/`, so restart it after editing a plugin.
 
 ## Adding a new snippet

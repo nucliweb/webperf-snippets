@@ -18,7 +18,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
 
       - name: Check the version of the tag
         run: node scripts/check-tag-version.js "$GITHUB_REF_NAME"
