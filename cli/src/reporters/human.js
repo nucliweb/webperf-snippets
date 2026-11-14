@@ -148,6 +148,11 @@ function renderResult(r, verbose) {
     return `  ${styleText("dim", "·")} ${pad(r.id, 16)} ${styleText("dim", `not measured: ${r.message ?? "nothing recorded"}`)}`;
   }
 
+  // The browser lacks the API the snippet reads, so there is no value to show
+  if (r.status === "unsupported") {
+    return `  ${styleText("dim", "·")} ${pad(r.id, 16)} ${styleText("dim", `not supported: ${r.error ?? "the browser lacks the API"}`)}`;
+  }
+
   if (r.script === "Fonts-Preloaded-Loaded-and-used-above-the-fold") {
     return renderFontsResult(r);
   }
