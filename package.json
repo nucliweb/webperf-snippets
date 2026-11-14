@@ -67,6 +67,7 @@
   },
   "devDependencies": {
     "eslint": "^10.14.0",
+    "globals": "^17.0.0",
     "pagefind": "^1.6.0",
     "terser": "^5.36.0",
     "vitest": "^5.1.0"

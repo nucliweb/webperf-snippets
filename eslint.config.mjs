@@ -1,3 +1,5 @@
+import globals from "globals";
+
 const nodeGlobals = {
   console: "readonly",
   process: "readonly",
@@ -79,55 +81,88 @@ const browserGlobals = {
   DOMTokenList: "readonly",
 };
 
+// Chrome only exposes these entry types through a PerformanceObserver, so
+// getEntriesByType() returns [] for them. Collect them with a buffered observer.
+const observerOnlyEntryTypes = {
+  selector:
+    "CallExpression[callee.property.name='getEntriesByType'][arguments.0.value=/^(largest-contentful-paint|layout-shift|longtask|event|first-input)$/]",
+  message: "getEntriesByType() returns [] for observer-only entry types. Use a PerformanceObserver with buffered: true.",
+};
+
+// A snippet is pasted into the console of any page: what it declares outside its IIFE becomes
+// a global of that page, and a second paste fails on a const that is declared already
+const insideAnIife = {
+  selector: "Program > :not(ExpressionStatement)",
+  message: "A snippet is one or more IIFEs: declare functions and variables inside them.",
+};
+
+// Every file is linted: a folder without a block here gets no rules, and `eslint .` passes whatever it holds
+const rules = {
+  // const { id, ...rest } = result is how a field is left out: id is not used on purpose
+  "no-unused-vars": ["warn", { ignoreRestSiblings: true }],
+  "no-undef": "error",
+  "no-console": "off",
+};
+
 export default [
   {
-    ignores: ["node_modules/**", ".next/**", "dist/**", ".claude/**", "skills/**"],
+    ignores: ["node_modules/**", ".next/**", "dist/**", ".claude/**", "skills/**", "public/**", "workspace/**", "cli/snippets/**"],
   },
   {
-    files: ["scripts/**/*.js"],
-    rules: {
-      "no-unused-vars": "warn",
-      "no-undef": "error",
-      "no-console": "off",
-    },
+    files: ["**/*.{js,mjs,cjs,jsx}"],
+    rules,
     languageOptions: {
-      globals: nodeGlobals,
-    },
-  },
-  {
-    files: ["components/**/*.js", "content/**/*.js"],
-    rules: {
-      "no-unused-vars": "warn",
-      "no-undef": "error",
-      "no-console": "off",
-    },
-    languageOptions: {
-      globals: { ...browserGlobals, ...nodeGlobals, React: "readonly" },
+      ecmaVersion: "latest",
+      sourceType: "module",
+      // Node, with the CommonJS names: some scripts use require and others import
+      globals: { ...globals.node, ...globals.commonjs },
       parserOptions: {
         ecmaFeatures: { jsx: true },
       },
     },
   },
   {
-    files: ["snippets/**/*.js"],
-    rules: {
-      "no-unused-vars": "warn",
-      "no-undef": "error",
-      "no-console": "off",
-      // Chrome only exposes these entry types through a PerformanceObserver, so
-      // getEntriesByType() returns [] for them. Collect them with a buffered observer.
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector:
-            "CallExpression[callee.property.name='getEntriesByType'][arguments.0.value=/^(largest-contentful-paint|layout-shift|longtask|event|first-input)$/]",
-          message:
-            "getEntriesByType() returns [] for observer-only entry types. Use a PerformanceObserver with buffered: true.",
-        },
-      ],
+    files: ["components/**/*.{js,jsx}", "content/**/*.js", "app/**/*.{js,jsx}", "mdx-components.js"],
+    languageOptions: {
+      globals: { ...browserGlobals, ...nodeGlobals, React: "readonly" },
     },
+  },
+  // The panel runs in DevTools; its tests and the scripts of the CLI tests run in Node
+  {
+    files: ["extension/**/*.js"],
+    ignores: ["extension/**/*.test.js", "extension/tests/**"],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.webextensions },
+    },
+  },
+  // Code that drives a page with Playwright: the callbacks of page.evaluate run in the browser
+  {
+    files: ["cli/src/**/*.js", "cli/tests/**/*.js", "extension/tests/**/*.js", "scripts/**/*.{js,mjs}", "lib/analytics.js"],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.commonjs, ...globals.browser, ...globals.webextensions },
+    },
+  },
+  {
+    files: ["snippets/**/*.js"],
     languageOptions: {
       globals: browserGlobals,
+    },
+    rules: {
+      "no-restricted-syntax": ["error", observerOnlyEntryTypes],
+    },
+  },
+  // The snippets themselves, not the modules they are built with (_shared) or shown with (_view)
+  {
+    files: ["snippets/**/*.js"],
+    ignores: [
+      "snippets/_shared/**",
+      "snippets/_view/**",
+      // They declare their functions outside an IIFE. Remove them from here when they are fixed
+      "snippets/Loading/Content-Visibility.js",
+      "snippets/Loading/CSS-Media-Queries-Analysis.js",
+    ],
+    rules: {
+      "no-restricted-syntax": ["error", observerOnlyEntryTypes, insideAnIife],
     },
   },
 ];
