@@ -15,6 +15,7 @@ If you are not sure where to start, run [LCP](/CoreWebVitals/LCP), [CLS](/CoreWe
 | Largest Contentful Paint is slow | [LCP](/CoreWebVitals/LCP) | [LCP subparts](/CoreWebVitals/LCP-Subparts) to find the slow phase, then [LCP trail](/CoreWebVitals/LCP-Trail) to see how the candidate changes |
 | The LCP element is an image | [LCP](/CoreWebVitals/LCP) | [Image element audit](/Media/Image-Element-Audit), [LCP image entropy](/CoreWebVitals/LCP-Image-Entropy) and [priority hints audit](/Loading/Priority-Hints-Audit) |
 | The LCP element is a video | [LCP video candidate](/CoreWebVitals/LCP-Video-Candidate) | [Video element audit](/Media/Video-Element-Audit) |
+| The content arrives through `fetch` or XHR calls | [Fetch & XHR timeline](/DevTools-Overrides/Fetch-XHR-Timeline), set up as a [DevTools override](/DevTools-Overrides) | [LCP subparts](/CoreWebVitals/LCP-Subparts) to see how much of the LCP those calls take |
 | Layout shifts during load | [CLS](/CoreWebVitals/CLS) | [Layout shifts during loading and interaction](/Interaction/Layout-Shift-Loading-and-Interaction), [Find above-the-fold lazy-loaded images](/Loading/Find-Above-The-Fold-Lazy-Loaded-Images) and [Fonts preloaded, loaded and used above the fold](/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold) |
 | Slow interactions | [INP](/CoreWebVitals/INP) | [Interactions](/Interaction/Interactions), then [Input latency breakdown](/Interaction/Input-Latency-Breakdown) |
 
@@ -22,16 +23,19 @@ If you are not sure where to start, run [LCP](/CoreWebVitals/LCP), [CLS](/CoreWe
 
 | Symptom | Start with | Then |
 |---------|------------|------|
+| It is not clear where the load spends its time | [Event processing time](/Loading/Event-Processing-Time) | [TTFB](/Loading/TTFB) when the time goes before the response, [Find render-blocking resources](/Loading/Find-render-blocking-resources) when it goes after |
 | The server responds late | [TTFB](/Loading/TTFB) | [TTFB sub-parts](/Loading/TTFB#measure-ttfb-sub-parts) to see which phase is slow, [TTFB for all resources](/Loading/TTFB#measure-ttfb-for-all-resources) to find slow requests, [Server-Timing and Early Hints](/Loading/Server-Timing-Early-Hints) for the backend phases, and [Service worker analysis](/Loading/Service-Worker-Analysis) if a service worker is involved |
 | Nothing shows for a long time | [FCP](/Loading/FCP) | [Find render-blocking resources](/Loading/Find-render-blocking-resources), then [Critical CSS detection](/Loading/Critical-CSS-Detection) |
 | Scripts block rendering | [Script loading](/Loading/Script-Loading) | [Validate preload, async and defer scripts](/Loading/Validate-Preload-Async-Defer-Scripts) and [JS execution time breakdown](/Loading/JS-Execution-Time-Breakdown) |
+| The `<head>` loads its resources in a poor order | [Get your `<head>` in order](/Loading/Get-Your-Head-in-Order) | [Find render-blocking resources](/Loading/Find-render-blocking-resources) and [Resource hints](/Loading/Resource-Hints) |
 | Third-party scripts are suspected | [Third-party impact by domain](/Loading/Third-Party-Impact-by-Domain) | [First and third-party script info](/Loading/First-And-Third-Party-Script-Info) and [First and third-party script timings](/Loading/First-And-Third-Party-Script-Timings) |
 | Text files are sent uncompressed | [Compression audit](/Loading/Compression-Audit) | [Find render-blocking resources](/Loading/Find-render-blocking-resources) to see whether they also block rendering |
 | Inlined CSS or scripts are heavy | [Inline CSS info and size](/Loading/Inline-CSS-Info-and-Size) | [Inline script info and size](/Loading/Inline-Script-Info-and-Size) |
 | The CSS carries images, fonts or `@import` | [CSS complexity](/Loading/CSS-Complexity) | [Critical CSS detection](/Loading/Critical-CSS-Detection) to see what blocks rendering, and [Webfont usage analyzer](/Loading/Webfont-Usage-Analyzer) for the fonts |
+| Phones download CSS written for bigger screens | [CSS media queries analysis](/Loading/CSS-Media-Queries-Analysis) | [CSS complexity](/Loading/CSS-Complexity) and [Critical CSS detection](/Loading/Critical-CSS-Detection) |
 | Long pages take a long time to render | [Content visibility](/Loading/Content-Visibility) | [DOM size and depth](/Interaction/DOM-Size-and-Depth) |
 | Fonts load late or shift the layout | [Fonts preloaded, loaded and used above the fold](/Loading/Fonts-Preloaded-Loaded-and-used-above-the-fold) | [Webfont usage analyzer](/Loading/Webfont-Usage-Analyzer) for faces that load but are never used |
-| Resource hints look wrong | [Resource hints validation](/Loading/Resource-Hints-Validation) | [Priority hints audit](/Loading/Priority-Hints-Audit) and [Prefetch resource validation](/Loading/Prefetch-Resource-Validation) |
+| Resource hints look wrong | [Resource hints](/Loading/Resource-Hints) | [Resource hints validation](/Loading/Resource-Hints-Validation) to see which ones the page uses, then [Priority hints audit](/Loading/Priority-Hints-Audit) and [Prefetch resource validation](/Loading/Prefetch-Resource-Validation) |
 | The site is built with a JavaScript framework | [SSR hydration data analysis](/Loading/SSR-Hydration-Data-Analysis) | [JS execution time breakdown](/Loading/JS-Execution-Time-Breakdown) |
 | Repeat visits are not fast | [Cache strategy analysis](/Loading/Cache-Strategy-Analysis) | [Service worker analysis](/Loading/Service-Worker-Analysis) |
 
