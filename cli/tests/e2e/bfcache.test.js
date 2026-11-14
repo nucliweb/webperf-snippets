@@ -8,6 +8,8 @@ const expression = loadSnippet("Loading/Back-Forward-Cache").trim().replace(/;\s
 let server;
 let base;
 
+const UNLOAD_PAGES = ["/unload-prop", "/blocked", "/frame-blocked"];
+
 beforeAll(
   () =>
     new Promise((resolve) => {
@@ -15,13 +17,17 @@ beforeAll(
         const path = req.url.split("?")[0];
         const headers = { "Content-Type": "text/html" };
         if (path === "/no-store") headers["Cache-Control"] = "no-store";
+        // Chromium 159 turns the unload event off unless the page asks for it: without this header
+        // a handler is not registered, window.onunload stays null and nothing blocks the bfcache.
+        // A frame also needs allow="unload" from the page that embeds it
+        if (UNLOAD_PAGES.includes(path)) headers["Permissions-Policy"] = "unload=(self)";
         res.writeHead(200, headers);
         const pages = {
           "/clean": "<h1>clean</h1>",
           "/unload-prop": "<h1>unload</h1><script>window.onunload = () => {};</script>",
           "/iframe": '<h1>iframe</h1><iframe src="/frame-clean"></iframe>',
           "/no-store": "<h1>no-store</h1>",
-          "/blocked": '<h1>blocked</h1><script>addEventListener("unload", () => {});</script><iframe src="/frame-blocked"></iframe>',
+          "/blocked": '<h1>blocked</h1><script>addEventListener("unload", () => {});</script><iframe src="/frame-blocked" allow="unload"></iframe>',
           "/frame-clean": "<p>frame</p>",
           "/frame-blocked": '<p>frame</p><script>addEventListener("unload", () => {});</script>',
         };

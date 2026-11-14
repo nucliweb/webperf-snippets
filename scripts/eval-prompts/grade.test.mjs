@@ -13,7 +13,7 @@ const result = (text) => JSON.stringify({ type: 'result', result: text, usage, t
 const PKG = 'webperf-snippets@0.4.1'
 const lcpJson = (value, rating = 'good') =>
   JSON.stringify({ url: 'http://localhost/x', results: [{ id: 'LCP', script: 'LCP', status: 'ok', value, unit: 'ms', rating }] }, null, 2)
-const lcpCommand = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets http://localhost/x --snippet LCP --json`
+const lcpCommand = `npx -y -p ${PKG} -p playwright@1.65 webperf-snippets http://localhost/x --snippet LCP --json`
 
 const LCP_CASE = { snippet: 'LCP', expect: { status: ['ok'], reference: { value: 40, tolerance: 200 } } }
 
@@ -41,7 +41,7 @@ test('cliRuns reads the JSON of a run even after npx warnings', () => {
 })
 
 test('cliRuns ignores the install of Chromium and other commands', () => {
-  const t = parseTranscript([toolUse('a', 'Bash', { command: 'npx -y playwright@1.63 install chromium' }), toolResult('a', 'ok')].join('\n'))
+  const t = parseTranscript([toolUse('a', 'Bash', { command: 'npx -y playwright@1.65 install chromium' }), toolResult('a', 'ok')].join('\n'))
   assert.deepEqual(cliRuns(t, 'LCP'), [])
 })
 
@@ -120,7 +120,7 @@ test('the checks of the interactions file look at the file the agent left', () =
     expect: { status: ['ok', 'tracking'], noTyping: true, minInteractions: 1 },
   }
   const inpJson = JSON.stringify({ results: [{ id: 'INP', status: 'ok', value: 224, rating: 'needs-improvement', details: { totalInteractions: 2 } }] })
-  const command = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets http://localhost/x --snippet INP --interact-script interactions.json --json`
+  const command = `npx -y -p ${PKG} -p playwright@1.65 webperf-snippets http://localhost/x --snippet INP --interact-script interactions.json --json`
   const t = parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', inpJson), result('INP 224 ms, needs improvement')].join('\n'))
   const interactions = { interactions: [{ action: 'click', selector: '#load-more' }, { action: 'type', selector: 'input', text: 'x' }] }
   const checks = gradeRun(inpCase, t, { pkg: PKG, interactions, missingSelectors: ['input'] })
@@ -134,7 +134,7 @@ test('the checks of the interactions file look at the file the agent left', () =
 test('a score result is checked against its reference and in the report without a time unit', () => {
   const clsCase = { snippet: 'Layout-Shift-Loading-and-Interaction', interactive: true, expect: { status: ['ok'], reference: { value: 0.7606, tolerance: 0.05 } } }
   const clsJson = JSON.stringify({ results: [{ id: 'Layout-Shift-Loading-and-Interaction', status: 'ok', value: 0.7606, unit: 'score', rating: 'poor', details: { countedShifts: 3 } }] })
-  const command = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets http://localhost/x --snippet Layout-Shift-Loading-and-Interaction --interact-script interactions.json --json`
+  const command = `npx -y -p ${PKG} -p playwright@1.65 webperf-snippets http://localhost/x --snippet Layout-Shift-Loading-and-Interaction --interact-script interactions.json --json`
   const t = parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', clsJson), result('CLS is 0.76, poor: three promo blocks push the text down.')].join('\n'))
   const interactions = { interactions: [{ action: 'scroll', y: 600 }, { action: 'wait', ms: 1000 }] }
   const ids = byId(gradeRun(clsCase, t, { pkg: PKG, interactions, missingSelectors: [] }))
@@ -153,7 +153,7 @@ const BFCACHE_CASE = {
   },
 }
 const bfcacheRun = (details, report) => {
-  const command = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets http://localhost/x --snippet Back-Forward-Cache --json`
+  const command = `npx -y -p ${PKG} -p playwright@1.65 webperf-snippets http://localhost/x --snippet Back-Forward-Cache --json`
   const json = JSON.stringify({ results: [{ id: 'Back-Forward-Cache', status: 'ok', details, issues: [] }] })
   return parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', json), result(report)].join('\n'))
 }
@@ -197,12 +197,12 @@ const NO_URL_CASE = {
 }
 
 test('a case that expects no run passes when the agent asks for the URL and runs nothing', () => {
-  const t = parseTranscript([toolUse('a', 'Bash', { command: 'npx -y playwright@1.63 install chromium' }), toolResult('a', 'ok'), result('Which URL do you want me to measure?')].join('\n'))
+  const t = parseTranscript([toolUse('a', 'Bash', { command: 'npx -y playwright@1.65 install chromium' }), toolResult('a', 'ok'), result('Which URL do you want me to measure?')].join('\n'))
   assert.deepEqual(byId(gradeRun(NO_URL_CASE, t, { pkg: PKG })), { 'no-cli-run': true, 'no-own-measurement': true, 'asks-for-url': true })
 })
 
 test('a case that expects no run fails when the agent measures a page it made up', () => {
-  const command = `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets https://example.com --snippet LCP --json`
+  const command = `npx -y -p ${PKG} -p playwright@1.65 webperf-snippets https://example.com --snippet LCP --json`
   const t = parseTranscript([toolUse('a', 'Bash', { command }), toolResult('a', lcpJson(800)), result('LCP of example.com is 800 ms, good.')].join('\n'))
   const ids = byId(gradeRun(NO_URL_CASE, t, { pkg: PKG }))
   assert.equal(ids['no-cli-run'], false)
@@ -219,7 +219,7 @@ const UNREACHABLE_CASE = {
   },
 }
 const refused = (url) => `Error: page.goto: net::ERR_CONNECTION_REFUSED at ${url}`
-const lcpOn = (url) => `npx -y -p ${PKG} -p playwright@1.63 webperf-snippets ${url} --snippet LCP --json`
+const lcpOn = (url) => `npx -y -p ${PKG} -p playwright@1.65 webperf-snippets ${url} --snippet LCP --json`
 
 test('a case where the CLI fails passes when the agent reports the error of the URL it was given', () => {
   const t = parseTranscript([toolUse('a', 'Bash', { command: lcpOn(UNREACHABLE_URL) }), toolResult('a', refused(UNREACHABLE_URL)), result('The CLI failed: net::ERR_CONNECTION_REFUSED. Is the server running?')].join('\n'))
@@ -328,7 +328,7 @@ test('a case with a page to fix checks the page the agent left in its directory'
 test('a prompt to fix is graded on a run before and one with --baseline, whose JSON goes to files, with the tarball by its name', () => {
   const fixCase = { snippet: 'LCP', expect: { status: ['ok'], fixed: { file: 'index.html', absent: /loading="lazy"/ } } }
   const tarball = '/tmp/eval/webperf-snippets-1.6.0.tgz'
-  const command = (extra) => `cd /tmp/eval; npx -y -p ./webperf-snippets-1.6.0.tgz -p playwright@1.63 webperf-snippets http://localhost/x --snippet LCP ${extra}`
+  const command = (extra) => `cd /tmp/eval; npx -y -p ./webperf-snippets-1.6.0.tgz -p playwright@1.65 webperf-snippets http://localhost/x --snippet LCP ${extra}`
   const t = parseTranscript([
     toolUse('a', 'Bash', { command: command('--json > before.json') }), toolResult('a', ''),
     toolUse('b', 'Bash', { command: command('--baseline before.json --json > after.json') }), toolResult('b', ''),
