@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Fixed
+- The markdown report escapes the message of an error in the New errors and Fixed errors lists of `--baseline`, as it does in its Errors and warnings list and in its tables. They printed the message as it came, so GitHub dropped the `<head>` of `1 blocking script(s) in <head>` there, and a line break in a message could start a heading or another list item.
+
 ---
 
 ## [1.16.0] — 2026-11-13

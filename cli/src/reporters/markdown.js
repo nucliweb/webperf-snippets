@@ -176,8 +176,8 @@ function renderBaseline(comparison) {
     const verdict = `${VERDICT_ICON[row.verdict]} ${row.verdict}${row.note ? ` (${row.note})` : ""}`;
     lines.push(`| ${row.metric} | ${value(row.baseline)} | ${value(row.current)} | ${row.change ?? "·"} | ${verdict} |`);
   }
-  if (view.newErrors.length) lines.push("", "#### New errors", ...view.newErrors.map((e) => `- \`${e.id}\`: ${e.message}`));
-  if (view.fixedErrors.length) lines.push("", "#### Fixed errors", ...view.fixedErrors.map((e) => `- \`${e.id}\`: ${e.message}`));
+  if (view.newErrors.length) lines.push("", "#### New errors", ...view.newErrors.map((e) => `- \`${e.id}\`: ${md(oneLine(e.message))}`));
+  if (view.fixedErrors.length) lines.push("", "#### Fixed errors", ...view.fixedErrors.map((e) => `- \`${e.id}\`: ${md(oneLine(e.message))}`));
   return lines;
 }
 

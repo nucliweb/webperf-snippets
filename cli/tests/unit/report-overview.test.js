@@ -86,6 +86,23 @@ describe("the markdown report", () => {
     expect(md).toContain("| x | 🔴 fail | a\\\\\\|b |");
   });
 
+  it("keeps the HTML and the markdown of a message in the new and the fixed errors of a baseline", () => {
+    const baseline = {
+      file: "baseline.json",
+      url: "https://example.com/",
+      runs: { count: 1 },
+      metrics: {},
+      warnings: [],
+      errors: {
+        new: [{ id: "script-loading", message: "1 blocking script(s) in <head>\n## and a heading" }],
+        fixed: [{ id: "x", message: "A *bold* claim\nin <head>" }],
+      },
+    };
+    const md = reportMarkdown({ ...audit, baseline });
+    expect(md).toContain("- `script-loading`: 1 blocking script(s) in \\<head> ## and a heading");
+    expect(md).toContain("- `x`: A \\*bold\\* claim in \\<head>");
+  });
+
   it("says the overview with no list when nothing is to fix", () => {
     const md = reportMarkdown({ ...audit, overview: { snippets: 1, withErrors: 0, withWarnings: 0, withNothingToFix: 1 }, issues: [issue("info", "content-visibility", "An info")] });
     expect(md).toContain("1 snippet: 0 with errors, 0 with warnings, 1 with nothing to fix");
