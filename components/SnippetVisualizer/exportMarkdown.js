@@ -1,3 +1,5 @@
+import { detectRenderer } from "./detectRenderer";
+
 const RATING_ICON = {
   good: "✅",
   "needs-improvement": "⚠️",
@@ -100,8 +102,13 @@ function auditMarkdown(result) {
   return lines.join("\n");
 }
 
+function rawMarkdown(result) {
+  return [`## ${result.script ?? "Result"}`, "", "```json", JSON.stringify(result, null, 2), "```"].join("\n");
+}
+
+const MARKDOWN = { fonts: fontsMarkdown, cwv: cwvMarkdown, audit: auditMarkdown, raw: rawMarkdown };
+
+// The same view the page renders, so the export never reads a field the result does not have
 export function exportMarkdown(result) {
-  if (result.script === "Fonts-Preloaded-Loaded-and-used-above-the-fold") return fontsMarkdown(result);
-  if (result.rating != null) return cwvMarkdown(result);
-  return auditMarkdown(result);
+  return MARKDOWN[detectRenderer(result)](result);
 }
