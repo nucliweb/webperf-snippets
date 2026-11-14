@@ -302,6 +302,25 @@ test('the settings choose the theme and the side of the list, and the panel reme
   assert.equal(await side(), 'left')
 })
 
+test('the panel opens with its defaults when the storage brings a theme or a side it does not know', async () => {
+  await panel.evaluate(() => {
+    localStorage.setItem('sync:theme', JSON.stringify('sepia'))
+    localStorage.setItem('sync:side', JSON.stringify('top'))
+  })
+  try {
+    await panel.reload()
+    await panel.waitForSelector('#list button', { timeout: 5000 })
+    await panel.click('#open-settings')
+    assert.ok(await panel.isChecked('input[name="theme"][value="devtools"]'))
+    assert.ok(await panel.isChecked('input[name="side"][value="left"]'))
+    await panel.click('#settings .close')
+  } finally {
+    // The page error of the panel that did not open is what the test reports, not the ones after it
+    await panel.evaluate(() => ['sync:theme', 'sync:side'].forEach((key) => localStorage.removeItem(key)))
+    await reopenPanel()
+  }
+})
+
 test('Clear empties the result, and only shows when there is one', async () => {
   await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
   await panel.click('#list button[data-id="Input-Latency-Breakdown"]')

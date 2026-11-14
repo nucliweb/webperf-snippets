@@ -13,6 +13,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - Copy as Markdown of the [visualizer](https://webperf-snippets.net/visualizer) exported an audit that has a rating and no value, such as Script-Loading, as a metric: a heading with `undefined` and none of its issues or items, and nothing at all when its unit is a score. The export picks its format as the page picks its view, so the audit comes with its issues and its items, and a result the page shows as JSON is exported as JSON instead of "No issues found".
+- The panel of the extension stayed empty when the storage brought a theme or a side of the list that it does not know, such as a value synced from another version: it looked for the option of that value in the settings and stopped there. A saved value the panel does not know gives way to its default.
 
 ---
 
