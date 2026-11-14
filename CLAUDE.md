@@ -78,7 +78,7 @@ npm run smoke:cli-package     # before a CLI release: the packed CLI installed i
 npm run test:e2e --prefix cli   # Playwright against local fixtures (cli/tests/fixtures)
 ```
 
-CI (`.github/workflows/ci.yml`) runs lint, build, all the checks above except `eval:prompts`, `generate-skills:check` and the CLI unit and e2e tests. The pre-commit hook (`.githooks/pre-commit`) runs `check:consistency`, `check:emoji` and `lint`.
+CI (`.github/workflows/ci.yml`) runs lint, build, all the checks above except `eval:prompts`, `generate-skills:check` and the CLI unit and e2e tests. Its jobs run side by side: `checks` (what needs neither a build nor a browser), `build`, the e2e tests of the extension, and the e2e tests of the CLI in four shards; `.github/actions/setup` installs Node, the dependencies and Chromium for all of them. The pre-commit hook (`.githooks/pre-commit`) runs `check:consistency`, `check:emoji` and `lint`.
 
 ## Snippets
 
