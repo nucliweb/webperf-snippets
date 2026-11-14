@@ -60,6 +60,19 @@ describe("a wrong use of the options", () => {
     expect(stderr).toMatch(/^webperf-snippets <url> \[options\]\n/);
   }, 30000);
 
+  // The file is read and checked before the browser opens: no stack, and no wait for a page
+  it.each([
+    ["nowhere.json", "Interaction script not found: nowhere.json\n"],
+    [join(HERE, "../fixtures/index.html"), /^Invalid --interact-script .*index\.html: it is not valid JSON \(.+\)\n$/],
+    [join(HERE, "../../package.json"), /^Invalid --interact-script .*package\.json: it needs a list of steps, as \{ "interactions": \[.*\] \}\n$/],
+  ])("--interact-script %s is a usage error", async (file, message) => {
+    const { code, stdout, stderr } = await cli(URL, "--interact-script", file);
+    expect(code).toBe(2);
+    expect(stdout).toBe("");
+    if (typeof message === "string") expect(stderr).toBe(message);
+    else expect(stderr).toMatch(message);
+  }, 30000);
+
   it("an unknown workflow lists the ones there are", async () => {
     const { code, stderr } = await cli(URL, "--workflow", "everything");
     expect(code).toBe(2);

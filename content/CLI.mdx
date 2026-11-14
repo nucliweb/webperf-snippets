@@ -142,6 +142,8 @@ The snippets of the Interaction category, such as `Interactions`, `Input-Latency
 
 The CLI waits for the browser to report the timing of the last interaction before it reads the snippets. A script that ends right after a click still reads the page before anything the click sets in motion later has happened, such as a request or an animation, so end it with a `wait` step when you want to measure that.
 
+The file is checked before the browser opens, and a step that is wrong exits with code `2` and a message that names it. On the page, a step waits up to 5 seconds for its element; when it does not appear, the run stops with the number of the step and exit code `1`.
+
 Compare the measured values with CrUX field data (what real users experience at the 75th percentile):
 
 ```bash copy

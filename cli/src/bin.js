@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { loadSnippet } from "./load-snippet.js";
 import { resolveSnippetName } from "./snippet-names.js";
 import { runSnippets, runMeasurement, VIEWPORT_PRESETS } from "./runner.js";
+import { readInteractionScript, InteractionError } from "./interactions.js";
 import { WORKFLOWS } from "./workflows/index.js";
 import { RULES } from "./decision-tree.js";
 import { reportHuman, reportMatrixHuman } from "./reporters/human.js";
@@ -244,7 +245,15 @@ async function main() {
     if (problem) fail(problem);
   }
 
-  const interactScript = values["interact-script"];
+  // The steps are read and checked before the browser opens: a wrong file fails at once
+  let interactions;
+  if (values["interact-script"] != null) {
+    try {
+      interactions = readInteractionScript(values["interact-script"]);
+    } catch (err) {
+      fail(err.message);
+    }
+  }
   const storageState = values["storage-state"];
   if (storageState && !existsSync(storageState)) {
     fail(`Storage state file not found: ${storageState}`);
@@ -324,7 +333,7 @@ async function main() {
   const [unmeasured] = unmeasuredMetrics(budgets, items ? [items[0].path] : workflow.steps.map((step) => step.path));
   if (unmeasured) fail(budgetUsage(unmeasured, items ? `--snippet ${values.snippet}` : `the ${workflow.id} workflow`));
   const measureWith = (conditions) => {
-    const options = { waitMs, headless: !values.headed, interactScript, ...conditions };
+    const options = { waitMs, headless: !values.headed, interactions, ...conditions };
     return items ? runSnippets({ ...options, items }) : runMeasurement({ ...options, workflow, rules: RULES });
   };
   // What the JSON records of how each page was measured, for a later run to compare with. The machine is
@@ -532,6 +541,8 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
 
 main().catch((err) => {
   // A missing Chromium is a step of the setup, not a bug: the message says what to run, without a stack
-  process.stderr.write(err instanceof MissingBrowserError ? `${err.message}\n` : `Error: ${err.stack ?? err.message}\n`);
+  // Nor is a step of --interact-script that the page did not take: its message names the step
+  const known = err instanceof MissingBrowserError || err instanceof InteractionError;
+  process.stderr.write(known ? `${err.message}\n` : `Error: ${err.stack ?? err.message}\n`);
   process.exit(1);
 });
