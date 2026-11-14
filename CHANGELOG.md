@@ -11,6 +11,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - The prompt that the Copy prompt button of a snippet page copies installs and runs Playwright 1.65, the version the CLI is tested with, which brings Chromium 159. That Chromium does not run `unload` handlers unless the page asks for them with `Permissions-Policy: unload=(self)`, so on a page that does not, Back-Forward-Cache no longer finds an `unload` handler to report.
 
+### Fixed
+- Copy as Markdown of the [visualizer](https://webperf-snippets.net/visualizer) exported an audit that has a rating and no value, such as Script-Loading, as a metric: a heading with `undefined` and none of its issues or items, and nothing at all when its unit is a score. The export picks its format as the page picks its view, so the audit comes with its issues and its items, and a result the page shows as JSON is exported as JSON instead of "No issues found".
+
 ---
 
 ## [2.6.3] — 2026-11-08

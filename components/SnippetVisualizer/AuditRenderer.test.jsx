@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AuditRenderer } from "./AuditRenderer";
-import { SnippetVisualizer, detectRenderer } from "./index";
+import { SnippetVisualizer } from "./index";
+import { detectRenderer } from "./detectRenderer";
 
 const fixture = (name) =>
   JSON.parse(readFileSync(new URL(`../../scripts/fixtures/results/seeded-${name}.json`, import.meta.url), "utf8"));

@@ -6,6 +6,7 @@ import { FontsRenderer } from "./FontsRenderer";
 import { AuditRenderer } from "./AuditRenderer";
 import { Icon } from "../Icon";
 import { exportMarkdown } from "./exportMarkdown";
+import { detectRenderer } from "./detectRenderer";
 
 const PLACEHOLDER = `Paste the return value of any snippet here.
 
@@ -13,14 +14,6 @@ In DevTools, after running a snippet, right-click the result object
 and choose "Copy object", then paste it here.
 
 Or run: JSON.stringify(result) and paste the output.`;
-
-export function detectRenderer(result) {
-  if (result.script === "Fonts-Preloaded-Loaded-and-used-above-the-fold") return "fonts";
-  // A metric has a value to rate; an audit such as Script-Loading has a rating and no value
-  if (result.rating != null && typeof result.value === "number") return "cwv";
-  if (Array.isArray(result.issues) || Array.isArray(result.items)) return "audit";
-  return "raw";
-}
 
 function parseInput(text) {
   if (!text.trim()) return null;
