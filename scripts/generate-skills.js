@@ -16,7 +16,8 @@ const { minify } = require('terser')
 
 const GITHUB_BASE = 'https://github.com/nucliweb/webperf-snippets/blob/main'
 
-const ROOT = path.join(__dirname, '..')
+// The tests point it at a temporary repository
+const ROOT = process.env.GENERATE_SKILLS_ROOT || path.join(__dirname, '..')
 const SNIPPETS_DIR = path.join(ROOT, 'snippets')
 const PAGES_DIR = path.join(ROOT, 'content')
 const SKILLS_DIR = path.join(ROOT, 'skills')
@@ -184,6 +185,15 @@ function getSnippetFiles(category) {
   const dir = path.join(SNIPPETS_DIR, category)
   if (!fs.existsSync(dir)) return []
   return fs.readdirSync(dir).filter((f) => f.endsWith('.js')).sort()
+}
+
+// A snippet that is renamed or removed leaves its script behind in every output folder, and the
+// folders are committed: only the scripts of the snippets that exist stay
+function removeStaleScripts(dir, snippetFiles) {
+  if (!fs.existsSync(dir)) return
+  for (const file of fs.readdirSync(dir)) {
+    if (file.endsWith('.js') && !snippetFiles.includes(file)) fs.rmSync(path.join(dir, file))
+  }
 }
 
 function getMdxFiles(category) {
@@ -378,6 +388,14 @@ async function generateCategorySkill(category, catConfig) {
   fs.mkdirSync(scriptsDir, { recursive: true })
   fs.mkdirSync(refsDir, { recursive: true })
   fs.mkdirSync(distDir, { recursive: true })
+  for (const dir of [
+    scriptsDir,
+    distDir,
+    path.join(GEMINI_DIST_DIR, catConfig.skill, 'scripts'),
+    path.join(ANTIGRAVITY_DIST_DIR, catConfig.skill, 'scripts'),
+  ]) {
+    removeStaleScripts(dir, snippetFiles)
+  }
 
   for (const snippetFile of snippetFiles) {
     const src = path.join(SNIPPETS_DIR, category, snippetFile)
@@ -640,4 +658,8 @@ async function main() {
   console.log('\nDone! Skills generated in /skills/, .claude/skills/, dist/gemini/, and dist/antigravity/')
 }
 
-main().catch(console.error)
+// A failure has to reach the exit code: generate-skills:check and the release run this script
+main().catch((error) => {
+  console.error(error)
+  process.exit(1)
+})
