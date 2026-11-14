@@ -85,4 +85,54 @@ function verifySharedHelpers(errors, { snippetsDir = SNIPPETS_DIR } = {}) {
   }
 }
 
-module.exports = { extractBlocks, verifySharedHelpers, CANONICAL_PATH }
+// A function or an arrow function with a name, in any declaration style
+const HELPER = /^\s*(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(|^\s*(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/gm
+
+// The helpers that several snippets define without a shared block, with how many snippets do.
+// The list only gets shorter: a new name, or one more snippet for a name, fails the check.
+const REPEATED_HELPERS = {
+  // Different on purpose: each snippet formats milliseconds its own way, and rates its own metric
+  formatMs: 12,
+  valueToRating: 11,
+  // To unify in snippets/_shared/helpers.js, or to rename where the copies do different things
+  isInViewport: 7,
+  formatBar: 5,
+  shortUrl: 4,
+  getElementInfo: 3,
+  normalizeUrl: 3,
+  detectFormat: 2,
+  findLcpCandidate: 2,
+  formatKB: 2,
+  formatSize: 2,
+  getActivationStart: 2,
+  getSeverity: 2,
+  px: 2,
+  shortSrc: 2,
+  toItem: 2,
+}
+
+// A helper that two snippets write is two places to fix a bug in, and they drift apart. It belongs
+// in snippets/_shared/helpers.js, where the copies carry a marker and are kept identical.
+function verifyRepeatedHelpers(errors, { snippetsDir = SNIPPETS_DIR, known = REPEATED_HELPERS } = {}) {
+  const definedIn = {}
+  for (const file of snippetFiles(snippetsDir)) {
+    const { outside } = extractBlocks(fs.readFileSync(path.join(snippetsDir, file), 'utf8'))
+    const names = new Set([...outside.matchAll(HELPER)].map((match) => match[1] || match[2]))
+    for (const name of names) (definedIn[name] ||= []).push(file)
+  }
+
+  for (const [name, files] of Object.entries(definedIn)) {
+    if (files.length < 2) continue
+    if (!(name in known)) {
+      errors.push(`${name} is defined in ${files.length} snippets (${files.join(', ')}): move it to snippets/_shared/helpers.js with the // @shared ${name} marker, or rename the ones that do something else`)
+    } else if (files.length > known[name]) {
+      errors.push(`${name} is defined in ${files.length} snippets (${files.join(', ')}), and the list of repeated helpers allows ${known[name]}: share it instead of adding a copy`)
+    }
+  }
+  for (const [name, count] of Object.entries(known)) {
+    const now = (definedIn[name] || []).length
+    if (now < count) errors.push(`${name} is defined in ${now} snippets, fewer than the ${count} of the list of repeated helpers in scripts/shared-helpers.js: update the list`)
+  }
+}
+
+module.exports = { extractBlocks, verifySharedHelpers, verifyRepeatedHelpers, CANONICAL_PATH }

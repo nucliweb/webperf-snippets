@@ -2,7 +2,7 @@
 
 const fs = require('fs')
 const path = require('path')
-const { verifySharedHelpers } = require('./shared-helpers')
+const { verifySharedHelpers, verifyRepeatedHelpers } = require('./shared-helpers')
 const { readMeta } = require('./read-meta')
 
 const ROOT = path.join(__dirname, '..')
@@ -241,6 +241,7 @@ function main() {
   verifyMetaAlignment(errors)
   verifyPublishedCounts(errors)
   verifySharedHelpers(errors)
+  verifyRepeatedHelpers(errors)
 
   if (errors.length > 0) {
     console.error('Consistency check failed:\n')

@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "../../..");
-const { extractBlocks, verifySharedHelpers, CANONICAL_PATH } = require(join(ROOT, "scripts/shared-helpers.js"));
+const { extractBlocks, verifySharedHelpers, verifyRepeatedHelpers, CANONICAL_PATH } = require(join(ROOT, "scripts/shared-helpers.js"));
 
 // Builds the canonical helpers as real functions, the way a snippet sees them.
 function load(names, hostname = "www.example.com", ownDomains = []) {
@@ -246,7 +246,68 @@ describe("verifySharedHelpers", () => {
   });
 });
 
+describe("verifyRepeatedHelpers", () => {
+  // A folder of snippets, one file per body
+  function project(...bodies) {
+    const dir = mkdtempSync(join(tmpdir(), "repeated-"));
+    mkdirSync(join(dir, "Loading"));
+    mkdirSync(join(dir, "_shared"));
+    writeFileSync(join(dir, "_shared", "helpers.js"), "// @shared formatBytes\nfunction formatBytes(b) { return b; }\n// @end-shared formatBytes\n");
+    bodies.forEach((body, i) => writeFileSync(join(dir, "Loading", `${"ABC"[i]}.js`), `(() => {\n${body}\n})();\n`));
+    return dir;
+  }
+  const check = (dir, known = {}) => {
+    const errors = [];
+    verifyRepeatedHelpers(errors, { snippetsDir: dir, known });
+    return errors;
+  };
+
+  it("reports a function that two snippets define", () => {
+    const errors = check(project("  function shortUrl(u) { return u; }", "  function shortUrl(u) { return u.slice(0, 9); }"));
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/shortUrl.*Loading\/A\.js.*Loading\/B\.js/);
+  });
+
+  it("reports it whatever the way each snippet declares it", () => {
+    const errors = check(project("  const shortUrl = (u) => u;", "  async function shortUrl(u) { return u; }", "  let shortUrl = u => u;"));
+    expect(errors[0]).toMatch(/Loading\/A\.js.*Loading\/B\.js.*Loading\/C\.js/);
+  });
+
+  it("accepts a function that only one snippet defines", () => {
+    expect(check(project("  function shortUrl(u) { return u; }", "  function longUrl(u) { return u; }"))).toEqual([]);
+  });
+
+  it("accepts the copies of a shared helper, which carry the marker", () => {
+    const shared = "  // @shared formatBytes\n  function formatBytes(b) { return b; }\n  // @end-shared formatBytes";
+    expect(check(project(shared, shared))).toEqual([]);
+  });
+
+  it("accepts a name that is listed with the snippets that define it", () => {
+    const dir = project("  function shortUrl(u) { return u; }", "  function shortUrl(u) { return u; }");
+    expect(check(dir, { shortUrl: 2 })).toEqual([]);
+  });
+
+  it("reports a listed name when one more snippet defines it", () => {
+    const body = "  function shortUrl(u) { return u; }";
+    const errors = check(project(body, body, body), { shortUrl: 2 });
+    expect(errors[0]).toMatch(/shortUrl.*3 snippets.*2/);
+  });
+
+  // The list only gets shorter: a helper that is unified has to leave it
+  it("reports a listed name that fewer snippets define now", () => {
+    const errors = check(project("  function shortUrl(u) { return u; }", "  const x = 1;"), { shortUrl: 2 });
+    expect(errors[0]).toMatch(/shortUrl.*list/);
+  });
+});
+
 describe("the repository", () => {
+  it("has no helper repeated in several snippets beyond the listed ones", () => {
+    const errors = [];
+    verifyRepeatedHelpers(errors, { snippetsDir: join(ROOT, "snippets") });
+    expect(errors).toEqual([]);
+  });
+
+
   it("has every shared copy in sync", () => {
     const errors = [];
     verifySharedHelpers(errors, { snippetsDir: join(ROOT, "snippets") });
