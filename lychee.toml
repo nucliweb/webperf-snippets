@@ -29,6 +29,9 @@ exclude = [
   '^https://(www\.)?(x|twitter)\.com/',
   # Redirects to the cookie consent of Google in Europe, which ends in a status lychee rejects
   '^https://chromewebstore\.google\.com/',
+  # Links to a section of the same page (#section): with --base-url they become anchors of the
+  # home page, where the section is not
+  '^https://webperf-snippets\.net/#',
   # Cloudinary ids that LazyVideoPlayer turns into URLs, read as root-relative links
   '^https://webperf-snippets\.net/webperf-snippets/',
   # Hash routes of a single-page app, not anchors
