@@ -59,6 +59,15 @@ jobs:
       - name: Check consistency
         run: npm run check:consistency
 
+      - name: Check the versions agree
+        run: npm run check:versions
+
+      # A release that is merged and not tagged is not published, and the site names its version
+      # already. It warns and does not fail: the tag comes right after the merge
+      - name: Warn about versions without a tag
+        if: github.event_name == 'push'
+        run: node scripts/release-versions.js --untagged
+
       - name: Run demo tests
         run: npm run test:demos
 
