@@ -1,0 +1,26 @@
+name: Set up the repository
+description: Node.js at the version of .nvmrc, the dependencies of the lockfile and, when asked, the Chromium of Playwright. Run it after the checkout.
+
+inputs:
+  playwright:
+    description: Install the Chromium of Playwright with its system dependencies
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Install Playwright Chromium
+      if: inputs.playwright == 'true'
+      shell: bash
+      working-directory: cli
+      run: npx playwright install --with-deps chromium
