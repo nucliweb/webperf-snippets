@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- The prompt that the Copy prompt button of a snippet page copies installs and runs Playwright 1.65, the version the CLI is tested with, which brings Chromium 159. That Chromium does not run `unload` handlers unless the page asks for them with `Permissions-Policy: unload=(self)`, so on a page that does not, Back-Forward-Cache no longer finds an `unload` handler to report.
+
 ---
 
 ## [2.6.3] — 2026-11-08
