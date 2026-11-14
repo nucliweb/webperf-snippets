@@ -28,7 +28,7 @@ npm run generate-skills                            # skills/, dist/, .claude/ski
 node scripts/generate-llms.js                      # public/llms.txt and public/llms-full.txt
 ```
 
-`git grep` for the previous versions, leaving out the changelogs and the generated files, should find nothing left.
+`npm run check:versions` fails when one of those files is left at another version, and CI runs it on the pull request. `git grep` for the previous versions, leaving out the changelogs and the generated files, should find nothing left.
 
 ## 2. Write the changelogs
 
@@ -59,7 +59,7 @@ A pull request that changes the prompts of the snippets runs the evals with the 
 
 ## 5. Tags
 
-Once the pull request is merged, tag the merge commit, one lightweight tag per part released, and push them together:
+Until the tag is pushed the release is not published, and the site already names its version: the Copy prompt of every snippet page asks npm for a CLI that is not there. CI warns on `main` about a version without a tag. Once the pull request is merged, tag the merge commit, one lightweight tag per part released, and push them together:
 
 ```bash
 git switch main && git pull

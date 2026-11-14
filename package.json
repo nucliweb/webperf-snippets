@@ -25,7 +25,7 @@
     "test:view": "node --test scripts/view.test.mjs scripts/view-report.test.mjs",
     "view:fixtures": "node scripts/capture-result-fixtures.mjs",
     "test:extension:e2e": "node scripts/build-extension.mjs && node --test --test-concurrency=1 extension/tests/panel.e2e.test.js extension/tests/width.e2e.test.js extension/tests/package.test.js",
-    "test:ci": "node --test scripts/ci-skip-slow-steps.test.js scripts/check-tag-version.test.js scripts/agentic-audit.test.mjs scripts/check-generated.test.js",
+    "test:ci": "node --test scripts/ci-skip-slow-steps.test.js scripts/check-tag-version.test.js scripts/agentic-audit.test.mjs scripts/check-generated.test.js scripts/release-versions.test.js",
     "audit:agentic": "node scripts/agentic-audit.mjs",
     "test:components": "vitest run components lib/page-metadata.test.js lib/analytics.test.js lib/webmcp.test.js",
     "generate-icons": "node scripts/generate-icons.mjs",
@@ -44,7 +44,8 @@
     "postbuild": "node scripts/build-search-index.js",
     "test:site": "node --test lib/sitemap-routes.test.js scripts/read-meta.test.js scripts/check-built-snippets.test.js scripts/prerendered-dir.test.js lib/page-markdown.test.mjs lib/markdown-path.test.mjs scripts/generate-llms.test.js lib/page-info.test.js lib/webmcp-registry.test.mjs scripts/example-domains.test.js scripts/which-snippet.test.js",
     "check:built-snippets": "node scripts/check-built-snippets.js",
-    "generate-llms:check": "node scripts/generate-llms.js && node scripts/check-generated.js public/llms.txt public/llms-full.txt"
+    "generate-llms:check": "node scripts/generate-llms.js && node scripts/check-generated.js public/llms.txt public/llms-full.txt",
+    "check:versions": "node scripts/release-versions.js"
   },
   "keywords": [
     "webperf",

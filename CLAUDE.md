@@ -57,6 +57,7 @@ npm run test:skills            # every skill script keeps the result objects of 
 node scripts/generate-llms.js  # regenerate public/llms*.txt
 
 npm run check:consistency    # shared helpers must carry the `// @shared` marker
+npm run check:versions       # every file that names the version of a part carries the same one
 npm run check:emoji          # no emoji left in rendered text where an icon exists
 npm run test:demos           # demo contract
 npm run test:site            # sitemap routes, _meta reader, built snippets check
