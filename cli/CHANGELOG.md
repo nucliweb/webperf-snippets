@@ -11,6 +11,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 ### Fixed
 - The markdown report escapes the message of an error in the New errors and Fixed errors lists of `--baseline`, as it does in its Errors and warnings list and in its tables. They printed the message as it came, so GitHub dropped the `<head>` of `1 blocking script(s) in <head>` there, and a line break in a message could start a heading or another list item.
 - The human and markdown reports say `not supported` and why for a snippet whose API the browser lacks, a result with the `unsupported` status. They printed it as a metric without a value: `undefined` as its value, and `· undefined` as its status in the markdown table.
+- `--wait` with a value that is not a whole number of milliseconds, such as `--wait abc`, exits with `2` before the browser opens. It ran the snippets without any wait and said nothing, so a typo measured the page too early.
+- `--json` with `--markdown` exits with `2`: it printed the markdown report, which a script that asked for JSON could not parse.
+- Without a URL or `--matrix`, the usage goes to stderr, as every other usage error, and stdout stays empty for a pipe or a redirect. `--help` still prints it to stdout.
+- An unknown `--workflow` lists the workflows there are.
 
 ---
 

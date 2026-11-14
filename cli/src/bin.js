@@ -212,15 +212,19 @@ async function main() {
   const url = positionals[0];
   const matrixPath = values.matrix;
   if (url && matrixPath) fail("Use a URL or --matrix, not both");
-  if (!url && !matrixPath) {
-    process.stdout.write(USAGE);
-    process.exit(2);
-  }
+  // To stderr, as every usage error: a pipe or a redirect of stdout gets no usage text as a report
+  if (!url && !matrixPath) fail(USAGE.trimEnd());
   // Without the URL itself, which can carry a token in its query, as a header can
   if (url && !isHttpUrl(url)) fail("The URL must be an http or https URL, such as https://example.com or http://localhost:3000");
   if (matrixPath && values.viewport) fail("--viewport does not apply to --matrix: set the viewport of each device in the file");
 
-  const waitMs = values.wait ? Number(values.wait) : 3000;
+  if (values.json && values.markdown) fail("Use --json or --markdown, not both");
+
+  // Number("") is 0 and Number("abc") is NaN, which the wait takes as no wait: only digits are a wait
+  if (values.wait != null && !/^\d+$/.test(values.wait)) {
+    fail(`Invalid --wait "${values.wait}". Use a number of milliseconds, such as 3000, or 0 for no wait`);
+  }
+  const waitMs = values.wait != null ? Number(values.wait) : 3000;
   const viewportName = values.viewport ?? "mobile";
   const viewport = VIEWPORT_PRESETS[viewportName];
   if (!viewport) {
@@ -315,7 +319,7 @@ async function main() {
   // What each page load runs, a snippet or a workflow, under the conditions of the load
   const items = values.snippet ? buildSnippetItem(values) : null;
   const workflow = values.snippet ? null : WORKFLOWS[values.workflow ?? "core-web-vitals"];
-  if (!values.snippet && !workflow) fail(`Unknown workflow: ${values.workflow}`);
+  if (!values.snippet && !workflow) fail(`Unknown workflow: "${values.workflow}". Choose from: ${Object.keys(WORKFLOWS).join(", ")}`);
   // A budget of a metric that no snippet of the run measures could never pass: a usage error
   const [unmeasured] = unmeasuredMetrics(budgets, items ? [items[0].path] : workflow.steps.map((step) => step.path));
   if (unmeasured) fail(budgetUsage(unmeasured, items ? `--snippet ${values.snippet}` : `the ${workflow.id} workflow`));
