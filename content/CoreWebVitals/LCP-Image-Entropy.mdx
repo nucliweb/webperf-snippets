@@ -6,7 +6,8 @@ browserSupport:
 ---
 
 import snippet from '../../snippets/CoreWebVitals/LCP-Image-Entropy.js?raw'
-import { Snippet } from '../../components/Snippet'
+import examples from '../../snippets/CoreWebVitals/examples.json'
+import { Snippet, SnippetExample } from '../../components/Snippet'
 import { Callout } from '../../components/Callout'
 
 # LCP image entropy
@@ -40,6 +41,10 @@ Chrome measures the bits per pixel over the area the image is displayed at, in C
 ### Snippet
 
 <Snippet code={snippet} />
+
+### Returned object
+
+<SnippetExample example={examples.examples["LCP-Image-Entropy"]} />
 
 ### Understanding the results
 
