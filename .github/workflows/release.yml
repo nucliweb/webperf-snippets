@@ -8,12 +8,15 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -40,17 +43,12 @@ jobs:
           zip -r "webperf-skills-all.zip" skills/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           generate_release_notes: true
-          files: |
-            webperf-skills-all.zip
-            webperf.zip
-            webperf-core-web-vitals.zip
-            webperf-loading.zip
-            webperf-interaction.zip
-            webperf-media.zip
-            webperf-resources.zip
+          # Every zip the step above wrote: one per skill, and all of them together
+          files: '*.zip'
+          fail_on_unmatched_files: true
 
       # Uncomment when ready to notify downstream repos instantly
       # - name: Notify downstream repositories

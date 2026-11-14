@@ -11,12 +11,15 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -40,11 +43,12 @@ jobs:
         run: npm run extension:zip
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           name: DevTools extension ${{ github.ref_name }} (beta)
           prerelease: true
           files: webperf-snippets-extension-*.zip
+          fail_on_unmatched_files: true
           body: |
             Beta of the WebPerf Snippets DevTools extension, to load unpacked in Chrome.
 

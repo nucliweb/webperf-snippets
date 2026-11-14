@@ -20,21 +20,24 @@ permissions:
 jobs:
   links:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       # Root-relative links of the pages (/Loading/TTFB) are checked against the live site
       - name: Check the links of the pages
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: --config lychee.toml --no-progress --base-url https://webperf-snippets.net 'content/**/*.mdx'
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Check the links of the repository docs
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: --config lychee.toml --no-progress README.md CONTRIBUTING.md SKILLS.md 'docs/**/*.md' cli/README.md
         env:
@@ -45,6 +48,7 @@ jobs:
     name: E2E run ${{ matrix.run }}
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -53,6 +57,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v7

@@ -8,6 +8,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # The wait for the approval of the environment does not count
+    timeout-minutes: 30
     environment: npm-publish
     # id-token: the OIDC token of the run, which npm (trusted publishing) and the MCP Registry
     # accept instead of a stored secret
@@ -18,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -62,11 +66,15 @@ jobs:
           fi
 
       # A download from GitHub releases can answer 504: --fail stops an error page from reaching tar,
-      # and the retries cover a failure that lasts a few seconds
+      # and the retries cover a failure that lasts a few seconds. The checksum is the one of
+      # registry_1.8.1_checksums.txt in that release: this binary runs with the OIDC token of the job
       - name: Install mcp-publisher
+        env:
+          MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
         run: |
           curl -sSL --fail --retry 5 --retry-all-errors --retry-delay 10 -o mcp-publisher.tar.gz \
             "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz"
+          echo "$MCP_PUBLISHER_SHA256  mcp-publisher.tar.gz" | sha256sum --check
           tar xzf mcp-publisher.tar.gz mcp-publisher
 
       # The registry checks that the npm package of cli/server.json carries its name in mcpName, so it
