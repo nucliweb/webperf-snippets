@@ -48,6 +48,11 @@ function renderNotMeasuredRow(r) {
   return `| ${r.id} | · not measured | ${cell(r.message ?? "nothing recorded")} |`;
 }
 
+// The browser lacks the API the snippet reads, so there is no value to show
+function renderUnsupportedRow(r) {
+  return `| ${r.id} | · not supported | ${cell(r.error ?? "the browser lacks the API")} |`;
+}
+
 // A result with a count and no value: its count, and its first numbers as the human report gives them
 function renderSummaryRow(r) {
   return `| ${r.id} | · ${r.count ?? ""} | ${summaryNumbers(r).join(" · ")} |`;
@@ -57,6 +62,7 @@ function renderRow(r) {
   if (r.status === "skipped") return renderSkippedRow(r);
   if (r.status === "error") return renderErrorRow(r);
   if (r.status === "tracking") return renderNotMeasuredRow(r);
+  if (r.status === "unsupported") return renderUnsupportedRow(r);
   if (Array.isArray(r.issues)) return renderAuditRow(r);
   if (isSummaryResult(r)) return renderSummaryRow(r);
   return renderMetricRow(r);

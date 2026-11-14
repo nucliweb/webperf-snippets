@@ -800,3 +800,28 @@ describe("the details of each result in the markdown report", () => {
     expect(output).not.toContain("<details>");
   });
 });
+
+describe("a result of a browser without the API", () => {
+  const unsupported = {
+    url: "https://example.com",
+    navMs: 850,
+    results: [
+      { id: "LCP", script: "LCP", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" },
+      { id: "INP", script: "INP", status: "unsupported" },
+    ],
+  };
+
+  it("shows in the human report as not supported with its reason, and not as a value", () => {
+    const output = reportHuman(unsupported);
+    expect(output).toMatch(/LCP\s+.*not supported: largest-contentful-paint entries not supported in this browser/);
+    expect(output).toMatch(/INP\s+.*not supported: the browser lacks the API/);
+    expect(output).not.toContain("undefined");
+  });
+
+  it("shows in the markdown report as not supported with its reason, and not as a value", () => {
+    const output = reportMarkdown(unsupported);
+    expect(output).toContain("| LCP | · not supported | largest-contentful-paint entries not supported in this browser |");
+    expect(output).toContain("| INP | · not supported | the browser lacks the API |");
+    expect(output).not.toContain("undefined");
+  });
+});
