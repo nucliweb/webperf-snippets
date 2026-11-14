@@ -49,6 +49,18 @@ test('a value saved in the old place of the setting is ignored', async () => {
   assert.deepEqual(await settings.load(), DEFAULTS)
 })
 
+test('a saved value the panel does not know gives way to the default', async () => {
+  const sync = area({ theme: 'sepia', side: 'top', auditFilter: 'none', reloadBeforeAudit: 'yes' })
+  const local = area({ sidebar: 'floating', snippet: 42, audits: 'none' })
+  assert.deepEqual(await createSettings({ sync, local }).load(), DEFAULTS)
+})
+
+test('each value the panel knows is kept', async () => {
+  const sync = area({ theme: 'light', side: 'right', auditFilter: 'errors', reloadBeforeAudit: false })
+  const local = area({ sidebar: 'collapsed', snippet: 'LCP', audits: [] })
+  assert.deepEqual(await createSettings({ sync, local }).load(), { ...sync.data, ...local.data })
+})
+
 test('without chrome.storage, or when it fails, the panel keeps the defaults and saving does nothing', async () => {
   assert.deepEqual(await createSettings(undefined).load(), DEFAULTS)
   await createSettings(undefined).save('theme', 'dark')
