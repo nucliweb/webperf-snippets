@@ -84,7 +84,7 @@ CI (`.github/workflows/ci.yml`) runs lint, build, all the checks above except `e
 - Every snippet is an IIFE that returns a structured object with `script`, `status` (`ok`, `tracking`, `error`, `unsupported`) and the metric data. The contract is in `snippets/SCHEMA.md` and is enforced by `cli/tests/e2e/snippet-contract.test.js`.
 - A snippet that needs a `PerformanceObserver` entry type checks `PerformanceObserver.supportedEntryTypes` first and returns `status: "unsupported"` when it is missing.
 - Chrome exposes some entry types only through observers (`largest-contentful-paint`, `layout-shift`, `longtask`, `event`, `first-input`), so they are read with a buffered observer, not `getEntriesByType`.
-- Helpers duplicated across snippets (`formatBytes`, `getRootDomain`) carry a `// @shared` marker and stay identical.
+- Helpers duplicated across snippets (`formatBytes`, `getRootDomain`) carry a `// @shared` marker and stay identical. A function that two snippets define without the marker fails `check:consistency`, except the ones listed in `scripts/shared-helpers.js`, a list that only gets shorter.
 - After changing a snippet: `npm run generate-skills` and `node scripts/generate-llms.js`, and commit the regenerated files.
 - Tests come first and use the e2e harness in `cli/tests/helpers/contract.js` and the fixtures in `cli/tests/fixtures/`.
 
