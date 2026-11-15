@@ -11,13 +11,7 @@ import { loadSnippet } from "../../src/load-snippet.js";
 //
 // KNOWN_VIOLATIONS lists what is still broken, per snippet. It can only shrink: a listed
 // violation that no longer happens fails the test, so the entry has to be removed.
-const KNOWN_VIOLATIONS = {
-  // analyzeContentVisibilityOpportunities() returns its own shape, without script and status
-  "Loading/Content-Visibility": [
-    "analyzeContentVisibilityOpportunities:missing-script",
-    "analyzeContentVisibilityOpportunities:invalid-status",
-  ],
-};
+const KNOWN_VIOLATIONS = {};
 
 let browser;
 let servers;

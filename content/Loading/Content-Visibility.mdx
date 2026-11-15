@@ -79,11 +79,26 @@ analyzeContentVisibilityOpportunities({ threshold: -100, minHeight: 80, minChild
 
 ##### Output fields
 
-- **selector**: Element identifier
+The function returns an object in the shape of every snippet result, so a script or an agent reads it as it reads the result of the snippet:
+
+| Field | Description |
+|-------|-------------|
+| `script`, `status` | `"Content-Visibility"` and `"ok"` |
+| `count` | Elements that could use `content-visibility: auto` |
+| `details.highImpact` | How many of them have a high estimated saving |
+| `details.threshold`, `details.minHeight`, `details.minChildren` | The options the search used |
+| `items` | The elements, the ones with more descendants first, up to 50 |
+| `issues` | Always empty: an opportunity is a suggestion, not a problem of the page |
+
+Each item has:
+
+- **selector**: A CSS selector that matches only that element
 - **height**: Current height (use this for `contain-intrinsic-size`)
 - **distanceFromViewport**: How far below the viewport the element is
 - **childElements**: Number of descendant elements (more = higher impact)
 - **estimatedSavings**: Rough estimate of render time saved (Low/Medium/High)
+
+The console lists the elements themselves, to inspect them in the Elements panel.
 
 **Note:** The function automatically filters out nested elements - if a parent container is selected, its children won't appear separately in the results.
 

@@ -298,17 +298,26 @@
 
     console.groupEnd();
 
+    // The shape of every result (snippets/SCHEMA.md). The elements themselves are in the console,
+    // above: a DOM node is not data a script or an agent can read
     return {
-      opportunities: opportunities.map((opportunity) => ({
+      script: "Content-Visibility",
+      status: "ok",
+      count: opportunities.length,
+      details: {
+        highImpact: opportunities.filter((o) => o.estimatedSavings.startsWith("High")).length,
+        threshold,
+        minHeight,
+        minChildren,
+      },
+      items: opportunities.slice(0, 50).map((opportunity) => ({
         selector: opportunity.selector,
         height: opportunity.height,
         distanceFromViewport: opportunity.distanceFromViewport,
         childElements: opportunity.childElements,
         estimatedSavings: opportunity.estimatedSavings,
       })),
-      totalElements: opportunities.length,
-      highImpact: opportunities.filter((o) => o.estimatedSavings.startsWith("High")).length,
-      elements: opportunities.map((o) => o.element),
+      issues: [],
     };
   }
 

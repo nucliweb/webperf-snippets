@@ -912,6 +912,19 @@ With no usage the script returns `count: 0`, no items and an `info` issue.
 }
 ```
 
+`analyzeContentVisibilityOpportunities(options)`, which the script leaves on `window`, returns the elements below the viewport that could use `content-visibility: auto`, the ones with more descendants first and up to 50; `count` holds the total. `details` has how many have a high estimated saving and the options the search used. `issues` is always empty.
+
+```json
+{
+  "script": "Content-Visibility",
+  "status": "ok",
+  "count": 1,
+  "details": { "highImpact": 0, "threshold": 0, "minHeight": 100, "minChildren": 5 },
+  "items": [{ "selector": "#comments", "height": "640px", "distanceFromViewport": "1200px", "childElements": 48, "estimatedSavings": "Medium (~9.6ms)" }],
+  "issues": []
+}
+```
+
 ### Interaction
 
 Tracking scripts return `status: "tracking"` first. The function named by `getDataFn` returns the full result. Items are capped at 50 (20 for frames) and sorted by relevance; `count` holds the total.
