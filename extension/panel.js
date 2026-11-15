@@ -46,8 +46,10 @@ document.documentElement.classList.remove('loading')
 
 // Settings: the theme, which follows DevTools unless the user picks one, and the side of the list
 const settings = document.getElementById('settings')
+// The theme of DevTools when the panel opens; DevTools says when it changes (Chrome 99)
+let devtoolsTheme = chrome.devtools?.panels?.themeName
 function applyTheme(theme) {
-  const dark = theme === 'dark' || (theme === 'devtools' && chrome.devtools?.panels?.themeName === 'dark')
+  const dark = theme === 'dark' || (theme === 'devtools' && devtoolsTheme === 'dark')
   document.documentElement.classList.toggle('dark', dark)
 }
 function applySide(side) {
@@ -55,11 +57,17 @@ function applySide(side) {
 }
 const chosen = { theme: saved.theme, side: saved.side }
 applyTheme(chosen.theme)
+// A panel that follows DevTools changes with it, without closing DevTools and opening it again
+chrome.devtools?.panels?.setThemeChangeHandler?.((theme) => {
+  devtoolsTheme = theme
+  applyTheme(chosen.theme)
+})
 applySide(chosen.side)
 for (const [name, value] of Object.entries(chosen)) settings.querySelector(`input[name="${name}"][value="${value}"]`).checked = true
 settings.addEventListener('change', (event) => {
   const { name, value } = event.target
   remember(name, value)
+  chosen[name] = value
   if (name === 'theme') applyTheme(value)
   if (name === 'side') applySide(value)
 })
