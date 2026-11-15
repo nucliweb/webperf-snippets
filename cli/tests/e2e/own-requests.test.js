@@ -123,16 +123,35 @@ async function withPage(fn) {
     await page.goto(`${mainUrl}/`, { waitUntil: "load" });
     await page.waitForTimeout(300);
     const run = (name) => page.evaluate(asExpression(name));
-    return await fn(run);
+    // A busy task, as on a loaded machine: it leaves a long animation frame behind. It runs from a
+    // timer because the code that evaluate() runs is not a task that Long Animation Frames report
+    const block = async (ms) => {
+      await page.evaluate(
+        (busyMs) =>
+          new Promise((resolve) =>
+            setTimeout(() => {
+              const end = performance.now() + busyMs;
+              while (performance.now() < end);
+              resolve();
+            }, 0)
+          ),
+        ms
+      );
+      await page.waitForTimeout(100);
+    };
+    return await fn(run, block);
   } finally {
     await browser.close();
   }
 }
 
-// Durations and timestamps change between runs; what is counted must not
+// Durations, timestamps and how many long frames the page has had change between runs; what is
+// counted from Resource Timing must not
 const stable = (value) =>
   JSON.parse(
-    JSON.stringify(value, (key, v) => (typeof v === "number" && /(Ms|duration|time|Time|ttfb)$/i.test(key) ? 0 : v))
+    JSON.stringify(value, (key, v) =>
+      typeof v === "number" && /(Ms|duration|time|Time|ttfb|longFrames)$/i.test(key) ? 0 : v
+    )
   );
 
 describe("snippets that make requests of their own", () => {
@@ -145,9 +164,10 @@ describe("snippets that make requests of their own", () => {
   }, 60000);
 
   it.each(READERS)("%s does not count the requests the other snippets made", async (name) => {
-    await withPage(async (run) => {
+    await withPage(async (run, block) => {
       const before = await run(name);
       for (const requester of REQUESTERS) await run(requester);
+      await block(120);
       const after = await run(name);
       expect(stable(after)).toEqual(stable(before));
     });
