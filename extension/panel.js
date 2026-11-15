@@ -6,7 +6,7 @@ import { readTrackingData, reloadPage, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
 import { auditFixPrompt, fixPrompt, hasIssuesToFix } from './lib/fix-prompt.js'
 import { createSettings } from './lib/settings.js'
-import { addToHistory, bySeverity, changeOf, compare, earlierOf, filterCounts, filterRows, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
+import { addToHistory, announceAudit, announceResult, bySeverity, changeOf, compare, earlierOf, filterCounts, filterRows, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
@@ -80,6 +80,13 @@ function setSidebar(expanded) {
 }
 toggle.addEventListener('click', () => setSidebar(document.body.classList.contains('sidebar-collapsed')))
 if (saved.sidebar === 'collapsed') setSidebar(false)
+
+// Says a line to a screen reader through the status region with that id, which the view that is open
+// has next to what changes. The same line twice is said once
+function announce(id, line) {
+  const status = document.getElementById(id)
+  if (status && status.textContent !== line) status.textContent = line
+}
 
 // Copies text and says so on the button for a moment
 async function copyFrom(button, text) {
@@ -274,7 +281,8 @@ function showAudit() {
       <button type="button" id="download-audit" class="secondary" title="Save the audit as a JSON file">Download JSON</button>
       <button type="button" id="fix-audit" class="secondary" hidden title="Copy a prompt to fix the errors and warnings of the audit in the code of the site, for an AI agent. It carries URLs and selectors of the inspected page">Prompt to fix</button>
     </div>
-    <div id="audit" aria-live="polite"></div>`
+    <div id="audit"></div>
+    <p id="audit-status" class="visually-hidden" role="status"></p>`
   document.getElementById('rerun-audit').addEventListener('click', runAudit)
   const json = () => JSON.stringify(report({ url: audit.url, date: audit.date, rows: audit.rows }), null, 2)
   document.getElementById('copy-audit').addEventListener('click', (event) => copyFrom(event.currentTarget, json()))
@@ -361,6 +369,7 @@ function renderAudit() {
   const view = document.getElementById('audit')
   if (!view || !audit) return
   view.dataset.done = String(audit.done)
+  announce('audit-status', announceAudit(audit))
   document.getElementById('rerun-audit').disabled = !audit.done
   for (const id of ['copy-audit', 'download-audit']) document.getElementById(id).disabled = !audit.done || Boolean(audit.error)
   // Once it is done, and only with something to fix
@@ -428,7 +437,8 @@ function showSnippet(snippet, { result: given, fromAudit = false, measured } = {
       }
       <a href="${escape(snippet.url)}" target="_blank" rel="noopener">Documentation</a>
     </div>
-    <div id="result" aria-live="polite"></div>`
+    <div id="result"></div>
+    <p id="result-status" class="visually-hidden" role="status"></p>`
   // A result opens at its top, wherever the view before it was
   main.scrollTop = 0
   document.getElementById('run').addEventListener('click', () => run(snippet))
@@ -501,6 +511,7 @@ async function show(snippet, work, button) {
   const result = document.getElementById('result')
   button.disabled = true
   result.innerHTML = '<p class="note">Running…</p>'
+  announce('result-status', 'Running.')
   let value
   try {
     value = await work()
@@ -521,6 +532,7 @@ function showResult(value, measured) {
   lastResult = value
   lastMeasured = measured
   document.getElementById('result').innerHTML = value === undefined ? '' : renderResult(value)
+  announce('result-status', value === undefined ? '' : announceResult(value))
   document.getElementById('clear').hidden = value === undefined
   const fix = document.getElementById('copy-fix-prompt')
   if (fix) fix.hidden = !hasIssuesToFix(value)
@@ -549,6 +561,7 @@ chrome.devtools.network?.onNavigated?.addListener(() => {
     'afterbegin',
     '<p class="note">The page navigated, which clears what the snippet recorded. Run the snippet again.</p>'
   )
+  announce('result-status', 'The page navigated, which clears what the snippet recorded. Run the snippet again.')
 })
 
 list.addEventListener('click', (event) => {

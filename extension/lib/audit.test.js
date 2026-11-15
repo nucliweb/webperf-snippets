@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { summarize, bySeverity, overview, report, reportFileName, fromReport, addToHistory, removeFromHistory, compare, previousOf, earlierOf, changeOf, filterRows, filterCounts } from './audit.js'
+import { announceAudit, announceResult, summarize, bySeverity, overview, report, reportFileName, fromReport, addToHistory, removeFromHistory, compare, previousOf, earlierOf, changeOf, filterRows, filterCounts } from './audit.js'
 
 test('summarize counts the issues of a result by severity and names the worst one', () => {
   const s = summarize({
@@ -347,4 +347,25 @@ test('the filter of the audit keeps the snippets with errors, with errors or war
   assert.deepEqual(filterCounts(rows), { errors: 2, issues: 3, all: 5 })
   // A snippet that failed counts as an error
   assert.deepEqual(filterRows([{ snippet: { id: 'x' }, summary: summarize({ status: 'error', error: 'It failed' }) }], 'errors').length, 1)
+})
+
+// What a screen reader hears: one line, where the view shows a table that changes
+test('announceResult says in one line what a result found', () => {
+  assert.equal(announceResult({ script: 'TTFB', status: 'ok', value: 1900, unit: 'ms', rating: 'poor' }), 'Result ready: 1,900 ms, poor. 1 warning.')
+  assert.equal(announceResult({ script: 'X', status: 'ok', issues: [{ severity: 'error', message: 'e' }, { severity: 'error', message: 'e' }, { severity: 'warning', message: 'w' }] }), 'Result ready. 2 errors and 1 warning.')
+  assert.equal(announceResult({ script: 'X', status: 'ok', issues: [{ severity: 'info', message: 'i' }] }), 'Result ready. Nothing to fix.')
+  assert.equal(announceResult({ script: 'X', status: 'error', error: 'No navigation entry' }), 'The snippet failed: No navigation entry')
+  assert.equal(announceResult({ script: 'INP', status: 'tracking', getDataFn: 'getINP' }), 'Recording. Use the page, then read the result.')
+})
+
+test('announceAudit says in one line where the audit is', () => {
+  const steps = [{ title: 'TTFB' }, { title: 'Script loading' }]
+  const row = (result) => ({ result, summary: summarize(result) })
+  const ok = row({ script: 'X', status: 'ok', issues: [] })
+  assert.equal(announceAudit({ steps, rows: [], reloading: true }), 'Reloading the page.')
+  assert.equal(announceAudit({ steps, rows: [] }), 'Running 1 of 2: TTFB.')
+  assert.equal(announceAudit({ steps, rows: [ok] }), 'Running 2 of 2: Script loading.')
+  assert.equal(announceAudit({ steps, rows: [ok, ok] }), '')
+  assert.equal(announceAudit({ steps, rows: [ok, ok], done: true }), 'Audit done. 2 snippets: 0 with errors, 0 with warnings, 2 with nothing to fix.')
+  assert.equal(announceAudit({ steps, rows: [], done: true, error: 'The page did not finish loading' }), 'The page did not finish loading')
 })
