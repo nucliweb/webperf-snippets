@@ -135,16 +135,23 @@
       });
     }
     return {
-      opportunities: opportunities.map(opportunity => ({
+      script: "Content-Visibility",
+      status: "ok",
+      count: opportunities.length,
+      details: {
+        highImpact: opportunities.filter(o => o.estimatedSavings.startsWith("High")).length,
+        threshold: threshold,
+        minHeight: minHeight,
+        minChildren: minChildren
+      },
+      items: opportunities.slice(0, 50).map(opportunity => ({
         selector: opportunity.selector,
         height: opportunity.height,
         distanceFromViewport: opportunity.distanceFromViewport,
         childElements: opportunity.childElements,
         estimatedSavings: opportunity.estimatedSavings
       })),
-      totalElements: opportunities.length,
-      highImpact: opportunities.filter(o => o.estimatedSavings.startsWith("High")).length,
-      elements: opportunities.map(o => o.element)
+      issues: []
     };
   }
   window.analyzeContentVisibilityOpportunities = analyzeContentVisibilityOpportunities;

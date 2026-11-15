@@ -486,7 +486,7 @@ describe("Content-Visibility", () => {
       const selectors = [
         ...result.items.map((i) => i.selector),
         ...result.issues.filter((i) => i.code === "missing-intrinsic-size").map((i) => i.target),
-        ...(opportunities.items ?? opportunities.opportunities ?? []).map((o) => o.selector),
+        ...opportunities.items.map((o) => o.selector),
       ];
       const matches = await page.evaluate(
         (list) =>
@@ -504,6 +504,21 @@ describe("Content-Visibility", () => {
     // Four elements with content-visibility, the two without a size as issues, and two opportunities
     expect(found.matches.length).toBeGreaterThanOrEqual(8);
     expect(found.matches.filter(([, n]) => n !== 1)).toEqual([]);
+  }, 60000);
+
+  it("returns its opportunities in the shape of a result, with the options it used", async () => {
+    const [byDefault, narrowed] = await onPage("/cv-repeated", async (page) => {
+      await page.waitForTimeout(400);
+      await page.evaluate(source("Loading/Content-Visibility"));
+      return page.evaluate(() => [window.analyzeContentVisibilityOpportunities(), window.analyzeContentVisibilityOpportunities({ minChildren: 10000 })]);
+    });
+    expect(Object.keys(byDefault)).toEqual(["script", "status", "count", "details", "items", "issues"]);
+    expect(byDefault).toEqual(expect.objectContaining({ script: "Content-Visibility", status: "ok", count: 2, issues: [] }));
+    expect(byDefault.details).toEqual({ highImpact: 0, threshold: 0, minHeight: 100, minChildren: 5 });
+    expect(byDefault.items).toHaveLength(2);
+    expect(Object.keys(byDefault.items[0])).toEqual(["selector", "height", "distanceFromViewport", "childElements", "estimatedSavings"]);
+    expect(narrowed).toEqual(expect.objectContaining({ count: 0, items: [] }));
+    expect(narrowed.details.minChildren).toBe(10000);
   }, 60000);
 });
 
