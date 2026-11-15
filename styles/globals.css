@@ -102,6 +102,13 @@ table td:first-child > code {
   opacity: 1;
 }
 
+/* A touch screen has no hover to reveal the button, so it stays in view there */
+@media (hover: none) {
+  .wp-snippet-actions {
+    opacity: 1;
+  }
+}
+
 .wp-snippet-copy {
   display: block;
   padding: 0.375rem;
@@ -303,7 +310,10 @@ table td:first-child > code {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wp-footer a {
+  .wp-footer a,
+  .wp-snippet-actions,
+  .wp-snippet-copy,
+  .wp-snippet-prompt {
     transition: none;
   }
 }

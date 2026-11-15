@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Snippet } from "./Snippet";
 
+const CSS = readFileSync(new URL("../styles/globals.css", import.meta.url), "utf8");
 const CODE = "(() => ({ script: 'Demo', status: 'ok' }))()";
 const PROMPT = "# Run the Demo snippet with webperf-snippets\n\nRun this measurement with the CLI.";
 
@@ -32,6 +34,27 @@ describe("Snippet", () => {
   it("keeps the Copy code button", () => {
     const html = renderToStaticMarkup(<Snippet code={CODE} prompt={PROMPT} />);
     expect(html).toMatch(/aria-label="Copy code"/);
+  });
+
+  it("gives the Copy code button its type, and hides its icons from a screen reader", () => {
+    const html = renderToStaticMarkup(<Snippet code={CODE} />);
+    const button = html.match(/<button[^>]*class="wp-snippet-copy"[^>]*>.*?<\/button>/)[0];
+    expect(button).toMatch(/^<button type="button"/);
+    expect(button).toMatch(/<svg[^>]* aria-hidden="true"/);
+  });
+
+  it("has a live region that announces the copy of the code", () => {
+    const html = renderToStaticMarkup(<Snippet code={CODE} />);
+    expect(html).toMatch(/<div class="wp-snippet-actions">.*<span class="wp-sr-only" aria-live="polite"><\/span><\/div>/);
+  });
+
+  it("shows the Copy code button where there is no hover to reveal it, as on a touch screen", () => {
+    expect(CSS).toMatch(/@media \(hover: none\) \{\s*\.wp-snippet-actions \{\s*opacity: 1;/);
+  });
+
+  it("does not animate its buttons for a visitor who asks for less motion", () => {
+    const reduced = CSS.match(/@media \(prefers-reduced-motion: reduce\) \{[^@]*/g).join("\n");
+    for (const selector of [".wp-snippet-actions", ".wp-snippet-copy", ".wp-snippet-prompt"]) expect(reduced).toContain(selector);
   });
 
   it("highlights the code in the HTML it renders, so the browser runs no highlighter", () => {
