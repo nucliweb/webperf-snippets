@@ -24,6 +24,8 @@ npx playwright install chromium
 
 Without it, the tools answer with that same command, and an agent with a terminal can run it and call the tool again.
 
+The server may not see the variables of your shell. A client built with the MCP SDK starts a stdio server with a short list of them: `HOME`, `LOGNAME`, `PATH`, `SHELL`, `TERM` and `USER` on macOS and Linux. If you install Chromium in a folder of your own with `PLAYWRIGHT_BROWSERS_PATH`, give the server that variable in the `env` of its configuration, as with [`CRUX_API_KEY`](#crux-field-data); otherwise it looks in the default folder and does not find the browser.
+
 ### Claude Code
 
 ```bash
