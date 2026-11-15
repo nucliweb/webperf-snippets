@@ -111,6 +111,8 @@ The Interaction snippets (`Interactions`, `Input-Latency-Breakdown`, `LongTask`,
 
 The CLI waits for the browser to report the timing of the last interaction before it reads the snippets. A script that ends right after a click still reads the page before anything the click sets in motion later has happened, such as a request or an animation, so end it with a `wait` step when you want to measure that.
 
+The file is checked before the browser opens, and a step that is wrong exits with code `2` and a message that names it. On the page, a step waits up to 5 seconds for its element; when it does not appear, the run stops with the number of the step and exit code `1`.
+
 Interaction audit (long tasks, long animation frames, scroll, layout shifts, forced layouts, interaction latency). It scrolls the page, or runs your `--interact-script`; the steps that need a click are skipped when the script has none:
 
 ```bash

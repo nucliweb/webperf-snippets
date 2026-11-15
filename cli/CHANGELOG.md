@@ -15,6 +15,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 - `--json` with `--markdown` exits with `2`: it printed the markdown report, which a script that asked for JSON could not parse.
 - Without a URL or `--matrix`, the usage goes to stderr, as every other usage error, and stdout stays empty for a pipe or a redirect. `--help` still prints it to stdout.
 - An unknown `--workflow` lists the workflows there are.
+- The file of `--interact-script` is read and checked before the browser opens, and a wrong one exits with `2` and a message that names the file and the step, such as `step 2 (click) needs a "selector"`: a file that is not there or is not JSON, one without its `interactions` list or with none, an unknown action, a `click`, `hover` or `type` without its `selector`, a `type` without its `text`, and a `wait` without its `ms`. Each of them loaded the page first and ended in a stack trace with exit code `1`.
+- A step of `--interact-script` waits 5 seconds for its element, not the 30 of Playwright, and when it fails the CLI names it in one line, without a stack trace: `Step 2 of the interactions (click "#buy") failed: page.click: Timeout 5000ms exceeded.` The `interactions` of `run_snippet` and `run_workflow` of the MCP server wait the same 5 seconds, as `interact` already did, and their error names the step.
 
 ---
 

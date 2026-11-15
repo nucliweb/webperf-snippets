@@ -5,6 +5,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { runSnippets, VIEWPORT_PRESETS } from "../../src/runner.js";
 import { loadSnippet } from "../../src/load-snippet.js";
+import { execFile } from "node:child_process";
+import { tmpdir } from "node:os";
+import { cliEnv } from "../helpers/cli-env.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_HTML = readFileSync(join(HERE, "../fixtures/index.html"), "utf8");
@@ -92,5 +95,25 @@ describe("runSnippets with interactScript", () => {
       }
     },
     30000
+  );
+});
+
+describe("the CLI with a step whose element is not on the page", () => {
+  it(
+    "names the step in one line, after the 5 s a step waits for its element, and exits with 1",
+    async () => {
+      const file = join(tmpdir(), `absent-${process.pid}.json`);
+      writeFileSync(file, JSON.stringify({ interactions: [{ action: "scroll" }, { action: "click", selector: "#not-on-the-page" }] }));
+      const { code, stdout, stderr } = await new Promise((resolve) => {
+        execFile("node", [join(HERE, "../../src/bin.js"), baseUrl, "--snippet", "LongTask", "--wait", "0", "--interact-script", file], { env: cliEnv() }, (err, stdout, stderr) =>
+          resolve({ code: err ? err.code : 0, stdout, stderr })
+        );
+      });
+      unlinkSync(file);
+      expect(stderr).toBe('Step 2 of the interactions (click "#not-on-the-page") failed: page.click: Timeout 5000ms exceeded.\n');
+      expect(stdout).toBe("");
+      expect(code).toBe(1);
+    },
+    60000
   );
 });
