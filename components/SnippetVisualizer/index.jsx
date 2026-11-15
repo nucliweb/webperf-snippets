@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useId } from "react";
 import { CWVRenderer } from "./CWVRenderer";
 import { FontsRenderer } from "./FontsRenderer";
 import { AuditRenderer } from "./AuditRenderer";
@@ -31,6 +31,8 @@ export function SnippetVisualizer() {
   const [copied, setCopied] = useState(false);
   const [parseError, setParseError] = useState(null);
   const [result, setResult] = useState(null);
+  const inputId = useId();
+  const errorId = useId();
 
   const handleReset = useCallback(() => {
     setInput("");
@@ -81,7 +83,12 @@ export function SnippetVisualizer() {
   return (
     <div style={{ maxWidth: "800px" }}>
       <div style={{ marginBottom: "24px" }}>
+        <label htmlFor={inputId} className="wp-sr-only">Result of a snippet, as JSON</label>
         <textarea
+          id={inputId}
+          className="wp-viz-input"
+          aria-invalid={parseError ? "true" : "false"}
+          aria-describedby={errorId}
           value={input}
           onChange={handleChange}
           placeholder={PLACEHOLDER}
@@ -96,7 +103,6 @@ export function SnippetVisualizer() {
             border: `1px solid ${parseError ? "#ef4444" : "rgba(128,128,128,0.3)"}`,
             background: "rgba(128,128,128,0.05)",
             resize: "vertical",
-            outline: "none",
             boxSizing: "border-box",
             color: "inherit",
           }}
@@ -110,13 +116,13 @@ export function SnippetVisualizer() {
             minHeight: "20px",
           }}
         >
-          {parseError ? (
-            <div style={{ color: "#ef4444", fontSize: "0.8rem" }}><Icon emoji="✗" />{parseError}</div>
-          ) : (
-            <span />
-          )}
+          {/* Always in the page: a screen reader announces what appears in a region it already knows */}
+          <div id={errorId} role="alert" style={{ color: "#ef4444", fontSize: "0.8rem" }}>
+            {parseError && <><Icon emoji="✗" />{parseError}</>}
+          </div>
           {input && (
             <button
+              type="button"
               onClick={handleReset}
               style={{
                 fontSize: "0.8rem",
@@ -147,7 +153,9 @@ export function SnippetVisualizer() {
             <span style={{ color: "#6b7280", fontSize: "0.8rem", fontFamily: "monospace" }}>
               {result.script ?? "unknown"}
             </span>
+            <span role="status" className="wp-sr-only">{copied ? "Copied as Markdown" : ""}</span>
             <button
+              type="button"
               onClick={handleCopyMarkdown}
               style={{
                 fontSize: "0.8rem",

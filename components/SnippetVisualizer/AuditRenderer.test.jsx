@@ -73,4 +73,24 @@ describe("SnippetVisualizer", () => {
   it("renders without a result", () => {
     expect(renderToStaticMarkup(<SnippetVisualizer />)).toContain("<textarea");
   });
+
+  const empty = renderToStaticMarkup(<SnippetVisualizer />);
+
+  it("names its field with a label, so a screen reader says what to paste", () => {
+    const id = empty.match(/<textarea[^>]* id="([^"]+)"/)?.[1];
+    expect(id).toBeTruthy();
+    expect(empty).toMatch(new RegExp(`<label[^>]* for="${id}"[^>]*>Result of a snippet, as JSON</label>`));
+  });
+
+  it("keeps the focus ring of its field", () => {
+    expect(empty).not.toMatch(/outline:\s*none/);
+    expect(empty).toMatch(/<textarea[^>]* class="wp-viz-input"/);
+  });
+
+  it("has the place of its error from the start, so a screen reader announces the error when it comes", () => {
+    const id = empty.match(/<textarea[^>]* aria-describedby="([^"]+)"/)?.[1];
+    expect(id).toBeTruthy();
+    expect(empty).toMatch(new RegExp(`<div[^>]* id="${id}"[^>]* role="alert"[^>]*></div>`));
+    expect(empty).toMatch(/<textarea[^>]* aria-invalid="false"/);
+  });
 });
