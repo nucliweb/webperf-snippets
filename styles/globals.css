@@ -686,6 +686,7 @@ table td:first-child > code {
 
 /* A snippet result read through its view in the visualizer (components/SnippetVisualizer/AuditRenderer.jsx).
    The tones are the ones of the icons, so they follow the dark theme. */
+.wp-viz-input:focus-visible { outline: 2px solid var(--wp-button-fg-hover); outline-offset: 2px; }
 .wp-viz { --viz-border: rgba(128, 128, 128, 0.2); --viz-row: rgba(128, 128, 128, 0.1); font-size: 0.875rem; }
 .wp-viz h3 { margin: 0 0 0.5rem; font-size: 0.875rem; font-weight: 600; }
 .wp-viz-head { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; }
