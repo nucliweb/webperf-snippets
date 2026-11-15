@@ -342,7 +342,7 @@ table td:first-child > code {
 }
 .hljs-comment,
 .hljs-quote {
-  color: #998;
+  color: #6a6a5c;
   font-style: italic;
 }
 .hljs-keyword,
@@ -408,7 +408,7 @@ table td:first-child > code {
 }
 .dark .hljs-comment,
 .dark .hljs-quote {
-  color: #5c6370;
+  color: #8b93a1;
   font-style: italic;
 }
 .dark .hljs-doctag,
