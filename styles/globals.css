@@ -203,6 +203,44 @@ table td:first-child > code {
 }
 
 /* The figure is the container, so the reserved height follows the width of the column */
+/* The poster of LazyVideoPlayer: a button over a black box of the size of the video, with the play
+   icon in its middle */
+.wp-video-poster {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: #000;
+  cursor: pointer;
+}
+.wp-video-poster img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.wp-video-play {
+  position: absolute;
+  inset: 0;
+  width: 64px;
+  height: 64px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+}
+.wp-video-poster:hover .wp-video-play {
+  background: rgba(0, 0, 0, 0.85);
+}
+.wp-video-poster:focus-visible {
+  outline: 2px solid var(--wp-button-fg-hover);
+  outline-offset: 2px;
+}
+
 .wp-demo {
   margin: 1.5rem 0 0;
   container-type: inline-size;
