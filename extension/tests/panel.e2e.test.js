@@ -235,6 +235,26 @@ test('the arrows move through the list, Enter opens a snippet and Ctrl+Enter run
   await panel.waitForSelector('#result .raw pre', { state: 'attached' })
 })
 
+// Opening a snippet draws the list again, to mark the one that is open
+test('the focus stays on the snippet that Enter or a click opens, so the arrows go on from it', async () => {
+  const ids = await panel.locator('#list button').evaluateAll((buttons) => buttons.map((b) => b.dataset.id))
+  const focused = () => panel.evaluate(() => document.activeElement?.dataset?.id ?? document.activeElement?.tagName)
+  await panel.locator('main').click()
+  await panel.keyboard.press('/')
+  await panel.keyboard.press('ArrowDown')
+  await panel.keyboard.press('ArrowDown')
+  await panel.keyboard.press('Enter')
+  assert.equal(await panel.textContent('main h1'), snippets.find((s) => s.id === ids[1]).title)
+  assert.equal(await focused(), ids[1])
+  assert.equal(await panel.evaluate(() => document.activeElement.getAttribute('aria-current')), 'true')
+  await panel.keyboard.press('ArrowDown')
+  assert.equal(await focused(), ids[2])
+  await panel.click(`#list button[data-id="${ids[4]}"]`)
+  assert.equal(await focused(), ids[4])
+  await panel.keyboard.press('ArrowUp')
+  assert.equal(await focused(), ids[3])
+})
+
 test('the panel opens on the last snippet it showed', async () => {
   await panel.click('#list button[data-id="TTFB"]')
   await reopenPanel()

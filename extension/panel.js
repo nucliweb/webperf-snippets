@@ -90,6 +90,9 @@ async function copyFrom(button, text) {
 }
 
 function showList() {
+  // Drawing the list replaces its buttons. The one with the focus is found again by its snippet, or
+  // the focus falls to the page and the arrows stop moving through the list
+  const focused = list.contains(document.activeElement) ? document.activeElement.dataset.id : null
   const groups = groupByCategory(filterSnippets(snippets, search.value))
   list.innerHTML = groups.length
     ? groups
@@ -101,6 +104,7 @@ function showList() {
         )
         .join('')
     : '<p class="empty">No snippet matches.</p>'
+  if (focused) listButtons().find((button) => button.dataset.id === focused)?.focus()
 }
 
 // The home page: what the snippets are, how to use them, the audit and the categories

@@ -20,6 +20,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The comments of the code blocks have the contrast to be read: 4.9:1 in the light theme and 5.1:1 in the dark one, over the 4.5:1 that WCAG asks of text. They had 2.7:1 and 2.6:1.
 - The Copy code button of a snippet stays in view on a touch screen, where there is no hover to reveal it, and the copy is announced to a screen reader, which only got an icon that changed. The buttons of a snippet do not animate for a visitor who asks for less motion.
 - The screenshots of the home page and of the [CLI](https://webperf-snippets.net/CLI) page come at the width of the column they are in: their `sizes` said 85% of the viewport, so every screen got the 1200 px file, also a phone or a column of 672 px. Their alternative text says what the screenshot shows.
+- In the panel of the extension, the focus stays on the snippet that Enter or a click opens. Opening it draws the list again, and the focus fell to the page, so the arrows stopped moving through the list until the search box or a snippet was clicked.
 - Content-Visibility left three of its helpers as globals of the page it measures (`uniqueSelector`, `lacksIntrinsicSize` and `detectContentVisibility`), where a script of the page with the same name could replace them or be replaced. Content-Visibility and CSS-Media-Queries-Analysis declare their functions inside an IIFE, as every other snippet, and leave on `window` only the function their page documents: `analyzeContentVisibilityOpportunities()` and `analyzeCSSMediaQueries()`.
 
 ---
