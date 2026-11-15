@@ -107,12 +107,12 @@ describe("a baseline of the MCP server", () => {
     expect(compareWithBaseline(prepareBaseline({ baseline: path }, createRuns()), regressed).metrics).toEqual(cli.metrics);
   });
 
-  it("finds no evidence in five runs that overlap, though their median beats the threshold", () => {
+  it("finds no evidence in five runs that overlap, though their median beats the threshold: inconclusive, not a regression", () => {
     const runs = createRuns();
     const { results, ...kept } = pageOfRuns([2100, 2140, 2175, 2210, 2250]);
     const runId = runs.keep(results, kept);
     const comparison = compareWithBaseline(prepareBaseline({ baseline: runId }, runs), pageOfRuns([2000, 2050, 2900, 2950, 3000]));
-    expect(comparison.metrics.LCP).toMatchObject({ verdict: "unchanged", stats: { p: expect.closeTo(0.345, 2) } });
+    expect(comparison.metrics.LCP).toMatchObject({ verdict: "inconclusive", stats: { p: expect.closeTo(0.345, 2) } });
     expect(comparison.regressions).toEqual([]);
   });
 

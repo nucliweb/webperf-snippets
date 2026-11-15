@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readBaseline, loadBaseline, parseThreshold, thresholdsWith, DEFAULT_THRESHOLDS, compareRun, compareMatrix } from "../../src/baseline.js";
+import { readBaseline, loadBaseline, parseThreshold, thresholdsWith, DEFAULT_THRESHOLDS, compareRun, compareMatrix, inconclusiveForTheWorse } from "../../src/baseline.js";
 import { cliVersion } from "../../src/report-to.js";
 
 const CONDITIONS = { viewport: "mobile", workflow: "core-web-vitals", waitMs: 3000, cliVersion };
@@ -163,13 +163,43 @@ describe("the verdict of a metric", () => {
     expect(lcp.stats).toEqual({ p: 0.0278, shift: 500, ci: [20, 600], method: "exact" });
   });
 
-  it("is unchanged with five runs a side when the change beats the threshold but the runs give no evidence", () => {
+  it("is inconclusive with five runs a side when the change beats the threshold for the worse but the runs give no evidence", () => {
     // Three runs much slower and two faster: the median moved, the runs do not say the page did
     const base = page({ runs: runsOf({ LCP: [2100, 2140, 2175, 2210, 2250] }) });
     const current = page({ runs: runsOf({ LCP: [2000, 2050, 2900, 2950, 3000] }) });
     const lcp = compare(base, current).metrics.LCP;
-    expect(lcp).toMatchObject({ baseline: 2175, current: 2900, verdict: "unchanged" });
+    expect(lcp).toMatchObject({ baseline: 2175, current: 2900, delta: 725, verdict: "inconclusive" });
     expect(lcp.stats.p).toBe(0.3452);
+  });
+
+  it("is inconclusive with five runs a side when the change beats the threshold for the better but the runs give no evidence", () => {
+    const base = page({ runs: runsOf({ LCP: [2000, 2050, 2900, 2950, 3000] }) });
+    const current = page({ runs: runsOf({ LCP: [2100, 2140, 2175, 2210, 2250] }) });
+    const lcp = compare(base, current).metrics.LCP;
+    expect(lcp).toMatchObject({ baseline: 2900, current: 2175, delta: -725, verdict: "inconclusive" });
+    expect(lcp.stats.p).toBeGreaterThanOrEqual(0.05);
+  });
+
+  // One slow run of the baseline leaves p at 0.0754: a +50 % LCP the runs cannot tell from the noise
+  it("is inconclusive, not unchanged, when one slow run of the baseline keeps p over 0.05", () => {
+    const base = page({ runs: runsOf({ LCP: [2000, 2010, 2020, 2030, 3600] }) });
+    const current = page({ runs: runsOf({ LCP: [3000, 3010, 3020, 3030, 3040] }) });
+    const lcp = compare(base, current).metrics.LCP;
+    expect(lcp).toMatchObject({ verdict: "inconclusive", stats: { p: 0.0754 } });
+  });
+
+  it("is unchanged with five runs a side when the change stays under the threshold, whatever p says", () => {
+    const base = page({ runs: runsOf({ LCP: [2000, 2010, 2020, 2030, 2040] }) });
+    const current = page({ runs: runsOf({ LCP: [2050, 2060, 2070, 2080, 2090] }) });
+    const lcp = compare(base, current).metrics.LCP;
+    expect(lcp).toMatchObject({ delta: 50, verdict: "unchanged", stats: { p: 0.004 } });
+  });
+
+  it("is never inconclusive without statistics: under five runs a side the range decides, as before", () => {
+    const base = page({ runs: runsOf({ LCP: [2000, 2100, 2900] }) });
+    const current = page({ runs: runsOf({ LCP: [2100, 2700, 2800] }) });
+    expect(compare(base, current).metrics.LCP).toMatchObject({ delta: 600, verdict: "unchanged" });
+    expect(compare(page({ metrics: { LCP: 2100 } }), page({ metrics: { LCP: 2480 } })).metrics.LCP.verdict).toBe("regressed");
   });
 
   it("is improved with five runs a side when it gets better beyond the threshold and p < 0.05", () => {
@@ -198,6 +228,20 @@ describe("the verdict of a metric", () => {
     const { metrics } = compare(page({ metrics: { LCP: 2100, INP: 120 } }), page({ metrics: { LCP: 2100 } }));
     expect(metrics.INP).toEqual({ baseline: 120, verdict: "not measured" });
     expect(Object.keys(metrics)).toEqual(["LCP", "INP"]);
+  });
+});
+
+describe("the metrics inconclusive for the worse", () => {
+  it("are the inconclusive metrics that got worse, never the ones that got better or the other verdicts", () => {
+    const metrics = {
+      LCP: { delta: 725, verdict: "inconclusive" },
+      FCP: { delta: -300, verdict: "inconclusive" },
+      TTFB: { delta: 400, verdict: "regressed" },
+      CLS: { delta: 0.01, verdict: "unchanged" },
+      INP: { baseline: 120, verdict: "not measured" },
+    };
+    expect(inconclusiveForTheWorse({ metrics })).toEqual(["LCP"]);
+    expect(inconclusiveForTheWorse({ metrics: {} })).toEqual([]);
   });
 });
 
@@ -486,6 +530,14 @@ describe("the warnings of a comparison", () => {
     const comparison = compare(page({ url: "https://example.com/news/" }), page());
     expect(comparison).toMatchObject({ file: "baseline.json", url: "https://example.com/news/", runs: { count: 1 } });
     expect(compare(page({ runs: runsOf({ LCP: [1, 2, 3] }) }), page()).runs).toEqual({ count: 3, medianBy: "LCP" });
+  });
+
+  // A baseline measured in the same run has no file: its URL names it, and live says where it came from
+  it("go with the URL of a live baseline, measured in this run, and no file", () => {
+    const comparison = compareRun(page({ url: "https://example.com/" }), page({ url: "https://pr-1.example.net/" }), { live: true, thresholds: DEFAULT_THRESHOLDS });
+    expect(comparison).toMatchObject({ live: true, url: "https://example.com/", runs: { count: 1 } });
+    expect(comparison).not.toHaveProperty("file");
+    expect(compare(page(), page())).not.toHaveProperty("live");
   });
 });
 

@@ -49,7 +49,7 @@ The other failures of a budget are about the run, so the fix is in the run too. 
 
 The agent lowers `--runs` to finish sooner, decides from one call of `run_snippet`, or measures again until a load passes.
 
-One page load is one sample, and one run has nothing to check a change against. Five runs of 2100 to 2250 ms against 2000, 2050, 2900, 2950 and 3000 ms compare as `unchanged (no evidence: p = 0.35)`, and one run of each side, 2150 against 2900 ms, as `regressed`. Measuring again until a load passes picks the best sample, and reports it as the page.
+One page load is one sample, and one run has nothing to check a change against. Five runs of 2100 to 2250 ms against 2000, 2050, 2900, 2950 and 3000 ms compare as `inconclusive (no evidence: p = 0.35; measure again, or with more runs)`, and one run of each side, 2150 against 2900 ms, as `regressed`. Measuring again until a load passes picks the best sample, and reports it as the page.
 
 The statistics of `--baseline` need five runs on each side. With fewer on either side, the verdict has no `stats`, and a change only has to beat its threshold and the range of the baseline. A baseline of one run has only the threshold.
 

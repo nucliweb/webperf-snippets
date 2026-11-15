@@ -35,6 +35,16 @@ describe("--version", () => {
   }, 30000);
 });
 
+describe("--help", () => {
+  it("lists a live baseline, --max-runs and --fail-on-inconclusive", async () => {
+    const { code, stdout } = await cli("--help");
+    expect(code).toBe(0);
+    expect(stdout).toMatch(/^\s+--baseline <file\|url>\s/m);
+    expect(stdout).toMatch(/^\s+--max-runs <n>\s/m);
+    expect(stdout).toMatch(/^\s+--fail-on-inconclusive\s/m);
+  }, 30000);
+});
+
 // Each of these stops before the browser opens, so the URL is never loaded
 describe("a wrong use of the options", () => {
   const URL = "http://localhost:9";

@@ -286,6 +286,10 @@ describe("--baseline fails before opening the browser", () => {
     ["a threshold without its unit", () => ["--baseline", invalid("page.json", '{"url":"https://example.com/","results":[]}'), "--threshold", "LCP=200"], /Invalid threshold "LCP=200"/],
     ["--threshold without --baseline", () => ["--threshold", "LCP=15%"], /--threshold needs --baseline/],
     ["--fail-on-regression without --baseline", () => ["--fail-on-regression"], /--fail-on-regression needs --baseline/],
+    ["--fail-on-inconclusive without --baseline", () => ["--fail-on-inconclusive"], /--fail-on-inconclusive needs --baseline/],
+    ["--max-runs without a live baseline", () => ["--baseline", invalid("page.json", '{"url":"https://example.com/","results":[]}'), "--runs", "5", "--max-runs", "7"], /--max-runs needs a live baseline: --baseline with the URL/],
+    ["--max-runs without --runs", () => ["--baseline", `${base}/fast`, "--max-runs", "7"], /--max-runs needs --runs/],
+    ["--max-runs not greater than --runs", () => ["--baseline", `${base}/fast`, "--runs", "5", "--max-runs", "5"], /Invalid --max-runs "5": use a whole number greater than --runs \(5\) and at most 9/],
   ])("with exit code 2 for %s", async (_, args, message) => {
     const before = requests;
     const { code, stderr, said: output } = await cli(`${base}/fast`, ...args());
@@ -293,4 +297,41 @@ describe("--baseline fails before opening the browser", () => {
     expect(stderr).toMatch(message);
     expect(requests).toBe(before);
   }, 30000);
+
+  it("with exit code 2 for a live baseline with --matrix", async () => {
+    const matrix = invalid("live-matrix.json", JSON.stringify({ urls: [`${base}/fast`], devices: ["mobile"] }));
+    const before = requests;
+    const { code, stderr, said: output } = await cli("--matrix", matrix, "--baseline", `${base}/fast`);
+    expect(code, output).toBe(2);
+    expect(stderr).toContain("A live baseline (--baseline with a URL) compares one page, so it does not take --matrix");
+    expect(requests).toBe(before);
+  }, 30000);
+});
+
+describe("--baseline with a URL, a live baseline", () => {
+  it("measures both pages in this run, alternating their runs, and exits with 1 for a slower page with --fail-on-regression", async () => {
+    const { code, stdout, stderr, said: output } = await cli(`${base}/slow`, "--snippet", "LCP", "--runs", "2", "--wait", WAIT_MS, "--baseline", `${base}/fast`, "--fail-on-regression", "--json");
+    expect(code, output).toBe(1);
+    const { baseline, runs } = JSON.parse(stdout);
+    expect(baseline).toMatchObject({ live: true, url: `${base}/fast`, runs: { count: 2, medianBy: "LCP" } });
+    expect(baseline).not.toHaveProperty("file");
+    expect(baseline.metrics.LCP.verdict, output).toBe("regressed");
+    expect(runs.count).toBe(2);
+    expect(stderr).toMatch(new RegExp(`Regression against ${base}/fast: LCP ▲ \\+\\d+ms`));
+    const progress = stderr.split("\n").filter((line) => line.startsWith("["));
+    expect(progress).toEqual([
+      `[1/4] baseline ${base}/fast · run 1/2`,
+      `[2/4] current ${base}/slow · run 1/2`,
+      `[3/4] baseline ${base}/fast · run 2/2`,
+      `[4/4] current ${base}/slow · run 2/2`,
+    ]);
+  }, 120000);
+
+  // 400 ms keeps the noise of a busy machine on one run a side far from the threshold
+  it("exits with 0 for the same page on both sides, and names the baseline by its URL in the report", async () => {
+    const { code, stdout, said: output } = await cli(`${base}/fast`, "--snippet", "LCP", "--wait", WAIT_MS, "--baseline", `${base}/fast`, "--threshold", "LCP=400ms", "--fail-on-regression");
+    expect(code, output).toBe(0);
+    expect(stdout).toContain(`Compared with ${base}/fast (measured in this run, 1 run)`);
+    expect(stdout).toMatch(/LCP\s+\S+\s+\S+\s+\S+ [−+]?\d+ms \([−+]?\d+%\)\s+unchanged/);
+  }, 120000);
 });

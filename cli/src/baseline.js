@@ -99,12 +99,18 @@ function statsOf(base, current, delta) {
 }
 
 // A regression must beat the threshold of its metric and, with five runs a side, be unlikely to come
-// from the noise of the runs (p < 0.05). With fewer, when the baseline has several runs, it must beat
-// the worst of them: a median inside the range of the baseline is noise the baseline already had.
+// from the noise of the runs (p < 0.05). A change that beats its threshold without that evidence is
+// inconclusive: the runs can tell neither a change nor its absence, so more runs, or another
+// measurement, decide. With fewer runs, when the baseline has several, it must beat the worst of them:
+// a median inside the range of the baseline is noise the baseline already had.
 function verdict(base, current, threshold, stats) {
   const worse = current.value - base.value > threshold;
   const better = base.value - current.value > threshold;
-  if (stats) return stats.p < ALPHA ? (worse ? "regressed" : better ? "improved" : "unchanged") : "unchanged";
+  if (stats) {
+    if (!worse && !better) return "unchanged";
+    if (stats.p >= ALPHA) return "inconclusive";
+    return worse ? "regressed" : "improved";
+  }
   if (worse && (!base.range || current.value > base.range.max)) return "regressed";
   if (better && (!base.range || current.value < base.range.min)) return "improved";
   return "unchanged";
@@ -278,12 +284,21 @@ function warningsOf(base, current, metrics) {
   return warnings;
 }
 
+// The metrics whose change beat their threshold for the worse without the evidence of the runs. Every
+// metric is better lower, CLS included, so a positive change is worse.
+export function inconclusiveForTheWorse({ metrics }) {
+  return Object.entries(metrics)
+    .filter(([, m]) => m.verdict === "inconclusive" && m.delta > 0)
+    .map(([metric]) => metric);
+}
+
 // A page against its baseline, as the `baseline` field of its JSON. The runs of the baseline say how
-// much to trust its values, in the header of the reports.
-export function compareRun(base, current, { file, thresholds = DEFAULT_THRESHOLDS }) {
+// much to trust its values, in the header of the reports. A baseline read from a file names it; one
+// measured in the same run, a live baseline, has no file, and its URL names it.
+export function compareRun(base, current, { file, live = false, thresholds = DEFAULT_THRESHOLDS }) {
   const metrics = compareMetrics(base, current, thresholds);
   return {
-    file,
+    ...(live ? { live: true } : { file }),
     url: base.url,
     runs: base.runs ? { count: base.runs.count, medianBy: base.runs.medianBy } : { count: 1 },
     metrics,
