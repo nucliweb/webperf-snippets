@@ -74,7 +74,13 @@ before(async () => {
       runtime: { getManifest: () => manifest },
       devtools: {
         // openResource records what it would open in Sources
-        panels: { themeName: 'default', openResource: (url) => (window.__opened ??= []).push(url) },
+        // The theme of DevTools is the light one unless a test saves another, and a test changes it
+        // while the panel is open with window.__themeChanged(theme)
+        panels: {
+          themeName: localStorage.getItem('test:devtools-theme') ?? 'default',
+          setThemeChangeHandler: (handler) => (window.__themeChanged = handler),
+          openResource: (url) => (window.__opened ??= []).push(url),
+        },
         inspectedWindow: {
           eval: (e, callback) => window.__inspect(e).then(([value, exception]) => callback(value, exception)),
           reload: () => window.__reloadTarget(),
@@ -370,6 +376,64 @@ test('the panel opens with its defaults when the storage brings a theme or a sid
   } finally {
     // The page error of the panel that did not open is what the test reports, not the ones after it
     await panel.evaluate(() => ['sync:theme', 'sync:side'].forEach((key) => localStorage.removeItem(key)))
+    await reopenPanel()
+  }
+})
+
+test('the panel follows the theme of DevTools when it changes, unless the user chose one', async () => {
+  const isDark = () => panel.evaluate(() => document.documentElement.classList.contains('dark'))
+  const choose = async (theme) => {
+    await panel.click('#open-settings')
+    await panel.check(`input[name="theme"][value="${theme}"]`)
+    await panel.click('#settings .close')
+  }
+  assert.equal(await isDark(), false)
+  // DevTools goes dark while the panel is open
+  await panel.evaluate(() => window.__themeChanged('dark'))
+  assert.equal(await isDark(), true)
+  await panel.evaluate(() => window.__themeChanged('default'))
+  assert.equal(await isDark(), false)
+  // A theme the user chose stays, whatever DevTools does
+  await choose('light')
+  await panel.evaluate(() => window.__themeChanged('dark'))
+  assert.equal(await isDark(), false)
+  // Back to following DevTools, which is dark now
+  await choose('devtools')
+  assert.equal(await isDark(), true)
+  await panel.evaluate(() => window.__themeChanged('default'))
+  assert.equal(await isDark(), false)
+})
+
+test('the panel opens dark in a dark DevTools, with a result that reads on its background', async () => {
+  await panel.evaluate(() => localStorage.setItem('test:devtools-theme', 'dark'))
+  try {
+    await reopenPanel()
+    assert.equal(await panel.evaluate(() => document.documentElement.classList.contains('dark')), true)
+    await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+    await panel.click('#list button[data-id="TTFB"]')
+    await resultOf('#run')
+    // The text of the page and of the result against the background painted under them
+    const contrast = await panel.evaluate(() => {
+      const rgb = (value) => value.match(/[\d.]+/g).slice(0, 3).map(Number)
+      const channel = (c) => (c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4)
+      const luminance = ([r, g, b]) => 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+      const background = (el) => {
+        for (let node = el; node; node = node.parentElement) {
+          const color = getComputedStyle(node).backgroundColor
+          if (!/rgba\(.*, 0\)$|transparent/.test(color)) return rgb(color)
+        }
+        return [255, 255, 255]
+      }
+      return ['main h1', '#result'].map((selector) => {
+        const el = document.querySelector(selector)
+        const [hi, lo] = [luminance(rgb(getComputedStyle(el).color)), luminance(background(el))].sort((a, b) => b - a)
+        return (hi + 0.05) / (lo + 0.05)
+      })
+    })
+    assert.ok(contrast.every((ratio) => ratio >= 4.5), `contrast ${contrast.map((c) => c.toFixed(2)).join(', ')}`)
+    assert.ok(await panel.evaluate(() => getComputedStyle(document.body).backgroundColor !== 'rgb(255, 255, 255)'))
+  } finally {
+    await panel.evaluate(() => localStorage.removeItem('test:devtools-theme'))
     await reopenPanel()
   }
 })
