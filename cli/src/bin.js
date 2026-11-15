@@ -118,6 +118,15 @@ Examples:
   npx webperf-snippets https://review.example.com --header "CF-Access-Client-Id: $CF_ID" --header "CF-Access-Client-Secret: $CF_SECRET"
 `;
 
+// A pipe takes 64 KB at a time and process.exit() does not wait for the rest, so a report larger than
+// that reached `| jq` or a script cut short. The report is written whole before the code after it exits
+const writeReport = (text) => new Promise((resolve) => process.stdout.write(text, () => resolve()));
+// A reader that closes the pipe early, as head does, ends the writing, not the run: no error, and the
+// exit code is the one of the report
+process.stdout.on("error", (err) => {
+  if (err.code !== "EPIPE") throw err;
+});
+
 function fail(message, code = 2) {
   process.stderr.write(`${message}\n`);
   process.exit(code);
@@ -390,7 +399,7 @@ async function main() {
   } else {
     output = reportHuman({ ...payload, verbose: values.verbose });
   }
-  process.stdout.write(output + "\n");
+  await writeReport(output + "\n");
 
   if (reportUrl) {
     const outcome = await reportTo({
@@ -492,7 +501,7 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
   const withBaseline = comparison ? { baseline: comparison } : {};
   const report = { matrix: matrixPath, runs: matrix.runs, combinations, verbose: values.verbose, ...withBaseline };
   const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, date: startedAt, runs: matrix.runs, ...withBaseline, combinations }) : reportMatrixHuman(report);
-  process.stdout.write(output + "\n");
+  await writeReport(output + "\n");
 
   // One report for each combination, with the body of one page and the device, variant and runs of
   // the combination. The headers are conditions of the load, never part of the body.
