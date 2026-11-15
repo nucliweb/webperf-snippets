@@ -255,6 +255,39 @@ test('the focus stays on the snippet that Enter or a click opens, so the arrows 
   assert.equal(await focused(), ids[3])
 })
 
+// A live region is read whole each time it changes: the result and the audit table are not one,
+// and a line next to each says what happened
+test('a screen reader hears one line for a result and for the audit, not their tables', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="TTFB"]')
+  assert.equal(await panel.getAttribute('#result', 'aria-live'), null)
+  assert.equal(await panel.textContent('#result-status[role="status"]'), '')
+  await resultOf('#run')
+  assert.match(await panel.textContent('#result-status'), /^Result ready: [\d,.]+ m?s, [a-z ]+\./)
+  await panel.click('#clear')
+  assert.equal(await panel.textContent('#result-status'), '')
+
+  await panel.click('#go-home')
+  await panel.click('#run-audit')
+  const heard = await panel.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const lines = []
+        const status = document.getElementById('audit-status')
+        new MutationObserver(() => {
+          lines.push(status.textContent)
+          if (status.textContent.startsWith('Audit done')) resolve(lines)
+        }).observe(status, { childList: true, characterData: true, subtree: true })
+      })
+  )
+  assert.equal(await panel.getAttribute('#audit', 'aria-live'), null)
+  assert.equal(await panel.getAttribute('#audit-status', 'role'), 'status')
+  assert.ok(heard.some((line) => /^Running \d+ of \d+: .+\.$/.test(line)), heard.join(' | '))
+  assert.match(heard.at(-1), /^Audit done\. \d+ snippets: \d+ with errors, \d+ with warnings, \d+ with nothing to fix\.$/)
+  // One line each time, never the rows of the table
+  assert.ok(heard.every((line) => line.length < 200))
+})
+
 test('the panel opens on the last snippet it showed', async () => {
   await panel.click('#list button[data-id="TTFB"]')
   await reopenPanel()
