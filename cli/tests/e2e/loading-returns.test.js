@@ -425,6 +425,35 @@ describe("running a snippet twice in the same console", () => {
   );
 });
 
+// Their functions were declared outside an IIFE, so each of them became a global of the page measured
+describe("the globals a snippet leaves on the page", () => {
+  it.each([
+    ["Loading/CSS-Media-Queries-Analysis", ["analyzeCSSMediaQueries"]],
+    ["Loading/Content-Visibility", ["analyzeContentVisibilityOpportunities"]],
+  ])(
+    "%s leaves only the function its page documents",
+    async (name, documented) => {
+      const added = await onPage("/mq", async (page) => {
+        const before = await page.evaluate(() => Object.getOwnPropertyNames(window));
+        await page.evaluate(source(name));
+        const after = await page.evaluate(() => Object.getOwnPropertyNames(window));
+        return after.filter((key) => !before.includes(key));
+      });
+      expect(added).toEqual(documented);
+    },
+    30000
+  );
+
+  it("CSS-Media-Queries-Analysis still takes another breakpoint through its function", async () => {
+    const wide = await onPage("/mq", async (page) => {
+      await page.evaluate(source("Loading/CSS-Media-Queries-Analysis"));
+      return page.evaluate(() => window.analyzeCSSMediaQueries(1100));
+    });
+    expect(wide.status).toBe("ok");
+    expect(wide.details.minWidth).toBe(1100);
+  }, 30000);
+});
+
 describe("Content-Visibility", () => {
   it("reports that nothing uses it as an information issue, with no filler items", async () => {
     const none = await runOn("/empty", "Loading/Content-Visibility");

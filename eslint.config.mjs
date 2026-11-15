@@ -157,9 +157,6 @@ export default [
     ignores: [
       "snippets/_shared/**",
       "snippets/_view/**",
-      // They declare their functions outside an IIFE. Remove them from here when they are fixed
-      "snippets/Loading/Content-Visibility.js",
-      "snippets/Loading/CSS-Media-Queries-Analysis.js",
     ],
     rules: {
       "no-restricted-syntax": ["error", observerOnlyEntryTypes, insideAnIife],
