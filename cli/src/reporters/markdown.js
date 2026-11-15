@@ -168,13 +168,14 @@ function renderRuns(runs) {
   return lines;
 }
 
-const VERDICT_ICON = { regressed: "❌", improved: "✅", unchanged: "➖", "not measured": "·" };
+const VERDICT_ICON = { regressed: "❌", improved: "✅", unchanged: "➖", inconclusive: "❔", "not measured": "·" };
 
 // The comparison with --baseline. The warnings go in the comment itself: whoever reads the pull
 // request does not see the stderr of the CI.
 function renderBaseline(comparison) {
   const view = baselineView(comparison);
-  const lines = ["", `### Compared with \`${view.file}\``, `> ${view.summary}`];
+  const lines = ["", `### Compared with \`${view.source}\``, `> ${view.summary}`];
+  if (view.extended) lines.push(">", `> ${view.extended}`);
   for (const warning of view.warnings) lines.push(">", `> ⚠️ ${warning}`);
   lines.push("", "| Metric | Baseline | Now | Change | Verdict |", "|--------|----------|-----|--------|---------|");
   for (const row of view.rows) {

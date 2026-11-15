@@ -25,7 +25,8 @@ import { pathsOfRun, reportOf } from "./overview.js";
 import { machineOf } from "./machine.js";
 import { isHttpUrl } from "./url.js";
 import { loadBaseline, parseThreshold, thresholdsWith, compareRun, compareMatrix } from "./baseline.js";
-import { describeRegressions, describeMatrixRegressions, matrixComparisonView } from "./reporters/baseline-view.js";
+import { describeRegressions, describeInconclusive, describeMatrixRegressions, describeMatrixInconclusive, matrixComparisonView } from "./reporters/baseline-view.js";
+import { parseLiveBaseline, measureLiveBaseline } from "./live-baseline.js";
 
 
 const USAGE = `webperf-snippets <url> [options]
@@ -75,13 +76,19 @@ Options:
   --median-by <metric>      Metric that picks the median run: LCP, FCP, TTFB, CLS, INP,
                             navMs (default: the first of LCP, FCP, TTFB, INP, navMs
                             measured)
-  --baseline <file>         Compare the page, or each combination of a matrix, with the --json
-                            output of an earlier run: which metrics got worse or better beyond
-                            the noise, and which errors are new or fixed. It only informs,
-                            unless --fail-on-regression
+  --baseline <file|url>     Compare the page, or each combination of a matrix, with the --json
+                            output of an earlier run, or the page with another URL measured in
+                            this run, their runs alternating (a live baseline): which metrics got
+                            worse or better beyond the noise, and which errors are new or fixed.
+                            It only informs, unless --fail-on-regression
   --threshold <metric>=<v>  The threshold of a metric for --baseline, such as LCP=15%,
                             LCP=200ms or CLS=0.1. Repeat it for more metrics
   --fail-on-regression      Exit 1 when a metric regressed or an error is new against --baseline
+  --fail-on-inconclusive    Exit 1 when a metric is inconclusive for the worse against --baseline:
+                            over its threshold, without the evidence of the runs
+  --max-runs <n>            With a live baseline and --runs 5 or more: when a metric is
+                            inconclusive for the worse, measure both pages up to n runs each (at
+                            most 9) and compare once more
   --fail-on <level>         The issues of the snippets that exit 1: error (default), warning
                             (errors and warnings) or never. Budgets, --fail-on-regression
                             and runs that fail keep exiting 1
@@ -112,6 +119,7 @@ Examples:
   npx webperf-snippets --matrix matrix.json --runs 3 --budget-lcp 2500
   npx webperf-snippets https://example.com --runs 5 --json > baseline.json
   npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.json --fail-on-regression
+  npx webperf-snippets https://pr-123.example.com --runs 5 --max-runs 7 --baseline https://example.com --fail-on-regression
   npx webperf-snippets --matrix matrix.json --baseline last-week.json
   npx webperf-snippets https://example.com --snippet INP --interact-script interactions.json
   npx webperf-snippets https://example.com/dashboard --storage-state auth.json
@@ -191,6 +199,8 @@ async function main() {
         baseline: { type: "string" },
         threshold: { type: "string", multiple: true },
         "fail-on-regression": { type: "boolean" },
+        "fail-on-inconclusive": { type: "boolean" },
+        "max-runs": { type: "string" },
         "fail-on": { type: "string" },
         "crux-key": { type: "string" },
         "crux-history": { type: "string" },
@@ -303,21 +313,30 @@ async function main() {
     return cruxWeeks ? { ...crux, history: await fetchCruxHistory({ url, apiKey: cruxKey, formFactor, weeks: cruxWeeks }) } : crux;
   };
 
-  // The baseline is read and checked before the browser opens: a wrong file fails at once
+  // The baseline is read and checked before the browser opens: a wrong file fails at once. A URL is a
+  // live baseline, measured in this run with the page
   let baseline;
   let thresholds;
+  let live;
+  let maxRuns;
+  try {
+    ({ live, maxRuns } = parseLiveBaseline({ baseline: values.baseline, matrix: matrixPath, runs: runCount, maxRuns: values["max-runs"] }));
+  } catch (err) {
+    fail(err.message);
+  }
   if (values.baseline) {
     try {
-      baseline = loadBaseline(values.baseline);
+      if (!live) baseline = loadBaseline(values.baseline);
       thresholds = thresholdsWith((values.threshold ?? []).map(parseThreshold));
     } catch (err) {
       fail(err.message);
     }
-    if (!matrixPath && baseline.kind === "matrix") fail(`${values.baseline} is the baseline of a matrix: compare it with --matrix`);
-    if (matrixPath && baseline.kind === "page") fail(`${values.baseline} is the baseline of a page: compare it with a URL, not --matrix`);
+    if (!matrixPath && baseline?.kind === "matrix") fail(`${values.baseline} is the baseline of a matrix: compare it with --matrix`);
+    if (matrixPath && baseline?.kind === "page") fail(`${values.baseline} is the baseline of a page: compare it with a URL, not --matrix`);
   } else {
     if (values.threshold) fail("--threshold needs --baseline");
     if (values["fail-on-regression"]) fail("--fail-on-regression needs --baseline");
+    if (values["fail-on-inconclusive"]) fail("--fail-on-inconclusive needs --baseline");
   }
 
   let failOn;
@@ -369,22 +388,53 @@ async function main() {
   const conditions = { url, viewport, storageState, headers, cpu, network, ownDomains };
   // When the measurement started, in UTC
   const date = new Date().toISOString();
+  // A page as the report gives it: what the results found goes before them, so a reader, or an agent,
+  // sees it first, and how it was measured after them
+  const pageOf = ({ browser, ...measured }) => ({
+    url: measured.url,
+    date,
+    navMs: measured.navMs,
+    ...reportOf(measured.results, pathOf),
+    ...measured,
+    conditions: conditionsFor({ viewport: viewportName, cpu, network, browser }),
+  });
+  // The median run of several, with their runs field; one run without --runs has none, as always
+  const medianOf = (median) => (runCount == null ? median.payload : { ...median.payload, runs: median.runs });
+
   let payload;
-  if (runCount == null) {
-    payload = await measureWith(conditions);
+  let comparison;
+  if (live) {
+    // Both pages under the same conditions, their runs alternating, and the comparison of the CLI
+    const urls = { baseline: values.baseline, current: url };
+    const measuredLive = await measureLiveBaseline((side) => measureWith({ ...conditions, url: urls[side] }), {
+      runs: runCount ?? 1,
+      maxRuns,
+      medianBy,
+      compare: (base, current) => compareRun(pageOf(medianOf(base)), pageOf(medianOf(current)), { live: true, thresholds }),
+      isFatal: (err) => err instanceof MissingBrowserError,
+      onRun: ({ side, run, runs, step, steps }) => process.stderr.write(`[${step}/${steps}] ${side} ${urls[side]} · run ${run}/${runs}\n`),
+      onExtend: ({ after, metrics, maxRuns }) =>
+        process.stderr.write(`${metrics.join(", ")} inconclusive for the worse after ${after} runs a side: measuring both pages up to ${maxRuns} runs each\n`),
+    });
+    if (!measuredLive.current.payload) throw new Error(`Every run failed: ${measuredLive.current.errors.join("; ")}`);
+    if (!measuredLive.baseline.payload) throw new Error(`Every run of the baseline ${values.baseline} failed: ${measuredLive.baseline.errors.join("; ")}`);
+    payload = pageOf(medianOf(measuredLive.current));
+    // The runs it added, next to the runs of the baseline
+    const { metrics, errors, warnings, ...head } = measuredLive.comparison;
+    comparison = { ...head, ...(measuredLive.extended ? { extended: measuredLive.extended } : {}), metrics, errors, warnings };
+  } else if (runCount == null) {
+    payload = pageOf(await measureWith(conditions));
   } else {
     const median = await measureRunsWithProgress(() => measureWith(conditions), runCount, medianBy, (i) => `[${i}/${runCount}] ${url} · run ${i}/${runCount}`);
     if (!median.payload) throw new Error(`Every run failed: ${median.errors.join("; ")}`);
-    payload = { ...median.payload, runs: median.runs };
+    payload = pageOf(medianOf(median));
   }
-  // What the results found goes before them, so a reader, or an agent, sees it first
-  const { browser, ...measured } = payload;
-  payload = { url: measured.url, date, navMs: measured.navMs, ...reportOf(measured.results, pathOf), ...measured, conditions: conditionsFor({ viewport: viewportName, cpu, network, browser }) };
 
   if (cruxKey) payload.crux = await fieldDataOf(url, formFactorFor(viewportName));
 
-  if (baseline) {
-    payload.baseline = compareRun(baseline.data, payload, { file: baseline.file, thresholds });
+  if (baseline) comparison = compareRun(baseline.data, payload, { file: baseline.file, thresholds });
+  if (comparison) {
+    payload.baseline = comparison;
     for (const warning of payload.baseline.warnings) process.stderr.write(`Warning: ${warning}\n`);
   }
 
@@ -431,12 +481,14 @@ async function main() {
     for (const v of violations) process.stderr.write(`Budget violation: ${v}\n`);
     process.exit(1);
   }
-  // Without --fail-on-regression the comparison only informs, and the exit code is the one of today
+  // Without --fail-on-regression or --fail-on-inconclusive the comparison only informs, and the exit
+  // code is the one of today. A live baseline is named by its URL, a file by its path
+  const against = live ? values.baseline : baseline?.file;
   const regressions = values["fail-on-regression"] ? describeRegressions(payload.baseline) : [];
-  if (regressions.length > 0) {
-    for (const r of regressions) process.stderr.write(`Regression against ${baseline.file}: ${r}\n`);
-    process.exit(1);
-  }
+  const inconclusive = values["fail-on-inconclusive"] ? describeInconclusive(payload.baseline) : [];
+  for (const r of regressions) process.stderr.write(`Regression against ${against}: ${r}\n`);
+  for (const i of inconclusive) process.stderr.write(`Inconclusive against ${against}: ${i}\n`);
+  if (regressions.length > 0 || inconclusive.length > 0) process.exit(1);
   process.exit(failingIssues(payload.results, failOn).length > 0 ? 1 : 0);
 }
 
@@ -545,7 +597,9 @@ async function runMatrix(matrixPath, matrix, measureWith, { values, waitMs, repo
   // Without --fail-on-regression the comparison only informs
   const regressions = values["fail-on-regression"] ? describeMatrixRegressions(combinations) : [];
   for (const r of regressions) process.stderr.write(`Regression against ${baseline.file} in ${r}\n`);
-  process.exit(violations.length > 0 || failed || regressions.length > 0 ? 1 : 0);
+  const inconclusive = values["fail-on-inconclusive"] ? describeMatrixInconclusive(combinations) : [];
+  for (const i of inconclusive) process.stderr.write(`Inconclusive against ${baseline.file} in ${i}\n`);
+  process.exit(violations.length > 0 || failed || regressions.length > 0 || inconclusive.length > 0 ? 1 : 0);
 }
 
 main().catch((err) => {

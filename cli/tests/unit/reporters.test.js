@@ -825,3 +825,54 @@ describe("a result of a browser without the API", () => {
     expect(output).not.toContain("undefined");
   });
 });
+
+describe("the comparison with a baseline", () => {
+  const inconclusive = { baseline: 2175, current: 2900, delta: 725, deltaPercent: 33.3, threshold: 217.5, verdict: "inconclusive", stats: { p: 0.0754, shift: 700, ci: [-175, 825], method: "exact" } };
+  const comparison = { url: "https://example.com/", runs: { count: 5, medianBy: "LCP" }, metrics: { LCP: inconclusive }, errors: { new: [], fixed: [] }, warnings: [] };
+  const file = { ...comparison, file: "baseline.json" };
+  const live = { ...comparison, live: true, runs: { count: 7, medianBy: "LCP" }, extended: { after: 5, metrics: ["LCP"] } };
+  const plain = (text) => text.replace(/\u001b\[\d+m/g, "");
+
+  it("shows an inconclusive metric with what to do in the human report", () => {
+    const output = plain(reportHuman({ ...samplePayload, baseline: file }));
+    expect(output).toContain("Compared with baseline.json (https://example.com/, 5 runs, median by LCP)");
+    expect(output).toMatch(/LCP\s+2\.17s\s+2\.90s\s+▲ \+725ms \(\+33%\)\s+inconclusive \(no evidence: p = 0\.075; measure again, or with more runs\)/);
+  });
+
+  it("shows an inconclusive metric with what to do in the markdown report", () => {
+    const output = reportMarkdown({ ...samplePayload, baseline: file });
+    expect(output).toContain("### Compared with `baseline.json`");
+    expect(output).toContain("| LCP | 2.17s | 2.90s | ▲ +725ms (+33%) | ❔ inconclusive (no evidence: p = 0.075; measure again, or with more runs) |");
+  });
+
+  it("names a live baseline by its URL, measured in this run, and the runs it added, in the human report", () => {
+    const output = plain(reportHuman({ ...samplePayload, baseline: live }));
+    expect(output).toContain("Compared with https://example.com/ (measured in this run, 7 runs, median by LCP)");
+    expect(output).toContain("LCP inconclusive for the worse after 5 runs a side: both pages measured 2 more, up to 7");
+    expect(output).not.toContain("undefined");
+  });
+
+  it("names a live baseline by its URL, measured in this run, and the runs it added, in the markdown report", () => {
+    const output = reportMarkdown({ ...samplePayload, baseline: live });
+    expect(output).toContain("### Compared with `https://example.com/`");
+    expect(output).toContain("> measured in this run, 7 runs, median by LCP");
+    expect(output).toContain("> LCP inconclusive for the worse after 5 runs a side: both pages measured 2 more, up to 7");
+    expect(output).not.toContain("undefined");
+  });
+
+  it("marks an inconclusive change in the table of a matrix", () => {
+    const combination = {
+      id: "home · mobile",
+      name: "home",
+      device: "mobile",
+      url: "https://example.com/",
+      navMs: 900,
+      results: [{ id: "LCP", status: "ok", metric: "LCP", value: 2900, unit: "ms" }],
+      runs: { count: 5, medianBy: "LCP", summary: { LCP: { median: 2900, min: 2000, max: 3000, values: [2000, 2050, 2900, 2950, 3000], unit: "ms" } } },
+      baseline: file,
+    };
+    const report = { matrix: "matrix.json", runs: 5, combinations: [combination], baseline: { file: "last-week.json", added: [], missing: [], warnings: [] } };
+    expect(plain(reportMatrixHuman(report))).toContain("▲ +725ms?");
+    expect(reportMatrixMarkdown(report)).toContain("| ▲ +725ms? |");
+  });
+});

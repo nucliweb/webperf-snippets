@@ -36,6 +36,29 @@ describe("mannWhitneyGreater", () => {
   it("can never reach p < 0.05 with three runs a side, which is why the verdict needs five", () => {
     expect(mannWhitneyGreater([130, 140, 150], [100, 110, 120]).p).toBeCloseTo(0.05, 6);
   });
+
+  // A regression where every run of this page is slower than every run of the baseline, except k runs of
+  // the baseline that are slower than all of them: how many slow runs of the baseline each count tolerates
+  // before p reaches 0.05. Five runs a side tolerate none, seven one and nine two.
+  describe("with k runs of the baseline slower than every run of a slower page", () => {
+    const pOf = (runs, k) => {
+      const base = Array.from({ length: runs }, (_, i) => (i < runs - k ? 1000 + i : 3000 + i));
+      const current = Array.from({ length: runs }, (_, i) => 2000 + i);
+      return Math.round(mannWhitneyGreater(current, base).p * 10000) / 10000;
+    };
+
+    it.each([
+      [5, [0.004, 0.0754, 0.3452]],
+      [7, [0.0003, 0.0131, 0.1043]],
+    ])("gives these p-values with %i runs a side, for k = 0, 1 and 2", (runs, pValues) => {
+      expect([0, 1, 2].map((k) => pOf(runs, k))).toEqual(pValues);
+    });
+
+    it("gives these p-values with 9 runs a side, for k = 0, 1 and 2", () => {
+      expect(pOf(9, 0)).toBeLessThan(0.0001);
+      expect([1, 2].map((k) => pOf(9, k))).toEqual([0.002, 0.0252]);
+    });
+  });
 });
 
 describe("hodgesLehmann", () => {

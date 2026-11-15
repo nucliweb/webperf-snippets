@@ -262,7 +262,7 @@ function renderRuns(runs) {
   return lines;
 }
 
-const VERDICT_STYLE = { regressed: "red", improved: "green", unchanged: "dim", "not measured": "dim", new: "cyan" };
+const VERDICT_STYLE = { regressed: "red", improved: "green", unchanged: "dim", inconclusive: "yellow", "not measured": "dim", new: "cyan" };
 
 // Every budget the run was given, passed or not, so the report says which one decided the exit code
 function renderBudgets(budgets) {
@@ -278,7 +278,8 @@ function renderBudgets(budgets) {
 // trust the table, then a row per metric and the errors that appeared or went away
 function renderBaseline(comparison) {
   const view = baselineView(comparison);
-  const lines = ["", styleText("bold", `Compared with ${view.file} (${view.summary})`)];
+  const lines = ["", styleText("bold", `Compared with ${view.source} (${view.summary})`)];
+  if (view.extended) lines.push(styleText("dim", `  ${view.extended}`));
   for (const warning of view.warnings) lines.push(`  ${styleText("yellow", `Warning: ${warning}`)}`);
   lines.push(styleText("dim", `  ${pad("Metric", 9)}${pad("Baseline", 11)}${pad("Now", 10)}Change`));
   for (const row of view.rows) {

@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { baselineView, describeRegressions, changeCell, matrixComparisonView, describeMatrixRegressions } from "../../src/reporters/baseline-view.js";
+import {
+  baselineView,
+  describeRegressions,
+  describeInconclusive,
+  changeCell,
+  matrixComparisonView,
+  describeMatrixRegressions,
+  describeMatrixInconclusive,
+} from "../../src/reporters/baseline-view.js";
 
 // A comparison as compareRun gives it
 const comparison = (metrics, { errors = { new: [], fixed: [] }, warnings = [], runs = { count: 5, medianBy: "LCP" } } = {}) => ({
@@ -41,19 +49,36 @@ describe("the view of a comparison with a baseline", () => {
     expect(rows.map((r) => r.note)).toEqual(["under 100ms", "inside the range of the baseline", "under 0.05", null]);
   });
 
-  it("gives the evidence of a change measured with five runs a side, and says when there is none", () => {
+  it("gives the evidence of a change measured with five runs a side, and says what to do when there is none", () => {
     const { rows } = baselineView(
       comparison({
         LCP: { baseline: 2150, current: 2650, delta: 500, deltaPercent: 23.3, threshold: 215, verdict: "regressed", stats: { p: 0.0278, shift: 500, ci: [20, 600], method: "exact" } },
-        FCP: { baseline: 2175, current: 2900, delta: 725, deltaPercent: 33.3, threshold: 217.5, verdict: "unchanged", stats: { p: 0.3452, shift: 700, ci: [-175, 825], method: "exact" } },
+        FCP: { baseline: 2175, current: 2900, delta: 725, deltaPercent: 33.3, threshold: 217.5, verdict: "inconclusive", stats: { p: 0.3452, shift: 700, ci: [-175, 825], method: "exact" } },
         CLS: { baseline: 0.1, current: 0.02, delta: -0.08, deltaPercent: -80, threshold: 0.05, verdict: "improved", stats: { p: 0.004, shift: -0.08, ci: [-0.09, -0.07], method: "exact" } },
+        TTFB: { baseline: 300, current: 340, delta: 40, deltaPercent: 13.3, threshold: 100, verdict: "unchanged", stats: { p: 0.004, shift: 40, ci: [30, 50], method: "exact" } },
       })
     );
     expect(rows.map((r) => r.note)).toEqual([
       "p = 0.028, +500ms, 95% CI +20ms to +600ms",
-      "no evidence: p = 0.35",
+      "no evidence: p = 0.35; measure again, or with more runs",
       "p = 0.004, −0.0800, 95% CI −0.0900 to −0.0700",
+      "under 100ms",
     ]);
+  });
+
+  it("names a file baseline by its file, and a live one by its URL, measured in this run", () => {
+    expect(baselineView(comparison({}))).toMatchObject({ source: "baseline.json", summary: "https://example.com/, 5 runs, median by LCP" });
+    const { file, ...live } = comparison({});
+    expect(baselineView({ ...live, live: true })).toMatchObject({ source: "https://example.com/", summary: "measured in this run, 5 runs, median by LCP" });
+    expect(baselineView({ ...live, live: true, runs: { count: 1 } }).summary).toBe("measured in this run, 1 run");
+  });
+
+  it("says when a live baseline measured more runs, and for which metrics", () => {
+    const { file, ...live } = comparison({}, { runs: { count: 7, medianBy: "LCP" } });
+    expect(baselineView({ ...live, live: true, extended: { after: 5, metrics: ["LCP", "FCP"] } }).extended).toBe(
+      "LCP, FCP inconclusive for the worse after 5 runs a side: both pages measured 2 more, up to 7"
+    );
+    expect(baselineView({ ...live, live: true }).extended).toBeUndefined();
   });
 
   it("keeps a metric that one side did not measure, with no change", () => {
@@ -79,6 +104,31 @@ describe("the regressions that decide the exit code", () => {
   it("are none when nothing got worse", () => {
     expect(describeRegressions(comparison({ LCP: { baseline: 2100, current: 2150, delta: 50, deltaPercent: 2.4, threshold: 210, verdict: "unchanged" } }))).toEqual([]);
   });
+
+  it("leave out an inconclusive metric, which only --fail-on-inconclusive counts", () => {
+    const inconclusive = { LCP: { baseline: 2175, current: 2900, delta: 725, deltaPercent: 33.3, threshold: 217.5, verdict: "inconclusive", stats: { p: 0.3452 } } };
+    expect(describeRegressions(comparison(inconclusive))).toEqual([]);
+  });
+});
+
+describe("the inconclusive metrics that decide the exit code with --fail-on-inconclusive", () => {
+  it("are the ones that got worse, with their p-value and what to do, never the ones that got better", () => {
+    const lines = describeInconclusive(
+      comparison({
+        LCP: { baseline: 2175, current: 2900, delta: 725, deltaPercent: 33.3, threshold: 217.5, verdict: "inconclusive", stats: { p: 0.0754 } },
+        FCP: { baseline: 2900, current: 2175, delta: -725, deltaPercent: -25, threshold: 290, verdict: "inconclusive", stats: { p: 0.0754 } },
+        TTFB: { baseline: 300, current: 900, delta: 600, deltaPercent: 200, threshold: 100, verdict: "regressed", stats: { p: 0.004 } },
+      })
+    );
+    expect(lines).toEqual(["LCP ▲ +725ms (+33%), p = 0.075; measure again, or with more runs"]);
+  });
+
+  it("name the combination of each one in a matrix", () => {
+    const worse = { LCP: { baseline: 2175, current: 2900, delta: 725, deltaPercent: 33.3, threshold: 217.5, verdict: "inconclusive", stats: { p: 0.3452 } } };
+    expect(describeMatrixInconclusive([{ id: "home · mobile", baseline: comparison(worse) }, { id: "about · mobile" }])).toEqual([
+      "home · mobile: LCP ▲ +725ms (+33%), p = 0.35; measure again, or with more runs",
+    ]);
+  });
 });
 
 describe("the change cell of a matrix", () => {
@@ -88,6 +138,10 @@ describe("the change cell of a matrix", () => {
     expect(changeCell("CLS", { delta: 0.08, deltaPercent: 200, threshold: 0.05, verdict: "regressed" })).toEqual({ text: "▲ +0.0800", verdict: "regressed" });
     expect(changeCell("LCP", { delta: 40, deltaPercent: 2, threshold: 210, verdict: "unchanged" })).toEqual({ text: "=", verdict: "unchanged" });
     expect(changeCell("INP", { baseline: 120, verdict: "not measured" })).toEqual({ text: "·", verdict: "not measured" });
+  });
+
+  it("shows an inconclusive change with a question mark, so it reads apart from a regression", () => {
+    expect(changeCell("LCP", { delta: 725, deltaPercent: 33.3, threshold: 217.5, verdict: "inconclusive" })).toEqual({ text: "▲ +725ms?", verdict: "inconclusive" });
   });
 });
 

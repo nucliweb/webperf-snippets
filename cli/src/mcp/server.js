@@ -124,7 +124,7 @@ const Comparison = z
     runs: LooseObject({ count: z.number() }).describe("The runs of the baseline"),
     metrics: z
       .record(z.string(), LooseObject({ verdict: z.string() }))
-      .describe("By metric: baseline, current, delta, deltaPercent, threshold, verdict (regressed, improved, unchanged, not measured) and, with five runs a side, stats (p, shift, ci, method)"),
+      .describe("By metric: baseline, current, delta, deltaPercent, threshold, verdict (regressed, improved, unchanged, inconclusive, not measured) and, with five runs a side, stats (p, shift, ci, method)"),
     errors: z.object({ new: z.array(BaselineError), fixed: z.array(BaselineError) }).describe("The errors only this run has, and the ones only the baseline had"),
     warnings: z.array(z.string()).describe("What differs in how both were measured: how far to trust the comparison"),
     regressions: z.array(z.string()).describe("What got worse, one line each: the metrics that regressed and the new errors"),

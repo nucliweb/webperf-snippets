@@ -277,7 +277,7 @@ The report is a table with one row per combination and the rated median of each 
 
 With CrUX, the CLI asks once for each URL and form factor, so the variants of a device share their field data. With `--report-to`, it posts one report for each combination, the body of one page with `meta.device`, `meta.variant` and `meta.runs`; the headers of the command line and of the file are conditions of the load, and no report carries their values.
 
-Compare a run with an earlier one with `--baseline <file>`, the `--json` output of that run. The comparison says which metrics got worse or better beyond the noise of the lab, which errors are new or fixed, and what differs in how both runs were measured:
+Compare a run with an earlier one with `--baseline <file>`, the `--json` output of that run, or with another page measured in the same run with `--baseline <url>`, a live baseline. The comparison says which metrics got worse or better beyond the noise of the lab, which errors are new or fixed, and what differs in how both runs were measured:
 
 ```bash
 # On main, once: the baseline
@@ -290,9 +290,9 @@ npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.jso
 npx webperf-snippets https://pr-123.example.com --runs 5 --baseline baseline.json --fail-on-regression
 ```
 
-LCP, FCP, TTFB, CLS and INP compare when both runs measured them, the median of each with `--runs`; a metric that only one side measured is `not measured`. A metric regresses when it gets worse by more than its threshold, the larger of a share of the baseline and a minimum, and, when the baseline has two runs or more, ends above the slowest of them: a median inside the range of the baseline is noise the baseline already had. It improves under the same rules the other way, and otherwise it is unchanged.
+LCP, FCP, TTFB, CLS and INP compare when both runs measured them, the median of each with `--runs`; a metric that only one side measured is `not measured`. A metric regresses when it gets worse by more than its threshold, the larger of a share of the baseline and a minimum, and, when the baseline has two runs or more, ends above the slowest of them: a median inside the range of the baseline is noise the baseline already had. It improves under the same rules the other way, and otherwise it is `unchanged`.
 
-With five runs or more on each side, the range gives way to a test of the runs themselves: a change that beats its threshold also needs a one-sided Mann-Whitney U p-value under 0.05, the chance that runs of an unchanged page would differ this much. A median can move with two slow runs out of five; the test asks whether most runs moved. The JSON of the metric adds `stats`, with `p`, the `shift` (the Hodges-Lehmann estimate, the median of the differences between every run of one side and every run of the other) and its 95 % interval `ci`, and the reports add them to the verdict: `regressed (p = 0.028, +500ms, 95% CI +20ms to +600ms)`, or `unchanged (no evidence: p = 0.35)` for a change over the threshold that the runs do not back. Three runs a side can never reach p < 0.05, so under five the range decides.
+With five runs or more on each side, the range gives way to a test of the runs themselves: a change that beats its threshold also needs a one-sided Mann-Whitney U p-value under 0.05, the chance that runs of an unchanged page would differ this much. A median can move with two slow runs out of five; the test asks whether most runs moved. The JSON of the metric adds `stats`, with `p`, the `shift` (the Hodges-Lehmann estimate, the median of the differences between every run of one side and every run of the other) and its 95 % interval `ci`, and the reports add them to the verdict: `regressed (p = 0.028, +500ms, 95% CI +20ms to +600ms)`. A change over the threshold, for the worse or for the better, that the runs do not back (p not under 0.05) is `inconclusive`: the runs can tell neither a change nor its absence, and the reports say what to do, `inconclusive (no evidence: p = 0.35; measure again, or with more runs)`. Three runs a side can never reach p < 0.05, so under five the range decides, and no metric is inconclusive.
 
 | Metric         | Share of the baseline | Minimum |
 | -------------- | --------------------- | ------- |
@@ -321,7 +321,49 @@ The report adds the comparison after the usual one, and `--markdown` a table for
 
 When both runs were measured differently, with another workflow or snippet, viewport, wait, throttling, number of runs, browser (build, mode or version) or version of the CLI, on another CPU model or with other cores, or on another path or query, the CLI compares anyway and warns on stderr, in the reports and in `warnings`: whoever reads the pull request comment does not see the stderr of the CI. Another host does not warn, since it is the review app of a pull request against production. A baseline of one run warns that only the thresholds apply, and any other metric compared without statistics gets a line with the values left on each side, as in `no statistics for LCP: the baseline has 5 values, and this run 4 after 1 failed run; they need 5 a side, so measure both with 5 runs or more`.
 
-The comparison only informs, and the exit code is the same as without it, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new, and names them on stderr. A baseline that does not exist or is not an output of the CLI, a baseline of a page for a matrix or of a matrix for a page, or a `--threshold` the CLI does not understand exits with code `2`, before the page loads.
+The comparison only informs, and the exit code is the same as without it, unless `--fail-on-regression`, which exits with `1` when a metric regressed or an error is new, and names them on stderr, or `--fail-on-inconclusive`, which exits with `1` when a metric is inconclusive for the worse and names it with its p-value; an inconclusive improvement never fails. A baseline that does not exist or is not an output of the CLI, a baseline of a page for a matrix or of a matrix for a page, or a `--threshold` the CLI does not understand exits with code `2`, before the page loads.
+
+A live baseline is `--baseline` with a URL, one that starts with `http://` or `https://`: it measures that page in the same run as the page of the command, under the same conditions (viewport, throttling, workflow or snippet, interactions, headers, wait), and alternates their runs: baseline, current, baseline, current, `--runs` times each, or once without it. The request headers of `--header` go to the origin of each page, so a token meant for one of them reaches the other as well; `--storage-state` and `--own-domains` apply to both pages too.
+
+```bash
+# The pull request against production, in one command
+npx webperf-snippets https://pr-123.example.com --runs 5 --baseline https://example.com --fail-on-regression
+
+# Measure up to 7 runs a side when a metric is inconclusive for the worse after 5
+npx webperf-snippets https://pr-123.example.com --runs 5 --max-runs 7 --baseline https://example.com --fail-on-regression
+```
+
+A baseline saved earlier was measured in another moment of the machine: a process in the background that slows it down during one of the two measurements moves the timings of that side only, and the comparison reads it as a change of the page. Alternated runs share those moments, so a slower machine moves both pages alike, and the comparison sees the difference between the pages. The progress on stderr names the side of each run (`[3/10] baseline https://example.com · run 2/5`), a run that fails is left out of its side as with `--runs`, and when every run of a side fails the command exits with `1`.
+
+The comparison, its thresholds, `--threshold`, `--fail-on-regression`, `--fail-on-inconclusive` and the reports are the ones of a file. The reports name the baseline by its URL, `Compared with https://example.com (measured in this run, 5 runs, median by LCP)`, and the `baseline` of the JSON output has `"live": true` and no `file`:
+
+```json
+"baseline": {
+  "live": true,
+  "url": "https://example.com/",
+  "runs": { "count": 7, "medianBy": "LCP" },
+  "extended": { "after": 5, "metrics": ["LCP"] },
+  "metrics": {
+    "LCP": { "baseline": 2030, "current": 3030, "delta": 1000, "deltaPercent": 49.3, "threshold": 203, "verdict": "regressed", "stats": { "p": 0.0131, "shift": 1000, "ci": [960, 1060], "method": "exact" } }
+  },
+  "errors": { "new": [], "fixed": [] },
+  "warnings": []
+}
+```
+
+A metric is `inconclusive` when, with five runs or more a side, its change beats the threshold and p is not under 0.05: a slow run or two of one side can hide a real change. Measure again, or with more runs. `--max-runs <n>` does it in the same command: when a metric is inconclusive for the worse after `--runs` runs a side, the CLI measures both pages up to `n` runs each and compares once more with every run, and `extended` says after how many runs it measured more and for which metrics; the reports add the same line under their title. It decides twice at most, after `--runs` and after `--max-runs`, never after each added run, since a p-value read after every run would find a change by chance. When the first decision is clear, nothing more is measured. `--max-runs` needs a live baseline and `--runs` of 5 or more, the runs the statistics need, and an `n` greater than `--runs` and at most 9; otherwise the command exits with code `2`.
+
+The runs a side decide how many slow runs of the baseline a regression survives. With every run of the page slower than every run of the baseline, except `k` runs of the baseline slower than all of them, the one-sided p-value is:
+
+| Runs a side | k = 0    | k = 1  | k = 2  |
+| ----------- | -------- | ------ | ------ |
+| 5           | 0.004    | 0.0754 | 0.3452 |
+| 7           | 0.0003   | 0.0131 | 0.1043 |
+| 9           | < 0.0001 | 0.002  | 0.0252 |
+
+Five runs a side tolerate no slow run of the baseline, seven tolerate one, and nine tolerate two.
+
+A live baseline compares one page: with `--matrix` the command exits with code `2`.
 
 A matrix compares with the `--json` output of an earlier matrix, each combination with the one of the same `id`:
 
@@ -329,7 +371,7 @@ A matrix compares with the `--json` output of an earlier matrix, each combinatio
 npx webperf-snippets --matrix matrix.json --runs 3 --baseline last-week.json
 ```
 
-The table adds a change column after each metric: the change when it counts (`▲ +380ms`, `▼ −90ms`), `=` when it is unchanged, and `new` for a combination the baseline did not have. Below the table come the warnings, once when every combination has them, the new and fixed errors of each combination, and the combinations that only one side has. `--markdown` gives the same, and the `<details>` block of each combination carries its own comparison. In the JSON output each combination carries its `baseline`, and the root `baseline` names the file and the `added` and `missing` combinations. `--fail-on-regression` exits with `1` when any combination regressed or has a new error.
+The table adds a change column after each metric: the change when it counts (`▲ +380ms`, `▼ −90ms`), followed by `?` when it is inconclusive (`▲ +380ms?`), `=` when it is unchanged, and `new` for a combination the baseline did not have. Below the table come the warnings, once when every combination has them, the new and fixed errors of each combination, and the combinations that only one side has. `--markdown` gives the same, and the `<details>` block of each combination carries its own comparison. In the JSON output each combination carries its `baseline`, and the root `baseline` names the file and the `added` and `missing` combinations. `--fail-on-regression` exits with `1` when any combination regressed or has a new error, and `--fail-on-inconclusive` when a metric of any combination is inconclusive for the worse.
 
 CI gating:
 
@@ -358,9 +400,11 @@ Each budget compares the value measured, or the median with `--runs`, and fails 
 | `--runs <n>`                 | Measure the page n times, from 1 to 9, one after the other, and report the median run. |
 | `--median-by <metric>`       | Metric that picks the median run: `LCP`, `FCP`, `TTFB`, `CLS`, `INP` or `navMs`. Default: the first of LCP, FCP, TTFB, INP and `navMs` measured. |
 | `--matrix <file>`            | Measure every URL of a JSON file on every device and in every variant it lists, and report a table of the medians. |
-| `--baseline <file>`          | Compare the page, or each combination of a matrix, with the `--json` output of an earlier run: which metrics got worse or better beyond the noise, and which errors are new or fixed. |
+| `--baseline <file\|url>`     | Compare the page, or each combination of a matrix, with the `--json` output of an earlier run, or the page with another URL measured in the same run, their runs alternating (a live baseline): which metrics got worse or better beyond the noise, and which errors are new or fixed. |
 | `--threshold <metric>=<v>`   | The threshold of a metric for `--baseline`, such as `LCP=15%`, `LCP=200ms` or `CLS=0.1`. Repeat it for more metrics. |
 | `--fail-on-regression`       | Exit `1` when a metric regressed or an error is new against `--baseline`. |
+| `--fail-on-inconclusive`     | Exit `1` when a metric is inconclusive for the worse against `--baseline`: over its threshold, without the evidence of the runs. |
+| `--max-runs <n>`             | With a live baseline and `--runs`: when a metric is inconclusive for the worse, measure both pages up to `n` runs each, at most 9, and compare once more. |
 | `--fail-on <level>`          | The issues of the snippets that exit `1`: `error` (default), `warning` (errors and warnings) or `never`. Budgets, `--fail-on-regression` and runs that fail keep exiting `1`. |
 | `--crux-key <key>`           | Add CrUX field data (p75) next to the measured values. Prefer `CRUX_API_KEY`. |
 | `--crux-history <weeks>`     | Add the trend of the field data over the last 1 to 40 weeks. Needs a CrUX key. |
@@ -411,8 +455,8 @@ The results of a run can add steps on the same page load: LCP over 2.5 s adds `L
 | Code | Meaning                                       |
 | ---- | --------------------------------------------- |
 | `0`  | All checks passed.                            |
-| `1`  | Budget violation, a snippet errored, a step of the workflow reported an `error` issue (or a `warning` one with `--fail-on warning`; neither with `--fail-on never`), or, with `--fail-on-regression`, a regression against the baseline. |
-| `2`  | Usage error (missing URL, unknown workflow, a baseline or threshold that is not valid). |
+| `1`  | Budget violation, a snippet errored, a step of the workflow reported an `error` issue (or a `warning` one with `--fail-on warning`; neither with `--fail-on never`), with `--fail-on-regression`, a regression against the baseline, with `--fail-on-inconclusive`, a metric inconclusive for the worse, or every run of a live baseline failed. |
+| `2`  | Usage error (missing URL, unknown workflow, a baseline or threshold that is not valid, a live baseline with `--matrix`, a `--max-runs` without a live baseline and `--runs` or not greater than `--runs`). |
 
 ## MCP server
 
