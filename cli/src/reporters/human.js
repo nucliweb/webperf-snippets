@@ -8,6 +8,7 @@ import { describeRuns, describeAgreement } from "../runs.js";
 import { matrixView } from "./matrix-view.js";
 import { baselineView } from "./baseline-view.js";
 import { budgetRows, matrixBudgetFailures } from "./budgets-view.js";
+import { formatValue } from "./format.js";
 
 const RATING_ICON = {
   good: "🟢",
@@ -20,14 +21,6 @@ const RATING_STYLE = {
   "needs-improvement": "yellow",
   poor: "red",
 };
-
-function formatValue(value, unit) {
-  if (unit === "ms") {
-    return value >= 1000 ? `${(value / 1000).toFixed(2)}s` : `${value}ms`;
-  }
-  if (unit === "score") return value.toFixed(4);
-  return String(value);
-}
 
 function paint(rating, text) {
   return styleText(RATING_STYLE[rating] ?? "white", text);

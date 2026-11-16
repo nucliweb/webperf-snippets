@@ -1,12 +1,12 @@
 import { reportHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMarkdown } from "./reporters/markdown.js";
-import { cliVersion, reportTo } from "./report-to.js";
+import { reportBody, reportLines, reportTo } from "./report-to.js";
 import { formFactorFor } from "./crux.js";
 import { MissingBrowserError } from "./browser.js";
 import { failingIssues } from "./blocking.js";
 import { checkBudgets, violationsOf } from "./budgets.js";
-import { reportOf } from "./overview.js";
+import { pageReport } from "./overview.js";
 import { compareRun } from "./baseline.js";
 import { describeRegressions, describeInconclusive } from "./reporters/baseline-view.js";
 import { measureLiveBaseline } from "./live-baseline.js";
@@ -23,16 +23,7 @@ export async function runPage(options, { measureWith, conditionsFor, pathOf, fie
   const conditions = { url, viewport, storageState, headers, cpu, network, ownDomains };
   // When the measurement started, in UTC
   const date = new Date().toISOString();
-  // A page as the report gives it: what the results found goes before them, so a reader, or an agent,
-  // sees it first, and how it was measured after them
-  const pageOf = ({ browser, ...measured }) => ({
-    url: measured.url,
-    date,
-    navMs: measured.navMs,
-    ...reportOf(measured.results, pathOf),
-    ...measured,
-    conditions: conditionsFor({ viewport: viewportName, cpu, network, browser }),
-  });
+  const pageOf = (measured) => pageReport(measured, { date, pathOf, conditions: conditionsFor({ viewport: viewportName, cpu, network, browser: measured.browser }) });
   // The median run of several, with their runs field; one run without --runs has none, as always
   const medianOf = (median) => (runCount == null ? median.payload : { ...median.payload, runs: median.runs });
 
@@ -87,27 +78,9 @@ export async function runPage(options, { measureWith, conditionsFor, pathOf, fie
   await writeReport(output + "\n");
 
   if (reportUrl) {
-    const outcome = await reportTo({
-      url: reportUrl,
-      apiKey: values["api-key"] || process.env.PERF_REVIEWS_API_KEY,
-      body: {
-        url,
-        workflow: values.snippet ? null : (values.workflow ?? "core-web-vitals"),
-        ...(values.snippet ? { snippet: values.snippet } : {}),
-        timestamp: new Date().toISOString(),
-        navMs: payload.navMs,
-        overview: payload.overview,
-        issues: payload.issues,
-        results: payload.results,
-        ...(payload.budgets ? { budgets: payload.budgets } : {}),
-        meta: { viewport: viewportName, waitMs, ...(payload.throttling ? { throttling: payload.throttling } : {}), ...(payload.runs ? { runs: payload.runs } : {}), cli_version: cliVersion },
-      },
-    });
-    if (!outcome.ok) {
-      say(`Warning: could not report results to ${new URL(reportUrl).origin} (${outcome.warning})`);
-    } else if (outcome.regressions.length > 0) {
-      process.stderr.write(`Regressions detected:\n${outcome.regressions.map((r) => `  - ${typeof r === "string" ? r : JSON.stringify(r)}`).join("\n")}\n`);
-    }
+    const meta = { viewport: viewportName, waitMs, ...(payload.throttling ? { throttling: payload.throttling } : {}), ...(payload.runs ? { runs: payload.runs } : {}) };
+    const outcome = await reportTo({ url: reportUrl, apiKey: values["api-key"] || process.env.PERF_REVIEWS_API_KEY, body: reportBody({ url, values, page: payload, meta }) });
+    reportLines(outcome, { url: reportUrl }).forEach((line) => say(line));
   }
 
   // Without --fail-on-regression or --fail-on-inconclusive the comparison only informs, and the exit

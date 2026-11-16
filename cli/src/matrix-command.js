@@ -2,11 +2,11 @@ import { VIEWPORT_PRESETS } from "./runner.js";
 import { reportMatrixHuman } from "./reporters/human.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMatrixMarkdown } from "./reporters/markdown.js";
-import { cliVersion, reportTo } from "./report-to.js";
+import { reportBody, reportLines, reportTo } from "./report-to.js";
 import { formFactorFor } from "./crux.js";
 import { failingIssues } from "./blocking.js";
 import { checkBudgets, violationsOf } from "./budgets.js";
-import { reportOf } from "./overview.js";
+import { pageReport } from "./overview.js";
 import { compareMatrix } from "./baseline.js";
 import { describeMatrixRegressions, describeMatrixInconclusive, matrixComparisonView } from "./reporters/baseline-view.js";
 import { matrixOutcome } from "./exit-code.js";
@@ -29,10 +29,9 @@ export async function runMatrix(options, { measureWith, conditionsFor, pathOf, f
     const conditions = { url: c.url, viewport: VIEWPORT_PRESETS[c.viewport], storageState: c.storageState, headers: c.headers, cpu: c.cpu, network: c.network, ownDomains: c.ownDomains };
     const median = await measureRunsWithProgress(() => measureWith(conditions), matrix.runs, matrix.medianBy, (i) => `[${String(++started).padStart(width)}/${total}] ${c.id} · run ${i}/${matrix.runs}`);
     const identity = { id: c.id, name: c.name, device: c.device, ...(c.variant ? { variant: c.variant } : {}), url: c.url };
-    const { browser, ...measured } = median.payload ?? {};
     combinations.push(
       median.payload
-        ? { ...identity, date, navMs: measured.navMs, ...reportOf(measured.results, pathOf), ...measured, runs: median.runs, conditions: conditionsFor({ ...c, browser }) }
+        ? pageReport({ ...median.payload, runs: median.runs }, { identity, date, pathOf, conditions: conditionsFor({ ...c, browser: median.payload.browser }) })
         : { ...identity, date, status: "error", error: `Every run failed: ${median.errors.join("; ")}`, runs: { count: matrix.runs, failed: matrix.runs }, conditions: conditionsFor(c) }
     );
   }
@@ -69,35 +68,9 @@ export async function runMatrix(options, { measureWith, conditionsFor, pathOf, f
   // the combination. The headers are conditions of the load, never part of the body.
   if (reportUrl) {
     for (const c of combinations.filter((c) => !c.error)) {
-      const outcome = await reportTo({
-        url: reportUrl,
-        apiKey: values["api-key"] || process.env.PERF_REVIEWS_API_KEY,
-        body: {
-          url: c.url,
-          workflow: values.snippet ? null : (values.workflow ?? "core-web-vitals"),
-          ...(values.snippet ? { snippet: values.snippet } : {}),
-          timestamp: new Date().toISOString(),
-          navMs: c.navMs,
-          overview: c.overview,
-          issues: c.issues,
-          results: c.results,
-          ...(c.budgets ? { budgets: c.budgets } : {}),
-          meta: {
-            viewport: viewportOf.get(c.id),
-            device: c.device,
-            ...(c.variant ? { variant: c.variant } : {}),
-            waitMs,
-            ...(c.throttling ? { throttling: c.throttling } : {}),
-            runs: c.runs,
-            cli_version: cliVersion,
-          },
-        },
-      });
-      if (!outcome.ok) {
-        say(`Warning: could not report ${c.id} to ${new URL(reportUrl).origin} (${outcome.warning})`);
-      } else if (outcome.regressions.length > 0) {
-        process.stderr.write(`Regressions detected in ${c.id}:\n${outcome.regressions.map((r) => `  - ${typeof r === "string" ? r : JSON.stringify(r)}`).join("\n")}\n`);
-      }
+      const meta = { viewport: viewportOf.get(c.id), device: c.device, ...(c.variant ? { variant: c.variant } : {}), waitMs, ...(c.throttling ? { throttling: c.throttling } : {}), runs: c.runs };
+      const outcome = await reportTo({ url: reportUrl, apiKey: values["api-key"] || process.env.PERF_REVIEWS_API_KEY, body: reportBody({ url: c.url, values, page: c, meta }) });
+      reportLines(outcome, { url: reportUrl, name: c.id }).forEach((line) => say(line));
     }
   }
 
