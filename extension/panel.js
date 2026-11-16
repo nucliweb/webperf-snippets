@@ -476,7 +476,7 @@ function showSnippet(snippet, { result: given, fromAudit = false, measured } = {
     const issue = event.target.closest('.to-row')
     if (issue) showRow(issue.dataset.row)
     const source = event.target.closest('.open-source')
-    if (source) chrome.devtools.panels.openResource?.(source.dataset.url)
+    if (source) openInSources(source)
     const url = event.target.closest('.copy-url')
     if (url) copyUrl(url)
   })
@@ -504,6 +504,21 @@ function showRow(index) {
   row.tabIndex = -1
   row.focus({ preventScroll: true })
   row.scrollIntoView({ block: 'center', behavior: 'smooth' })
+}
+
+// Opens the file of a URL in the Sources panel. DevTools only opens a resource it knows of the page:
+// not one that loaded before DevTools opened, or that the page no longer has. Called without a callback,
+// openResource answers with a promise, rejected when it has no such resource; an older Chrome answers
+// nothing, and then the button stays as it was
+async function openInSources(button) {
+  let found = true
+  try {
+    await chrome.devtools.panels.openResource?.(button.dataset.url)
+  } catch {
+    found = false
+  }
+  button.classList.toggle('not-found', !found)
+  button.title = found ? 'Open in Sources' : 'DevTools has no source for this URL. Reload the page with DevTools open, or copy the URL to find it in Network'
 }
 
 // Selects the element of a selector in the Elements panel, with inspect() of the DevTools console

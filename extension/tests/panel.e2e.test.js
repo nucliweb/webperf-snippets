@@ -73,13 +73,17 @@ before(async () => {
       // The version the prompt to fix names
       runtime: { getManifest: () => manifest },
       devtools: {
-        // openResource records what it would open in Sources
         // The theme of DevTools is the light one unless a test saves another, and a test changes it
         // while the panel is open with window.__themeChanged(theme)
         panels: {
           themeName: localStorage.getItem('test:devtools-theme') ?? 'default',
           setThemeChangeHandler: (handler) => (window.__themeChanged = handler),
-          openResource: (url) => (window.__opened ??= []).push(url),
+          // As DevTools answers a call without a callback: a promise, rejected with its one message
+          // when it has no such resource, which the test decides with window.__unopenable
+          openResource: (url) => {
+            (window.__opened ??= []).push(url)
+            return window.__unopenable ? Promise.reject(new Error('DevTools API encountered an error')) : Promise.resolve()
+          },
         },
         inspectedWindow: {
           eval: (e, callback) => window.__inspect(e).then(([value, exception]) => callback(value, exception)),
@@ -846,6 +850,28 @@ test('a resource opens in Sources, and its URL copies to filter Network by it', 
   await panel.click('#result tbody tr >> nth=0 >> .copy-url')
   assert.equal(await panel.evaluate(() => window.__copied.at(-1)), url)
   assert.equal(await panel.getAttribute('#result tbody tr >> nth=0 >> .copy-url', 'title'), 'Copied')
+})
+
+// DevTools only opens what it knows of the page: not a resource that loaded before DevTools opened,
+// or one the page no longer has. Its answer is an error, which was left without anyone to take it
+test('a resource DevTools cannot open says so on its button, and leaves no error', async () => {
+  await target.goto(`${servers.base}/seeded`, { waitUntil: 'load' })
+  await panel.click('#list button[data-id="Find-render-blocking-resources"]')
+  await resultOf('#run')
+  const button = panel.locator('#result tbody tr >> nth=0 >> .open-source')
+  await panel.evaluate(() => (window.__unopenable = true))
+  try {
+    await button.click()
+    await panel.waitForSelector('#result .open-source.not-found')
+    assert.equal(await button.getAttribute('title'), 'DevTools has no source for this URL. Reload the page with DevTools open, or copy the URL to find it in Network')
+    // It opens once DevTools knows the resource
+    await panel.evaluate(() => (window.__unopenable = false))
+    await button.click()
+    await panel.waitForSelector('#result .open-source:not(.not-found)')
+    assert.equal(await button.getAttribute('title'), 'Open in Sources')
+  } finally {
+    await panel.evaluate(() => delete window.__unopenable)
+  }
 })
 
 test('the panel lists every snippet, and each category says how many it has', async () => {

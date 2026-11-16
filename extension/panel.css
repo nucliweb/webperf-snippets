@@ -238,6 +238,7 @@ td.url { min-width: 80px; max-width: 280px; white-space: normal; overflow-wrap: 
 .inspect { padding: 0; font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); text-align: left; background: none; border: 0; cursor: pointer; }
 .inspect:hover, .inspect:focus-visible { text-decoration: underline; }
 .inspect.not-found { color: var(--muted); text-decoration: line-through; }
+.open-source.not-found { opacity: 0.45; }
 
 /* Dialogs */
 dialog { width: min(420px, calc(100vw - 32px)); padding: 16px 20px; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.2); }
