@@ -10,7 +10,7 @@ const CANONICAL_PATH = path.join(SNIPPETS_DIR, '_shared', 'helpers.js')
 const START = /^\s*\/\/ @shared (\S+)\s*$/
 const END = /^\s*\/\/ @end-shared (\S+)\s*$/
 // A definition of a shared helper, in any declaration style
-const PRIVATE_COPY = /\b(?:function|const|let|var)\s+(getRootDomain|isFirstParty|logOwnDomainsHint|formatBytes|ownRequestUrl|isOwnRequest|uniqueSelector|supportsRenderBlockingStatus|createInteractionTracker)\b/
+const PRIVATE_COPY = /\b(?:function|const|let|var)\s+(getRootDomain|isFirstParty|logOwnDomainsHint|formatBytes|ownRequestUrl|isOwnRequest|uniqueSelector|supportsRenderBlockingStatus|createInteractionTracker|isInViewport|normalizeUrl|urlLabel|detectFormat)\b/
 
 function dedent(lines) {
   const indents = lines.filter((l) => l.trim() !== '').map((l) => l.match(/^\s*/)[0].length)
@@ -95,13 +95,7 @@ const REPEATED_HELPERS = {
   formatMs: 12,
   valueToRating: 11,
   // To unify in snippets/_shared/helpers.js, or to rename where the copies do different things
-  isInViewport: 7,
   formatBar: 5,
-  shortUrl: 4,
-  getElementInfo: 3,
-  normalizeUrl: 3,
-  detectFormat: 2,
-  findLcpCandidate: 2,
   formatKB: 2,
   formatSize: 2,
   getActivationStart: 2,

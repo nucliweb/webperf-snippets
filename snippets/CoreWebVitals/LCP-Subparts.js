@@ -10,6 +10,20 @@
   }
   // @end-shared isOwnRequest
 
+  // @shared urlLabel
+  // A URL short enough for the console: the file name, with the host when it is another one
+  function urlLabel(url) {
+    if (url.startsWith("data:")) return `${url.split(",")[0]},…`;
+    try {
+      const u = new URL(url);
+      const file = u.pathname.split("/").pop()?.split("?")[0];
+      return u.hostname !== location.hostname ? `${u.hostname}/…/${file}` : file || url;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared urlLabel
+
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
     console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
     return { script: "LCP-Subparts", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
@@ -142,15 +156,7 @@
       console.log("%cLCP Element:", "font-weight: bold;");
       console.log(`   ${uniqueSelector(el)}`, el);
       if (lcpEntry.url) {
-        const shortUrl = (() => {
-          try {
-            const u = new URL(lcpEntry.url);
-            return u.hostname !== location.hostname
-              ? `${u.hostname}/…/${u.pathname.split("/").pop()?.split("?")[0]}`
-              : u.pathname.split("/").pop()?.split("?")[0] || lcpEntry.url;
-          } catch { return lcpEntry.url; }
-        })();
-        console.log(`   URL: ${shortUrl}`);
+        console.log(`   URL: ${urlLabel(lcpEntry.url)}`);
       }
 
       // Highlight

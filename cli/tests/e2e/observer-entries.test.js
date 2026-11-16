@@ -20,7 +20,8 @@ beforeAll(
   () =>
     new Promise((resolve) => {
       server = createServer((req, res) => {
-        const name = req.url.replace(/^\//, "") || "index.html";
+        // The query is for the snippets to read, as the parameters of an image CDN; the file is the same
+        const name = req.url.split("?")[0].replace(/^\//, "") || "index.html";
         // The fixture is read before the headers go: a name with no fixture, such as the favicon.ico the
         // full Chromium asks for, is a 404
         try {
@@ -175,6 +176,14 @@ describe("snippets that read observer-only entry types", () => {
     expect(poster.details.posterUrl).toMatch(/\/hero\.png$/);
     expect(poster.details.videoUrl).toBeNull();
   }, 45000);
+
+  // The format a CDN is asked for wins over the extension of the file: no legacy format to warn about
+  it("LCP-Video-Candidate reads the format of a poster from the parameters of an image CDN", async () => {
+    const r = await run("CoreWebVitals/LCP-Video-Candidate", "video-poster-cdn.html");
+    expect(r.details.lcpSource, JSON.stringify(r)).toBe("poster");
+    expect(r.details.posterFormat).toBe("avif");
+    expect(r.issues.map((i) => i.code)).not.toContain("poster-legacy-format");
+  }, 30000);
 
   it("LCP-Video-Candidate warns when the LCP rendered long after the load", async () => {
     const late = await runAfterVideoLcp("CoreWebVitals/LCP-Video-Candidate", "video-late.html", 13000);

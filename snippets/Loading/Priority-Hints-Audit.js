@@ -10,6 +10,8 @@
   }
   // @end-shared isOwnRequest
 
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -21,8 +23,10 @@
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
-  function findLcpCandidate() {
+  // An estimate of the LCP image without the LCP entry: the largest image in the viewport
+  function largestImageInViewport() {
     const imgs = Array.from(document.querySelectorAll("img")).filter(isInViewport);
     let candidate = null;
     let maxArea = 0;
@@ -37,7 +41,8 @@
     return candidate;
   }
 
-  function shortUrl(el) {
+  // The file an element loads, without its path or query
+  function fileNameOf(el) {
     const src = el.src || el.href || el.getAttribute("href") || "";
     return src.split("/").pop()?.split("?")[0] || src.slice(-50) || "(unknown)";
   }
@@ -68,7 +73,7 @@
   const preloadsWithPriority = Array.from(
     document.querySelectorAll('link[rel="preload"][fetchpriority]')
   );
-  const lcpCandidate = findLcpCandidate();
+  const lcpCandidate = largestImageInViewport();
 
   const issues = [];
 
@@ -81,7 +86,7 @@
         severity: "error",
         element: link,
         url: link.href,
-        resource: shortUrl(link),
+        resource: fileNameOf(link),
         message: 'preload + fetchpriority="low" is contradictory',
         detail:
           'preload signals this resource is critical for the current page; fetchpriority="low" contradicts that.',
@@ -100,7 +105,7 @@
           severity: "warning",
           element: el,
           url: el.src || el.href,
-          resource: shortUrl(el),
+          resource: fileNameOf(el),
           message: `fetchpriority="low" but loaded at ${entry.startTime.toFixed(0)}ms`,
           detail:
             "This resource loaded very early. If it's genuinely non-critical, the browser is deprioritizing it correctly. Otherwise, reconsider the priority.",
@@ -120,7 +125,7 @@
           severity: "warning",
           element: el,
           url: el.src || el.href,
-          resource: shortUrl(el),
+          resource: fileNameOf(el),
           message: `fetchpriority="high" but loaded at ${entry.startTime.toFixed(0)}ms`,
           detail:
             "High-priority resources should load early. A late start may indicate render-blocking dependencies or incorrect placement in the document.",
@@ -222,7 +227,7 @@
             entry?.decodedBodySize
               ? (entry.decodedBodySize / 1024).toFixed(1)
               : "N/A",
-          Resource: shortUrl(el),
+          Resource: fileNameOf(el),
         };
       })
     );
@@ -250,7 +255,7 @@
           Status:
             fp === "low" ? "⚠️ Conflict" : fp === "high" ? "✅ Good" : "ℹ️ Auto",
           "Start (ms)": entry ? entry.startTime.toFixed(0) : "N/A",
-          Resource: shortUrl(link),
+          Resource: fileNameOf(link),
         };
       })
     );

@@ -28,8 +28,8 @@
     }
     return parts.join(" > ");
   }
-  function isInViewport(element) {
-    const rect = element.getBoundingClientRect();
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
     return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
   }
   function getDistanceFromViewportEdge(element) {
@@ -54,7 +54,7 @@
     if (hasDataSrc) return "data-src";
     return null;
   }
-  function getElementInfo(img) {
+  function lazyImageInfo(img) {
     const rect = img.getBoundingClientRect();
     const area = rect.width * rect.height;
     return {
@@ -103,7 +103,7 @@
   lazyElements.forEach(element => {
     const img = element.tagName === "SOURCE" ? element.closest("picture")?.querySelector("img") : element;
     if (!img || !isInViewport(img)) return;
-    const info = getElementInfo(img);
+    const info = lazyImageInfo(img);
     info.isLcpCandidate = img === lcpCandidate;
     results.lazyImages.push(info);
     results.nodeArray.push(img);

@@ -37,9 +37,20 @@
   }
   function detectFormat(url) {
     if (!url) return "unknown";
-    const path = url.toLowerCase().split("?")[0];
-    const ext = path.match(/\.(avif|webp|jxl|png|gif|jpg|jpeg|svg)(?:[?#]|$)/);
-    if (ext) return ext[1] === "jpeg" ? "jpg" : ext[1];
+    const lower = url.toLowerCase();
+    const path = lower.split("?")[0];
+    const query = lower.includes("?") ? lower.split("?")[1] : "";
+    const cloudinaryMatch = path.match(/\/f_(auto|avif|webp|jxl|png|jpg|jpeg|gif|svg)[,/]/);
+    if (cloudinaryMatch) {
+      const fmt = cloudinaryMatch[1];
+      return fmt === "auto" ? "auto (cdn)" : fmt === "jpeg" ? "jpg" : fmt;
+    }
+    const qMatch = query.match(/(?:^|&)(?:fm|format)=(avif|webp|jxl|png|jpg|jpeg|gif|svg)(?:&|$)/);
+    if (qMatch) return qMatch[1] === "jpeg" ? "jpg" : qMatch[1];
+    const extMatch = path.match(/\.(avif|webp|jxl|png|gif|svg|jpg|jpeg)(?:[?#]|$)/);
+    if (extMatch) return extMatch[1] === "jpeg" ? "jpg" : extMatch[1];
+    const lastSegment = path.split("/").pop() || "";
+    if (!lastSegment.includes(".")) return "auto (cdn?)";
     return "unknown";
   }
   function normalizeUrl(url) {
@@ -129,7 +140,7 @@
     s: "info",
     msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised'
   });
-  if (posterAttr && !isModernFormat && posterFormat !== "unknown") issues.push({
+  if (posterAttr && !isModernFormat && posterFormat !== "unknown" && !posterFormat.startsWith("auto")) issues.push({
     code: "poster-legacy-format",
     s: "info",
     msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time`

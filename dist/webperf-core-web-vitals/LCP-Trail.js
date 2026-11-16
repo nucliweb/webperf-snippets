@@ -71,7 +71,7 @@
     return parts.join(" > ");
   }
   const REMOVED = "(removed from DOM)";
-  const getElementInfo = (element, entry) => {
+  const describeLcpElement = (element, entry) => {
     if (!element) return entry.url ? {
       type: "Image",
       url: entry.url
@@ -96,7 +96,7 @@
     };
   };
   const candidateKey = entry => entry.element ?? `${entry.startTime}|${entry.size}`;
-  const shortUrl = url => {
+  function urlLabel(url) {
     if (url.startsWith("data:")) return `${url.split(",")[0]},…`;
     try {
       const u = new URL(url);
@@ -105,7 +105,7 @@
     } catch {
       return url;
     }
-  };
+  }
   const candidates = [];
   const logTrail = () => {
     const current = candidates[candidates.length - 1];
@@ -113,7 +113,7 @@
     const rating = valueToRating(current.time);
     const {icon: icon, color: ratingColor} = RATING[rating];
     if (current.element) void 0; else void 0;
-    const {type: type, url: url} = getElementInfo(current.element, current.entry);
+    const {type: type, url: url} = describeLcpElement(current.element, current.entry);
     if (url) void 0;
     if (current.element?.naturalWidth) void 0;
     if (current.entry.size) void 0;
@@ -173,7 +173,7 @@
     const key = candidateKey(entry);
     if (byKey.has(key)) continue;
     const el = entry.element;
-    const {type: type, url: url} = getElementInfo(el, entry);
+    const {type: type, url: url} = describeLcpElement(el, entry);
     byKey.set(key, {
       index: byKey.size + 1,
       selector: el ? uniqueSelector(el) : null,
@@ -187,7 +187,7 @@
       elementType: type,
       sizePixels: entry.size,
       ...url ? {
-        url: shortUrl(url)
+        url: urlLabel(url)
       } : {}
     });
   }

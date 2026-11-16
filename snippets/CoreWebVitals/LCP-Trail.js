@@ -68,7 +68,8 @@
   // an app removes when it renders. The entry keeps its time, size and URL.
   const REMOVED = "(removed from DOM)";
 
-  const getElementInfo = (element, entry) => {
+  // The kind of an LCP element, and the URL of its image when it has one
+  const describeLcpElement = (element, entry) => {
     if (!element) return entry.url ? { type: "Image", url: entry.url } : { type: "Removed element" };
     const tag = element.tagName.toLowerCase();
     if (tag === "img") return { type: "Image", url: entry.url || element.src };
@@ -80,15 +81,19 @@
   // One candidate per element, or per entry when its element was removed
   const candidateKey = (entry) => entry.element ?? `${entry.startTime}|${entry.size}`;
 
-  // A data: URL keeps its media type, and another URL its file name
-  const shortUrl = (url) => {
+  // @shared urlLabel
+  // A URL short enough for the console: the file name, with the host when it is another one
+  function urlLabel(url) {
     if (url.startsWith("data:")) return `${url.split(",")[0]},…`;
     try {
       const u = new URL(url);
       const file = u.pathname.split("/").pop()?.split("?")[0];
       return u.hostname !== location.hostname ? `${u.hostname}/…/${file}` : file || url;
-    } catch { return url; }
-  };
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared urlLabel
 
   const candidates = [];
 
@@ -110,9 +115,9 @@
     if (current.element) console.log(`   Element: ${current.selector}`, current.element);
     else console.log(`   Element: ${REMOVED}${current.entry.id ? ` #${current.entry.id}` : ""}`);
 
-    const { type, url } = getElementInfo(current.element, current.entry);
+    const { type, url } = describeLcpElement(current.element, current.entry);
     console.log(`   Type: ${type}`);
-    if (url) console.log(`   URL: ${shortUrl(url)}`);
+    if (url) console.log(`   URL: ${urlLabel(url)}`);
     if (current.element?.naturalWidth) {
       console.log(
         `   Dimensions: ${current.element.naturalWidth}×${current.element.naturalHeight}`
@@ -197,7 +202,7 @@
     const key = candidateKey(entry);
     if (byKey.has(key)) continue;
     const el = entry.element;
-    const { type, url } = getElementInfo(el, entry);
+    const { type, url } = describeLcpElement(el, entry);
     byKey.set(key, {
       index: byKey.size + 1,
       selector: el ? uniqueSelector(el) : null,
@@ -206,7 +211,7 @@
       time: Math.round(Math.max(0, entry.startTime - trailActivationStart)),
       elementType: type,
       sizePixels: entry.size,
-      ...(url ? { url: shortUrl(url) } : {}),
+      ...(url ? { url: urlLabel(url) } : {}),
     });
   }
   const syncCandidates = [...byKey.values()];

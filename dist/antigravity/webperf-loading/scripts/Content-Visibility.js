@@ -35,11 +35,11 @@
       visibleElements: [],
       nodeArray: []
     };
-    function isInViewport(element) {
-      const rect = element.getBoundingClientRect();
-      return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0;
+    function isInViewport(el) {
+      const rect = el.getBoundingClientRect();
+      return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
     }
-    function getElementInfo(node) {
+    function contentVisibilityInfo(node) {
       const rect = node.getBoundingClientRect();
       const cs = window.getComputedStyle(node);
       return {
@@ -56,7 +56,7 @@
       const cs = window.getComputedStyle(node);
       const cv = cs["content-visibility"];
       if (cv && cv !== "visible") {
-        const info = getElementInfo(node);
+        const info = contentVisibilityInfo(node);
         if (cv === "auto") {
           results.autoElements.push(info);
           results.nodeArray.push(node);
