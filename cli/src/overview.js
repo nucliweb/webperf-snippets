@@ -15,6 +15,13 @@ export function pathsOfRun({ items = [], workflow, rules = [] }) {
 
 export const reportOf = (results, pathOf) => ({ overview: overviewOf(results.map(summarizeIssues)), issues: issueList(results, pathOf) });
 
+// A measured page as the report gives it: what the results found goes before them, so a reader, or an
+// agent, sees it first, and how it was measured after them. A page starts with its URL, and a
+// combination of a matrix with its identity. The browser of the run belongs to the conditions.
+export function pageReport({ browser, ...measured }, { identity = { url: measured.url }, date, pathOf, conditions }) {
+  return { ...identity, date, navMs: measured.navMs, ...reportOf(measured.results, pathOf), ...measured, conditions };
+}
+
 // The overview in one line, for the reports to start with: only for results that count issues, the ones
 // of an audit, and for a report that has the overview (a page of an older CLI does not)
 export const overviewLine = ({ overview, results = [] }) => (overview && results.some((r) => Array.isArray(r.issues)) ? describeOverview(overview) : null);

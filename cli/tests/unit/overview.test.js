@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pathsOfRun, reportOf } from "../../src/overview.js";
+import { pageReport, pathsOfRun, reportOf } from "../../src/overview.js";
 import { auditWorkflow } from "../../src/workflows/audit.js";
 import { cwvWorkflow } from "../../src/workflows/cwv.js";
 import { RULES } from "../../src/decision-tree.js";
@@ -51,5 +51,29 @@ describe("reportOf", () => {
       overview: { snippets: 1, withErrors: 0, withWarnings: 0, withNothingToFix: 1 },
       issues: [],
     });
+  });
+});
+
+// A measured page as the JSON gives it, alone or as a combination of a matrix
+describe("pageReport", () => {
+  const measured = { url: "http://localhost:3000/", navMs: 850, results: [{ id: "LCP", script: "LCP", status: "ok" }], pageErrors: [], throttling: { cpu: 4 }, browser: { build: "chromium" } };
+  const pathOf = () => "CoreWebVitals/LCP";
+  const about = { date: "2026-11-16T00:00:00.000Z", pathOf, conditions: { viewport: "mobile" } };
+
+  it("puts what the results found before them, and how the page was measured after them", () => {
+    const report = pageReport(measured, about);
+    expect(Object.keys(report)).toEqual(["url", "date", "navMs", "overview", "issues", "results", "pageErrors", "throttling", "conditions"]);
+    expect(report).toEqual(expect.objectContaining({ url: measured.url, date: about.date, navMs: 850, results: measured.results, conditions: { viewport: "mobile" } }));
+  });
+
+  it("leaves the browser to the conditions, and keeps the runs of a median before them", () => {
+    const report = pageReport({ ...measured, runs: { count: 3 } }, about);
+    expect(report).not.toHaveProperty("browser");
+    expect(Object.keys(report).slice(-3)).toEqual(["throttling", "runs", "conditions"]);
+  });
+
+  it("starts a combination of a matrix with its identity", () => {
+    const report = pageReport(measured, { ...about, identity: { id: "home-mobile", name: "home", device: "mobile", url: measured.url } });
+    expect(Object.keys(report).slice(0, 6)).toEqual(["id", "name", "device", "url", "date", "navMs"]);
   });
 });

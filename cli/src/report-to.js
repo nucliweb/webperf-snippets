@@ -44,3 +44,31 @@ export async function reportTo({ url, apiKey, body, timeoutMs = REPORT_TIMEOUT_M
     return { ok: false, warning: reason };
   }
 }
+
+// The body of a report: one page with what it ran, when, what its results found and how it was
+// measured. `values` are the options as given, and `meta` the conditions the caller names. The headers
+// of the load are conditions too, and never part of the body.
+export function reportBody({ url, values, page, meta }) {
+  return {
+    url,
+    workflow: values.snippet ? null : (values.workflow ?? "core-web-vitals"),
+    ...(values.snippet ? { snippet: values.snippet } : {}),
+    timestamp: new Date().toISOString(),
+    navMs: page.navMs,
+    overview: page.overview,
+    issues: page.issues,
+    results: page.results,
+    ...(page.budgets ? { budgets: page.budgets } : {}),
+    meta: { ...meta, cli_version: cliVersion },
+  };
+}
+
+// What to say on stderr about the outcome of reportTo: a warning when the report did not arrive, with
+// the origin of the endpoint only, and the regressions the endpoint found. `name` is the combination
+// of a matrix
+export function reportLines(outcome, { url, name }) {
+  if (!outcome.ok) return [`Warning: could not report ${name ?? "results"} to ${new URL(url).origin} (${outcome.warning})`];
+  if (outcome.regressions.length === 0) return [];
+  const list = outcome.regressions.map((r) => `  - ${typeof r === "string" ? r : JSON.stringify(r)}`).join("\n");
+  return [`Regressions detected${name ? ` in ${name}` : ""}:\n${list}`];
+}
