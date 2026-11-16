@@ -102,3 +102,10 @@ describe("parseOptions", () => {
     expect(usage(URL, "--wait=abc", "--viewport", "watch")).toMatch(/^Invalid --wait/);
   });
 });
+
+describe("--no-color", () => {
+  it("is an option of a page and of a matrix", () => {
+    expect(parseOptions(["https://example.com", "--no-color"]).values["no-color"]).toBe(true);
+    expect(parseOptions(["https://example.com"]).values["no-color"]).toBeUndefined();
+  });
+});

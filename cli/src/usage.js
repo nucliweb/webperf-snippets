@@ -70,6 +70,7 @@ Options:
   --api-key <key>           Sent as "Authorization: Bearer <key>" with --report-to.
                             Prefer the PERF_REVIEWS_API_KEY environment variable
   --verbose             Show all items, even for passing checks
+  --no-color            No colors in the report, as with the NO_COLOR environment variable
   --headed              Show the browser window (debug)
   -h, --help            Show this help
   -v, --version         Show the version
