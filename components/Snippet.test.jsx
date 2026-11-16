@@ -57,6 +57,12 @@ describe("Snippet", () => {
     for (const selector of [".wp-snippet-actions", ".wp-snippet-copy", ".wp-snippet-prompt"]) expect(reduced).toContain(selector);
   });
 
+  it("lets the keyboard reach the code, which scrolls sideways when its lines are long", () => {
+    const html = renderToStaticMarkup(<Snippet code={CODE} />);
+    expect(html).toMatch(/<code[^>]* tabindex="0"/);
+    expect(CSS).toMatch(/\.wp-snippet pre code:focus-visible \{\s*outline:/);
+  });
+
   it("highlights the code in the HTML it renders, so the browser runs no highlighter", () => {
     const html = renderToStaticMarkup(<Snippet code={CODE} />);
     expect(html).toMatch(/<code[^>]*class="hljs"[^>]*>.*<span class="hljs-string">&#x27;Demo&#x27;<\/span>/);
