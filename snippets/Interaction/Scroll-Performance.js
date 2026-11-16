@@ -299,6 +299,7 @@
     // — CSS audit
     console.log("");
     console.log("%cCSS Scroll Audit:", "font-weight: bold;");
+    // One walk of the page for the console and the result
     const css = auditScrollCSS();
 
     if (css.contentVisibilityElements.length > 0) {
@@ -363,7 +364,7 @@
 
     console.groupEnd();
 
-    const cssAuditResult = auditScrollCSS();
+    const cssAuditResult = css;
     const findings = buildFindings(cssAuditResult);
     return {
       script: "Scroll-Performance",

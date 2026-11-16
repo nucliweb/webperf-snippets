@@ -195,7 +195,7 @@
       if (hasJank) {
       }
     }
-    const cssAuditResult = auditScrollCSS();
+    const cssAuditResult = css;
     const findings = buildFindings(cssAuditResult);
     return {
       script: "Scroll-Performance",
