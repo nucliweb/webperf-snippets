@@ -12,7 +12,7 @@ import { runInteractions, isInputStep, settle } from "../interactions.js";
 import { createSessions, SessionError } from "./sessions.js";
 import { Step } from "./steps.js";
 import { createQueue } from "./queue.js";
-import { launchChromium, isMissingBrowser, MISSING_BROWSER } from "../browser.js";
+import { launchChromium, isMissingBrowser, missingBrowserMessage } from "../browser.js";
 import { registerResources } from "./documents.js";
 import { registerPrompts } from "./prompts.js";
 import { shapeResults, createRuns, RunError } from "./summary.js";
@@ -462,7 +462,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           ...(nextSteps.length ? { nextSteps } : {}),
         });
       } catch (err) {
-        if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
+        if (isMissingBrowser(err)) return toolError(missingBrowserMessage(err));
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
         return toolError(`The run failed: ${firstLine(err.message)}`);
       }
@@ -555,7 +555,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           ...(nextSteps.length ? { nextSteps } : {}),
         });
       } catch (err) {
-        if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
+        if (isMissingBrowser(err)) return toolError(missingBrowserMessage(err));
         if (/page\.goto/.test(err.message)) return toolError(`Could not load ${url}: ${firstLine(err.message)}`);
         return toolError(`The run failed: ${firstLine(err.message)}`);
       }
@@ -663,7 +663,7 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
         try {
           session = await sessions.create({ viewport: VIEWPORT_PRESETS[viewport], signal: AbortSignal.any([ctx.mcpReq.signal, limit]) });
         } catch (err) {
-          if (isMissingBrowser(err)) return toolError(MISSING_BROWSER);
+          if (isMissingBrowser(err)) return toolError(missingBrowserMessage(err));
           throw err;
         }
         try {
