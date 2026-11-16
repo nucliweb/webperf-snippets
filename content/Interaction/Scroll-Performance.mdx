@@ -36,7 +36,7 @@ Scroll jank is caused by work blocking the compositor thread: non-passive event 
 | 🔴 Poor | < 40 fps | > 25ms | Visible stutter |
 
 <Callout type="default">
-**Note:** The passive listener detection only catches listeners registered **after** the snippet runs. Run it before interacting with the page for complete coverage.
+**Note:** The passive listener detection only catches listeners registered **after** the snippet runs. Run it before interacting with the page for complete coverage. Running it again on the same page replaces the previous run, and restores the native `addEventListener` unless another script wrapped it afterwards.
 </Callout>
 
 ### Snippet
