@@ -1,4 +1,4 @@
-import { styleText } from "node:util";
+import { styleText, stripVTControlCharacters } from "node:util";
 import { describeResult } from "../view.js";
 import { overviewLine } from "../overview.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
@@ -9,12 +9,22 @@ import { matrixView } from "./matrix-view.js";
 import { baselineView } from "./baseline-view.js";
 import { budgetRows, matrixBudgetFailures } from "./budgets-view.js";
 import { formatValue } from "./format.js";
+import { ANY_TERMINAL, fit, pad, room } from "./terminal.js";
 
 const RATING_ICON = {
   good: "🟢",
   "needs-improvement": "🟡",
   poor: "🔴",
 };
+
+// The same ratings where an emoji is not drawn: the marks of the issues of an audit
+const RATING_MARK = {
+  good: "✓",
+  "needs-improvement": "⚠",
+  poor: "✗",
+};
+
+const iconOf = (rating, terminal) => (terminal.emoji ? RATING_ICON : RATING_MARK)[rating] ?? "·";
 
 const RATING_STYLE = {
   good: "green",
@@ -24,11 +34,6 @@ const RATING_STYLE = {
 
 function paint(rating, text) {
   return styleText(RATING_STYLE[rating] ?? "white", text);
-}
-
-function pad(text, len) {
-  const visibleLen = text.replace(/\[\d+m/g, "").length;
-  return text + " ".repeat(Math.max(0, len - visibleLen));
 }
 
 const DISPLAY_WARN = new Set(["block", "auto", "unknown"]);
@@ -74,13 +79,13 @@ function renderFontsResult(r) {
   return lines.join("\n");
 }
 
-function renderAuditResult(r, verbose) {
+function renderAuditResult(r, verbose, terminal) {
   const lines = [];
   const id = r.id ?? r.script;
   const errors = (r.issues ?? []).filter((i) => i.severity === "error");
   const warnings = (r.issues ?? []).filter((i) => i.severity === "warning");
 
-  const icon = errors.length ? "🔴" : warnings.length ? "🟡" : "🟢";
+  const icon = iconOf(errors.length ? "poor" : warnings.length ? "needs-improvement" : "good", terminal);
   const countSuffix = r.count > 0 ? styleText("dim", ` (${r.count})`) : "";
   lines.push(`  ${icon} ${id}${countSuffix}`);
 
@@ -102,10 +107,10 @@ function renderAuditResult(r, verbose) {
     // The cells of each row as the view gives them: the file of a URL, the values in their units
     const { rows, constants } = describeResult(r);
     // The values that are the same in every row, once above them, as in the extension
-    if (constants.length) lines.push(`     ${styleText("dim", constants.map((c) => `${c.label} ${c.text}`).join(" · "))}`);
+    if (constants.length) lines.push(`     ${styleText("dim", fit(constants.map((c) => `${c.label} ${c.text}`).join(" · "), room(terminal, 5)))}`);
     for (const row of rows.slice(0, MAX_ITEMS)) {
       const cols = row.cells.map((c) => c.text).filter(Boolean).join("  ");
-      if (cols) lines.push(`     ${styleText("dim", `· ${cols}`)}`);
+      if (cols) lines.push(`     ${styleText("dim", `· ${fit(cols, room(terminal, 7))}`)}`);
     }
     if (items.length > MAX_ITEMS) {
       lines.push(`     ${styleText("dim", `… and ${items.length - MAX_ITEMS} more`)}`);
@@ -121,13 +126,13 @@ function renderAuditResult(r, verbose) {
 
 // A result with a count and details but no value and no issues, such as the long tasks: the count,
 // then the first numbers of its details.
-function renderSummaryResult(r) {
+function renderSummaryResult(r, terminal) {
   const numbers = summaryNumbers(r);
   const summary = [r.count !== undefined ? String(r.count) : null, ...numbers].filter(Boolean).join("  ·  ");
-  return `  ${RATING_ICON[r.rating] ?? "·"} ${pad(r.id, 16)} ${styleText("dim", summary)}`;
+  return `  ${iconOf(r.rating, terminal)} ${pad(r.id, 16)} ${styleText("dim", summary)}`;
 }
 
-function renderResult(r, verbose) {
+function renderResult(r, verbose, terminal) {
   if (r.status === "skipped") {
     return `  ${styleText("dim", "-")} ${pad(r.id, 16)} ${styleText("dim", `skipped: ${r.reason}`)}`;
   }
@@ -151,19 +156,21 @@ function renderResult(r, verbose) {
   }
 
   if (Array.isArray(r.issues)) {
-    return renderAuditResult(r, verbose);
+    return renderAuditResult(r, verbose, terminal);
   }
 
   if (isSummaryResult(r)) {
-    return renderSummaryResult(r);
+    return renderSummaryResult(r, terminal);
   }
 
-  const icon = RATING_ICON[r.rating] ?? "·";
+  const icon = iconOf(r.rating, terminal);
   const valueText = paint(r.rating, formatValue(r.value, r.unit));
   const ratingText = styleText("dim", r.rating ?? "");
-  const detail = r.details?.element ? styleText("dim", r.details.element) : "";
+  const head = `  ${icon} ${pad(r.id, 16)} ${pad(valueText, 10)} ${pad(ratingText, 20)} `;
+  // The selector of the element takes what is left of the line: one that wraps breaks the columns
+  const detail = r.details?.element ? styleText("dim", fit(r.details.element, room(terminal, stripVTControlCharacters(head).length))) : "";
 
-  let out = `  ${icon} ${pad(r.id, 16)} ${pad(valueText, 10)} ${pad(ratingText, 20)} ${detail}`;
+  let out = head + detail;
 
   if (r.metric === "LCP" && r.details?.subParts) {
     const sp = r.details.subParts;
@@ -174,7 +181,7 @@ function renderResult(r, verbose) {
     out += "\n";
     out += rows
       .map(([name, info]) => {
-        const status = info.overTarget ? styleText("red", "🔴") : styleText("green", "✓");
+        const status = info.overTarget ? styleText("red", iconOf("poor", terminal)) : styleText("green", "✓");
         const row = `       ${status} ${pad(name, 22)} ${pad(`${info.value}ms`, 8)} ${pad(`${info.percent}%`, 6)}`;
         // The Resource Load Time splits into the wait for the server and the download, when the snippet measures it
         return info.waiting == null
@@ -195,13 +202,13 @@ function renderResult(r, verbose) {
   return out;
 }
 
-function renderFieldData(crux, results) {
+function renderFieldData(crux, results, terminal) {
   const trend = crux.history ? ["", ...renderFieldTrend(crux.history)] : [];
   if (crux.unavailable) return [styleText("dim", `Field data: not available (${crux.unavailable})`), ...trend];
   const { title, rows } = fieldDataView(crux, results);
   const lines = [styleText("bold", title)];
   for (const row of rows) {
-    const icon = RATING_ICON[row.rating] ?? "·";
+    const icon = iconOf(row.rating, terminal);
     const synthetic = row.synthetic == null ? "n/a" : formatValue(row.synthetic, row.unit);
     lines.push(
       `  ${icon} ${pad(row.metric, 6)} ${pad(paint(row.rating, formatValue(row.p75, row.unit)), 10)} ${pad(styleText("dim", row.rating), 20)} ${styleText("dim", `(synthetic: ${synthetic})`)}`
@@ -285,7 +292,7 @@ function renderBaseline(comparison) {
   return lines;
 }
 
-export function reportHuman({ url, navMs, overview, results, pageErrors, verbose, crux, throttling, runs, baseline, budgets, title = `WebPerf Snippets — ${url}` }) {
+export function reportHuman({ url, navMs, overview, results, pageErrors, verbose, crux, throttling, runs, baseline, budgets, terminal = ANY_TERMINAL, title = `WebPerf Snippets — ${url}` }) {
   const lines = [];
   lines.push(styleText(["bold"], title));
   lines.push(styleText("dim", `Navigated in ${navMs}ms`));
@@ -294,10 +301,10 @@ export function reportHuman({ url, navMs, overview, results, pageErrors, verbose
   lines.push("");
   const summary = overviewLine({ overview, results });
   if (summary) lines.push(summary, "");
-  for (const r of results) lines.push(renderResult(r, verbose));
+  for (const r of results) lines.push(renderResult(r, verbose, terminal));
   if (crux) {
     lines.push("");
-    lines.push(...renderFieldData(crux, results));
+    lines.push(...renderFieldData(crux, results, terminal));
   }
   if (pageErrors?.length) {
     lines.push("");
@@ -312,16 +319,22 @@ export function reportHuman({ url, navMs, overview, results, pageErrors, verbose
 // One row per combination with the rated median of each metric, and below it the errors that decide
 // the exit code. With verbose, the report of the median run of each combination follows.
 export function reportMatrixHuman(report) {
+  const { terminal = ANY_TERMINAL } = report;
   const { file, summary, hasVariants, metrics, rows, errors, comparison, legend } = matrixView(report);
   const columns = [["name", "Page"], ["device", "Device"], ...(hasVariants ? [["variant", "Variant"]] : [])];
   const widths = columns.map(([key, label]) => Math.max(...report.combinations.map((c) => c[key].length), label.length) + 3);
-  const identity = (values) => values.map((value, i) => pad(value, widths[i])).join("");
+  // A median that carries its CV needs a wider cell, and with --baseline a change follows each metric
+  const cellWidth = legend ? 18 : 14;
+  const changeWidth = comparison ? 12 : 0;
+  // On a terminal narrower than the table, the names of the pages give up the columns it lacks
+  const others = 2 + widths.slice(1).reduce((sum, width) => sum + width, 0) + metrics.length * (cellWidth + changeWidth);
+  if (terminal.columns && widths[0] + others > terminal.columns) widths[0] = Math.max(terminal.columns - others, 11);
+  const identity = (values) => values.map((value, i) => pad(fit(value, widths[i] - 3), widths[i])).join("");
 
   const lines = [];
   lines.push(styleText(["bold"], `WebPerf Snippets — ${file} (${summary})`));
   lines.push("");
-  // With --baseline, a change column follows each metric
-  const headings = metrics.map((m) => pad(m, 14) + (comparison ? pad("Δ", 12) : "")).join("");
+  const headings = metrics.map((m) => pad(m, cellWidth) + (comparison ? pad("Δ", changeWidth) : "")).join("");
   lines.push(styleText("dim", `  ${identity(columns.map(([, label]) => label))}${headings.trimEnd()}`));
   for (const { combination: c, cells, changes } of rows) {
     const row = `  ${identity(columns.map(([key]) => c[key]))}`;
@@ -330,9 +343,8 @@ export function reportMatrixHuman(report) {
       continue;
     }
     const drawn = cells.map((cell, i) => {
-      const width = legend ? 18 : 14;
-      const value = cell ? pad(paint(cell.rating, `${RATING_ICON[cell.rating] ?? "·"} ${formatValue(cell.median, cell.unit)}${cell.spread ? ` ${cell.spread}` : ""}`), width) : pad("·", width);
-      return value + (changes ? pad(styleText(VERDICT_STYLE[changes[i].verdict], changes[i].text), 12) : "");
+      const value = cell ? pad(paint(cell.rating, `${iconOf(cell.rating, terminal)} ${formatValue(cell.median, cell.unit)}${cell.spread ? ` ${cell.spread}` : ""}`), cellWidth) : pad("·", cellWidth);
+      return value + (changes ? pad(styleText(VERDICT_STYLE[changes[i].verdict], changes[i].text), changeWidth) : "");
     });
     lines.push(row + drawn.join("").trimEnd());
   }
@@ -365,7 +377,7 @@ export function reportMatrixHuman(report) {
 
   if (report.verbose) {
     for (const c of report.combinations.filter((c) => !c.error)) {
-      lines.push("", reportHuman({ ...c, verbose: true, title: `${c.id} — ${c.url}` }));
+      lines.push("", reportHuman({ ...c, verbose: true, terminal, title: `${c.id} — ${c.url}` }));
     }
   }
   return lines.join("\n");

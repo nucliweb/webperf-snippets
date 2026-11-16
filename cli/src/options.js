@@ -87,6 +87,7 @@ export function parseOptions(args, env = {}) {
         "report-to": { type: "string" },
         "api-key": { type: "string" },
         verbose: { type: "boolean" },
+        "no-color": { type: "boolean" },
         headed: { type: "boolean" },
         help: { type: "boolean", short: "h" },
         version: { type: "boolean", short: "v" },

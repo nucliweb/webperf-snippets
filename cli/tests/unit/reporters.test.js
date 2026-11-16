@@ -876,3 +876,75 @@ describe("the comparison with a baseline", () => {
     expect(reportMatrixMarkdown(report)).toContain("| ▲ +725ms? |");
   });
 });
+
+// What the report knows of where it is written: a terminal has a width and draws emoji, a pipe or a
+// file has neither
+describe("the human report and where it is written", () => {
+  const plain = (text) => text.replace(/\x1b\[[0-9;]*m/g, "");
+  const selector = "main > section.hero:nth-of-type(2) > div.hero__media > picture.hero__picture > img.hero__image";
+  const withElement = { ...samplePayload, results: [{ id: "LCP", status: "ok", metric: "LCP", value: 1200, unit: "ms", rating: "good", details: { element: selector } }] };
+  const audit = {
+    ...samplePayload,
+    results: [
+      { id: "render-blocking", status: "ok", count: 1, issues: [{ severity: "error", message: "1 render-blocking stylesheet" }], items: [{ url: `https://example.com/${"a-long-file-name-".repeat(6)}main.css`, size: 1200 }] },
+      { id: "compression", status: "ok", issues: [{ severity: "warning", message: "1 resource without compression" }] },
+      { id: "lazy-atf", status: "ok", issues: [] },
+    ],
+  };
+  const EMOJI = /[🟢🟡🔴]/u;
+
+  it("marks each rating with a character that is not an emoji when it is not written to a terminal", () => {
+    const output = plain(reportHuman({ ...samplePayload, results: [...samplePayload.results, { id: "INP", status: "ok", metric: "INP", value: 600, unit: "ms", rating: "poor" }, { id: "FCP", status: "ok", metric: "FCP", value: 2000, unit: "ms", rating: "needs-improvement" }], terminal: { emoji: false } }));
+    expect(output).not.toMatch(EMOJI);
+    expect(output).toMatch(/✓ LCP\s+1\.20s\s+good/);
+    expect(output).toMatch(/⚠ FCP\s+2\.00s\s+needs-improvement/);
+    expect(output).toMatch(/✗ INP\s+600ms\s+poor/);
+  });
+
+  it("marks an audit the same way", () => {
+    const output = plain(reportHuman({ ...audit, terminal: { emoji: false } }));
+    expect(output).not.toMatch(EMOJI);
+    expect(output).toContain("✗ render-blocking");
+    expect(output).toContain("⚠ compression");
+    expect(output).toContain("✓ lazy-atf");
+  });
+
+  it("keeps the emoji on a terminal, and without knowing where it is written", () => {
+    expect(reportHuman({ ...samplePayload, terminal: { emoji: true, columns: 80 } })).toContain("🟢 LCP");
+    expect(reportHuman(samplePayload)).toContain("🟢 LCP");
+  });
+
+  it("cuts the selector of an element to the width of the terminal", () => {
+    const line = (terminal) => plain(reportHuman({ ...withElement, terminal })).split("\n").find((l) => l.includes("LCP"));
+    expect(line({ emoji: true, columns: 80 }).length).toBeLessThanOrEqual(80);
+    expect(line({ emoji: true, columns: 80 })).toMatch(/main > section\.hero.*…$/);
+    expect(line({ emoji: true, columns: 200 })).toContain(selector);
+    // A pipe or a file gets the whole selector
+    expect(line({ emoji: false })).toContain(selector);
+  });
+
+  it("cuts the rows of an audit to the width of the terminal", () => {
+    const rows = (terminal) => plain(reportHuman({ ...audit, terminal })).split("\n").filter((l) => l.includes("· "));
+    expect(rows({ emoji: true, columns: 60 }).length).toBeGreaterThan(0);
+    for (const row of rows({ emoji: true, columns: 60 })) {
+      expect(row.length).toBeLessThanOrEqual(60);
+      expect(row).toMatch(/…$/);
+    }
+    expect(rows({ emoji: false })[0]).toContain("main.css");
+  });
+
+  it("cuts the name of the pages of a matrix so the table fits the terminal", () => {
+    const long = { ...matrix, combinations: [combination("a-page-with-a-very-long-name-that-does-not-fit-in-the-table", "mobile", "no-consent", 1980, 0.02), ...matrix.combinations] };
+    const table = (terminal) => plain(reportMatrixHuman({ ...long, terminal })).split("\n").filter((l) => /^\s+\S+\s+(mobile|desktop|Device)\s/.test(l));
+    for (const row of table({ emoji: true, columns: 70 })) expect(row.length).toBeLessThanOrEqual(70);
+    expect(table({ emoji: true, columns: 70 })[1]).toMatch(/a-page-with-a\S*…\s+mobile\s+no-consent\s+🟢 1\.98s/);
+    expect(table({ emoji: false })[1]).toMatch(/a-page-with-a-very-long-name-that-does-not-fit-in-the-table\s+mobile\s+no-consent\s+✓ 1\.98s\s+✓ 0\.0200/);
+    expect(table({ emoji: false }).join("\n")).not.toMatch(EMOJI);
+  });
+
+  it("keeps each heading of a matrix over its column when a median carries its CV", () => {
+    const noisy = { ...matrix, combinations: [combination("home", "mobile", "no-consent", 1980, 0.02, [], 7.4)] };
+    const [head, row] = plain(reportMatrixHuman({ ...noisy, terminal: { emoji: false } })).split("\n").filter((l) => /mobile|Device/.test(l));
+    expect(head.indexOf("CLS")).toBe(row.lastIndexOf("✓"));
+  });
+});

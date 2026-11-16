@@ -1,5 +1,6 @@
 import { VIEWPORT_PRESETS } from "./runner.js";
 import { reportMatrixHuman } from "./reporters/human.js";
+import { terminalOf } from "./reporters/terminal.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMatrixMarkdown } from "./reporters/markdown.js";
 import { reportBody, reportLines, reportTo } from "./report-to.js";
@@ -62,7 +63,7 @@ export async function runMatrix(options, { measureWith, conditionsFor, pathOf, f
 
   const withBaseline = comparison ? { baseline: comparison } : {};
   const report = { matrix: matrixPath, runs: matrix.runs, combinations, verbose: values.verbose, ...withBaseline };
-  const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, date: startedAt, runs: matrix.runs, ...withBaseline, combinations }) : reportMatrixHuman(report);
+  const output = values.markdown ? reportMatrixMarkdown(report) : values.json ? reportJson({ matrix: matrixPath, date: startedAt, runs: matrix.runs, ...withBaseline, combinations }) : reportMatrixHuman({ ...report, terminal: terminalOf(process.stdout) });
   await writeReport(output + "\n");
 
   // One report for each combination, with the body of one page and the device, variant and runs of

@@ -1,4 +1,5 @@
 import { reportHuman } from "./reporters/human.js";
+import { terminalOf } from "./reporters/terminal.js";
 import { reportJson } from "./reporters/json.js";
 import { reportMarkdown } from "./reporters/markdown.js";
 import { reportBody, reportLines, reportTo } from "./report-to.js";
@@ -75,7 +76,7 @@ export async function runPage(options, { measureWith, conditionsFor, pathOf, fie
   } else if (values.json) {
     output = reportJson(payload);
   } else {
-    output = reportHuman({ ...payload, verbose: values.verbose });
+    output = reportHuman({ ...payload, verbose: values.verbose, terminal: terminalOf(process.stdout) });
   }
   await writeReport(output + "\n");
 

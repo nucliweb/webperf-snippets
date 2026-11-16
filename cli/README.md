@@ -416,9 +416,12 @@ Each budget compares the value measured, or the median with `--runs`, and fails 
 | `--budget-cls <score>`       | Exit `1` if CLS exceeds this value or was not measured.                                    |
 | `--budget-inp <ms>`          | Exit `1` if INP exceeds this value or was not measured.                                    |
 | `--verbose`                  | Show all items, including passing checks.                              |
+| `--no-color`                 | No colors in the report. The `NO_COLOR` environment variable does the same. |
 | `--headed`                   | Show the browser window (debug).                                       |
 | `-h, --help`                 | Show help.                                                             |
 | `-v, --version`              | Show the version.                                                      |
+
+The report follows where it is written. On a terminal it has colors and emoji, and the selector of an element, the rows of an audit and the page names of a matrix table are cut to its width. Through a pipe, in a file or in the log of a CI job it has no colors, every text is whole, and the ratings are plain characters: `✓` good, `⚠` needs improvement and `✗` poor.
 
 ### Snippet aliases
 

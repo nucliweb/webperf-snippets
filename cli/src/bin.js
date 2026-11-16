@@ -38,6 +38,11 @@ async function main() {
   if (options.command === "version") return void process.stdout.write(`${cliVersion}\n`);
 
   const { values, waitMs, interactions, items, workflow, cruxKey, cruxWeeks } = options;
+  // styleText looks at the environment each time it styles a text, and FORCE_COLOR wins over NO_COLOR
+  if (values["no-color"]) {
+    process.env.NO_COLOR = "1";
+    delete process.env.FORCE_COLOR;
+  }
   // What each page load runs, a snippet or a workflow, under the conditions of the load
   const measureWith = (conditions) => {
     const options = { waitMs, headless: !values.headed, interactions, onProgress: progress.onStage, ...conditions };
