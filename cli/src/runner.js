@@ -112,24 +112,26 @@ function closeOnAbort(browser, signal) {
   return () => signal.removeEventListener("abort", close);
 }
 
-export async function runSnippets({
-  url,
-  items,
-  waitMs = 3000,
-  headless = true,
-  viewport = VIEWPORT_PRESETS.mobile,
-  navTimeout = DEFAULT_NAV_TIMEOUT,
-  interactScript,
-  interactions = interactScript,
-  storageState,
-  headers,
-  cpu,
-  network,
-  ownDomains,
-  // Called at each of the three stages of a run, for callers that report progress (the MCP server)
-  onProgress = () => {},
-  signal,
-}) {
+// Loads the URL on a page under the conditions of a measurement: the headers of its origin and the
+// throttling apply before the load, and the wait follows it. Returns the time of the load with its wait.
+// One sequence for a run and for the page the MCP server keeps open (open_page).
+export async function loadPage(context, page, { url, waitMs = 3000, navTimeout = DEFAULT_NAV_TIMEOUT, headers, cpu, network }) {
+  await sendHeadersToOrigin(context, page, url, headers);
+  await applyThrottling(context, page, { cpu, network });
+  const navStart = Date.now();
+  await page.goto(url, { waitUntil: "load", timeout: navTimeout });
+  if (waitMs > 0) await page.waitForTimeout(waitMs);
+  return Date.now() - navStart;
+}
+
+// A run: Chromium opens, the page loads under its conditions, `evaluate` gets the page and returns the
+// results, and Chromium closes whatever happened. `stages` are the lines of progress after the load
+// and after the evaluation, for callers that report progress (the MCP server).
+async function withLoadedPage(
+  { url, waitMs, headless = true, viewport = VIEWPORT_PRESETS.mobile, navTimeout, storageState, headers, cpu, network, onProgress = () => {}, signal },
+  stages,
+  evaluate
+) {
   await onProgress(1, "Opening Chromium");
   const launchOptions = chromiumLaunchOptions({ headless });
   const browser = await launchChromium(launchOptions);
@@ -138,18 +140,12 @@ export async function runSnippets({
   try {
     const context = await browser.newContext({ viewport, storageState });
     const page = await context.newPage();
-    await sendHeadersToOrigin(context, page, url, headers);
-    await applyThrottling(context, page, { cpu, network });
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
-    const navStart = Date.now();
-    await page.goto(url, { waitUntil: "load", timeout: navTimeout });
-    if (waitMs > 0) await page.waitForTimeout(waitMs);
-    const navMs = Date.now() - navStart;
-    await onProgress(2, "Page loaded, running the snippets");
-    const prepared = items.map((item) => ({ ...item, source: withOwnDomains(item.source, ownDomains) }));
-    const results = await evaluateAroundInteractions(page, prepared, interactions);
-    await onProgress(3, "Snippets evaluated");
+    const navMs = await loadPage(context, page, { url, waitMs, navTimeout, headers, cpu, network });
+    await onProgress(2, stages.loaded);
+    const results = await evaluate(page);
+    await onProgress(3, stages.evaluated);
     return { url, navMs, results, pageErrors, throttling: throttlingOf({ cpu, network }), browser: launched };
   } finally {
     stopListening();
@@ -157,43 +153,17 @@ export async function runSnippets({
   }
 }
 
-export async function runMeasurement({
-  url,
-  workflow,
-  rules = [],
-  waitMs = 3000,
-  headless = true,
-  viewport = VIEWPORT_PRESETS.mobile,
-  navTimeout = DEFAULT_NAV_TIMEOUT,
-  interactScript,
-  interactions = interactScript,
-  storageState,
-  headers,
-  cpu,
-  network,
-  ownDomains,
-  onProgress = () => {},
-  signal,
-}) {
-  await onProgress(1, "Opening Chromium");
-  const launchOptions = chromiumLaunchOptions({ headless });
-  const browser = await launchChromium(launchOptions);
-  const launched = launchedBrowser(launchOptions, browser);
-  const stopListening = closeOnAbort(browser, signal);
-  try {
-    const context = await browser.newContext({ viewport, storageState });
-    const page = await context.newPage();
-    await sendHeadersToOrigin(context, page, url, headers);
-    await applyThrottling(context, page, { cpu, network });
-    const pageErrors = [];
-    page.on("pageerror", (err) => pageErrors.push(err.message));
+// Runs the items on the page, around the interactions when there are some
+export function runSnippets({ items, interactScript, interactions = interactScript, ownDomains, ...conditions }) {
+  return withLoadedPage(conditions, { loaded: "Page loaded, running the snippets", evaluated: "Snippets evaluated" }, (page) => {
+    const prepared = items.map((item) => ({ ...item, source: withOwnDomains(item.source, ownDomains) }));
+    return evaluateAroundInteractions(page, prepared, interactions);
+  });
+}
 
-    const navStart = Date.now();
-    await page.goto(url, { waitUntil: "load", timeout: navTimeout });
-    if (waitMs > 0) await page.waitForTimeout(waitMs);
-    const navMs = Date.now() - navStart;
-    await onProgress(2, "Page loaded, running the workflow");
-
+// Runs the steps of a workflow, and then the follow-ups its results ask for by the rules
+export function runMeasurement({ workflow, rules = [], interactScript, interactions = interactScript, ownDomains, ...conditions }) {
+  return withLoadedPage(conditions, { loaded: "Page loaded, running the workflow", evaluated: "Workflow and follow-ups evaluated" }, async (page) => {
     // The steps of the user's script, or the workflow's own. A step that needs a click or a key press
     // is skipped when the interactions have none, so it does not fail for lack of data.
     const steps = interactions ?? workflow.defaultInteractions;
@@ -240,10 +210,6 @@ export async function runMeasurement({
       });
     }
 
-    await onProgress(3, "Workflow and follow-ups evaluated");
-    return { url, navMs, results: [...initialResults, ...followUpResults], pageErrors, throttling: throttlingOf({ cpu, network }), browser: launched };
-  } finally {
-    stopListening();
-    await browser.close();
-  }
+    return [...initialResults, ...followUpResults];
+  });
 }
