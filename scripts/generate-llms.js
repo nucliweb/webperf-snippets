@@ -3,7 +3,7 @@
 const fs = require('fs')
 const path = require('path')
 const { readMeta } = require('./read-meta')
-const { extractTitle, extractDescription } = require('../lib/page-info')
+const { extractTitle, extractDescription, frontmatterDescription } = require('../lib/page-info')
 const { site } = require('../lib/site.js')
 
 const ROOT = path.join(__dirname, '..')
@@ -57,7 +57,8 @@ function buildSnippetEntries() {
       const slug = path.basename(mdxFile, '.mdx')
       const content = readFile(path.join(PAGES_DIR, category, mdxFile))
       const title = extractTitle(content)
-      const description = extractDescription(content)
+      // The one the page gives search engines
+      const description = frontmatterDescription(content) ?? extractDescription(content)
       const snippetImports = extractSnippetImports(content)
 
       const snippets = snippetImports.map(({ category: cat, file }) => ({

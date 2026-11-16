@@ -32,3 +32,10 @@ test('llms.txt and llms-full.txt describe the collection with the description of
   assert.ok(generateLlmsTxt(entries, buildGuideEntries()).includes(`> ${site.description}\n`))
   assert.ok(generateLlmsFullTxt(entries).includes(`\n${site.description}\n`))
 })
+
+test('each snippet page is described with the description its page gives search engines', () => {
+  const { readPageInfo } = require('../lib/page-info')
+  const path = require('path')
+  const ttfb = buildSnippetEntries().find((e) => e.slug === 'TTFB')
+  assert.equal(ttfb.description, readPageInfo(path.join(__dirname, '..', 'content'), 'Loading/TTFB').description)
+})
