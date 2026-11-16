@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- The sitemap gives the date each page last changed, as `lastmod`: the last commit of its MDX or of a snippet it shows, since the code of a snippet is part of its page. A build from a shallow clone, which only knows its last commits, gives no dates rather than wrong ones.
+
 ### Changed
 - The prompt that the Copy prompt button of a snippet page copies installs and runs Playwright 1.65, the version the CLI is tested with, which brings Chromium 159. That Chromium does not run `unload` handlers unless the page asks for them with `Permissions-Policy: unload=(self)`, so on a page that does not, Back-Forward-Cache no longer finds an `unload` handler to report.
 - `analyzeContentVisibilityOpportunities()`, the function Content-Visibility leaves on `window`, returns its opportunities in the shape of every snippet result, so a script or an agent reads it as any other: `script`, `status`, `count`, `details` with `highImpact` and the options of the search, `items` (up to 50) and an empty `issues`. `count` replaces `totalElements`, `items` replaces `opportunities` and `details.highImpact` replaces `highImpact`. `elements`, the DOM nodes, is gone from the object, which could not be turned into JSON with it; the console still lists them to inspect.
