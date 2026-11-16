@@ -144,6 +144,41 @@ describe("Forced-Synchronous-Layout", () => {
     expect(noSpacedDash(second.issues)).toBe(true);
   }, 30000);
 
+  // The panel of the extension offers to inspect the element of each item, so it is a selector that
+  // matches that element and no other: two cards with the same classes, one with a class that is not
+  // a valid selector unless escaped, as the classes of Tailwind
+  it("names the element of an item with a selector that matches only it", async () => {
+    const { second, matches } = await (async () => {
+      const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
+      try {
+        await page.goto(`${servers.base}/behaviors`, { waitUntil: "load" });
+        await page.evaluate(() =>
+          document.body.insertAdjacentHTML("beforeend", '<div class="card w-1/2">one</div><div class="card w-1/2" id="target-card">two</div>')
+        );
+        await page.evaluate(source("Interaction/Forced-Synchronous-Layout"));
+        await page.evaluate(() => {
+          const card = document.getElementById("target-card");
+          card.classList.add("wide");
+          return card.offsetHeight;
+        });
+        const second = await page.evaluate(() => window.getFSLSummary());
+        const matches = await page.evaluate((selectors) =>
+          selectors.map((selector) => {
+            try {
+              const found = document.querySelectorAll(selector);
+              return found.length === 1 && found[0].id === "target-card";
+            } catch {
+              return false;
+            }
+          }), second.items.filter((i) => i.property === "offsetHeight").map((i) => i.element));
+        return { second, matches };
+      } finally {
+        await page.close();
+      }
+    })();
+    expect(matches, JSON.stringify(second.items)).toEqual([true]);
+  }, 30000);
+
   it("returns the same shape when nothing was detected", async () => {
     const { second } = await session("Interaction/Forced-Synchronous-Layout", {
       getter: "getFSLSummary",

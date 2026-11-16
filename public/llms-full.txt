@@ -331,28 +331,8 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
       if (inpEntry.target) {
         console.log(`   Target Element:`, inpEntry.target);
 
-        // Get element path for better context
-        const getElementPath = (el) => {
-          if (!el) return "";
-          const parts = [];
-          let current = el;
-          while (current && current !== document.body && parts.length < 5) {
-            let selector = current.tagName.toLowerCase();
-            if (current.id) selector += `#${current.id}`;
-            else if (current.className && typeof current.className === "string") {
-              const classes = current.className.trim().split(/\s+/).slice(0, 2).join(".");
-              if (classes) selector += `.${classes}`;
-            }
-            parts.unshift(selector);
-            current = current.parentElement;
-          }
-          return parts.join(" > ");
-        };
-
-        const path = getElementPath(inpEntry.target);
-        if (path) {
-          console.log(`   Element Path: ${path}`);
-        }
+        // The selector the result gives the target, to find it in the Elements panel
+        console.log(`   Element Path: ${uniqueSelector(inpEntry.target)}`);
       }
 
       // Phase breakdown
@@ -564,28 +544,7 @@ Tracks Interaction to Next Paint, a Core Web Vital that measures responsiveness.
       if (interaction.target) {
         console.log("Element:", interaction.target);
 
-        // Get element path for better identification
-        const getPath = (el) => {
-          if (!el) return "";
-          const parts = [];
-          let current = el;
-          while (current && current !== document.body && parts.length < 5) {
-            let selector = current.tagName.toLowerCase();
-            if (current.id) selector += `#${current.id}`;
-            else if (current.className && typeof current.className === "string") {
-              const classes = current.className.trim().split(/\s+/).slice(0, 2).join(".");
-              if (classes) selector += `.${classes}`;
-            }
-            parts.unshift(selector);
-            current = current.parentElement;
-          }
-          return parts.join(" > ");
-        };
-
-        const path = getPath(interaction.target);
-        if (path) {
-          console.log("Path:", path);
-        }
+        console.log("Path:", uniqueSelector(interaction.target));
       } else {
         console.log("Element: (no target available)");
       }
@@ -13944,13 +13903,46 @@ Detects the Forced Synchronous Layout (FSL) pattern at runtime, when JavaScript 
   const fslEvents = [];
   const restorations = [];
 
-  const getElementDesc = (el) => {
-    let desc = el.tagName.toLowerCase();
-    if (el.id) desc += `#${el.id}`;
-    if (el.className && typeof el.className === "string" && el.className.trim()) {
-      desc += `.${el.className.trim().split(/\s+/).join(".")}`;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
     }
-    return desc;
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
+  // The selector of an element, which the panel of the extension can inspect. A page that forces
+  // layout in a loop reads the same elements again and again, so each one is named once.
+  const selectors = new WeakMap();
+  const selectorOf = (el) => {
+    if (!selectors.has(el)) selectors.set(el, uniqueSelector(el));
+    return selectors.get(el);
   };
 
   const markDirty = () => {
@@ -14023,7 +14015,7 @@ Detects the Forced Synchronous Layout (FSL) pattern at runtime, when JavaScript 
   const warnFSL = (propName, accessType, el) => {
     if (!isDirty) return;
     const elapsed = (performance.now() - lastMutationTime).toFixed(2);
-    const elDesc = el instanceof Element ? getElementDesc(el) : "unknown";
+    const elDesc = el instanceof Element ? selectorOf(el) : "unknown";
     const stack = new Error().stack;
 
     fslEvents.push({
