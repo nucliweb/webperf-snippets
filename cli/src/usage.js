@@ -1,3 +1,5 @@
+import { listSnippets } from "./snippet-names.js";
+
 // The text of --help, and of the usage error of a command without a URL
 export const USAGE = `webperf-snippets <url> [options]
 webperf-snippets --matrix <file> [options]
@@ -13,12 +15,13 @@ Options:
   --workflow <name>     Workflow to run (default: core-web-vitals)
                         Workflows: core-web-vitals, audit, loading, interaction
   --snippet <name>      Run a single snippet by name, alias or Category/Name path
-                        Any of the 57 snippets, such as Compression-Audit
+                        Any of the ${listSnippets().length} snippets, such as Compression-Audit
                         Aliases: LCP, CLS, INP, LCP-Subparts, fonts,
                                  render-blocking, resource-hints, preload-scripts,
                                  priority-hints, critical-css, ttfb,
                                  script-parties, script-loading,
                                  lazy-atf, lazy-conflict, eager-below-fold
+  --list                List the workflows and the snippets, and exit. With --json, as JSON
   --json                Output JSON instead of formatted text
   --markdown            Output GitHub-renderable markdown (for PR comments)
   --viewport <preset>   Viewport preset: mobile (default), tablet, desktop
@@ -77,6 +80,7 @@ Options:
 
 Examples:
   npx webperf-snippets https://example.com
+  npx webperf-snippets --list
   npx webperf-snippets https://example.com --workflow audit
   npx webperf-snippets https://example.com --json
   npx webperf-snippets https://example.com --snippet LCP-Subparts

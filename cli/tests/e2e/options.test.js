@@ -123,3 +123,21 @@ describe("without Playwright", () => {
     expect(stderr).toBe("Playwright is not installed. Install it and its Chromium with: npm install playwright && npx playwright install chromium\n");
   }, 30000);
 });
+
+describe("--list", () => {
+  it("prints the workflows and the snippets, with exit code 0 and nothing on stderr", async () => {
+    const { code, stdout, stderr } = await cli("--list");
+    expect(code).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("Workflows (--workflow <name>)");
+    expect(stdout).toMatch(/Find-render-blocking-resources\s+.+\(render-blocking\)/);
+  }, 30000);
+
+  it("prints them as JSON with --json", async () => {
+    const { code, stdout } = await cli("--list", "--json");
+    expect(code).toBe(0);
+    const { workflows, snippets } = JSON.parse(stdout);
+    expect(workflows.map((w) => w.name)).toContain("audit");
+    expect(snippets.find((s) => s.name === "CoreWebVitals/LCP")).toMatchObject({ category: "CoreWebVitals", aliases: expect.any(Array), tracking: false });
+  }, 30000);
+});

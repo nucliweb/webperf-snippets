@@ -1,10 +1,10 @@
 import { existsSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { loadSnippet } from "./load-snippet.js";
-import { resolveSnippetName } from "./snippet-names.js";
+import { closestOf, resolveSnippetName } from "./snippet-names.js";
 import { VIEWPORT_PRESETS } from "./runner.js";
 import { readInteractionScript } from "./interactions.js";
-import { WORKFLOWS } from "./workflows/index.js";
+import { DEFAULT_WORKFLOW, WORKFLOWS } from "./workflows/index.js";
 import { validateReportUrl } from "./report-to.js";
 import { parseHeader } from "./headers.js";
 import { NETWORK_PRESETS, parseCpuFactor } from "./throttling.js";
@@ -47,6 +47,54 @@ function budgetUsage(metric, run) {
   return `--budget-${metric.toLowerCase()} needs a run that measures ${metric}, and ${run} does not. Use ${instead}`;
 }
 
+// Every option of the command line
+const OPTIONS = {
+  workflow: { type: "string" },
+  snippet: { type: "string" },
+  json: { type: "boolean" },
+  markdown: { type: "boolean" },
+  wait: { type: "string" },
+  "budget-lcp": { type: "string" },
+  "budget-fcp": { type: "string" },
+  "budget-ttfb": { type: "string" },
+  "budget-cls": { type: "string" },
+  "budget-inp": { type: "string" },
+  viewport: { type: "string" },
+  cpu: { type: "string" },
+  network: { type: "string" },
+  "interact-script": { type: "string" },
+  "storage-state": { type: "string" },
+  header: { type: "string", multiple: true },
+  "own-domains": { type: "string", multiple: true },
+  matrix: { type: "string" },
+  runs: { type: "string" },
+  "median-by": { type: "string" },
+  baseline: { type: "string" },
+  threshold: { type: "string", multiple: true },
+  "fail-on-regression": { type: "boolean" },
+  "fail-on-inconclusive": { type: "boolean" },
+  "max-runs": { type: "string" },
+  "fail-on": { type: "string" },
+  "crux-key": { type: "string" },
+  "crux-history": { type: "string" },
+  "report-to": { type: "string" },
+  "api-key": { type: "string" },
+  verbose: { type: "boolean" },
+  list: { type: "boolean" },
+  "no-color": { type: "boolean" },
+  headed: { type: "boolean" },
+  help: { type: "boolean", short: "h" },
+  version: { type: "boolean", short: "v" },
+};
+
+// An option that does not exist, with the one it may have meant: --wrkflow for --workflow
+function unknownOption(message) {
+  const [, option] = message.match(/^Unknown option '([^']+)'/) ?? [];
+  if (!option) return message;
+  const meant = option.startsWith("--") ? closestOf(option.slice(2), Object.keys(OPTIONS)) : undefined;
+  return `Unknown option ${option}.${meant ? ` Did you mean --${meant}?` : ""} Every option is in --help`;
+}
+
 // `args` are the arguments after the command, and `env` the environment that can hold the CrUX key.
 // Returns { command: "help" } or { command: "version" }, or the options of a page or of a matrix: the
 // values as parseArgs gives them, for the flags that need no check, and everything that does, resolved.
@@ -55,53 +103,21 @@ export function parseOptions(args, env = {}) {
   try {
     parsed = parseArgs({
       args,
-      options: {
-        workflow: { type: "string" },
-        snippet: { type: "string" },
-        json: { type: "boolean" },
-        markdown: { type: "boolean" },
-        wait: { type: "string" },
-        "budget-lcp": { type: "string" },
-        "budget-fcp": { type: "string" },
-        "budget-ttfb": { type: "string" },
-        "budget-cls": { type: "string" },
-        "budget-inp": { type: "string" },
-        viewport: { type: "string" },
-        cpu: { type: "string" },
-        network: { type: "string" },
-        "interact-script": { type: "string" },
-        "storage-state": { type: "string" },
-        header: { type: "string", multiple: true },
-        "own-domains": { type: "string", multiple: true },
-        matrix: { type: "string" },
-        runs: { type: "string" },
-        "median-by": { type: "string" },
-        baseline: { type: "string" },
-        threshold: { type: "string", multiple: true },
-        "fail-on-regression": { type: "boolean" },
-        "fail-on-inconclusive": { type: "boolean" },
-        "max-runs": { type: "string" },
-        "fail-on": { type: "string" },
-        "crux-key": { type: "string" },
-        "crux-history": { type: "string" },
-        "report-to": { type: "string" },
-        "api-key": { type: "string" },
-        verbose: { type: "boolean" },
-        "no-color": { type: "boolean" },
-        headed: { type: "boolean" },
-        help: { type: "boolean", short: "h" },
-        version: { type: "boolean", short: "v" },
-      },
+      options: OPTIONS,
       allowPositionals: true,
     });
   } catch (err) {
-    throw new UsageError(err.message);
+    throw new UsageError(err.code === "ERR_PARSE_ARGS_UNKNOWN_OPTION" ? unknownOption(err.message) : err.message);
   }
 
   const { values, positionals } = parsed;
 
   if (values.help) return { command: "help" };
   if (values.version) return { command: "version" };
+  if (values.list) {
+    if (values.markdown) throw new UsageError("--list takes --json, not --markdown");
+    return { command: "list", json: Boolean(values.json) };
+  }
 
   const url = positionals[0];
   const matrixPath = values.matrix;
@@ -225,8 +241,11 @@ export function parseOptions(args, env = {}) {
 
   // What each page load runs, a snippet or a workflow, under the conditions of the load
   const items = values.snippet ? buildSnippetItem(values) : null;
-  const workflow = values.snippet ? null : WORKFLOWS[values.workflow ?? "core-web-vitals"];
-  if (!values.snippet && !workflow) throw new UsageError(`Unknown workflow: "${values.workflow}". Choose from: ${Object.keys(WORKFLOWS).join(", ")}`);
+  const workflow = values.snippet ? null : WORKFLOWS[values.workflow ?? DEFAULT_WORKFLOW];
+  if (!values.snippet && !workflow) {
+    const meant = closestOf(values.workflow, Object.keys(WORKFLOWS));
+    throw new UsageError(`Unknown workflow: "${values.workflow}".${meant ? ` Did you mean ${meant}?` : ""} Choose from: ${Object.keys(WORKFLOWS).join(", ")}`);
+  }
   // A budget of a metric that no snippet of the run measures could never pass: a usage error
   const [unmeasured] = unmeasuredMetrics(budgets, items ? [items[0].path] : workflow.steps.map((step) => step.path));
   if (unmeasured) throw new UsageError(budgetUsage(unmeasured, items ? `--snippet ${values.snippet}` : `the ${workflow.id} workflow`));
