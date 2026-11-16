@@ -11,7 +11,7 @@ import { compareRun } from "./baseline.js";
 import { describeRegressions, describeInconclusive } from "./reporters/baseline-view.js";
 import { measureLiveBaseline } from "./live-baseline.js";
 import { pageOutcome } from "./exit-code.js";
-import { measureRunsWithProgress, say, writeReport } from "./output.js";
+import { measureRunsWithProgress, progress, say, writeReport } from "./output.js";
 
 // One page: measured once, or several times for its median run, alone or against a live baseline,
 // then compared, checked against its budgets, reported and, with --report-to, posted. Returns the exit
@@ -21,6 +21,8 @@ export async function runPage(options, { measureWith, conditionsFor, pathOf, fie
   const { values, url, waitMs, viewportName, viewport, cpu, network, reportUrl, storageState, headers, ownDomains, runCount, medianBy, cruxKey, baseline, thresholds, live, maxRuns, failOn, budgets } = options;
 
   const conditions = { url, viewport, storageState, headers, cpu, network, ownDomains };
+  // For the time left the progress shows; a live baseline adds runs as it goes, so it gives none
+  if (!live) progress.expectRuns(runCount ?? 1);
   // When the measurement started, in UTC
   const date = new Date().toISOString();
   const pageOf = (measured) => pageReport(measured, { date, pathOf, conditions: conditionsFor({ viewport: viewportName, cpu, network, browser: measured.browser }) });

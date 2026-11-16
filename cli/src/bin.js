@@ -12,6 +12,7 @@ import { parseOptions, UsageError } from "./options.js";
 import { USAGE } from "./usage.js";
 import { runPage } from "./page-command.js";
 import { runMatrix } from "./matrix-command.js";
+import { progress } from "./output.js";
 
 // The command: it reads the options (options.js), builds what measures a page under them, and runs
 // the page (page-command.js) or the matrix (matrix-command.js), which return the exit code.
@@ -39,7 +40,7 @@ async function main() {
   const { values, waitMs, interactions, items, workflow, cruxKey, cruxWeeks } = options;
   // What each page load runs, a snippet or a workflow, under the conditions of the load
   const measureWith = (conditions) => {
-    const options = { waitMs, headless: !values.headed, interactions, ...conditions };
+    const options = { waitMs, headless: !values.headed, interactions, onProgress: progress.onStage, ...conditions };
     return items ? runSnippets({ ...options, items }) : runMeasurement({ ...options, workflow, rules: RULES });
   };
   // What the JSON records of how each page was measured, for a later run to compare with. The machine is
@@ -66,6 +67,7 @@ main().catch((err) => {
   // A missing Chromium is a step of the setup, not a bug: the message says what to run, without a stack
   // Nor is a step of --interact-script that the page did not take: its message names the step
   const known = err instanceof MissingBrowserError || err instanceof InteractionError;
+  progress.stop();
   process.stderr.write(known ? `${err.message}\n` : `Error: ${err.stack ?? err.message}\n`);
   process.exit(1);
 });
