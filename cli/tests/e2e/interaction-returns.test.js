@@ -228,3 +228,46 @@ describe("Scroll-Performance", () => {
     expect(first.status).toBe("tracking");
   }, 30000);
 });
+
+// The panel of the extension and the console of DevTools run a snippet again on the same page. Each
+// run of Scroll-Performance wrapped addEventListener once more, so a listener was counted and warned
+// about once per run, and the scroll of the page fed every run that was left behind.
+describe("Scroll-Performance run twice on the same page", () => {
+  it("counts and warns about a listener once, and only the last run records the scroll", async () => {
+    const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
+    try {
+      await page.goto(`${servers.base}/behaviors`, { waitUntil: "load" });
+      const warnings = [];
+      page.on("console", (message) => {
+        if (message.type() === "warning" && message.text().includes("Non-passive")) warnings.push(message.text());
+      });
+      await page.evaluate(source("Interaction/Scroll-Performance"));
+      await page.evaluate(source("Interaction/Scroll-Performance"));
+      await page.evaluate(() => window.addEventListener("wheel", function late() {}));
+      const summary = await page.evaluate(() => window.getScrollSummary());
+      expect(summary.details.nonPassiveListeners).toBe(1);
+      expect(warnings).toHaveLength(1);
+      // Each wrapper reads the stack of a non-passive listener once: one read means one wrapper
+      const stackReads = await page.evaluate(() => {
+        const NativeError = window.Error;
+        let reads = 0;
+        window.Error = function (...args) {
+          reads++;
+          return new NativeError(...args);
+        };
+        try {
+          window.addEventListener("wheel", function counted() {});
+          window.addEventListener("wheel", function quiet() {}, { passive: true });
+          window.addEventListener("click", function other() {});
+        } finally {
+          window.Error = NativeError;
+        }
+        return reads;
+      });
+      // and a passive listener, or one that is not of scroll, does not read it
+      expect(stackReads).toBe(1);
+    } finally {
+      await page.close();
+    }
+  }, 30000);
+});

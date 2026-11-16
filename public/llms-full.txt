@@ -16359,6 +16359,11 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
   const fpsRating = (fps) =>
     fps >= 55 ? "good" : fps >= 40 ? "needs-improvement" : "poor";
 
+  // A run before this one on the same page, from the console or the panel of the extension, stops
+  // first: its wrapper of addEventListener and its scroll listener would count everything twice.
+  const STATE = "__webperfScrollPerformance";
+  window[STATE]?.stop();
+
   // ─── 1. PASSIVE EVENT LISTENER DETECTION ────────────────────────────────────
   // Detects scroll/touch listeners registered without { passive: true }.
   // Non-passive listeners delay scroll by forcing the browser to wait for JS.
@@ -16373,8 +16378,9 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
   const addedByPlaywright = () => /\bInjectedScript\b/.test(new Error().stack || "");
 
   const _origAddEventListener = EventTarget.prototype.addEventListener;
-  EventTarget.prototype.addEventListener = function (type, listener, options) {
-    if (SCROLL_EVENT_TYPES.has(type) && !addedByPlaywright()) {
+  let watching = true;
+  const watchedAddEventListener = function (type, listener, options) {
+    if (watching && SCROLL_EVENT_TYPES.has(type)) {
       const isPassive =
         options === true
           ? false // old-style capture boolean, not passive
@@ -16382,7 +16388,8 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
           ? options.passive === true
           : false;
 
-      if (!isPassive) {
+      // The stack is only read for a listener that would count, since reading it is slow
+      if (!isPassive && !addedByPlaywright()) {
         const entry = {
           type,
           element: this.tagName || this.constructor?.name || "unknown",
@@ -16404,6 +16411,7 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
     }
     return _origAddEventListener.call(this, type, listener, options);
   };
+  EventTarget.prototype.addEventListener = watchedAddEventListener;
 
   // ─── 2. SCROLL FPS MEASUREMENT ──────────────────────────────────────────────
   // Tracks requestAnimationFrame timing during active scroll sessions.
@@ -16478,19 +16486,31 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
     lastFrameTime = null;
   };
 
-  window.addEventListener(
-    "scroll",
-    () => {
-      if (!currentSession) {
-        currentSession = { frames: [], drops: 0 };
-        lastFrameTime = null;
-        rafId = requestAnimationFrame(trackFrame);
+  const onScroll = () => {
+    if (!currentSession) {
+      currentSession = { frames: [], drops: 0 };
+      lastFrameTime = null;
+      rafId = requestAnimationFrame(trackFrame);
+    }
+    clearTimeout(endTimer);
+    endTimer = setTimeout(endSession, 200);
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+
+  // What the next run calls. The native addEventListener comes back when nothing wrapped it after
+  // this run; otherwise this wrapper stays in the chain and only passes the calls on.
+  window[STATE] = {
+    stop() {
+      watching = false;
+      if (EventTarget.prototype.addEventListener === watchedAddEventListener) {
+        EventTarget.prototype.addEventListener = _origAddEventListener;
       }
+      window.removeEventListener("scroll", onScroll, { passive: true });
+      cancelAnimationFrame(rafId);
       clearTimeout(endTimer);
-      endTimer = setTimeout(endSession, 200);
+      currentSession = null;
     },
-    { passive: true }
-  );
+  };
 
   // ─── 3. CSS SCROLL AUDIT ────────────────────────────────────────────────────
   // Checks CSS properties that affect scroll compositing and performance.
