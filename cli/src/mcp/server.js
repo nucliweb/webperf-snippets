@@ -4,7 +4,7 @@ import { cliVersion } from "../report-to.js";
 import { CATEGORIES, aliasesOf, listSnippets, resolveSnippetName } from "../snippet-names.js";
 import { loadSnippet } from "../load-snippet.js";
 import { isTrackingSnippet } from "../tracking.js";
-import { runSnippets, runMeasurement, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
+import { runSnippets, runMeasurement, loadPage, evaluateItems, collectTrackingData, VIEWPORT_PRESETS } from "../runner.js";
 import { WORKFLOWS } from "../workflows/index.js";
 import { RULES } from "../decision-tree.js";
 import { fetchCrux, fetchCruxHistory } from "../crux.js";
@@ -23,7 +23,7 @@ import { measurementConditions } from "../conditions.js";
 import { pathsOfRun, reportOf } from "../overview.js";
 import { prepareBaseline, compareWithBaseline } from "./baseline.js";
 import { MAX_RUNS, measureRuns } from "../runs.js";
-import { MIN_CPU_FACTOR, NETWORK_PRESETS, applyThrottling, throttlingOf } from "../throttling.js";
+import { MIN_CPU_FACTOR, NETWORK_PRESETS, throttlingOf } from "../throttling.js";
 
 const VIEWPORTS = Object.keys(VIEWPORT_PRESETS);
 const STAGES = 3;
@@ -667,12 +667,8 @@ export function createServer({ launchBrowser = () => launchChromium(), maxPages,
           throw err;
         }
         try {
-          // Before the load, as the runner applies it: the load and every interaction run throttled
-          await applyThrottling(session.context, session.page, { cpu, network });
-          const navStart = Date.now();
-          await session.page.goto(url, { waitUntil: "load", timeout: NAV_TIMEOUT_MS });
-          if (waitMs > 0) await session.page.waitForTimeout(waitMs);
-          const navMs = Date.now() - navStart;
+          // The load of the runner: the throttling applies before it, so the load and every interaction run throttled
+          const navMs = await loadPage(session.context, session.page, { url, waitMs, navTimeout: NAV_TIMEOUT_MS, cpu, network });
           session.tracking = await evaluateItems(session.page, items);
           // evaluateItems keeps a failed evaluation as a result, and closing the page fails every one
           if (limit.aborted) return toolError(`Opening the page failed: ${stoppedAnswering(callLimitMs)}`);
