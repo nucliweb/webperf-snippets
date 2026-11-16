@@ -10,7 +10,7 @@ import { pageReport } from "./overview.js";
 import { compareMatrix } from "./baseline.js";
 import { describeMatrixRegressions, describeMatrixInconclusive, matrixComparisonView } from "./reporters/baseline-view.js";
 import { matrixOutcome } from "./exit-code.js";
-import { measureRunsWithProgress, say, writeReport } from "./output.js";
+import { measureRunsWithProgress, progress, say, writeReport } from "./output.js";
 
 // Every combination of the matrix, in order, each one `matrix.runs` times. Each combination reports
 // its median run, and the exit code, which it returns, follows the same rules as one page, for every combination.
@@ -20,6 +20,7 @@ export async function runMatrix(options, { measureWith, conditionsFor, pathOf, f
   const viewportOf = new Map(matrix.combinations.map((c) => [c.id, c.viewport]));
 
   const total = matrix.combinations.length * matrix.runs;
+  progress.expectRuns(total);
   const width = String(total).length;
   let started = 0;
   const combinations = [];

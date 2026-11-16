@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- On a terminal, the CLI shows what the run is doing while it measures, on one line that it rewrites: the stage (Chromium opens, the page loads, the snippets run) and the time the run has taken, and with `--runs` or `--matrix` which run it is and about how long is left, from the runs that ended. The line goes away before the report. It only shows when stderr is a terminal, so a pipe, a file and the log of a CI job get what they got: nothing for one run, and a line for each run of several.
+
 ### Changed
 - The CLI loads Playwright when it opens the browser, not when it starts: `--help`, `--version` and a usage error answer about five times sooner, and work where Playwright is not installed. A measurement without Playwright says how to install it, in one line, where it ended in the stack of a module that was not found. The MCP server starts without loading it too, and its tools give the same message.
 
