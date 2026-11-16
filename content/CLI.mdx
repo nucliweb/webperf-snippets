@@ -211,6 +211,8 @@ For a `--snippet` run, `workflow` is `null` and a `snippet` field carries the na
 
 ### Snippet aliases
 
+`npx webperf-snippets --list` prints every workflow and every snippet with its title and its aliases, and `--list --json` gives them as JSON.
+
 | Alias              | Snippet                                          | Category        |
 | ------------------ | ------------------------------------------------ | --------------- |
 | `LCP`              | Largest Contentful Paint                         | Core Web Vitals |
@@ -546,6 +548,7 @@ Five runs a side tolerate no slow run of the baseline, seven tolerate one, and n
 | `--budget-inp <ms>`    | Exit `1` if INP exceeds this value or was not measured.                                               |
 | `--verbose`            | Show all items, including passing checks.                                         |
 | `--no-color`           | No colors in the report. The `NO_COLOR` environment variable does the same.       |
+| `--list`               | List the workflows and the snippets, and exit. With `--json`, as JSON.            |
 | `--headed`             | Show the browser window (debug).                                                  |
 | `-h, --help`           | Show help.                                                                        |
 | `-v, --version`        | Show the version.                                                                 |

@@ -1,9 +1,7 @@
 import { McpServer, ResourceTemplate, ResourceNotFoundError } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { cliVersion } from "../report-to.js";
-import { CATEGORIES, aliasesOf, listSnippets, resolveSnippetName } from "../snippet-names.js";
-import { loadSnippet } from "../load-snippet.js";
-import { isTrackingSnippet } from "../tracking.js";
+import { CATEGORIES, describeSnippet, listSnippets, resolveSnippetName } from "../snippet-names.js";
 import { fetchCrux, fetchCruxHistory } from "../crux.js";
 import { createSessions, SessionError } from "./sessions.js";
 import { createQueue } from "./queue.js";
@@ -19,23 +17,9 @@ import { HttpUrl, INSTRUCTIONS, PAGE_DATA, RunId, SnippetInfo, SnippetResult } f
 import { registerPageTools } from "./page-tools.js";
 import { registerSessionTools, registerClosePage } from "./session-tools.js";
 
-// Every snippet starts with a comment that names it: "// LCP Quick Check"
-const titleOf = (source) => source.split("\n", 1)[0].replace(/^\/\/\s*/, "").trim();
-
 const CRUX_FORM_FACTORS = { phone: "PHONE", desktop: "DESKTOP", tablet: "TABLET" };
 const CRUX_SETUP =
   "get_crux needs a CrUX API key in the CRUX_API_KEY environment variable of the MCP server. Set it in the configuration of the client, for example: claude mcp add webperf -e CRUX_API_KEY=<key> -- npx -y webperf-snippets mcp. A key is free in the Google Cloud console (Chrome UX Report API).";
-
-function describeSnippet(name) {
-  const source = loadSnippet(name);
-  return {
-    name,
-    category: name.split("/")[0],
-    title: titleOf(source),
-    aliases: aliasesOf(name),
-    tracking: isTrackingSnippet(name, source),
-  };
-}
 
 // The runs of the connection that measured a page, as resources: an agent picks the baseline of a run
 // among them. Each is the JSON the CLI prints with --json, so saved to a file it is a baseline of the

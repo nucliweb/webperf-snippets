@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { SNIPPET_DIRS } from "./load-snippet.js";
+import { SNIPPET_DIRS, loadSnippet } from "./load-snippet.js";
+import { isTrackingSnippet } from "./tracking.js";
 
 // The categories whose snippets run headlessly. DevTools-Overrides pairs are pasted by hand.
 export const CATEGORIES = ["CoreWebVitals", "Loading", "Interaction", "Media", "Resources"];
@@ -71,6 +72,21 @@ export function listSnippets() {
   return cache;
 }
 
+// Every snippet starts with a comment that names it: "// LCP Quick Check"
+const titleOf = (source) => source.split("\n", 1)[0].replace(/^\/\/\s*/, "").trim();
+
+// What --list and the list_snippets tool of the MCP server say of a snippet
+export function describeSnippet(name) {
+  const source = loadSnippet(name);
+  return {
+    name,
+    category: name.split("/")[0],
+    title: titleOf(source),
+    aliases: aliasesOf(name),
+    tracking: isTrackingSnippet(name, source),
+  };
+}
+
 // The edits between two strings. Swapping two neighbours counts as one: LPC is one edit from LCP.
 function distance(a, b) {
   let twoBack = [];
@@ -85,6 +101,14 @@ function distance(a, b) {
     previous = row;
   }
   return previous[b.length];
+}
+
+// The name a mistyped one may have meant, in any case: the closest one, when it is a few edits away
+// for its length. A guess that is far from every name gets none.
+export function closestOf(guess, names) {
+  const wanted = guess.toLowerCase();
+  const [closest] = names.map((name) => ({ name, edits: distance(wanted, name.toLowerCase()) })).sort((a, b) => a.edits - b.edits);
+  return closest && closest.edits <= Math.max(1, Math.floor(wanted.length / 3)) ? closest.name : undefined;
 }
 
 // The words of a name, without their endings: LongTask and long-tasks give the same two.
@@ -165,5 +189,5 @@ export function resolveSnippetName(name) {
 
   const suggestions = suggestionsFor(name.split("/").pop());
   const answer = suggestions.length > 0 ? `Closest: ${suggestions.join(", ")}.` : "No snippet has a close name.";
-  throw new Error(`Unknown snippet "${name}". ${answer} Every name is in the list_snippets tool of the MCP server and in https://webperf-snippets.net/llms.txt.`);
+  throw new Error(`Unknown snippet "${name}". ${answer} Every name is in webperf-snippets --list, in the list_snippets tool of the MCP server and in https://webperf-snippets.net/llms.txt.`);
 }

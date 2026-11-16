@@ -13,6 +13,7 @@ import { USAGE } from "./usage.js";
 import { runPage } from "./page-command.js";
 import { runMatrix } from "./matrix-command.js";
 import { progress } from "./output.js";
+import { terminalOf } from "./reporters/terminal.js";
 
 // The command: it reads the options (options.js), builds what measures a page under them, and runs
 // the page (page-command.js) or the matrix (matrix-command.js), which return the exit code.
@@ -35,6 +36,10 @@ async function main() {
     process.exit(2);
   }
   if (options.command === "help") return void process.stdout.write(USAGE);
+  if (options.command === "list") {
+    const { catalog, reportList } = await import("./list.js");
+    return void process.stdout.write(`${options.json ? JSON.stringify(catalog(), null, 2) : reportList(catalog(), terminalOf(process.stdout))}\n`);
+  }
   if (options.command === "version") return void process.stdout.write(`${cliVersion}\n`);
 
   const { values, waitMs, interactions, items, workflow, cruxKey, cruxWeeks } = options;

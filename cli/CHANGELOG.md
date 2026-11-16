@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ### Added
 - On a terminal, the CLI shows what the run is doing while it measures, on one line that it rewrites: the stage (Chromium opens, the page loads, the snippets run) and the time the run has taken, and with `--runs` or `--matrix` which run it is and about how long is left, from the runs that ended. The line goes away before the report. It only shows when stderr is a terminal, so a pipe, a file and the log of a CI job get what they got: nothing for one run, and a line for each run of several.
+- `--list` prints every name `--workflow` and `--snippet` take, without a URL and without opening a browser: the workflows with their title, and the snippets under their category with their title and short names. `--list --json` gives `{ "workflows", "snippets" }`, each snippet as the `list_snippets` tool of the MCP server describes it.
+- An option or a workflow that does not exist names the one it may have meant: `Unknown option --wrkflow. Did you mean --workflow?`. The message of an unknown snippet points to `--list`.
 - `--no-color` gives the report without colors, as the `NO_COLOR` environment variable does.
 
 ### Changed

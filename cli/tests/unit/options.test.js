@@ -89,6 +89,13 @@ describe("parseOptions", () => {
     [[URL, "--workflow", "everything"], 'Unknown workflow: "everything". Choose from: core-web-vitals, audit, loading, interaction'],
     [[URL, "--budget-inp", "200"], /^--budget-inp needs a run that measures INP, and the core-web-vitals workflow does not\. Use /],
     [[URL, "--no-such-option"], /no-such-option/],
+    [[URL, "--wrkflow", "audit"], "Unknown option --wrkflow. Did you mean --workflow? Every option is in --help"],
+    [[URL, "--budget_lcp", "2500"], "Unknown option --budget_lcp. Did you mean --budget-lcp? Every option is in --help"],
+    [[URL, "--qwertyuiop"], "Unknown option --qwertyuiop. Every option is in --help"],
+    [[URL, "-x"], "Unknown option -x. Every option is in --help"],
+    [[URL, "--workflow", "audt"], 'Unknown workflow: "audt". Did you mean audit? Choose from: core-web-vitals, audit, loading, interaction'],
+    [[URL, "--workflow", "cwv"], /^Unknown workflow: "cwv"\. Choose from: /],
+    [[URL, "--workflow", "Core-Web-Vitals"], /Did you mean core-web-vitals\?/],
   ])("%j is a usage error", (args, message) => {
     if (typeof message === "string") expect(usage(...args)).toBe(message);
     else expect(usage(...args)).toMatch(message);
@@ -107,5 +114,20 @@ describe("--no-color", () => {
   it("is an option of a page and of a matrix", () => {
     expect(parseOptions(["https://example.com", "--no-color"]).values["no-color"]).toBe(true);
     expect(parseOptions(["https://example.com"]).values["no-color"]).toBeUndefined();
+  });
+});
+
+describe("--list", () => {
+  it("is a command of its own, without a URL, in text or in JSON", () => {
+    expect(parse("--list")).toEqual({ command: "list", json: false });
+    expect(parse("--list", "--json")).toEqual({ command: "list", json: true });
+  });
+
+  it("wins over a URL, so no browser opens", () => {
+    expect(parse(URL, "--list").command).toBe("list");
+  });
+
+  it("has no markdown", () => {
+    expect(() => parse("--list", "--markdown")).toThrow("--list takes --json, not --markdown");
   });
 });
