@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Changed
+- The CLI loads Playwright when it opens the browser, not when it starts: `--help`, `--version` and a usage error answer about five times sooner, and work where Playwright is not installed. A measurement without Playwright says how to install it, in one line, where it ended in the stack of a module that was not found. The MCP server starts without loading it too, and its tools give the same message.
+
 ---
 
 ## [1.17.0] — 2026-11-15

@@ -89,3 +89,37 @@ describe("a wrong use of the options", () => {
     expect(stderr).toMatch(/^Unknown workflow: "everything"\. Choose from: .*\bcore-web-vitals\b.*\baudit\b/);
   }, 30000);
 });
+
+// Playwright is a peer dependency, and loading it takes most of the start of the CLI. What needs no
+// browser does not load it, so it also works where Playwright is not installed
+describe("without Playwright", () => {
+  const NO_PLAYWRIGHT = join(HERE, "../helpers/no-playwright.mjs");
+  const run = (...args) =>
+    new Promise((resolve) => {
+      execFile("node", ["--import", NO_PLAYWRIGHT, BIN, ...args], { env: cliEnv() }, (err, stdout, stderr) => resolve({ code: err ? err.code : 0, stdout, stderr }));
+    });
+
+  it("--version prints the version", async () => {
+    expect(await run("--version")).toEqual({ code: 0, stdout: `${version}\n`, stderr: "" });
+  }, 30000);
+
+  it("--help prints the usage", async () => {
+    const { code, stdout, stderr } = await run("--help");
+    expect(code).toBe(0);
+    expect(stdout).toMatch(/^webperf-snippets <url> \[options\]\n/);
+    expect(stderr).toBe("");
+  }, 30000);
+
+  it("a wrong use of the options is still a usage error", async () => {
+    const { code, stderr } = await run("http://localhost:9", "--wait=abc");
+    expect(code).toBe(2);
+    expect(stderr).toMatch(/^Invalid --wait /);
+  }, 30000);
+
+  it("a measurement says how to install Playwright, in one line and without a stack", async () => {
+    const { code, stdout, stderr } = await run("http://localhost:9");
+    expect(code).toBe(1);
+    expect(stdout).toBe("");
+    expect(stderr).toBe("Playwright is not installed. Install it and its Chromium with: npm install playwright && npx playwright install chromium\n");
+  }, 30000);
+});
