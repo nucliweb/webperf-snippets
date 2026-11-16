@@ -4753,7 +4753,6 @@ Detect and analyze all elements using content-visibility: auto on a page. This C
 
     const viewportHeight = window.innerHeight;
     const opportunities = [];
-    const processedElements = new Set();
 
     function estimateRenderSavings(childCount) {
       const baseMs = childCount * 0.2;
@@ -4762,58 +4761,61 @@ Detect and analyze all elements using content-visibility: auto on a page. This C
       return "High (~" + baseMs.toFixed(1) + "ms)";
     }
 
-    function isAncestorProcessed(el) {
-      let parent = el.parentElement;
-      while (parent) {
-        if (processedElements.has(parent)) return true;
-        parent = parent.parentElement;
-      }
-      return false;
-    }
-
+    // Whether el is an opportunity, and whether what it holds is left out: an element that already has
+    // content-visibility skips the rendering of its content, and inside an opportunity only the
+    // opportunity itself is proposed.
     function analyzeElement(el) {
-      // Skip already processed or descendant of processed
-      if (processedElements.has(el) || isAncestorProcessed(el)) return;
+      const cs = window.getComputedStyle(el);
+      if (cs["content-visibility"] && cs["content-visibility"] !== "visible") return { skipContent: true };
 
       const rect = el.getBoundingClientRect();
-      const cs = window.getComputedStyle(el);
-
-      // Skip if already using content-visibility
-      if (cs["content-visibility"] && cs["content-visibility"] !== "visible") return;
 
       // Skip elements not meeting size criteria
-      if (rect.height < minHeight || rect.width === 0) return;
+      if (rect.height < minHeight || rect.width === 0) return { skipContent: false };
 
       // Check if element is below the viewport + threshold
       const distanceFromViewport = rect.top - viewportHeight;
-      if (distanceFromViewport < threshold) return;
+      if (distanceFromViewport < threshold) return { skipContent: false };
 
       const childCount = el.querySelectorAll("*").length;
 
       // Skip elements with too few children
-      if (childCount < minChildren) return;
-
-      processedElements.add(el);
+      if (childCount < minChildren) return { skipContent: false };
 
       opportunities.push({
-        selector: uniqueSelector(el),
         height: Math.round(rect.height) + "px",
         distanceFromViewport: Math.round(distanceFromViewport) + "px",
         childElements: childCount,
         estimatedSavings: estimateRenderSavings(childCount),
         element: el,
       });
+      return { skipContent: true };
     }
 
-    // Walk all elements in the DOM
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, null, false);
+    // The element after el in document order, past its content when skipContent
+    function nextElement(el, skipContent) {
+      if (!skipContent && el.firstElementChild) return el.firstElementChild;
+      for (let node = el; node && node !== document.body; node = node.parentElement) {
+        if (node.nextElementSibling) return node.nextElementSibling;
+      }
+      return null;
+    }
 
-    while (walker.nextNode()) {
-      analyzeElement(walker.currentNode);
+    // Walk the elements of the body once, each one read once. The content of an element that is left
+    // out is not read at all, so the walk does not make the browser render what content-visibility skips.
+    for (let el = document.body.firstElementChild; el; ) {
+      el = nextElement(el, analyzeElement(el).skipContent);
     }
 
     // Sort by child count (highest impact first)
     opportunities.sort((a, b) => b.childElements - a.childElements);
+
+    // A selector for the opportunities the result and the console show, the first 50: on a deep page
+    // each one queries the document once per level, and the rest would be read for nothing
+    const SHOWN = 50;
+    opportunities.forEach((opportunity, i) => {
+      opportunity.selector = i < SHOWN ? uniqueSelector(opportunity.element) : "";
+    });
 
     // Display results
     console.group("💡 Content-Visibility Opportunities");
@@ -4884,7 +4886,7 @@ Detect and analyze all elements using content-visibility: auto on a page. This C
         minHeight,
         minChildren,
       },
-      items: opportunities.slice(0, 50).map((opportunity) => ({
+      items: opportunities.slice(0, SHOWN).map((opportunity) => ({
         selector: opportunity.selector,
         height: opportunity.height,
         distanceFromViewport: opportunity.distanceFromViewport,
@@ -16641,6 +16643,7 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
     // — CSS audit
     console.log("");
     console.log("%cCSS Scroll Audit:", "font-weight: bold;");
+    // One walk of the page for the console and the result
     const css = auditScrollCSS();
 
     if (css.contentVisibilityElements.length > 0) {
@@ -16705,7 +16708,7 @@ Measures scroll jank, frame drops, and event listener configuration to identify 
 
     console.groupEnd();
 
-    const cssAuditResult = auditScrollCSS();
+    const cssAuditResult = css;
     const findings = buildFindings(cssAuditResult);
     return {
       script: "Scroll-Performance",
