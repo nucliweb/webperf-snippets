@@ -52,19 +52,23 @@
       nodeArray: [],
     };
 
-    // Check if element is in viewport
-    function isInViewport(element) {
-      const rect = element.getBoundingClientRect();
+    // @shared isInViewport
+    // Whether el has a size and some of it is inside the viewport
+    function isInViewport(el) {
+      const rect = el.getBoundingClientRect();
       return (
         rect.top < window.innerHeight &&
         rect.bottom > 0 &&
         rect.left < window.innerWidth &&
-        rect.right > 0
+        rect.right > 0 &&
+        rect.width > 0 &&
+        rect.height > 0
       );
     }
+    // @end-shared isInViewport
 
-    // Get element dimensions and position
-    function getElementInfo(node) {
+    // What the report says of an element with content-visibility: its values, size and position
+    function contentVisibilityInfo(node) {
       const rect = node.getBoundingClientRect();
       const cs = window.getComputedStyle(node);
 
@@ -85,7 +89,7 @@
       const cv = cs["content-visibility"];
 
       if (cv && cv !== "visible") {
-        const info = getElementInfo(node);
+        const info = contentVisibilityInfo(node);
 
         if (cv === "auto") {
           results.autoElements.push(info);

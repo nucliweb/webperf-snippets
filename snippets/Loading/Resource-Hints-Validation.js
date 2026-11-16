@@ -39,8 +39,8 @@
     }
   };
 
-  // Helper: Normalize URL for comparison
-  const normalizeUrl = (url) => {
+  // A URL without its hash, to compare a hint with the resources the page loaded
+  const urlWithoutHash = (url) => {
     try {
       const parsed = new URL(url, location.origin);
       return parsed.origin + parsed.pathname + parsed.search;
@@ -57,7 +57,7 @@
   };
 
   // Create maps of used resources and domains
-  const usedResourceUrls = new Set(resources.map(r => normalizeUrl(r.name)));
+  const usedResourceUrls = new Set(resources.map(r => urlWithoutHash(r.name)));
   const usedDomains = new Set(resources.map(r => getDomain(r.name)).filter(Boolean));
   usedDomains.add(location.origin);
 
@@ -83,11 +83,11 @@
       const href = link.href;
       const as = link.getAttribute("as") || "unknown";
       const media = link.getAttribute("media");
-      const normalizedUrl = normalizeUrl(href);
+      const normalizedUrl = urlWithoutHash(href);
       const shortUrl = href.split("/").pop()?.split("?").shift() || href;
 
       const wasUsed = usedResourceUrls.has(normalizedUrl);
-      const perfEntry = resources.find(r => normalizeUrl(r.name) === normalizedUrl);
+      const perfEntry = resources.find(r => urlWithoutHash(r.name) === normalizedUrl);
 
       let mediaMatches = true;
       if (media) {
@@ -485,7 +485,7 @@
   };
   const unusedHintItems = [
     ...preloadLinks
-      .filter((l) => !usedResourceUrls.has(normalizeUrl(l.href)) && !isConditionalPreload(l))
+      .filter((l) => !usedResourceUrls.has(urlWithoutHash(l.href)) && !isConditionalPreload(l))
       .map((l) => ({ domain: getDomain(l.href), href: l.href, requestCount: 0, action: "remove-unused-preload", recommendedHint: null })),
     ...preconnectLinks
       .filter(isUnusedConnection)

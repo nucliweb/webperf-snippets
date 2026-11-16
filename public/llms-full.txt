@@ -940,6 +940,20 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
   }
   // @end-shared isOwnRequest
 
+  // @shared urlLabel
+  // A URL short enough for the console: the file name, with the host when it is another one
+  function urlLabel(url) {
+    if (url.startsWith("data:")) return `${url.split(",")[0]},…`;
+    try {
+      const u = new URL(url);
+      const file = u.pathname.split("/").pop()?.split("?")[0];
+      return u.hostname !== location.hostname ? `${u.hostname}/…/${file}` : file || url;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared urlLabel
+
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
     console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
     return { script: "LCP-Subparts", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
@@ -1072,15 +1086,7 @@ Breaks down Largest Contentful Paint into its four phases to identify optimizati
       console.log("%cLCP Element:", "font-weight: bold;");
       console.log(`   ${uniqueSelector(el)}`, el);
       if (lcpEntry.url) {
-        const shortUrl = (() => {
-          try {
-            const u = new URL(lcpEntry.url);
-            return u.hostname !== location.hostname
-              ? `${u.hostname}/…/${u.pathname.split("/").pop()?.split("?")[0]}`
-              : u.pathname.split("/").pop()?.split("?")[0] || lcpEntry.url;
-          } catch { return lcpEntry.url; }
-        })();
-        console.log(`   URL: ${shortUrl}`);
+        console.log(`   URL: ${urlLabel(lcpEntry.url)}`);
       }
 
       // Highlight
@@ -1351,7 +1357,8 @@ Tracks every LCP candidate element during page load and highlights each one with
   // an app removes when it renders. The entry keeps its time, size and URL.
   const REMOVED = "(removed from DOM)";
 
-  const getElementInfo = (element, entry) => {
+  // The kind of an LCP element, and the URL of its image when it has one
+  const describeLcpElement = (element, entry) => {
     if (!element) return entry.url ? { type: "Image", url: entry.url } : { type: "Removed element" };
     const tag = element.tagName.toLowerCase();
     if (tag === "img") return { type: "Image", url: entry.url || element.src };
@@ -1363,15 +1370,19 @@ Tracks every LCP candidate element during page load and highlights each one with
   // One candidate per element, or per entry when its element was removed
   const candidateKey = (entry) => entry.element ?? `${entry.startTime}|${entry.size}`;
 
-  // A data: URL keeps its media type, and another URL its file name
-  const shortUrl = (url) => {
+  // @shared urlLabel
+  // A URL short enough for the console: the file name, with the host when it is another one
+  function urlLabel(url) {
     if (url.startsWith("data:")) return `${url.split(",")[0]},…`;
     try {
       const u = new URL(url);
       const file = u.pathname.split("/").pop()?.split("?")[0];
       return u.hostname !== location.hostname ? `${u.hostname}/…/${file}` : file || url;
-    } catch { return url; }
-  };
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared urlLabel
 
   const candidates = [];
 
@@ -1393,9 +1404,9 @@ Tracks every LCP candidate element during page load and highlights each one with
     if (current.element) console.log(`   Element: ${current.selector}`, current.element);
     else console.log(`   Element: ${REMOVED}${current.entry.id ? ` #${current.entry.id}` : ""}`);
 
-    const { type, url } = getElementInfo(current.element, current.entry);
+    const { type, url } = describeLcpElement(current.element, current.entry);
     console.log(`   Type: ${type}`);
-    if (url) console.log(`   URL: ${shortUrl(url)}`);
+    if (url) console.log(`   URL: ${urlLabel(url)}`);
     if (current.element?.naturalWidth) {
       console.log(
         `   Dimensions: ${current.element.naturalWidth}×${current.element.naturalHeight}`
@@ -1480,7 +1491,7 @@ Tracks every LCP candidate element during page load and highlights each one with
     const key = candidateKey(entry);
     if (byKey.has(key)) continue;
     const el = entry.element;
-    const { type, url } = getElementInfo(el, entry);
+    const { type, url } = describeLcpElement(el, entry);
     byKey.set(key, {
       index: byKey.size + 1,
       selector: el ? uniqueSelector(el) : null,
@@ -1489,7 +1500,7 @@ Tracks every LCP candidate element during page load and highlights each one with
       time: Math.round(Math.max(0, entry.startTime - trailActivationStart)),
       elementType: type,
       sizePixels: entry.size,
-      ...(url ? { url: shortUrl(url) } : {}),
+      ...(url ? { url: urlLabel(url) } : {}),
     });
   }
   const syncCandidates = [...byKey.values()];
@@ -1567,14 +1578,41 @@ Detects whether the LCP element is a <video> and audits the poster image configu
     poor: { icon: "🔴", label: "Poor (> 4 s)" },
   };
 
+  // @shared detectFormat
+  // The image format of a URL: from the transformations of a CDN, the query or the extension.
+  // "auto (cdn)" when a CDN picks it, "auto (cdn?)" when the URL has no extension, as a CDN or a
+  // DAM that serves the format the browser accepts.
   function detectFormat(url) {
     if (!url) return "unknown";
-    const path = url.toLowerCase().split("?")[0];
-    const ext = path.match(/\.(avif|webp|jxl|png|gif|jpg|jpeg|svg)(?:[?#]|$)/);
-    if (ext) return ext[1] === "jpeg" ? "jpg" : ext[1];
+    const lower = url.toLowerCase();
+    const path = lower.split("?")[0];
+    const query = lower.includes("?") ? lower.split("?")[1] : "";
+
+    // Cloudinary path transforms: /f_auto/, /f_avif,q_auto/, etc.
+    const cloudinaryMatch = path.match(/\/f_(auto|avif|webp|jxl|png|jpg|jpeg|gif|svg)[,/]/);
+    if (cloudinaryMatch) {
+      const fmt = cloudinaryMatch[1];
+      return fmt === "auto" ? "auto (cdn)" : fmt === "jpeg" ? "jpg" : fmt;
+    }
+
+    // Query string params: ?fm=webp (imgix), ?format=avif (generic)
+    const qMatch = query.match(/(?:^|&)(?:fm|format)=(avif|webp|jxl|png|jpg|jpeg|gif|svg)(?:&|$)/);
+    if (qMatch) return qMatch[1] === "jpeg" ? "jpg" : qMatch[1];
+
+    // File extension in path
+    const extMatch = path.match(/\.(avif|webp|jxl|png|gif|svg|jpg|jpeg)(?:[?#]|$)/);
+    if (extMatch) return extMatch[1] === "jpeg" ? "jpg" : extMatch[1];
+
+    // No extension at all: likely a DAM or CDN serving format via Accept header
+    const lastSegment = path.split("/").pop() || "";
+    if (!lastSegment.includes(".")) return "auto (cdn?)";
+
     return "unknown";
   }
+  // @end-shared detectFormat
 
+  // @shared normalizeUrl
+  // The absolute URL of url, relative to the page, to compare it with the URL of an entry
   function normalizeUrl(url) {
     try {
       return new URL(url, location.origin).href;
@@ -1582,6 +1620,7 @@ Detects whether the LCP element is a <video> and audits the poster image configu
       return url;
     }
   }
+  // @end-shared normalizeUrl
 
   console.group("%c🎬 LCP Video Candidate", "font-weight: bold; font-size: 14px;");
   console.log("");
@@ -1684,7 +1723,8 @@ Detects whether the LCP element is a <video> and audits the poster image configu
     issues.push({ code: "poster-preload-no-fetchpriority", s: "info", msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised' });
   }
 
-  if (posterAttr && !isModernFormat && posterFormat !== "unknown") {
+  // A CDN that picks the format serves the one the browser accepts, so it is not a legacy format
+  if (posterAttr && !isModernFormat && posterFormat !== "unknown" && !posterFormat.startsWith("auto")) {
     issues.push({ code: "poster-legacy-format", s: "info", msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time` });
   }
 
@@ -4626,19 +4666,23 @@ Detect and analyze all elements using content-visibility: auto on a page. This C
       nodeArray: [],
     };
 
-    // Check if element is in viewport
-    function isInViewport(element) {
-      const rect = element.getBoundingClientRect();
+    // @shared isInViewport
+    // Whether el has a size and some of it is inside the viewport
+    function isInViewport(el) {
+      const rect = el.getBoundingClientRect();
       return (
         rect.top < window.innerHeight &&
         rect.bottom > 0 &&
         rect.left < window.innerWidth &&
-        rect.right > 0
+        rect.right > 0 &&
+        rect.width > 0 &&
+        rect.height > 0
       );
     }
+    // @end-shared isInViewport
 
-    // Get element dimensions and position
-    function getElementInfo(node) {
+    // What the report says of an element with content-visibility: its values, size and position
+    function contentVisibilityInfo(node) {
       const rect = node.getBoundingClientRect();
       const cs = window.getComputedStyle(node);
 
@@ -4659,7 +4703,7 @@ Detect and analyze all elements using content-visibility: auto on a page. This C
       const cv = cs["content-visibility"];
 
       if (cv && cv !== "visible") {
-        const info = getElementInfo(node);
+        const info = contentVisibilityInfo(node);
 
         if (cv === "auto") {
           results.autoElements.push(info);
@@ -5723,8 +5767,10 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
   // @end-shared uniqueSelector
 
 
-  function isInViewport(element) {
-    const rect = element.getBoundingClientRect();
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
     return (
       rect.top < window.innerHeight &&
       rect.bottom > 0 &&
@@ -5734,6 +5780,7 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   function getDistanceFromViewportEdge(element) {
     const rect = element.getBoundingClientRect();
@@ -5768,7 +5815,8 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
     return null;
   }
 
-  function getElementInfo(img) {
+  // What the report says of a lazy image above the fold
+  function lazyImageInfo(img) {
     const rect = img.getBoundingClientRect();
     const area = rect.width * rect.height;
 
@@ -5833,7 +5881,7 @@ Detect images with lazy loading that are incorrectly placed above the fold (in t
 
     if (!img || !isInViewport(img)) return;
 
-    const info = getElementInfo(img);
+    const info = lazyImageInfo(img);
     info.isLcpCandidate = img === lcpCandidate;
 
     results.lazyImages.push(info);
@@ -6011,8 +6059,10 @@ Detects images that have both loading="lazy" and fetchpriority="high" - a contra
   // @end-shared uniqueSelector
 
 
-  function isInViewport(element) {
-    const rect = element.getBoundingClientRect();
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
     return (
       rect.top < window.innerHeight &&
       rect.bottom > 0 &&
@@ -6022,6 +6072,7 @@ Detects images that have both loading="lazy" and fetchpriority="high" - a contra
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   // Find LCP candidate for context
   const viewportImages = Array.from(document.querySelectorAll("img")).filter(
@@ -6198,8 +6249,10 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
   // @end-shared uniqueSelector
 
 
-  function isInViewport(element) {
-    const rect = element.getBoundingClientRect();
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
     return (
       rect.top < window.innerHeight &&
       rect.bottom > 0 &&
@@ -6209,6 +6262,7 @@ Identifies images that are loaded eagerly but not visible in the initial viewpor
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   function isInHiddenContainer(element) {
     let parent = element.parentElement;
@@ -9243,6 +9297,8 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
   }
   // @end-shared isOwnRequest
 
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -9254,8 +9310,10 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
-  function findLcpCandidate() {
+  // An estimate of the LCP image without the LCP entry: the largest image in the viewport
+  function largestImageInViewport() {
     const imgs = Array.from(document.querySelectorAll("img")).filter(isInViewport);
     let candidate = null;
     let maxArea = 0;
@@ -9270,7 +9328,8 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
     return candidate;
   }
 
-  function shortUrl(el) {
+  // The file an element loads, without its path or query
+  function fileNameOf(el) {
     const src = el.src || el.href || el.getAttribute("href") || "";
     return src.split("/").pop()?.split("?")[0] || src.slice(-50) || "(unknown)";
   }
@@ -9301,7 +9360,7 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
   const preloadsWithPriority = Array.from(
     document.querySelectorAll('link[rel="preload"][fetchpriority]')
   );
-  const lcpCandidate = findLcpCandidate();
+  const lcpCandidate = largestImageInViewport();
 
   const issues = [];
 
@@ -9314,7 +9373,7 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
         severity: "error",
         element: link,
         url: link.href,
-        resource: shortUrl(link),
+        resource: fileNameOf(link),
         message: 'preload + fetchpriority="low" is contradictory',
         detail:
           'preload signals this resource is critical for the current page; fetchpriority="low" contradicts that.',
@@ -9333,7 +9392,7 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
           severity: "warning",
           element: el,
           url: el.src || el.href,
-          resource: shortUrl(el),
+          resource: fileNameOf(el),
           message: `fetchpriority="low" but loaded at ${entry.startTime.toFixed(0)}ms`,
           detail:
             "This resource loaded very early. If it's genuinely non-critical, the browser is deprioritizing it correctly. Otherwise, reconsider the priority.",
@@ -9353,7 +9412,7 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
           severity: "warning",
           element: el,
           url: el.src || el.href,
-          resource: shortUrl(el),
+          resource: fileNameOf(el),
           message: `fetchpriority="high" but loaded at ${entry.startTime.toFixed(0)}ms`,
           detail:
             "High-priority resources should load early. A late start may indicate render-blocking dependencies or incorrect placement in the document.",
@@ -9455,7 +9514,7 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
             entry?.decodedBodySize
               ? (entry.decodedBodySize / 1024).toFixed(1)
               : "N/A",
-          Resource: shortUrl(el),
+          Resource: fileNameOf(el),
         };
       })
     );
@@ -9483,7 +9542,7 @@ Audits all fetchpriority attribute usage across the page, covering non-image res
           Status:
             fp === "low" ? "⚠️ Conflict" : fp === "high" ? "✅ Good" : "ℹ️ Auto",
           "Start (ms)": entry ? entry.startTime.toFixed(0) : "N/A",
-          Resource: shortUrl(link),
+          Resource: fileNameOf(link),
         };
       })
     );
@@ -9639,8 +9698,8 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
     }
   };
 
-  // Helper: Normalize URL for comparison
-  const normalizeUrl = (url) => {
+  // A URL without its hash, to compare a hint with the resources the page loaded
+  const urlWithoutHash = (url) => {
     try {
       const parsed = new URL(url, location.origin);
       return parsed.origin + parsed.pathname + parsed.search;
@@ -9657,7 +9716,7 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
   };
 
   // Create maps of used resources and domains
-  const usedResourceUrls = new Set(resources.map(r => normalizeUrl(r.name)));
+  const usedResourceUrls = new Set(resources.map(r => urlWithoutHash(r.name)));
   const usedDomains = new Set(resources.map(r => getDomain(r.name)).filter(Boolean));
   usedDomains.add(location.origin);
 
@@ -9683,11 +9742,11 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
       const href = link.href;
       const as = link.getAttribute("as") || "unknown";
       const media = link.getAttribute("media");
-      const normalizedUrl = normalizeUrl(href);
+      const normalizedUrl = urlWithoutHash(href);
       const shortUrl = href.split("/").pop()?.split("?").shift() || href;
 
       const wasUsed = usedResourceUrls.has(normalizedUrl);
-      const perfEntry = resources.find(r => normalizeUrl(r.name) === normalizedUrl);
+      const perfEntry = resources.find(r => urlWithoutHash(r.name) === normalizedUrl);
 
       let mediaMatches = true;
       if (media) {
@@ -10085,7 +10144,7 @@ Validates resource hints (preload, preconnect, dns-prefetch) by analyzing which 
   };
   const unusedHintItems = [
     ...preloadLinks
-      .filter((l) => !usedResourceUrls.has(normalizeUrl(l.href)) && !isConditionalPreload(l))
+      .filter((l) => !usedResourceUrls.has(urlWithoutHash(l.href)) && !isConditionalPreload(l))
       .map((l) => ({ domain: getDomain(l.href), href: l.href, requestCount: 0, action: "remove-unused-preload", recommendedHint: null })),
     ...preconnectLinks
       .filter(isUnusedConnection)
@@ -16801,6 +16860,8 @@ Audits all <img> elements on the page against image performance best practices, 
   }
   // @end-shared ownRequestUrl
 
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -16812,6 +16873,7 @@ Audits all <img> elements on the page against image performance best practices, 
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   // Fallback when the browser cannot report the LCP element: the largest image in the viewport
   function estimateLcpCandidate(imgs) {
@@ -16862,6 +16924,10 @@ Audits all <img> elements on the page against image performance best practices, 
     return { candidate: null, nonImageTag: el ? el.tagName : "unknown" };
   }
 
+  // @shared detectFormat
+  // The image format of a URL: from the transformations of a CDN, the query or the extension.
+  // "auto (cdn)" when a CDN picks it, "auto (cdn?)" when the URL has no extension, as a CDN or a
+  // DAM that serves the format the browser accepts.
   function detectFormat(url) {
     if (!url) return "unknown";
     const lower = url.toLowerCase();
@@ -16883,12 +16949,13 @@ Audits all <img> elements on the page against image performance best practices, 
     const extMatch = path.match(/\.(avif|webp|jxl|png|gif|svg|jpg|jpeg)(?:[?#]|$)/);
     if (extMatch) return extMatch[1] === "jpeg" ? "jpg" : extMatch[1];
 
-    // No extension at all — likely a DAM or CDN serving format via Accept header
+    // No extension at all: likely a DAM or CDN serving format via Accept header
     const lastSegment = path.split("/").pop() || "";
     if (!lastSegment.includes(".")) return "auto (cdn?)";
 
     return "unknown";
   }
+  // @end-shared detectFormat
 
   function isModernFormat(format) {
     return ["avif", "webp", "jxl", "auto (cdn)", "auto (cdn?)"].includes(format);
@@ -16921,6 +16988,8 @@ Audits all <img> elements on the page against image performance best practices, 
     return url.split("/").pop()?.split("?")[0]?.slice(0, 40) || url.slice(-40);
   }
 
+  // @shared normalizeUrl
+  // The absolute URL of url, relative to the page, to compare it with the URL of an entry
   function normalizeUrl(url) {
     try {
       return new URL(url, location.origin).href;
@@ -16928,6 +16997,7 @@ Audits all <img> elements on the page against image performance best practices, 
       return url;
     }
   }
+  // @end-shared normalizeUrl
 
   function findPreloadForLcp(img, preloads) {
     const src = normalizeUrl(img.currentSrc || img.src || "");
@@ -17323,7 +17393,8 @@ Compares the pixels of each downloaded image file with the pixels the page draws
   const round2 = (n) => Math.round(n * 100) / 100;
   const px = (v) => parseFloat(v) || 0;
 
-  const shortUrl = (url) => (url.startsWith("data:") ? url.slice(0, 60) : url);
+  // A data: URL cut to its first characters; any other URL whole
+  const clippedUrl = (url) => (url.startsWith("data:") ? url.slice(0, 60) : url);
   const fileName = (url) => url.split("?")[0].split("/").pop() || url;
 
   // @shared uniqueSelector
@@ -17472,7 +17543,7 @@ Compares the pixels of each downloaded image file with the pixels the page draws
 
     flagged.push({
       selector: uniqueSelector(img),
-      url: shortUrl(url),
+      url: clippedUrl(url),
       verdict,
       naturalWidth: file.width,
       naturalHeight: file.height,
@@ -17865,6 +17936,8 @@ Audits all <video> elements on the page against video performance best practices
 // https://webperf-snippets.net
 
 (() => {
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -17876,6 +17949,7 @@ Audits all <video> elements on the page against video performance best practices
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   function detectBestCodec(video) {
     const sources = Array.from(video.querySelectorAll("source"));

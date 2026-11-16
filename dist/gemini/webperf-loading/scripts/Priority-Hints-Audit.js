@@ -6,7 +6,7 @@
     const rect = el.getBoundingClientRect();
     return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
   }
-  function findLcpCandidate() {
+  function largestImageInViewport() {
     const imgs = Array.from(document.querySelectorAll("img")).filter(isInViewport);
     let candidate = null;
     let maxArea = 0;
@@ -20,7 +20,7 @@
     });
     return candidate;
   }
-  function shortUrl(el) {
+  function fileNameOf(el) {
     const src = el.src || el.href || el.getAttribute("href") || "";
     return src.split("/").pop()?.split("?")[0] || src.slice(-50) || "(unknown)";
   }
@@ -43,7 +43,7 @@
   const nonImageElements = allElements.filter(el => el.tagName !== "IMG");
   allElements.filter(el => el.tagName === "IMG");
   const preloadsWithPriority = Array.from(document.querySelectorAll('link[rel="preload"][fetchpriority]'));
-  const lcpCandidate = findLcpCandidate();
+  const lcpCandidate = largestImageInViewport();
   const issues = [];
   preloadsWithPriority.filter(link => link.getAttribute("fetchpriority") === "low").forEach(link => {
     issues.push({
@@ -51,7 +51,7 @@
       severity: "error",
       element: link,
       url: link.href,
-      resource: shortUrl(link),
+      resource: fileNameOf(link),
       message: 'preload + fetchpriority="low" is contradictory',
       detail: 'preload signals this resource is critical for the current page; fetchpriority="low" contradicts that.',
       fix: 'Remove fetchpriority="low", or use fetchpriority="high" if the resource is truly critical'
@@ -64,7 +64,7 @@
       severity: "warning",
       element: el,
       url: el.src || el.href,
-      resource: shortUrl(el),
+      resource: fileNameOf(el),
       message: `fetchpriority="low" but loaded at ${entry.startTime.toFixed(0)}ms`,
       detail: "This resource loaded very early. If it's genuinely non-critical, the browser is deprioritizing it correctly. Otherwise, reconsider the priority.",
       fix: 'Verify the resource is non-critical, or remove fetchpriority="low"'
@@ -77,7 +77,7 @@
       severity: "warning",
       element: el,
       url: el.src || el.href,
-      resource: shortUrl(el),
+      resource: fileNameOf(el),
       message: `fetchpriority="high" but loaded at ${entry.startTime.toFixed(0)}ms`,
       detail: "High-priority resources should load early. A late start may indicate render-blocking dependencies or incorrect placement in the document.",
       fix: "Move the element earlier in the HTML or investigate render-blocking dependencies"

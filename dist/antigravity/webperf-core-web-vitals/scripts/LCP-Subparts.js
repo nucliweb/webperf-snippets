@@ -115,16 +115,7 @@
     const {icon: icon, color: color} = RATING[rating];
     if (lcpEntry.element) {
       const el = lcpEntry.element;
-      if (lcpEntry.url) {
-        (() => {
-          try {
-            const u = new URL(lcpEntry.url);
-            return u.hostname !== location.hostname ? `${u.hostname}/…/${u.pathname.split("/").pop()?.split("?")[0]}` : u.pathname.split("/").pop()?.split("?")[0] || lcpEntry.url;
-          } catch {
-            return lcpEntry.url;
-          }
-        })();
-      }
+      if (lcpEntry.url) void 0;
       el.style.outline = "3px dashed lime";
       el.style.outlineOffset = "2px";
     }

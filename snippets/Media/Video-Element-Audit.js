@@ -2,6 +2,8 @@
 // https://webperf-snippets.net
 
 (() => {
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -13,6 +15,7 @@
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   function detectBestCodec(video) {
     const sources = Array.from(video.querySelectorAll("source"));

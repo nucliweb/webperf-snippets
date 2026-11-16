@@ -21,7 +21,7 @@
   const dpr = window.devicePixelRatio || 1;
   const round2 = n => Math.round(n * 100) / 100;
   const px = v => parseFloat(v) || 0;
-  const shortUrl = url => url.startsWith("data:") ? url.slice(0, 60) : url;
+  const clippedUrl = url => url.startsWith("data:") ? url.slice(0, 60) : url;
   const fileName = url => url.split("?")[0].split("/").pop() || url;
   function uniqueSelector(el) {
     const root = el.getRootNode();
@@ -155,7 +155,7 @@
     if (wastedBytes !== null) wastedBytesByUrl.set(url, Math.max(wastedBytesByUrl.get(url) ?? 0, wastedBytes));
     flagged.push({
       selector: uniqueSelector(img),
-      url: shortUrl(url),
+      url: clippedUrl(url),
       verdict: verdict,
       naturalWidth: file.width,
       naturalHeight: file.height,
