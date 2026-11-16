@@ -155,23 +155,6 @@
     const {icon: icon, color: color} = RATING[rating];
     if (inpEntry) {
       if (inpEntry.target) {
-        const getElementPath = el => {
-          if (!el) return "";
-          const parts = [];
-          let current = el;
-          while (current && current !== document.body && parts.length < 5) {
-            let selector = current.tagName.toLowerCase();
-            if (current.id) selector += `#${current.id}`; else if (current.className && typeof current.className === "string") {
-              const classes = current.className.trim().split(/\s+/).slice(0, 2).join(".");
-              if (classes) selector += `.${classes}`;
-            }
-            parts.unshift(selector);
-            current = current.parentElement;
-          }
-          return parts.join(" > ");
-        };
-        const path = getElementPath(inpEntry.target);
-        if (path) void 0;
       }
       const phases = inpEntry.phases;
       if (phases.inputDelay > 0) {
@@ -275,23 +258,6 @@
       const phases = interaction.phases;
       const hasPhases = phases.inputDelay > 0;
       if (interaction.target) {
-        const getPath = el => {
-          if (!el) return "";
-          const parts = [];
-          let current = el;
-          while (current && current !== document.body && parts.length < 5) {
-            let selector = current.tagName.toLowerCase();
-            if (current.id) selector += `#${current.id}`; else if (current.className && typeof current.className === "string") {
-              const classes = current.className.trim().split(/\s+/).slice(0, 2).join(".");
-              if (classes) selector += `.${classes}`;
-            }
-            parts.unshift(selector);
-            current = current.parentElement;
-          }
-          return parts.join(" > ");
-        };
-        const path = getPath(interaction.target);
-        if (path) void 0;
       } else void 0;
       if (hasPhases) void 0;
     });

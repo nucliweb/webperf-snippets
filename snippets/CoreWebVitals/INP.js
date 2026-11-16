@@ -202,28 +202,8 @@
       if (inpEntry.target) {
         console.log(`   Target Element:`, inpEntry.target);
 
-        // Get element path for better context
-        const getElementPath = (el) => {
-          if (!el) return "";
-          const parts = [];
-          let current = el;
-          while (current && current !== document.body && parts.length < 5) {
-            let selector = current.tagName.toLowerCase();
-            if (current.id) selector += `#${current.id}`;
-            else if (current.className && typeof current.className === "string") {
-              const classes = current.className.trim().split(/\s+/).slice(0, 2).join(".");
-              if (classes) selector += `.${classes}`;
-            }
-            parts.unshift(selector);
-            current = current.parentElement;
-          }
-          return parts.join(" > ");
-        };
-
-        const path = getElementPath(inpEntry.target);
-        if (path) {
-          console.log(`   Element Path: ${path}`);
-        }
+        // The selector the result gives the target, to find it in the Elements panel
+        console.log(`   Element Path: ${uniqueSelector(inpEntry.target)}`);
       }
 
       // Phase breakdown
@@ -435,28 +415,7 @@
       if (interaction.target) {
         console.log("Element:", interaction.target);
 
-        // Get element path for better identification
-        const getPath = (el) => {
-          if (!el) return "";
-          const parts = [];
-          let current = el;
-          while (current && current !== document.body && parts.length < 5) {
-            let selector = current.tagName.toLowerCase();
-            if (current.id) selector += `#${current.id}`;
-            else if (current.className && typeof current.className === "string") {
-              const classes = current.className.trim().split(/\s+/).slice(0, 2).join(".");
-              if (classes) selector += `.${classes}`;
-            }
-            parts.unshift(selector);
-            current = current.parentElement;
-          }
-          return parts.join(" > ");
-        };
-
-        const path = getPath(interaction.target);
-        if (path) {
-          console.log("Path:", path);
-        }
+        console.log("Path:", uniqueSelector(interaction.target));
       } else {
         console.log("Element: (no target available)");
       }

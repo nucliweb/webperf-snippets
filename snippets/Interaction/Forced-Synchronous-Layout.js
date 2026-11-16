@@ -8,13 +8,46 @@
   const fslEvents = [];
   const restorations = [];
 
-  const getElementDesc = (el) => {
-    let desc = el.tagName.toLowerCase();
-    if (el.id) desc += `#${el.id}`;
-    if (el.className && typeof el.className === "string" && el.className.trim()) {
-      desc += `.${el.className.trim().split(/\s+/).join(".")}`;
+  // @shared uniqueSelector
+  // A CSS selector that matches only el in its document (or shadow root): its id when it is unique,
+  // otherwise a path of tag, classes and :nth-of-type() that goes up to the nearest ancestor with a
+  // unique id, or to the root, and stops as soon as it matches one element.
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = (selector) => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map((c) => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [node];
+      if (siblings.filter((s) => s.matches(part)).length > 1) {
+        part += `:nth-of-type(${siblings.filter((s) => s.localName === tag).indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
     }
-    return desc;
+    return parts.join(" > ");
+  }
+  // @end-shared uniqueSelector
+
+  // The selector of an element, which the panel of the extension can inspect. A page that forces
+  // layout in a loop reads the same elements again and again, so each one is named once.
+  const selectors = new WeakMap();
+  const selectorOf = (el) => {
+    if (!selectors.has(el)) selectors.set(el, uniqueSelector(el));
+    return selectors.get(el);
   };
 
   const markDirty = () => {
@@ -87,7 +120,7 @@
   const warnFSL = (propName, accessType, el) => {
     if (!isDirty) return;
     const elapsed = (performance.now() - lastMutationTime).toFixed(2);
-    const elDesc = el instanceof Element ? getElementDesc(el) : "unknown";
+    const elDesc = el instanceof Element ? selectorOf(el) : "unknown";
     const stack = new Error().stack;
 
     fslEvents.push({
