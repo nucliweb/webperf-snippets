@@ -1,20 +1,24 @@
 (() => {
   function hiddenBefore(time) {
-    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
-      const hidden = performance.getEntriesByType("visibility-state").find(entry => entry.name === "hidden");
-      return hidden !== void 0 && hidden.startTime <= time;
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state") && !document.prerendering) {
+      const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+      const hidden = performance.getEntriesByType("visibility-state").find(entry => entry.name === "hidden" && entry.startTime >= activationStart);
+      if (hidden) return hidden.startTime <= time;
     }
     return document.visibilityState === "hidden" && !document.prerendering;
+  }
+  function hiddenMessage(metric) {
+    return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
   }
   function hiddenResult(name, metric) {
     return {
       script: name,
       status: "error",
-      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`
+      error: hiddenMessage(metric)
     };
   }
   let hiddenWarned = false;
-  function warnHidden(script, metric) {
+  function warnHidden(metric) {
     if (!hiddenWarned) void 0;
     hiddenWarned = true;
   }
@@ -43,7 +47,7 @@
   new PerformanceObserver(list => {
     const fcpEntry = list.getEntriesByName("first-contentful-paint")[0];
     if (!fcpEntry) return;
-    if (hiddenBefore(fcpEntry.startTime)) return warnHidden("FCP", "FCP");
+    if (hiddenBefore(fcpEntry.startTime)) return warnHidden("FCP");
     const navEntry = performance.getEntriesByType("navigation")[0];
     const activationStart = navEntry?.activationStart || 0;
     const fcpTime = Math.max(0, fcpEntry.startTime - activationStart);

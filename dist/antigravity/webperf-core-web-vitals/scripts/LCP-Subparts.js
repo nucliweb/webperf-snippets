@@ -3,21 +3,25 @@
     return entry.name.endsWith("#webperf-snippets");
   }
   function hiddenBefore(time) {
-    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
-      const hidden = performance.getEntriesByType("visibility-state").find(entry => entry.name === "hidden");
-      return hidden !== void 0 && hidden.startTime <= time;
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state") && !document.prerendering) {
+      const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+      const hidden = performance.getEntriesByType("visibility-state").find(entry => entry.name === "hidden" && entry.startTime >= activationStart);
+      if (hidden) return hidden.startTime <= time;
     }
     return document.visibilityState === "hidden" && !document.prerendering;
+  }
+  function hiddenMessage(metric) {
+    return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
   }
   function hiddenResult(name, metric) {
     return {
       script: name,
       status: "error",
-      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`
+      error: hiddenMessage(metric)
     };
   }
   let hiddenWarned = false;
-  function warnHidden(script, metric) {
+  function warnHidden(metric) {
     if (!hiddenWarned) void 0;
     hiddenWarned = true;
   }
@@ -117,12 +121,16 @@
     if (navEntry?.responseStart > 0 && navEntry.responseStart < performance.now()) return navEntry;
     return null;
   };
+  let printed = false;
   const observer = new PerformanceObserver(list => {
-    const lcpEntry = list.getEntries().at(-1);
-    if (!lcpEntry) return;
-    if (hiddenBefore(lcpEntry.startTime)) return warnHidden("LCP-Subparts", "LCP");
+    const lcpEntry = list.getEntries().filter(entry => !hiddenBefore(entry.startTime)).at(-1);
+    if (!lcpEntry) {
+      if (!printed) warnHidden("LCP");
+      return;
+    }
     const navEntry = getNavigationEntry();
     if (!navEntry) return;
+    printed = true;
     const {resEntry: lcpResEntry, activationStart: activationStart, ttfb: ttfb, requestStart: lcpRequestStart, responseEnd: lcpResponseEnd, renderTime: lcpRenderTime} = lcpSubpartTimes(lcpEntry, navEntry);
     const loadSplit = splitLoadTime(lcpResEntry, lcpRequestStart, lcpResponseEnd, activationStart);
     const subPartValues = {
@@ -192,7 +200,7 @@
     type: "largest-contentful-paint",
     buffered: true
   });
-  const lcpEntry = await new Promise(resolve => {
+  const lcpEntries = await new Promise(resolve => {
     const entries = [];
     const obs = new PerformanceObserver(list => entries.push(...list.getEntries()));
     obs.observe({
@@ -201,15 +209,16 @@
     });
     setTimeout(() => {
       obs.disconnect();
-      resolve(entries.at(-1) ?? null);
+      resolve(entries);
     }, 100);
   });
-  if (!lcpEntry) return {
+  if (lcpEntries.length === 0) return {
     script: "LCP-Subparts",
     status: "error",
     error: "No LCP entries buffered"
   };
-  if (hiddenBefore(lcpEntry.startTime)) return hiddenResult("LCP-Subparts", "LCP");
+  const lcpEntry = lcpEntries.filter(entry => !hiddenBefore(entry.startTime)).at(-1);
+  if (!lcpEntry) return hiddenResult("LCP-Subparts", "LCP");
   const navEntrySync = getNavigationEntry();
   if (!navEntrySync) return {
     script: "LCP-Subparts",
