@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { BASE_URL, markdownUrlOfRoute, pageOfRoute } from "../../lib/markdown-path.mjs";
 import { pageMetadata } from "../../lib/page-metadata";
 import { readPageInfo } from "../../lib/page-info";
+import { siteCategories } from "../../lib/catalog";
 import { useMDXComponents as getMDXComponents } from "../../mdx-components";
 
 export const generateStaticParams = generateStaticParamsFor("mdxPath");
@@ -18,6 +19,8 @@ const infoOf = (mdxPath) => {
   const page = pageOfRoute(mdxPath);
   return page && readPageInfo(join(process.cwd(), "content"), page);
 };
+// The title of each folder with a page of its own, for the breadcrumb of its pages
+const categoryTitles = () => Object.fromEntries(siteCategories(join(process.cwd(), "content")).map((c) => [c.category, c.title]));
 const urlOf = (mdxPath = []) => `${BASE_URL}/${mdxPath.join("/")}`;
 
 export async function generateMetadata(props) {
@@ -48,7 +51,7 @@ export default async function Page(props) {
   return (
     <Wrapper toc={toc} metadata={metadata} sourceCode={sourceCode}>
       {/* Mounted by the page, not by the layout: a 404 would render it for a URL that does not exist */}
-      {info && <PageSchema pathname={`/${(params.mdxPath ?? []).join("/")}`} page={info} />}
+      {info && <PageSchema pathname={`/${(params.mdxPath ?? []).join("/")}`} page={info} categories={categoryTitles()} />}
       <MDXContent {...props} params={params} />
     </Wrapper>
   );
