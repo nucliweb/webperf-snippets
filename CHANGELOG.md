@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- The MCP server page says that a client built with the MCP SDK starts the server without most variables of the shell, and that a `PLAYWRIGHT_BROWSERS_PATH` of your own goes in the `env` of the server configuration.
 - Each category of snippets has a page, `/CoreWebVitals`, `/Loading`, `/Interaction`, `/Media` and `/Resources`, with every page of the category in the order of the sidebar, each with its description. The breadcrumb links the category, in the page and in its `BreadcrumbList`, which left it out because its URL was a 404, and the category pages are in the sitemap and in the Markdown version of the site.
 - The sitemap gives the date each page last changed, as `lastmod`: the last commit of its MDX or of a snippet it shows, since the code of a snippet is part of its page. A build from a shallow clone, which only knows its last commits, gives no dates rather than wrong ones.
 
