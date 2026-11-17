@@ -16,6 +16,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 - `--no-color` gives the report without colors, as the `NO_COLOR` environment variable does.
 
 ### Changed
+- The CLI checks CSS-Complexity against `@projectwallace/css-analyzer` 9.9.9, which counts nested pseudo-classes once. It was pinned to 9.9.5, the last version that counted them twice, as the snippet did.
 - The report on a terminal fits its width: the selector of an element, the rows of an audit and the page names of a matrix table are cut with an ellipsis where they wrapped and broke the columns. A pipe and a file get every text whole.
 - Where the report is not written to a terminal, in a pipe, a file or the log of a CI job, the ratings are plain characters and not emoji: `✓` good, `⚠` needs improvement and `✗` poor. `--markdown` and `--json` do not change.
 - The CLI loads Playwright when it opens the browser, not when it starts: `--help`, `--version` and a usage error answer about five times sooner, and work where Playwright is not installed. A measurement without Playwright says how to install it, in one line, where it ended in the stack of a module that was not found. The MCP server starts without loading it too, and its tools give the same message.

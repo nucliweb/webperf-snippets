@@ -93,26 +93,27 @@
 
   // --- Selector complexity, as css-analyzer counts it ------------------------------------------
   // Every part of a selector counts 1: type, class, id, attribute, pseudo-class, pseudo-element,
-  // combinator, * and &. A vendor prefix and an attribute value count 1 more. :is(), :where(),
-  // :not(), :has(), :matches() and :-webkit-any() add the complexity of the selectors they hold,
-  // and :nth-child() that of its "of S" part, or 1 for its An+B. Those add every selector found in
-  // their argument, at any depth, so :is(:is(.a)) is 4. Another pseudo with an argument adds 1 for
-  // the list and the selectors in it, but :lang() and :nth-of-type() only 1.
+  // combinator, * and &. A vendor prefix and an attribute value count 1 more. A pseudo with an
+  // argument adds:
+  // - :is(), :where(), :not(), :has(), :matches() and :-webkit-any(), and the "of S" part of
+  //   :nth-child(), the complexity of each selector they hold, once: :is(:is(.a)) is 3
+  // - :host(), :host-context(), ::slotted(), ::cue() and :current(), 1 and the selectors they hold
+  // - the An+B of :nth-child() and the other :nth-*(), 1
+  // - any other, such as :dir(), :lang() or ::part(), 1 for each word and each comma of its argument
 
   const SELECTOR_FUNCTIONS = new Set(["is", "where", "not", "has", "matches", "-webkit-any", "-moz-any"]);
+  const SELECTOR_ARGUMENT = new Set(["host", "host-context", "slotted", "cue", "current", "past", "future"]);
+  const NTH = new Set(["nth-child", "nth-last-child", "nth-of-type", "nth-last-of-type"]);
   const total = (values) => values.reduce((a, b) => a + b, 0);
-  // The complexities of the selectors of a list, and of every selector nested in them
-  const selectorsIn = (text) => splitTopLevel(text, ",").flatMap((selector) => {
-    const { complexity, nested } = analyzeSelector(selector);
-    return [complexity, ...nested];
-  });
-  const complexityOf = (selectorText) => analyzeSelector(selectorText).complexity;
+  // The complexity of a list of selectors: the sum of the complexity of each one
+  const listComplexity = (text) => total(splitTopLevel(text, ",").map(complexityOf));
+  // The words, strings and commas of an argument that is not a selector, such as "en, fr"
+  const words = (text) => (text.match(/"[^"]*"|'[^']*'|,|[^\s,]+/g) ?? []).length;
 
-  // The complexity of a selector, and the complexities of the selectors nested in its pseudo-classes
-  function analyzeSelector(selectorText) {
+  // The complexity of a selector
+  function complexityOf(selectorText) {
     const s = selectorText.trim();
     let complexity = 0;
-    const nested = [];
     let i = 0;
     let afterCombinator = false;
     const readIdent = () => {
@@ -175,18 +176,10 @@
         if (s[i] === "(") {
           const arg = readGroup("(", ")").trim();
           const of = name === "nth-child" || name === "nth-last-child" ? arg.match(/\sof\s([\s\S]+)$/i) : null;
-          if (SELECTOR_FUNCTIONS.has(name) || of) {
-            const found = selectorsIn(of ? of[1] : arg);
-            complexity += total(found);
-            nested.push(...found);
-          } else if (name === "nth-child" || name === "nth-last-child" || name === "nth-of-type" || name === "nth-last-of-type" || name === "lang") {
-            complexity += arg ? 1 : 0;
-          } else {
-            const found = selectorsIn(arg);
-            const own = splitTopLevel(arg, ",").map(complexityOf);
-            complexity += 1 + total(own);
-            nested.push(...found);
-          }
+          if (SELECTOR_FUNCTIONS.has(name) || of) complexity += listComplexity(of ? of[1] : arg);
+          else if (NTH.has(name)) complexity += arg ? 1 : 0;
+          else if (SELECTOR_ARGUMENT.has(name)) complexity += 1 + listComplexity(arg);
+          else complexity += words(arg);
         }
       } else if (/[\w-\\]/.test(c) || s.charCodeAt(i) > 127) {
         readIdent();
@@ -195,7 +188,7 @@
         i++;
       }
     }
-    return { complexity, nested };
+    return complexity;
   }
 
   // The most frequent value, or the mean of the most frequent ones when they tie, as css-analyzer
