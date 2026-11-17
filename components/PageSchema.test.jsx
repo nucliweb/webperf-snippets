@@ -4,6 +4,8 @@ import { buildPageSchemas, PageSchema } from "./PageSchema";
 
 const BASE = "https://webperf-snippets.net";
 const types = (schemas) => schemas.map((s) => s["@type"]);
+// The categories that have a page of their own, by folder, with the title of the sidebar
+const CATEGORIES = { Loading: "Loading", CoreWebVitals: "Core Web Vitals" };
 
 const TTFB = {
   title: "Time to first byte (TTFB)",
@@ -21,9 +23,18 @@ describe("buildPageSchemas", () => {
     expect(buildPageSchemas("/CLI", TTFB)).toEqual([]);
   });
 
-  // The categories have no page of their own, so the breadcrumb does not link to them
-  it("adds nothing to a category path, which has no page", () => {
+  // A category without a page of its own is left out of the breadcrumb, which would link to a 404
+  it("adds nothing to a category path without a page", () => {
     expect(buildPageSchemas("/Loading", { title: "Loading", description: "", snippets: [] })).toEqual([]);
+  });
+
+  it("describes the page of a category with a breadcrumb from the home", () => {
+    const schemas = buildPageSchemas("/Loading", { title: "Loading", description: "Snippets that measure how a page loads.", snippets: [] }, CATEGORIES);
+    expect(types(schemas)).toEqual(["BreadcrumbList"]);
+    expect(schemas[0].itemListElement.map((i) => [i.position, i.name, i.item])).toEqual([
+      [1, "Home", BASE],
+      [2, "Loading", `${BASE}/Loading`],
+    ]);
   });
 
   it("describes a snippet page with a breadcrumb, an article and the source code of each snippet", () => {
@@ -32,6 +43,15 @@ describe("buildPageSchemas", () => {
     expect(schemas[0].itemListElement.map((i) => [i.position, i.name, i.item])).toEqual([
       [1, "Home", BASE],
       [2, "Time to first byte (TTFB)", `${BASE}/Loading/TTFB`],
+    ]);
+  });
+
+  it("puts the category between the home and the page when the category has a page", () => {
+    const [breadcrumb] = buildPageSchemas("/Loading/TTFB", TTFB, CATEGORIES);
+    expect(breadcrumb.itemListElement.map((i) => [i.position, i.name, i.item])).toEqual([
+      [1, "Home", BASE],
+      [2, "Loading", `${BASE}/Loading`],
+      [3, "Time to first byte (TTFB)", `${BASE}/Loading/TTFB`],
     ]);
   });
 

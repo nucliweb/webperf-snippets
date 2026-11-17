@@ -3,6 +3,7 @@ description: "Tested JavaScript snippets that measure and debug web performance.
 ---
 
 import { LazyVideoPlayer } from "../components/LazyVideoPlayer";
+import { CategoryTable } from "../components/CategoryTable";
 
 # WebPerf Snippets
 
@@ -136,13 +137,9 @@ A DevTools panel runs the snippets on the inspected page without pasting them, s
 
 ## What you can measure
 
-| Category                                                         | What it includes                                                                                                                                                                                                                                                  |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[Core Web Vitals](/CoreWebVitals/LCP)**                        | CLS, INP, LCP, LCP Image Entropy, LCP Sub-Parts, LCP Trail, LCP Video Candidate                                                                                                                                                                                   |
-| **[Loading](/Loading/TTFB)**                                     | TTFB, JS Execution Time Breakdown, FCP, Back/Forward Cache, CSS Media Queries Analysis, Critical CSS Detection, SSR Hydration Data Analysis, Validate Preload on Async/Defer Scripts, Prefetch Resource Validation, Priority Hints Audit, Service Worker Analysis |
-| **[Interaction](/Interaction/Long-Animation-Frames)**            | Interactions, Input Latency Breakdown, Layout Shift, Long Animation Frames, Long Task, Scroll Performance                                                                                                                                                         |
-| **[Resources](/Resources/Network-Bandwidth-Connection-Quality)** | Network Bandwidth & Connection Quality                                                                                                                                                                                                                            |
-| **[Media](/Media/Image-Element-Audit)**                          | Image Element Audit, Video Element Audit                                                                                                                                                                                                                          |
+Each category has a page with its snippets and what each one does.
+
+<CategoryTable />
 
 ## Resources
 

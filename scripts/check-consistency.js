@@ -158,6 +158,9 @@ function verifyMetaAlignment(errors) {
 
     for (const key of pageKeys) {
       if (key === '_meta') continue
+      // The page of the category itself, marked asIndexPage: Nextra makes the folder link to it, and it
+      // is not an entry of the sidebar
+      if (key === 'index' && /^---\n[\s\S]*?^asIndexPage:\s*true\s*$[\s\S]*?^---/m.test(fs.readFileSync(path.join(PAGES_DIR, category, 'index.mdx'), 'utf8'))) continue
       if (!metaKeys.has(key)) {
         errors.push(`${path.relative(ROOT, metaPath)} is missing entry for ${key}.mdx`)
       }
