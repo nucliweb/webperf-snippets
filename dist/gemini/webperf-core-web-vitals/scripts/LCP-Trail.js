@@ -106,10 +106,30 @@
       return url;
     }
   }
+  function hiddenBefore(time) {
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
+      const hidden = performance.getEntriesByType("visibility-state").find(entry => entry.name === "hidden");
+      return hidden !== void 0 && hidden.startTime <= time;
+    }
+    return document.visibilityState === "hidden" && !document.prerendering;
+  }
+  function hiddenResult(name, metric) {
+    return {
+      script: name,
+      status: "error",
+      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`
+    };
+  }
+  let hiddenWarned = false;
+  function warnHidden(script, metric) {
+    if (!hiddenWarned) void 0;
+    hiddenWarned = true;
+  }
   const candidates = [];
   const logTrail = () => {
     const current = candidates[candidates.length - 1];
     if (!current) return;
+    if (hiddenBefore(current.entry.startTime)) return warnHidden("LCP-Trail", "LCP");
     const rating = valueToRating(current.time);
     const {icon: icon, color: ratingColor} = RATING[rating];
     if (current.element) void 0; else void 0;
@@ -167,6 +187,7 @@
     status: "error",
     error: "No LCP entries yet"
   };
+  if (hiddenBefore(trailEntries.at(-1).startTime)) return hiddenResult("LCP-Trail", "LCP");
   const trailActivationStart = getActivationStart();
   const byKey = new Map;
   for (const entry of trailEntries) {

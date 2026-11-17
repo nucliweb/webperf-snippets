@@ -2,6 +2,25 @@
   function isOwnRequest(entry) {
     return entry.name.endsWith("#webperf-snippets");
   }
+  function hiddenBefore(time) {
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
+      const hidden = performance.getEntriesByType("visibility-state").find(entry => entry.name === "hidden");
+      return hidden !== void 0 && hidden.startTime <= time;
+    }
+    return document.visibilityState === "hidden" && !document.prerendering;
+  }
+  function hiddenResult(name, metric) {
+    return {
+      script: name,
+      status: "error",
+      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`
+    };
+  }
+  let hiddenWarned = false;
+  function warnHidden(script, metric) {
+    if (!hiddenWarned) void 0;
+    hiddenWarned = true;
+  }
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
     return {
       script: "LCP-Subparts",
@@ -101,6 +120,7 @@
   const observer = new PerformanceObserver(list => {
     const lcpEntry = list.getEntries().at(-1);
     if (!lcpEntry) return;
+    if (hiddenBefore(lcpEntry.startTime)) return warnHidden("LCP-Subparts", "LCP");
     const navEntry = getNavigationEntry();
     if (!navEntry) return;
     const {resEntry: lcpResEntry, activationStart: activationStart, ttfb: ttfb, requestStart: lcpRequestStart, responseEnd: lcpResponseEnd, renderTime: lcpRenderTime} = lcpSubpartTimes(lcpEntry, navEntry);
@@ -189,6 +209,7 @@
     status: "error",
     error: "No LCP entries buffered"
   };
+  if (hiddenBefore(lcpEntry.startTime)) return hiddenResult("LCP-Subparts", "LCP");
   const navEntrySync = getNavigationEntry();
   if (!navEntrySync) return {
     script: "LCP-Subparts",

@@ -51,6 +51,10 @@ The browser reports a new LCP candidate each time a larger element renders, also
 | Slow resource load | Preload LCP image, optimize size |
 | Client-side rendering | Use SSR or prerender |
 
+### A page that loaded in a background tab
+
+A page that loads in a background tab paints while nobody sees it, so its LCP is not what a user waited for, and web-vitals does not report it. The snippet returns an error with that reason instead of a time: reload the page with its tab in front and run it again.
+
 ### Browser support
 
 ### Further reading

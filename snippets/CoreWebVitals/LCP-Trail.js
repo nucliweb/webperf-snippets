@@ -95,11 +95,42 @@
   }
   // @end-shared urlLabel
 
+  // @shared hiddenBefore
+  // Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
+  // switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
+  // it. The visibility-state entries say when; without them, only whether the page is hidden now.
+  function hiddenBefore(time) {
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
+      const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
+      return hidden !== undefined && hidden.startTime <= time;
+    }
+    return document.visibilityState === "hidden" && !document.prerendering;
+  }
+
+  // The result of a snippet whose metric the page painted while it was hidden
+  function hiddenResult(name, metric) {
+    return {
+      script: name,
+      status: "error",
+      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
+    };
+  }
+
+  // The warning of the console, once however many times the page paints while it is hidden
+  let hiddenWarned = false;
+  function warnHidden(script, metric) {
+    if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+    hiddenWarned = true;
+  }
+  // @end-shared hiddenBefore
+
+
   const candidates = [];
 
   const logTrail = () => {
     const current = candidates[candidates.length - 1];
     if (!current) return;
+    if (hiddenBefore(current.entry.startTime)) return warnHidden("LCP-Trail", "LCP");
 
     const rating = valueToRating(current.time);
     const { icon, color: ratingColor } = RATING[rating];
@@ -196,6 +227,8 @@
   if (trailEntries.length === 0) {
     return { script: "LCP-Trail", status: "error", error: "No LCP entries yet" };
   }
+  // The last candidate is the LCP: when the page was hidden before it, the trail is of paints nobody saw
+  if (hiddenBefore(trailEntries.at(-1).startTime)) return hiddenResult("LCP-Trail", "LCP");
   const trailActivationStart = getActivationStart();
   const byKey = new Map();
   for (const entry of trailEntries) {
