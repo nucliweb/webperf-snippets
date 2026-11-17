@@ -19,7 +19,8 @@ permissions:
 # of a run, so they are split in shards: a shard has a whole runner, as the suite had when it ran
 # alone, and the tests that read timings keep their margin.
 jobs:
-  # A pull request that only changes documentation skips the jobs that build and launch Chromium
+  # A pull request that only changes documentation skips the jobs that build and launch Chromium, and
+  # one that only changes the site skips the e2e tests (scripts/ci-skip-slow-steps.js)
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -27,7 +28,8 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      skip: ${{ steps.slow.outputs.skip }}
+      skip_build: ${{ steps.slow.outputs.skip_build }}
+      skip_e2e: ${{ steps.slow.outputs.skip_e2e }}
 
     steps:
       - name: Checkout repository
@@ -122,7 +124,7 @@ jobs:
 
   build:
     needs: changes
-    if: needs.changes.outputs.skip != 'true'
+    if: needs.changes.outputs.skip_build != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -151,7 +153,7 @@ jobs:
   e2e-cli:
     name: E2E of the CLI (${{ matrix.shard }}/4)
     needs: changes
-    if: needs.changes.outputs.skip != 'true'
+    if: needs.changes.outputs.skip_e2e != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -177,7 +179,7 @@ jobs:
   e2e-extension:
     name: E2E of the extension
     needs: changes
-    if: needs.changes.outputs.skip != 'true'
+    if: needs.changes.outputs.skip_e2e != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
