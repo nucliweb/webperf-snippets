@@ -33,6 +33,11 @@ describe("failingIssues", () => {
     expect(failingIssues(results, "never")).toEqual([]);
   });
 
+  it("never counts a page hidden before it painted: the snippet did not fail, and the page has no defect", () => {
+    const hidden = [{ id: "LCP", script: "LCP", status: "error", hiddenBeforePaint: true, error: "The page was hidden before its LCP was painted" }];
+    for (const failOn of FAIL_ON) expect(failingIssues(hidden, failOn)).toEqual([]);
+  });
+
   it("never counts an info", () => {
     const infos = [{ id: "content-visibility", status: "ok", issues: [{ severity: "info", message: "An info" }] }];
     for (const failOn of FAIL_ON) expect(failingIssues(infos, failOn)).toEqual([]);

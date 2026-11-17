@@ -53,6 +53,17 @@ test('overviewOf counts apart the snippets that measured nothing', () => {
   assert.deepEqual(overviewOf(summaries), { snippets: 5, withErrors: 1, withWarnings: 0, withNothingToFix: 1, notMeasured: 3 })
 })
 
+// A page hidden before it painted, as one opened in a background tab, has no LCP or FCP a user saw: the
+// snippet says why, and the page has no defect, so it is not an error of the page or of the snippet
+test('a result of a page hidden before it painted counts as not measured, with its reason, and lists no issue', () => {
+  const hidden = { script: 'LCP', status: 'error', hiddenBeforePaint: true, error: 'The page was hidden before its LCP was painted' }
+  const summary = summarizeIssues(hidden)
+  assert.equal(summary.errors, 0)
+  assert.equal(summary.top, 'The page was hidden before its LCP was painted')
+  assert.deepEqual(overviewOf([summary, summarizeIssues(renderBlocking)]), { snippets: 2, withErrors: 1, withWarnings: 0, withNothingToFix: 0, notMeasured: 1 })
+  assert.deepEqual(issuesOf([{ id: 'lcp', ...hidden }]), [])
+})
+
 test('describeOverview says the overview in one line', () => {
   assert.equal(describeOverview({ snippets: 22, withErrors: 2, withWarnings: 5, withNothingToFix: 15 }), '22 snippets: 2 with errors, 5 with warnings, 15 with nothing to fix')
   // One snippet, as with --snippet in the CLI

@@ -356,6 +356,7 @@ test('announceResult says in one line what a result found', () => {
   assert.equal(announceResult({ script: 'X', status: 'ok', issues: [{ severity: 'info', message: 'i' }] }), 'Result ready. Nothing to fix.')
   assert.equal(announceResult({ script: 'X', status: 'error', error: 'No navigation entry' }), 'The snippet failed: No navigation entry')
   assert.equal(announceResult({ script: 'INP', status: 'tracking', getDataFn: 'getINP' }), 'Recording. Use the page, then read the result.')
+  assert.equal(announceResult({ script: 'LCP', status: 'error', hiddenBeforePaint: true, error: 'The page was hidden before its LCP was painted' }), 'Not measured: The page was hidden before its LCP was painted')
 })
 
 test('announceAudit says in one line where the audit is', () => {

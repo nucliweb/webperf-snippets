@@ -41,6 +41,7 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 export function announceResult(result) {
   const summary = summarize(result)
   if (summary.status === 'error') return `The snippet failed: ${summary.top}`
+  if (summary.status === 'hidden') return `Not measured: ${summary.top}`
   if (result.status === 'tracking') return 'Recording. Use the page, then read the result.'
   const found = [summary.errors && plural(summary.errors, 'error'), summary.warnings && plural(summary.warnings, 'warning')].filter(Boolean)
   const head = summary.metric ? `Result ready: ${summary.metric.replace(' · ', ', ')}.` : 'Result ready.'
