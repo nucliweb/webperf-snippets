@@ -263,3 +263,32 @@ function detectFormat(url) {
   return "unknown";
 }
 // @end-shared detectFormat
+
+// @shared hiddenBefore
+// Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
+// switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
+// it. The visibility-state entries say when; without them, only whether the page is hidden now.
+function hiddenBefore(time) {
+  if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
+    const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
+    return hidden !== undefined && hidden.startTime <= time;
+  }
+  return document.visibilityState === "hidden" && !document.prerendering;
+}
+
+// The result of a snippet whose metric the page painted while it was hidden
+function hiddenResult(name, metric) {
+  return {
+    script: name,
+    status: "error",
+    error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
+  };
+}
+
+// The warning of the console, once however many times the page paints while it is hidden
+let hiddenWarned = false;
+function warnHidden(script, metric) {
+  if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+  hiddenWarned = true;
+}
+// @end-shared hiddenBefore

@@ -22,6 +22,25 @@
       resolve(entries);
     }
   });
+  function hiddenBefore(time) {
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
+      const hidden = performance.getEntriesByType("visibility-state").find(entry => entry.name === "hidden");
+      return hidden !== void 0 && hidden.startTime <= time;
+    }
+    return document.visibilityState === "hidden" && !document.prerendering;
+  }
+  function hiddenResult(name, metric) {
+    return {
+      script: name,
+      status: "error",
+      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`
+    };
+  }
+  let hiddenWarned = false;
+  function warnHidden(script, metric) {
+    if (!hiddenWarned) void 0;
+    hiddenWarned = true;
+  }
   const lcpEntries = await collectBuffered("largest-contentful-paint");
   if (lcpEntries.length === 0) {
     return {
@@ -31,6 +50,10 @@
     };
   }
   const lcp = lcpEntries[lcpEntries.length - 1];
+  if (hiddenBefore(lcp.startTime)) {
+    warnHidden("LCP-Video-Candidate", "LCP");
+    return hiddenResult("LCP-Video-Candidate", "LCP");
+  }
   const element = lcp.element;
   function valueToRating(ms) {
     return ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";

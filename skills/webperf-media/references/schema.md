@@ -148,6 +148,8 @@ When only part of the result depends on an API, the script still runs: it sets a
 
 The repository enforces this with an ESLint rule (`no-restricted-syntax` in `eslint.config.mjs`) that rejects `getEntriesByType()` for the observer-only types.
 
+A paint the page made while it was hidden is not a time a user waited for. LCP, LCP-Subparts, LCP-Trail, LCP-Video-Candidate and FCP compare their entry with the first `visibility-state` entry `hidden`, as web-vitals does (the shared `hiddenBefore`), and when the page was hidden first, as when it loads in a background tab, they return `status: "error"` with the reason and no `value`. LCP-Image-Entropy keeps checking the LCP image, which does not depend on time.
+
 **Scripts using this pattern:** LCP, CLS, LCP-Subparts, LCP-Trail, LCP-Image-Entropy, LongTask, Layout-Shift-Loading-and-Interaction.
 
 ### Pattern 3: Tracking observers

@@ -6,6 +6,36 @@
     console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
     return { script: "LCP", status: "unsupported", error: "largest-contentful-paint entries not supported in this browser" };
   }
+  // @shared hiddenBefore
+  // Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
+  // switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
+  // it. The visibility-state entries say when; without them, only whether the page is hidden now.
+  function hiddenBefore(time) {
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
+      const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
+      return hidden !== undefined && hidden.startTime <= time;
+    }
+    return document.visibilityState === "hidden" && !document.prerendering;
+  }
+
+  // The result of a snippet whose metric the page painted while it was hidden
+  function hiddenResult(name, metric) {
+    return {
+      script: name,
+      status: "error",
+      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
+    };
+  }
+
+  // The warning of the console, once however many times the page paints while it is hidden
+  let hiddenWarned = false;
+  function warnHidden(script, metric) {
+    if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+    hiddenWarned = true;
+  }
+  // @end-shared hiddenBefore
+
+
   const valueToRating = (ms) =>
     ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";
 
@@ -57,6 +87,7 @@
   let lastPrintedTime = -1;
 
   const printLCP = (entry) => {
+    if (hiddenBefore(entry.startTime)) return warnHidden("LCP", "LCP");
     const activationStart = getActivationStart();
     const lcpTime = Math.max(0, entry.startTime - activationStart);
     if (lcpTime === lastPrintedTime) return;
@@ -127,6 +158,7 @@
   if (!lastLcpEntry) {
     return { script: "LCP", status: "error", error: "No LCP entries buffered" };
   }
+  if (hiddenBefore(lastLcpEntry.startTime)) return hiddenResult("LCP", "LCP");
 
   const lcpActivationStart = getActivationStart();
   const lcpValue = Math.round(Math.max(0, lastLcpEntry.startTime - lcpActivationStart));
