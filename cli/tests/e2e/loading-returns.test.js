@@ -535,6 +535,10 @@ describe("Content-Visibility", () => {
     });
     expect(opportunities.items.map((o) => o.selector)).toEqual(["#plain"]);
     expect(opportunities.items[0].childElements).toBe(36);
+    // Numbers of px, as a script reads them: the view of the result gives them their unit
+    expect(opportunities.items[0].height).toBe(600);
+    expect(opportunities.items[0].distanceFromViewport).toBe(opportunities.items[0].distanceFromViewport | 0);
+    expect(opportunities.items[0].distanceFromViewport).toBeGreaterThan(0);
   }, 60000);
 });
 

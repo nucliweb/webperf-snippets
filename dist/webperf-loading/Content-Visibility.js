@@ -107,8 +107,8 @@
         skipContent: false
       };
       opportunities.push({
-        height: Math.round(rect.height) + "px",
-        distanceFromViewport: Math.round(distanceFromViewport) + "px",
+        height: Math.round(rect.height),
+        distanceFromViewport: Math.round(distanceFromViewport),
         childElements: childCount,
         estimatedSavings: estimateRenderSavings(childCount),
         element: el
@@ -132,8 +132,8 @@
     } else {
       opportunities.slice(0, 20).map(opportunity => ({
         selector: opportunity.selector,
-        height: opportunity.height,
-        distanceFromViewport: opportunity.distanceFromViewport,
+        height: `${opportunity.height}px`,
+        distanceFromViewport: `${opportunity.distanceFromViewport}px`,
         childElements: opportunity.childElements,
         estimatedSavings: opportunity.estimatedSavings
       }));
