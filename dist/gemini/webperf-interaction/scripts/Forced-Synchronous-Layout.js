@@ -4,11 +4,36 @@
   let rafPending = false;
   const fslEvents = [];
   const restorations = [];
-  const getElementDesc = el => {
-    let desc = el.tagName.toLowerCase();
-    if (el.id) desc += `#${el.id}`;
-    if (el.className && typeof el.className === "string" && el.className.trim()) desc += `.${el.className.trim().split(/\s+/).join(".")}`;
-    return desc;
+  function uniqueSelector(el) {
+    const root = el.getRootNode();
+    const matchesOne = selector => {
+      try {
+        return root.querySelectorAll(selector).length === 1;
+      } catch {
+        return false;
+      }
+    };
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1) {
+      if (node.id && matchesOne(`#${window.CSS.escape(node.id)}`)) {
+        parts.unshift(`#${window.CSS.escape(node.id)}`);
+        break;
+      }
+      const tag = node.localName;
+      let part = tag + Array.from(node.classList).slice(0, 2).map(c => `.${window.CSS.escape(c)}`).join("");
+      const siblings = node.parentNode ? Array.from(node.parentNode.children) : [ node ];
+      if (siblings.filter(s => s.matches(part)).length > 1) part += `:nth-of-type(${siblings.filter(s => s.localName === tag).indexOf(node) + 1})`;
+      parts.unshift(part);
+      if (matchesOne(parts.join(" > "))) break;
+      node = node.parentElement;
+    }
+    return parts.join(" > ");
+  }
+  const selectors = new WeakMap;
+  const selectorOf = el => {
+    if (!selectors.has(el)) selectors.set(el, uniqueSelector(el));
+    return selectors.get(el);
   };
   const markDirty = () => {
     isDirty = true;
@@ -56,7 +81,7 @@
   const warnFSL = (propName, accessType, el) => {
     if (!isDirty) return;
     const elapsed = (performance.now() - lastMutationTime).toFixed(2);
-    const elDesc = el instanceof Element ? getElementDesc(el) : "unknown";
+    const elDesc = el instanceof Element ? selectorOf(el) : "unknown";
     const stack = (new Error).stack;
     fslEvents.push({
       property: propName,

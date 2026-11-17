@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pathsOfRun, reportOf } from "../../src/overview.js";
+import { pageReport, pathsOfRun, reportOf, overviewLine } from "../../src/overview.js";
 import { auditWorkflow } from "../../src/workflows/audit.js";
 import { cwvWorkflow } from "../../src/workflows/cwv.js";
 import { RULES } from "../../src/decision-tree.js";
@@ -34,7 +34,7 @@ describe("reportOf", () => {
   const pathOf = pathsOfRun({ workflow: auditWorkflow, rules: RULES });
 
   it("counts the results with errors, with warnings and with nothing to fix", () => {
-    expect(reportOf(results, pathOf).overview).toEqual({ snippets: 4, withErrors: 2, withWarnings: 1, withNothingToFix: 1 });
+    expect(reportOf(results, pathOf).overview).toEqual({ snippets: 4, withErrors: 2, withWarnings: 1, withNothingToFix: 1, notMeasured: 0 });
   });
 
   it("lists every issue by severity, with its code, the id and path of its step, and its target", () => {
@@ -48,8 +48,43 @@ describe("reportOf", () => {
 
   it("gives an empty list and an overview with nothing to fix for results without issues", () => {
     expect(reportOf([{ id: "LCP", script: "LCP", status: "ok", value: 900, rating: "good" }], pathOf)).toEqual({
-      overview: { snippets: 1, withErrors: 0, withWarnings: 0, withNothingToFix: 1 },
+      overview: { snippets: 1, withErrors: 0, withWarnings: 0, withNothingToFix: 1, notMeasured: 0 },
       issues: [],
     });
+  });
+
+  // A browser without the API of a snippet measured nothing: it is not a snippet with nothing to fix
+  it("counts a result that measured nothing apart, and says it in the overview line", () => {
+    const results = [
+      { id: "LCP", script: "LCP", status: "unsupported", error: "largest-contentful-paint entries not supported" },
+      { id: "render-blocking", script: "Find-render-blocking-resources", status: "ok", issues: [] },
+    ];
+    const { overview } = reportOf(results, pathOf);
+    expect(overview).toEqual({ snippets: 2, withErrors: 0, withWarnings: 0, withNothingToFix: 1, notMeasured: 1 });
+    expect(overviewLine({ overview, results })).toBe("2 snippets: 0 with errors, 0 with warnings, 1 with nothing to fix, 1 not measured");
+  });
+});
+
+// A measured page as the JSON gives it, alone or as a combination of a matrix
+describe("pageReport", () => {
+  const measured = { url: "http://localhost:3000/", navMs: 850, results: [{ id: "LCP", script: "LCP", status: "ok" }], pageErrors: [], throttling: { cpu: 4 }, browser: { build: "chromium" } };
+  const pathOf = () => "CoreWebVitals/LCP";
+  const about = { date: "2026-11-16T00:00:00.000Z", pathOf, conditions: { viewport: "mobile" } };
+
+  it("puts what the results found before them, and how the page was measured after them", () => {
+    const report = pageReport(measured, about);
+    expect(Object.keys(report)).toEqual(["url", "date", "navMs", "overview", "issues", "results", "pageErrors", "throttling", "conditions"]);
+    expect(report).toEqual(expect.objectContaining({ url: measured.url, date: about.date, navMs: 850, results: measured.results, conditions: { viewport: "mobile" } }));
+  });
+
+  it("leaves the browser to the conditions, and keeps the runs of a median before them", () => {
+    const report = pageReport({ ...measured, runs: { count: 3 } }, about);
+    expect(report).not.toHaveProperty("browser");
+    expect(Object.keys(report).slice(-3)).toEqual(["throttling", "runs", "conditions"]);
+  });
+
+  it("starts a combination of a matrix with its identity", () => {
+    const report = pageReport(measured, { ...about, identity: { id: "home-mobile", name: "home", device: "mobile", url: measured.url } });
+    expect(Object.keys(report).slice(0, 6)).toEqual(["id", "name", "device", "url", "date", "navMs"]);
   });
 });

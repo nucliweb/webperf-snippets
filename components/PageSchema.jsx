@@ -8,28 +8,15 @@ const AUTHOR = { "@type": "Person", name: site.author.name, url: site.author.url
 
 const SNIPPET_CATEGORIES = new Set(["CoreWebVitals", "Loading", "Interaction", "Media", "Resources"]);
 
-// Home and the page. The categories have no page of their own (/Loading is a 404), so the breadcrumb
-// leaves them out instead of linking to a URL that does not exist.
-function buildBreadcrumbs(segments, title) {
-  const items = [
-    {
-      "@type": "ListItem",
-      position: 1,
-      name: "Home",
-      item: BASE_URL,
-    },
-  ];
-
-  if (segments[1]) {
-    items.push({
-      "@type": "ListItem",
-      position: items.length + 1,
-      name: title,
-      item: `${BASE_URL}/${segments[0]}/${segments[1]}`,
-    });
-  }
-
-  return items;
+// Home, the category when it has a page of its own, and the page. A category without one is left out,
+// instead of linking to a URL that is a 404. `categories` maps the folder of each category with a page
+// to its title.
+function buildBreadcrumbs(segments, title, categories) {
+  const items = [{ name: "Home", item: BASE_URL }];
+  const categoryTitle = categories[segments[0]];
+  if (categoryTitle) items.push({ name: categoryTitle, item: `${BASE_URL}/${segments[0]}` });
+  if (segments[1]) items.push({ name: title, item: `${BASE_URL}/${segments[0]}/${segments[1]}` });
+  return items.map((item, i) => ({ "@type": "ListItem", position: i + 1, ...item }));
 }
 
 // The source of a snippet, for the agents and search engines that cite code
@@ -49,8 +36,9 @@ function sourceCode(path, { description, pageUrl }) {
   };
 }
 
-// page: { title, description, snippets } of lib/page-info.js
-export function buildPageSchemas(pathname, page) {
+// page: { title, description, snippets } of lib/page-info.js; categories: the title of each category
+// with a page, by its folder
+export function buildPageSchemas(pathname, page, categories = {}) {
   const path = pathname.replace(/\/+$/, "");
   const segments = path.replace(/^\//, "").split("/").filter(Boolean);
 
@@ -59,7 +47,7 @@ export function buildPageSchemas(pathname, page) {
   const schemas = [];
   const pageUrl = `${BASE_URL}${path}`;
 
-  const breadcrumbItems = buildBreadcrumbs(segments, page.title);
+  const breadcrumbItems = buildBreadcrumbs(segments, page.title, categories);
   if (breadcrumbItems.length > 1) {
     schemas.push({
       "@context": "https://schema.org",
@@ -90,10 +78,10 @@ export function buildPageSchemas(pathname, page) {
   return schemas;
 }
 
-export function PageSchema({ pathname, page }) {
+export function PageSchema({ pathname, page, categories }) {
   return (
     <>
-      {buildPageSchemas(pathname, page).map((schema, i) => (
+      {buildPageSchemas(pathname, page, categories).map((schema, i) => (
         <script
           key={i}
           type="application/ld+json"

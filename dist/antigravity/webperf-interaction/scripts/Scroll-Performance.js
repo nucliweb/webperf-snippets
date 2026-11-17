@@ -19,14 +19,17 @@
     }
   };
   const fpsRating = fps => fps >= 55 ? "good" : fps >= 40 ? "needs-improvement" : "poor";
+  const STATE = "__webperfScrollPerformance";
+  window[STATE]?.stop();
   const nonPassiveListeners = [];
   const SCROLL_EVENT_TYPES = new Set([ "scroll", "wheel", "touchstart", "touchmove", "touchend" ]);
   const addedByPlaywright = () => /\bInjectedScript\b/.test((new Error).stack || "");
   const _origAddEventListener = EventTarget.prototype.addEventListener;
-  EventTarget.prototype.addEventListener = function(type, listener, options) {
-    if (SCROLL_EVENT_TYPES.has(type) && !addedByPlaywright()) {
+  let watching = true;
+  const watchedAddEventListener = function(type, listener, options) {
+    if (watching && SCROLL_EVENT_TYPES.has(type)) {
       const isPassive = options === true ? false : typeof options === "object" && options !== null ? options.passive === true : false;
-      if (!isPassive) {
+      if (!isPassive && !addedByPlaywright()) {
         const entry = {
           type: type,
           element: this.tagName || this.constructor?.name || "unknown",
@@ -38,6 +41,7 @@
     }
     return _origAddEventListener.call(this, type, listener, options);
   };
+  EventTarget.prototype.addEventListener = watchedAddEventListener;
   const sessions = [];
   let currentSession = null;
   let rafId = null;
@@ -82,7 +86,7 @@
     currentSession = null;
     lastFrameTime = null;
   };
-  window.addEventListener("scroll", () => {
+  const onScroll = () => {
     if (!currentSession) {
       currentSession = {
         frames: [],
@@ -93,9 +97,22 @@
     }
     clearTimeout(endTimer);
     endTimer = setTimeout(endSession, 200);
-  }, {
+  };
+  window.addEventListener("scroll", onScroll, {
     passive: true
   });
+  window[STATE] = {
+    stop() {
+      watching = false;
+      if (EventTarget.prototype.addEventListener === watchedAddEventListener) EventTarget.prototype.addEventListener = _origAddEventListener;
+      window.removeEventListener("scroll", onScroll, {
+        passive: true
+      });
+      cancelAnimationFrame(rafId);
+      clearTimeout(endTimer);
+      currentSession = null;
+    }
+  };
   const auditScrollCSS = () => {
     const results = {
       smoothScrollElements: [],
@@ -178,7 +195,7 @@
       if (hasJank) {
       }
     }
-    const cssAuditResult = auditScrollCSS();
+    const cssAuditResult = css;
     const findings = buildFindings(cssAuditResult);
     return {
       script: "Scroll-Performance",

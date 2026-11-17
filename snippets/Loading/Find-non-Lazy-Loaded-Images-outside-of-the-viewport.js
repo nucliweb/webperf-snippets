@@ -45,8 +45,10 @@
   // @end-shared uniqueSelector
 
 
-  function isInViewport(element) {
-    const rect = element.getBoundingClientRect();
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
     return (
       rect.top < window.innerHeight &&
       rect.bottom > 0 &&
@@ -56,6 +58,7 @@
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   function isInHiddenContainer(element) {
     let parent = element.parentElement;

@@ -42,7 +42,7 @@ const keptRun = async (runId) => JSON.parse((await client.readResource({ uri: `w
 function expectOverviewOf(answer, count) {
   expect(answer.date).toMatch(ISO);
   expect(answer.overview.snippets).toBe(count);
-  expect(answer.overview.withErrors + answer.overview.withWarnings + answer.overview.withNothingToFix).toBe(count);
+  expect(answer.overview.withErrors + answer.overview.withWarnings + answer.overview.withNothingToFix + answer.overview.notMeasured).toBe(count);
   const order = answer.issues.map((i) => SEVERITY.indexOf(i.severity));
   expect(order).toEqual([...order].sort((a, b) => a - b));
 }
@@ -67,7 +67,7 @@ describe("the overview and the issues of the tools that measure", () => {
     await connect();
     const answer = await call("run_snippet", { url: `${servers.base}/seeded`, snippet: "render-blocking", waitMs: WAIT_MS });
     expectOverviewOf(answer, 1);
-    expect(answer.overview).toEqual({ snippets: 1, withErrors: 1, withWarnings: 0, withNothingToFix: 0 });
+    expect(answer.overview).toEqual({ snippets: 1, withErrors: 1, withWarnings: 0, withNothingToFix: 0, notMeasured: 0 });
     for (const issue of answer.issues) expect(issue).toMatchObject({ id: "Loading/Find-render-blocking-resources", path: "Loading/Find-render-blocking-resources" });
     expect((await keptRun(answer.runId)).issues).toEqual(answer.issues);
   }, 60000);

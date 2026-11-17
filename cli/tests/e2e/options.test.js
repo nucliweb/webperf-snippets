@@ -89,3 +89,55 @@ describe("a wrong use of the options", () => {
     expect(stderr).toMatch(/^Unknown workflow: "everything"\. Choose from: .*\bcore-web-vitals\b.*\baudit\b/);
   }, 30000);
 });
+
+// Playwright is a peer dependency, and loading it takes most of the start of the CLI. What needs no
+// browser does not load it, so it also works where Playwright is not installed
+describe("without Playwright", () => {
+  const NO_PLAYWRIGHT = join(HERE, "../helpers/no-playwright.mjs");
+  const run = (...args) =>
+    new Promise((resolve) => {
+      execFile("node", ["--import", NO_PLAYWRIGHT, BIN, ...args], { env: cliEnv() }, (err, stdout, stderr) => resolve({ code: err ? err.code : 0, stdout, stderr }));
+    });
+
+  it("--version prints the version", async () => {
+    expect(await run("--version")).toEqual({ code: 0, stdout: `${version}\n`, stderr: "" });
+  }, 30000);
+
+  it("--help prints the usage", async () => {
+    const { code, stdout, stderr } = await run("--help");
+    expect(code).toBe(0);
+    expect(stdout).toMatch(/^webperf-snippets <url> \[options\]\n/);
+    expect(stderr).toBe("");
+  }, 30000);
+
+  it("a wrong use of the options is still a usage error", async () => {
+    const { code, stderr } = await run("http://localhost:9", "--wait=abc");
+    expect(code).toBe(2);
+    expect(stderr).toMatch(/^Invalid --wait /);
+  }, 30000);
+
+  it("a measurement says how to install Playwright, in one line and without a stack", async () => {
+    const { code, stdout, stderr } = await run("http://localhost:9");
+    expect(code).toBe(1);
+    expect(stdout).toBe("");
+    expect(stderr).toBe("Playwright is not installed. Install it and its Chromium with: npm install playwright && npx playwright install chromium\n");
+  }, 30000);
+});
+
+describe("--list", () => {
+  it("prints the workflows and the snippets, with exit code 0 and nothing on stderr", async () => {
+    const { code, stdout, stderr } = await cli("--list");
+    expect(code).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout).toContain("Workflows (--workflow <name>)");
+    expect(stdout).toMatch(/Find-render-blocking-resources\s+.+\(render-blocking\)/);
+  }, 30000);
+
+  it("prints them as JSON with --json", async () => {
+    const { code, stdout } = await cli("--list", "--json");
+    expect(code).toBe(0);
+    const { workflows, snippets } = JSON.parse(stdout);
+    expect(workflows.map((w) => w.name)).toContain("audit");
+    expect(snippets.find((s) => s.name === "CoreWebVitals/LCP")).toMatchObject({ category: "CoreWebVitals", aliases: expect.any(Array), tracking: false });
+  }, 30000);
+});

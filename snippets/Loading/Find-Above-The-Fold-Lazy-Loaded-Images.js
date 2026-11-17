@@ -45,8 +45,10 @@
   // @end-shared uniqueSelector
 
 
-  function isInViewport(element) {
-    const rect = element.getBoundingClientRect();
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
     return (
       rect.top < window.innerHeight &&
       rect.bottom > 0 &&
@@ -56,6 +58,7 @@
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   function getDistanceFromViewportEdge(element) {
     const rect = element.getBoundingClientRect();
@@ -90,7 +93,8 @@
     return null;
   }
 
-  function getElementInfo(img) {
+  // What the report says of a lazy image above the fold
+  function lazyImageInfo(img) {
     const rect = img.getBoundingClientRect();
     const area = rect.width * rect.height;
 
@@ -155,7 +159,7 @@
 
     if (!img || !isInViewport(img)) return;
 
-    const info = getElementInfo(img);
+    const info = lazyImageInfo(img);
     info.isLcpCandidate = img === lcpCandidate;
 
     results.lazyImages.push(info);

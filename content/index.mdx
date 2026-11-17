@@ -1,4 +1,9 @@
+---
+description: "Tested JavaScript snippets that measure and debug web performance. An AI agent runs them for you, or you run them in DevTools: the same code every time."
+---
+
 import { LazyVideoPlayer } from "../components/LazyVideoPlayer";
+import { CategoryTable } from "../components/CategoryTable";
 
 # WebPerf Snippets
 
@@ -79,13 +84,16 @@ Every snippet also runs by hand in the DevTools console, with the same code the 
   <img
     width="1200"
     height="749"
-    sizes="85vw"
-    srcSet="https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_600/v1685735993/webperf-snippets/DevTools-Snippets.png 600w,
+    sizes="(min-width: 1440px) 832px, (min-width: 1280px) calc(100vw - 608px), (min-width: 768px) calc(100vw - 352px), calc(100vw - 32px)"
+    srcSet="https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_342/v1685735993/webperf-snippets/DevTools-Snippets.png 342w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_600/v1685735993/webperf-snippets/DevTools-Snippets.png 600w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_700/v1685735993/webperf-snippets/DevTools-Snippets.png 700w,
+            https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_900/v1685735993/webperf-snippets/DevTools-Snippets.png 900w,
             https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_1200/v1685735993/webperf-snippets/DevTools-Snippets.png 1200w"
     src="https://res.cloudinary.com/nucliweb/image/upload/c_scale,f_auto,q_auto,w_342/v1685735993/webperf-snippets/DevTools-Snippets.png"
     loading="lazy"
     decoding="async"
-    alt="Chrome DevTools"
+    alt="The Sources panel of Chrome DevTools with a list of saved snippets, the code of the LCP sub-parts snippet open, and its result in the console below: the LCP value, the LCP element and a table with each sub-part"
   />
 </picture>
 
@@ -129,13 +137,9 @@ A DevTools panel runs the snippets on the inspected page without pasting them, s
 
 ## What you can measure
 
-| Category                                                         | What it includes                                                                                                                                                                                                                                                  |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[Core Web Vitals](/CoreWebVitals/LCP)**                        | CLS, INP, LCP, LCP Image Entropy, LCP Sub-Parts, LCP Trail, LCP Video Candidate                                                                                                                                                                                   |
-| **[Loading](/Loading/TTFB)**                                     | TTFB, JS Execution Time Breakdown, FCP, Back/Forward Cache, CSS Media Queries Analysis, Critical CSS Detection, SSR Hydration Data Analysis, Validate Preload on Async/Defer Scripts, Prefetch Resource Validation, Priority Hints Audit, Service Worker Analysis |
-| **[Interaction](/Interaction/Long-Animation-Frames)**            | Interactions, Input Latency Breakdown, Layout Shift, Long Animation Frames, Long Task, Scroll Performance                                                                                                                                                         |
-| **[Resources](/Resources/Network-Bandwidth-Connection-Quality)** | Network Bandwidth & Connection Quality                                                                                                                                                                                                                            |
-| **[Media](/Media/Image-Element-Audit)**                          | Image Element Audit, Video Element Audit                                                                                                                                                                                                                          |
+Each category has a page with its snippets and what each one does.
+
+<CategoryTable />
 
 ## Resources
 

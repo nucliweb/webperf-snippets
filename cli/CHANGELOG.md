@@ -8,6 +8,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Added
+- The `overview` of `--json` and of the MCP tools carries `notMeasured`: the snippets that measured nothing, because the browser does not support them, they track interactions and recorded none, or the run skipped them. They counted as snippets with nothing to fix. The overview line of the human and markdown reports adds them when there are some. The exit code does not change.
+- On a terminal, the CLI shows what the run is doing while it measures, on one line that it rewrites: the stage (Chromium opens, the page loads, the snippets run) and the time the run has taken, and with `--runs` or `--matrix` which run it is and about how long is left, from the runs that ended. The line goes away before the report. It only shows when stderr is a terminal, so a pipe, a file and the log of a CI job get what they got: nothing for one run, and a line for each run of several.
+- `--list` prints every name `--workflow` and `--snippet` take, without a URL and without opening a browser: the workflows with their title, and the snippets under their category with their title and short names. `--list --json` gives `{ "workflows", "snippets" }`, each snippet as the `list_snippets` tool of the MCP server describes it.
+- An option or a workflow that does not exist names the one it may have meant: `Unknown option --wrkflow. Did you mean --workflow?`. The message of an unknown snippet points to `--list`.
+- `--no-color` gives the report without colors, as the `NO_COLOR` environment variable does.
+
+### Changed
+- The report on a terminal fits its width: the selector of an element, the rows of an audit and the page names of a matrix table are cut with an ellipsis where they wrapped and broke the columns. A pipe and a file get every text whole.
+- Where the report is not written to a terminal, in a pipe, a file or the log of a CI job, the ratings are plain characters and not emoji: `✓` good, `⚠` needs improvement and `✗` poor. `--markdown` and `--json` do not change.
+- The CLI loads Playwright when it opens the browser, not when it starts: `--help`, `--version` and a usage error answer about five times sooner, and work where Playwright is not installed. A measurement without Playwright says how to install it, in one line, where it ended in the stack of a module that was not found. The MCP server starts without loading it too, and its tools give the same message.
+
+### Fixed
+- In the table of a matrix with a median that carries its coefficient of variation, each heading stays over its column: the cells got wider and the headings did not.
+
 ---
 
 ## [1.17.0] — 2026-11-15

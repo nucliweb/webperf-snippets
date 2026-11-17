@@ -1,4 +1,5 @@
 ---
+description: "Finds the elements that use content-visibility, warns when one lacks contain-intrinsic-size, and suggests offscreen sections that could use it."
 browserSupport:
   - css.properties.content-visibility
 ---
@@ -51,7 +52,7 @@ This function scans the entire DOM for elements using `content-visibility` and p
 
 #### `analyzeContentVisibilityOpportunities(options)` results
 
-This function walks the entire DOM to find elements below the viewport that would benefit from `content-visibility: auto`.
+This function walks the DOM once to find elements below the viewport that would benefit from `content-visibility: auto`. It proposes the outermost element that qualifies and nothing inside it, and it does not look inside an element that already has `content-visibility`, whose content is already skipped; reading it would make the browser render it.
 
 ##### Options (all optional)
 

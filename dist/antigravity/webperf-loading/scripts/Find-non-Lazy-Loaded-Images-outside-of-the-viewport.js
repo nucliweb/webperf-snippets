@@ -28,8 +28,8 @@
     }
     return parts.join(" > ");
   }
-  function isInViewport(element) {
-    const rect = element.getBoundingClientRect();
+  function isInViewport(el) {
+    const rect = el.getBoundingClientRect();
     return rect.top < window.innerHeight && rect.bottom > 0 && rect.left < window.innerWidth && rect.right > 0 && rect.width > 0 && rect.height > 0;
   }
   function isInHiddenContainer(element) {

@@ -76,11 +76,11 @@ JSON output (for piping into `jq` or CI):
 npx webperf-snippets https://example.com --json
 ```
 
-Before its `results`, the JSON output says when the page was measured and what the results found, as the JSON the audit of the [DevTools extension](https://webperf-snippets.net/extension) exports, so a script or an agent reads it without going through every result: `date`, when the measurement started, in UTC; `overview`, how many snippets have errors, warnings only or nothing to fix (a snippet that failed counts as an error, and a rating that is not good as a warning when no issue says more); and `issues`, every issue of every result in one list, errors first, then warnings and info, each with its `code`, `severity`, the `id` of its step, the `path` of its snippet, its `message` and, when it has one, its `target`. A follow-up of the decision tree lists its issues too, and they do not change the exit code.
+Before its `results`, the JSON output says when the page was measured and what the results found, as the JSON the audit of the [DevTools extension](https://webperf-snippets.net/extension) exports, so a script or an agent reads it without going through every result: `date`, when the measurement started, in UTC; `overview`, how many snippets have errors, warnings only or nothing to fix, and how many measured nothing, in `notMeasured` (a snippet that failed counts as an error, and a rating that is not good as a warning when no issue says more; one that is `unsupported` in the browser, `tracking` with nothing recorded, or `skipped` measured nothing, and does not count as nothing to fix); and `issues`, every issue of every result in one list, errors first, then warnings and info, each with its `code`, `severity`, the `id` of its step, the `path` of its snippet, its `message` and, when it has one, its `target`. A follow-up of the decision tree lists its issues too, and they do not change the exit code.
 
 ```json
 "date": "2026-11-11T09:00:00.000Z",
-"overview": { "snippets": 22, "withErrors": 5, "withWarnings": 6, "withNothingToFix": 11 },
+"overview": { "snippets": 22, "withErrors": 5, "withWarnings": 6, "withNothingToFix": 11, "notMeasured": 0 },
 "issues": [
   { "code": "render-blocking", "severity": "error", "id": "render-blocking", "path": "Loading/Find-render-blocking-resources", "message": "2 render-blocking resources delay the first paint until 532ms" }
 ]
@@ -190,7 +190,7 @@ Without `--report-to` the CLI makes no external calls. With it, the results are 
   "workflow": "audit",
   "timestamp": "2026-05-06T10:00:00.000Z",
   "navMs": 1240,
-  "overview": { "snippets": 22, "withErrors": 5, "withWarnings": 6, "withNothingToFix": 11 },
+  "overview": { "snippets": 22, "withErrors": 5, "withWarnings": 6, "withNothingToFix": 11, "notMeasured": 0 },
   "issues": [],
   "results": [],
   "meta": { "viewport": "mobile", "waitMs": 3000, "cli_version": "1.17.0" }
@@ -416,11 +416,17 @@ Each budget compares the value measured, or the median with `--runs`, and fails 
 | `--budget-cls <score>`       | Exit `1` if CLS exceeds this value or was not measured.                                    |
 | `--budget-inp <ms>`          | Exit `1` if INP exceeds this value or was not measured.                                    |
 | `--verbose`                  | Show all items, including passing checks.                              |
+| `--no-color`                 | No colors in the report. The `NO_COLOR` environment variable does the same. |
+| `--list`                     | List the workflows and the snippets, and exit. With `--json`, as JSON. |
 | `--headed`                   | Show the browser window (debug).                                       |
 | `-h, --help`                 | Show help.                                                             |
 | `-v, --version`              | Show the version.                                                      |
 
+The report follows where it is written. On a terminal it has colors and emoji, and the selector of an element, the rows of an audit and the page names of a matrix table are cut to its width. Through a pipe, in a file or in the log of a CI job it has no colors, every text is whole, and the ratings are plain characters: `✓` good, `⚠` needs improvement and `✗` poor.
+
 ### Snippet aliases
+
+`npx webperf-snippets --list` prints every workflow and every snippet with its title and its aliases, and `--list --json` gives them as JSON.
 
 | Alias              | Snippet                                        |
 | ------------------ | ---------------------------------------------- |

@@ -16,7 +16,7 @@
       return null;
     }
   };
-  const normalizeUrl = url => {
+  const urlWithoutHash = url => {
     try {
       const parsed = new URL(url, location.origin);
       return parsed.origin + parsed.pathname + parsed.search;
@@ -29,7 +29,7 @@
     const kb = bytes / 1024;
     return kb.toFixed(1) + " KB";
   };
-  const usedResourceUrls = new Set(resources.map(r => normalizeUrl(r.name)));
+  const usedResourceUrls = new Set(resources.map(r => urlWithoutHash(r.name)));
   const usedDomains = new Set(resources.map(r => getDomain(r.name)).filter(Boolean));
   usedDomains.add(location.origin);
   const allImgElements = document.querySelectorAll("img[src]");
@@ -38,10 +38,10 @@
       const href = link.href;
       const as = link.getAttribute("as") || "unknown";
       const media = link.getAttribute("media");
-      const normalizedUrl = normalizeUrl(href);
+      const normalizedUrl = urlWithoutHash(href);
       const shortUrl = href.split("/").pop()?.split("?").shift() || href;
       const wasUsed = usedResourceUrls.has(normalizedUrl);
-      const perfEntry = resources.find(r => normalizeUrl(r.name) === normalizedUrl);
+      const perfEntry = resources.find(r => urlWithoutHash(r.name) === normalizedUrl);
       let mediaMatches = true;
       if (media) try {
         mediaMatches = window.matchMedia(media).matches;
@@ -204,7 +204,7 @@
     const domain = getDomain(l.href);
     return domain && !usedDomains.has(domain) && !lazyLoadedDomainsForSummary.has(domain);
   };
-  const unusedHintItems = [ ...preloadLinks.filter(l => !usedResourceUrls.has(normalizeUrl(l.href)) && !isConditionalPreload(l)).map(l => ({
+  const unusedHintItems = [ ...preloadLinks.filter(l => !usedResourceUrls.has(urlWithoutHash(l.href)) && !isConditionalPreload(l)).map(l => ({
     domain: getDomain(l.href),
     href: l.href,
     requestCount: 0,

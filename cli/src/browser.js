@@ -1,24 +1,37 @@
 import { existsSync } from "node:fs";
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
+
+// Playwright is loaded when a browser is needed, not with this module: it takes most of the start of
+// the CLI, and --help, --version and a usage error need no browser. It is a peer dependency, so it may
+// not be there at all
+const require = createRequire(import.meta.url);
+let playwright;
+const chromium = () => (playwright ??= require("playwright")).chromium;
+export const MISSING_PLAYWRIGHT = "Playwright is not installed. Install it and its Chromium with: npm install playwright && npx playwright install chromium";
+const isMissingPlaywright = (err) => (err?.code === "MODULE_NOT_FOUND" || err?.code === "ERR_MODULE_NOT_FOUND") && /playwright/.test(err.message ?? "");
 
 // Chromium for Playwright is a download of its own: npx installs this package and its peer playwright,
 // not the browser. Without it, Playwright fails with the path of the missing executable, and its advice
 // (npx playwright install) downloads every browser; this message names the only one the CLI uses.
 export const MISSING_BROWSER = "Chromium for Playwright is not installed. Install it once with: npx playwright install chromium";
 
+// What is missing is a step of the setup, Chromium or Playwright itself, and the message says what to run
 export class MissingBrowserError extends Error {
-  constructor() {
-    super(MISSING_BROWSER);
+  constructor(message = MISSING_BROWSER) {
+    super(message);
   }
 }
 
 export const isMissingBrowser = (err) => err instanceof MissingBrowserError || /Executable doesn't exist/.test(err?.message ?? "");
+// What to tell the user: the message of the error when it already says what is missing, Playwright or
+// its Chromium, and the one of Chromium for the error of Playwright itself
+export const missingBrowserMessage = (err) => (err instanceof MissingBrowserError ? err.message : MISSING_BROWSER);
 
 // Whether the full Chromium of this Playwright is on the machine. executablePath() names it in every
 // version since 1.40, whichever of the two binaries a launch would pick.
 function fullChromiumInstalled() {
   try {
-    return existsSync(chromium.executablePath());
+    return existsSync(chromium().executablePath());
   } catch {
     return false;
   }
@@ -50,10 +63,11 @@ export function launchedBrowser(options = {}, browser) {
   };
 }
 
-export async function launchChromium(options, { launch = (o) => chromium.launch(o), hasFullChromium } = {}) {
+export async function launchChromium(options, { launch = (o) => chromium().launch(o), hasFullChromium } = {}) {
   try {
     return await launch(chromiumLaunchOptions(options, { hasFullChromium }));
   } catch (err) {
+    if (isMissingPlaywright(err)) throw new MissingBrowserError(MISSING_PLAYWRIGHT);
     throw isMissingBrowser(err) ? new MissingBrowserError() : err;
   }
 }

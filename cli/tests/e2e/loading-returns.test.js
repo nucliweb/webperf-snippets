@@ -520,6 +520,22 @@ describe("Content-Visibility", () => {
     expect(narrowed).toEqual(expect.objectContaining({ count: 0, items: [] }));
     expect(narrowed.details.minChildren).toBe(10000);
   }, 60000);
+
+  // An element that already has content-visibility skips the rendering of what it holds: what is inside
+  // it is no opportunity. Inside an element that is one, only that element is proposed.
+  it("proposes no element inside one that has content-visibility or is already proposed", async () => {
+    const card = (n) => `<div class="card" style="height:150px">${"<span>x</span>".repeat(n)}</div>`;
+    const html = `<div style="height:1500px"></div>
+      <section id="skipped" style="content-visibility:auto;contain-intrinsic-size:auto 600px">${card(8).repeat(4)}</section>
+      <section id="plain">${card(8).repeat(4)}</section>`;
+    const opportunities = await onPage("/empty", async (page) => {
+      await page.setContent(html);
+      await page.evaluate(source("Loading/Content-Visibility"));
+      return page.evaluate(() => window.analyzeContentVisibilityOpportunities());
+    });
+    expect(opportunities.items.map((o) => o.selector)).toEqual(["#plain"]);
+    expect(opportunities.items[0].childElements).toBe(36);
+  }, 60000);
 });
 
 describe("Critical-CSS-Detection", () => {

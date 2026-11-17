@@ -1,4 +1,5 @@
 ---
+description: "Measures the frame rate and the dropped frames of scrolling, and finds the non-passive listeners and the CSS that make it stutter."
 browserSupport:
   - api.EventTarget.addEventListener.options_parameter.options_passive_parameter
 browserSupportReported:
@@ -36,7 +37,7 @@ Scroll jank is caused by work blocking the compositor thread: non-passive event 
 | 🔴 Poor | < 40 fps | > 25ms | Visible stutter |
 
 <Callout type="default">
-**Note:** The passive listener detection only catches listeners registered **after** the snippet runs. Run it before interacting with the page for complete coverage.
+**Note:** The passive listener detection only catches listeners registered **after** the snippet runs. Run it before interacting with the page for complete coverage. Running it again on the same page replaces the previous run, and restores the native `addEventListener` unless another script wrapped it afterwards.
 </Callout>
 
 ### Snippet

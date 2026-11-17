@@ -19,6 +19,8 @@
   }
   // @end-shared ownRequestUrl
 
+  // @shared isInViewport
+  // Whether el has a size and some of it is inside the viewport
   function isInViewport(el) {
     const rect = el.getBoundingClientRect();
     return (
@@ -30,6 +32,7 @@
       rect.height > 0
     );
   }
+  // @end-shared isInViewport
 
   // Fallback when the browser cannot report the LCP element: the largest image in the viewport
   function estimateLcpCandidate(imgs) {
@@ -80,6 +83,10 @@
     return { candidate: null, nonImageTag: el ? el.tagName : "unknown" };
   }
 
+  // @shared detectFormat
+  // The image format of a URL: from the transformations of a CDN, the query or the extension.
+  // "auto (cdn)" when a CDN picks it, "auto (cdn?)" when the URL has no extension, as a CDN or a
+  // DAM that serves the format the browser accepts.
   function detectFormat(url) {
     if (!url) return "unknown";
     const lower = url.toLowerCase();
@@ -101,12 +108,13 @@
     const extMatch = path.match(/\.(avif|webp|jxl|png|gif|svg|jpg|jpeg)(?:[?#]|$)/);
     if (extMatch) return extMatch[1] === "jpeg" ? "jpg" : extMatch[1];
 
-    // No extension at all — likely a DAM or CDN serving format via Accept header
+    // No extension at all: likely a DAM or CDN serving format via Accept header
     const lastSegment = path.split("/").pop() || "";
     if (!lastSegment.includes(".")) return "auto (cdn?)";
 
     return "unknown";
   }
+  // @end-shared detectFormat
 
   function isModernFormat(format) {
     return ["avif", "webp", "jxl", "auto (cdn)", "auto (cdn?)"].includes(format);
@@ -139,6 +147,8 @@
     return url.split("/").pop()?.split("?")[0]?.slice(0, 40) || url.slice(-40);
   }
 
+  // @shared normalizeUrl
+  // The absolute URL of url, relative to the page, to compare it with the URL of an entry
   function normalizeUrl(url) {
     try {
       return new URL(url, location.origin).href;
@@ -146,6 +156,7 @@
       return url;
     }
   }
+  // @end-shared normalizeUrl
 
   function findPreloadForLcp(img, preloads) {
     const src = normalizeUrl(img.currentSrc || img.src || "");

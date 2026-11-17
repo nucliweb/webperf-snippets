@@ -132,6 +132,8 @@ export default {
 
 Preserve the existing order and group related snippets together.
 
+The entry also lists the page on the page of its category (`/Loading`, `/Media`…), in the same order and with the `description` of its frontmatter, and counts it in the table of categories of the home page. Both are generated at build time from `_meta.js` (`lib/catalog.js`), so there is nothing else to edit.
+
 ### 5. Document the result and what to run next
 
 People, agents and the CLI read the same sources to know what a snippet returns and what comes after it:

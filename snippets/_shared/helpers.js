@@ -190,3 +190,76 @@ function supportsRenderBlockingStatus() {
   return !!window.PerformanceResourceTiming && "renderBlockingStatus" in window.PerformanceResourceTiming.prototype;
 }
 // @end-shared supportsRenderBlockingStatus
+
+// @shared isInViewport
+// Whether el has a size and some of it is inside the viewport
+function isInViewport(el) {
+  const rect = el.getBoundingClientRect();
+  return (
+    rect.top < window.innerHeight &&
+    rect.bottom > 0 &&
+    rect.left < window.innerWidth &&
+    rect.right > 0 &&
+    rect.width > 0 &&
+    rect.height > 0
+  );
+}
+// @end-shared isInViewport
+
+// @shared normalizeUrl
+// The absolute URL of url, relative to the page, to compare it with the URL of an entry
+function normalizeUrl(url) {
+  try {
+    return new URL(url, location.origin).href;
+  } catch {
+    return url;
+  }
+}
+// @end-shared normalizeUrl
+
+// @shared urlLabel
+// A URL short enough for the console: the file name, with the host when it is another one
+function urlLabel(url) {
+  if (url.startsWith("data:")) return `${url.split(",")[0]},…`;
+  try {
+    const u = new URL(url);
+    const file = u.pathname.split("/").pop()?.split("?")[0];
+    return u.hostname !== location.hostname ? `${u.hostname}/…/${file}` : file || url;
+  } catch {
+    return url;
+  }
+}
+// @end-shared urlLabel
+
+// @shared detectFormat
+// The image format of a URL: from the transformations of a CDN, the query or the extension.
+// "auto (cdn)" when a CDN picks it, "auto (cdn?)" when the URL has no extension, as a CDN or a
+// DAM that serves the format the browser accepts.
+function detectFormat(url) {
+  if (!url) return "unknown";
+  const lower = url.toLowerCase();
+  const path = lower.split("?")[0];
+  const query = lower.includes("?") ? lower.split("?")[1] : "";
+
+  // Cloudinary path transforms: /f_auto/, /f_avif,q_auto/, etc.
+  const cloudinaryMatch = path.match(/\/f_(auto|avif|webp|jxl|png|jpg|jpeg|gif|svg)[,/]/);
+  if (cloudinaryMatch) {
+    const fmt = cloudinaryMatch[1];
+    return fmt === "auto" ? "auto (cdn)" : fmt === "jpeg" ? "jpg" : fmt;
+  }
+
+  // Query string params: ?fm=webp (imgix), ?format=avif (generic)
+  const qMatch = query.match(/(?:^|&)(?:fm|format)=(avif|webp|jxl|png|jpg|jpeg|gif|svg)(?:&|$)/);
+  if (qMatch) return qMatch[1] === "jpeg" ? "jpg" : qMatch[1];
+
+  // File extension in path
+  const extMatch = path.match(/\.(avif|webp|jxl|png|gif|svg|jpg|jpeg)(?:[?#]|$)/);
+  if (extMatch) return extMatch[1] === "jpeg" ? "jpg" : extMatch[1];
+
+  // No extension at all: likely a DAM or CDN serving format via Accept header
+  const lastSegment = path.split("/").pop() || "";
+  if (!lastSegment.includes(".")) return "auto (cdn?)";
+
+  return "unknown";
+}
+// @end-shared detectFormat

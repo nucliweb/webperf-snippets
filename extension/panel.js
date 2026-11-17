@@ -6,7 +6,7 @@ import { readTrackingData, reloadPage, runSnippet } from './lib/run.js'
 import { copyText, promptForPage } from './lib/clipboard.js'
 import { auditFixPrompt, fixPrompt, hasIssuesToFix } from './lib/fix-prompt.js'
 import { createSettings } from './lib/settings.js'
-import { addToHistory, bySeverity, changeOf, compare, earlierOf, filterCounts, filterRows, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
+import { addToHistory, announceAudit, announceResult, bySeverity, changeOf, compare, earlierOf, filterCounts, filterRows, fromReport, overview, removeFromHistory, report, reportFileName, summarize } from './lib/audit.js'
 
 // The panel: the list of snippets, and the result of the one that runs on the inspected page
 
@@ -46,8 +46,10 @@ document.documentElement.classList.remove('loading')
 
 // Settings: the theme, which follows DevTools unless the user picks one, and the side of the list
 const settings = document.getElementById('settings')
+// The theme of DevTools when the panel opens; DevTools says when it changes (Chrome 99)
+let devtoolsTheme = chrome.devtools?.panels?.themeName
 function applyTheme(theme) {
-  const dark = theme === 'dark' || (theme === 'devtools' && chrome.devtools?.panels?.themeName === 'dark')
+  const dark = theme === 'dark' || (theme === 'devtools' && devtoolsTheme === 'dark')
   document.documentElement.classList.toggle('dark', dark)
 }
 function applySide(side) {
@@ -55,11 +57,17 @@ function applySide(side) {
 }
 const chosen = { theme: saved.theme, side: saved.side }
 applyTheme(chosen.theme)
+// A panel that follows DevTools changes with it, without closing DevTools and opening it again
+chrome.devtools?.panels?.setThemeChangeHandler?.((theme) => {
+  devtoolsTheme = theme
+  applyTheme(chosen.theme)
+})
 applySide(chosen.side)
 for (const [name, value] of Object.entries(chosen)) settings.querySelector(`input[name="${name}"][value="${value}"]`).checked = true
 settings.addEventListener('change', (event) => {
   const { name, value } = event.target
   remember(name, value)
+  chosen[name] = value
   if (name === 'theme') applyTheme(value)
   if (name === 'side') applySide(value)
 })
@@ -81,6 +89,13 @@ function setSidebar(expanded) {
 toggle.addEventListener('click', () => setSidebar(document.body.classList.contains('sidebar-collapsed')))
 if (saved.sidebar === 'collapsed') setSidebar(false)
 
+// Says a line to a screen reader through the status region with that id, which the view that is open
+// has next to what changes. The same line twice is said once
+function announce(id, line) {
+  const status = document.getElementById(id)
+  if (status && status.textContent !== line) status.textContent = line
+}
+
 // Copies text and says so on the button for a moment
 async function copyFrom(button, text) {
   const label = button.textContent
@@ -90,6 +105,9 @@ async function copyFrom(button, text) {
 }
 
 function showList() {
+  // Drawing the list replaces its buttons. The one with the focus is found again by its snippet, or
+  // the focus falls to the page and the arrows stop moving through the list
+  const focused = list.contains(document.activeElement) ? document.activeElement.dataset.id : null
   const groups = groupByCategory(filterSnippets(snippets, search.value))
   list.innerHTML = groups.length
     ? groups
@@ -101,6 +119,7 @@ function showList() {
         )
         .join('')
     : '<p class="empty">No snippet matches.</p>'
+  if (focused) listButtons().find((button) => button.dataset.id === focused)?.focus()
 }
 
 // The home page: what the snippets are, how to use them, the audit and the categories
@@ -270,7 +289,8 @@ function showAudit() {
       <button type="button" id="download-audit" class="secondary" title="Save the audit as a JSON file">Download JSON</button>
       <button type="button" id="fix-audit" class="secondary" hidden title="Copy a prompt to fix the errors and warnings of the audit in the code of the site, for an AI agent. It carries URLs and selectors of the inspected page">Prompt to fix</button>
     </div>
-    <div id="audit" aria-live="polite"></div>`
+    <div id="audit"></div>
+    <p id="audit-status" class="visually-hidden" role="status"></p>`
   document.getElementById('rerun-audit').addEventListener('click', runAudit)
   const json = () => JSON.stringify(report({ url: audit.url, date: audit.date, rows: audit.rows }), null, 2)
   document.getElementById('copy-audit').addEventListener('click', (event) => copyFrom(event.currentTarget, json()))
@@ -357,6 +377,7 @@ function renderAudit() {
   const view = document.getElementById('audit')
   if (!view || !audit) return
   view.dataset.done = String(audit.done)
+  announce('audit-status', announceAudit(audit))
   document.getElementById('rerun-audit').disabled = !audit.done
   for (const id of ['copy-audit', 'download-audit']) document.getElementById(id).disabled = !audit.done || Boolean(audit.error)
   // Once it is done, and only with something to fix
@@ -424,7 +445,8 @@ function showSnippet(snippet, { result: given, fromAudit = false, measured } = {
       }
       <a href="${escape(snippet.url)}" target="_blank" rel="noopener">Documentation</a>
     </div>
-    <div id="result" aria-live="polite"></div>`
+    <div id="result"></div>
+    <p id="result-status" class="visually-hidden" role="status"></p>`
   // A result opens at its top, wherever the view before it was
   main.scrollTop = 0
   document.getElementById('run').addEventListener('click', () => run(snippet))
@@ -454,7 +476,7 @@ function showSnippet(snippet, { result: given, fromAudit = false, measured } = {
     const issue = event.target.closest('.to-row')
     if (issue) showRow(issue.dataset.row)
     const source = event.target.closest('.open-source')
-    if (source) chrome.devtools.panels.openResource?.(source.dataset.url)
+    if (source) openInSources(source)
     const url = event.target.closest('.copy-url')
     if (url) copyUrl(url)
   })
@@ -484,6 +506,21 @@ function showRow(index) {
   row.scrollIntoView({ block: 'center', behavior: 'smooth' })
 }
 
+// Opens the file of a URL in the Sources panel. DevTools only opens a resource it knows of the page:
+// not one that loaded before DevTools opened, or that the page no longer has. Called without a callback,
+// openResource answers with a promise, rejected when it has no such resource; an older Chrome answers
+// nothing, and then the button stays as it was
+async function openInSources(button) {
+  let found = true
+  try {
+    await chrome.devtools.panels.openResource?.(button.dataset.url)
+  } catch {
+    found = false
+  }
+  button.classList.toggle('not-found', !found)
+  button.title = found ? 'Open in Sources' : 'DevTools has no source for this URL. Reload the page with DevTools open, or copy the URL to find it in Network'
+}
+
 // Selects the element of a selector in the Elements panel, with inspect() of the DevTools console
 async function inspectElement(button) {
   const found = await evaluate(
@@ -497,6 +534,7 @@ async function show(snippet, work, button) {
   const result = document.getElementById('result')
   button.disabled = true
   result.innerHTML = '<p class="note">Running…</p>'
+  announce('result-status', 'Running.')
   let value
   try {
     value = await work()
@@ -517,6 +555,7 @@ function showResult(value, measured) {
   lastResult = value
   lastMeasured = measured
   document.getElementById('result').innerHTML = value === undefined ? '' : renderResult(value)
+  announce('result-status', value === undefined ? '' : announceResult(value))
   document.getElementById('clear').hidden = value === undefined
   const fix = document.getElementById('copy-fix-prompt')
   if (fix) fix.hidden = !hasIssuesToFix(value)
@@ -545,6 +584,7 @@ chrome.devtools.network?.onNavigated?.addListener(() => {
     'afterbegin',
     '<p class="note">The page navigated, which clears what the snippet recorded. Run the snippet again.</p>'
   )
+  announce('result-status', 'The page navigated, which clears what the snippet recorded. Run the snippet again.')
 })
 
 list.addEventListener('click', (event) => {

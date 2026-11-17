@@ -66,6 +66,11 @@ table td:first-child > code {
   overflow-wrap: break-word;
 }
 
+.wp-snippet pre code:focus-visible {
+  outline: 2px solid var(--wp-button-fg-hover);
+  outline-offset: -2px;
+}
+
 @media (prefers-contrast: more) {
   .wp-snippet pre {
     border: 1px solid rgba(0, 57, 122, 0.2);
@@ -100,6 +105,13 @@ table td:first-child > code {
 .wp-snippet-actions:focus-within,
 .wp-snippet-actions:has([data-copied]) {
   opacity: 1;
+}
+
+/* A touch screen has no hover to reveal the button, so it stays in view there */
+@media (hover: none) {
+  .wp-snippet-actions {
+    opacity: 1;
+  }
 }
 
 .wp-snippet-copy {
@@ -303,7 +315,10 @@ table td:first-child > code {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wp-footer a {
+  .wp-footer a,
+  .wp-snippet-actions,
+  .wp-snippet-copy,
+  .wp-snippet-prompt {
     transition: none;
   }
 }
@@ -732,3 +747,29 @@ table td:first-child > code {
 .wp-viz-nested .wp-viz-table { margin-top: 4px; }
 .wp-viz-recommendations { margin: 0; padding-left: 1.25rem; }
 .wp-viz-recommendations li { padding: 2px 0; }
+
+/* Catalog of a category: each page with its title and description (components/Catalog.jsx) */
+.wp-catalog {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.wp-catalog p {
+  margin: 0.25rem 0 0;
+  color: var(--wp-caption-fg);
+  line-height: 1.5;
+}
+
+.wp-catalog-title {
+  font-weight: 600;
+  color: var(--wp-link);
+  text-decoration: none;
+}
+
+.wp-catalog-title:hover,
+.wp-catalog-title:focus-visible {
+  text-decoration: underline;
+}

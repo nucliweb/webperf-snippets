@@ -35,6 +35,27 @@ export const filterCounts = (rows) => Object.fromEntries(Object.keys(FILTERS).ma
 
 export const overview = (rows) => describeOverview(overviewOf(rows.map((r) => r.summary)))
 
+// What a screen reader hears when a result arrives: one line. A live region is read whole each time it
+// changes, so the result, with its tables, is not one
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+export function announceResult(result) {
+  const summary = summarize(result)
+  if (summary.status === 'error') return `The snippet failed: ${summary.top}`
+  if (result.status === 'tracking') return 'Recording. Use the page, then read the result.'
+  const found = [summary.errors && plural(summary.errors, 'error'), summary.warnings && plural(summary.warnings, 'warning')].filter(Boolean)
+  const head = summary.metric ? `Result ready: ${summary.metric.replace(' · ', ', ')}.` : 'Result ready.'
+  return `${head} ${found.length ? found.join(' and ') : 'Nothing to fix'}.`
+}
+
+// And where the audit is, as it runs and when it ends: the step, not the table that grows with each one
+export function announceAudit({ steps, rows, reloading, done, error }) {
+  if (error) return error
+  if (reloading) return 'Reloading the page.'
+  if (done) return `Audit done. ${overview(rows)}.`
+  const next = steps[rows.length]
+  return next ? `Running ${rows.length + 1} of ${steps.length}: ${next.title}.` : ''
+}
+
 // The audit as JSON, to export or analyze: the results in the shape of the CLI
 // (webperf-snippets <url> --workflow audit --json), each with the id of its step, plus the overview and
 // every issue of every snippet in one list, by severity. A snippet that returned nothing gives an error

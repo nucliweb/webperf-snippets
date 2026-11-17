@@ -39,7 +39,8 @@
   const round2 = (n) => Math.round(n * 100) / 100;
   const px = (v) => parseFloat(v) || 0;
 
-  const shortUrl = (url) => (url.startsWith("data:") ? url.slice(0, 60) : url);
+  // A data: URL cut to its first characters; any other URL whole
+  const clippedUrl = (url) => (url.startsWith("data:") ? url.slice(0, 60) : url);
   const fileName = (url) => url.split("?")[0].split("/").pop() || url;
 
   // @shared uniqueSelector
@@ -188,7 +189,7 @@
 
     flagged.push({
       selector: uniqueSelector(img),
-      url: shortUrl(url),
+      url: clippedUrl(url),
       verdict,
       naturalWidth: file.width,
       naturalHeight: file.height,

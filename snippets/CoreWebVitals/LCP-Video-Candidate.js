@@ -42,14 +42,41 @@
     poor: { icon: "🔴", label: "Poor (> 4 s)" },
   };
 
+  // @shared detectFormat
+  // The image format of a URL: from the transformations of a CDN, the query or the extension.
+  // "auto (cdn)" when a CDN picks it, "auto (cdn?)" when the URL has no extension, as a CDN or a
+  // DAM that serves the format the browser accepts.
   function detectFormat(url) {
     if (!url) return "unknown";
-    const path = url.toLowerCase().split("?")[0];
-    const ext = path.match(/\.(avif|webp|jxl|png|gif|jpg|jpeg|svg)(?:[?#]|$)/);
-    if (ext) return ext[1] === "jpeg" ? "jpg" : ext[1];
+    const lower = url.toLowerCase();
+    const path = lower.split("?")[0];
+    const query = lower.includes("?") ? lower.split("?")[1] : "";
+
+    // Cloudinary path transforms: /f_auto/, /f_avif,q_auto/, etc.
+    const cloudinaryMatch = path.match(/\/f_(auto|avif|webp|jxl|png|jpg|jpeg|gif|svg)[,/]/);
+    if (cloudinaryMatch) {
+      const fmt = cloudinaryMatch[1];
+      return fmt === "auto" ? "auto (cdn)" : fmt === "jpeg" ? "jpg" : fmt;
+    }
+
+    // Query string params: ?fm=webp (imgix), ?format=avif (generic)
+    const qMatch = query.match(/(?:^|&)(?:fm|format)=(avif|webp|jxl|png|jpg|jpeg|gif|svg)(?:&|$)/);
+    if (qMatch) return qMatch[1] === "jpeg" ? "jpg" : qMatch[1];
+
+    // File extension in path
+    const extMatch = path.match(/\.(avif|webp|jxl|png|gif|svg|jpg|jpeg)(?:[?#]|$)/);
+    if (extMatch) return extMatch[1] === "jpeg" ? "jpg" : extMatch[1];
+
+    // No extension at all: likely a DAM or CDN serving format via Accept header
+    const lastSegment = path.split("/").pop() || "";
+    if (!lastSegment.includes(".")) return "auto (cdn?)";
+
     return "unknown";
   }
+  // @end-shared detectFormat
 
+  // @shared normalizeUrl
+  // The absolute URL of url, relative to the page, to compare it with the URL of an entry
   function normalizeUrl(url) {
     try {
       return new URL(url, location.origin).href;
@@ -57,6 +84,7 @@
       return url;
     }
   }
+  // @end-shared normalizeUrl
 
   console.group("%c🎬 LCP Video Candidate", "font-weight: bold; font-size: 14px;");
   console.log("");
@@ -159,7 +187,8 @@
     issues.push({ code: "poster-preload-no-fetchpriority", s: "info", msg: 'Preload found but missing fetchpriority="high", so it may be deprioritised' });
   }
 
-  if (posterAttr && !isModernFormat && posterFormat !== "unknown") {
+  // A CDN that picks the format serves the one the browser accepts, so it is not a legacy format
+  if (posterAttr && !isModernFormat && posterFormat !== "unknown" && !posterFormat.startsWith("auto")) {
     issues.push({ code: "poster-legacy-format", s: "info", msg: `Poster uses ${posterFormat}; AVIF or WebP would reduce file size and LCP load time` });
   }
 

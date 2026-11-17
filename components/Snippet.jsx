@@ -24,7 +24,9 @@ export function Snippet({ code, prompt, snippet }) {
       ) : null}
       <div className="wp-snippet-code">
         <pre data-language="js" data-theme="default">
+          {/* The code scrolls sideways, so it takes the focus: the arrow keys move a scroller that has it */}
           <code
+            tabIndex={0}
             data-language="js"
             data-theme="default"
             className="hljs"

@@ -7,58 +7,88 @@ const { decide, listChangedFiles, main } = require('./ci-skip-slow-steps')
 
 const pr = (changedFiles) => decide({ eventName: 'pull_request', changedFiles })
 
+const runsAll = (result) => result.skipBuild === false && result.skipE2e === false
+
 test('a push never skips anything, even when only documentation changed', () => {
-  assert.equal(decide({ eventName: 'push', changedFiles: ['CONTRIBUTING.md'] }).skip, false)
+  assert.ok(runsAll(decide({ eventName: 'push', changedFiles: ['CONTRIBUTING.md'] })))
 })
 
-test('a pull request that only changes documentation skips the slow steps, with no label', () => {
+test('a pull request that only changes documentation skips the build and the e2e tests, with no label', () => {
   const files = ['CONTRIBUTING.md', 'public/demos/README.md', 'docs/RELEASING.md', 'LICENSE', 'cli/CHANGELOG.md']
   const result = pr(files)
-  assert.equal(result.skip, true)
+  assert.equal(result.skipBuild, true)
+  assert.equal(result.skipE2e, true)
   assert.match(result.reason, /only documentation changed/)
+})
+
+// The e2e tests run the CLI and the extension on snippets: a page, a component or a style of the site
+// reaches neither, and the build checks them
+test('a pull request that only changes the site builds it and skips the e2e tests', () => {
+  const files = [
+    'content/Loading/TTFB.mdx',
+    'content/Loading/_meta.js',
+    'components/Catalog.jsx',
+    'components/PageSchema.test.jsx',
+    'app/sitemap.js',
+    'styles/globals.css',
+    'public/demos/lcp.html',
+    'lib/catalog.js',
+    'lib/sitemap-routes.test.js',
+    'mdx-components.js',
+    'next.config.mjs',
+    'CHANGELOG.md',
+  ]
+  const result = pr(files)
+  assert.equal(result.skipBuild, false)
+  assert.equal(result.skipE2e, true)
+  assert.match(result.reason, /only the site changed, so the e2e tests are skipped/)
 })
 
 test('a pull request that changes a snippet runs everything', () => {
   const result = pr(['CONTRIBUTING.md', 'snippets/CoreWebVitals/LCP.js'])
-  assert.equal(result.skip, false)
+  assert.ok(runsAll(result))
   assert.match(result.reason, /snippets\/CoreWebVitals\/LCP\.js/)
 })
 
-test('code, tests, scripts, workflows and manifests run everything', () => {
+// The CLI, the extension and what builds the extension: the libraries of the site it imports, the
+// scripts, the manifests and the workflows
+test('what the CLI and the extension run or are built from runs everything', () => {
   for (const file of [
     'cli/src/bin.js',
     'cli/tests/e2e/crux.test.js',
+    'extension/panel.js',
+    'snippets/_view/index.js',
+    'lib/snippet-prompt.mjs',
+    'lib/snippet-expression.mjs',
+    'lib/webmcp-registry.mjs',
+    'lib/markdown-path.mjs',
+    'lib/page-info.js',
+    'scripts/build-extension.mjs',
     'scripts/check-consistency.js',
-    'lib/browser-support.js',
-    'components/Snippet.jsx',
-    'styles/globals.css',
     '.github/workflows/ci.yml',
+    '.github/actions/setup/action.yml',
     'package.json',
     'package-lock.json',
-    'next.config.mjs',
   ]) {
-    assert.equal(pr([file]).skip, false, file)
+    assert.ok(runsAll(pr([file])), file)
+    assert.ok(runsAll(pr(['content/CLI.mdx', file])), `${file} with a page`)
   }
 })
 
-test('a page is content, so an .mdx file runs everything', () => {
-  assert.equal(pr(['content/CLI.mdx']).skip, false)
-})
-
-test('a file the rules do not know is treated as code', () => {
-  assert.equal(pr(['some-new-dir/thing.txt']).skip, false)
-  assert.equal(pr(['.nvmrc']).skip, false)
+test('a file the rules do not know runs everything', () => {
+  assert.ok(runsAll(pr(['some-new-dir/thing.txt'])))
+  assert.ok(runsAll(pr(['.nvmrc'])))
 })
 
 test('without a list of changed files nothing is skipped', () => {
   const result = pr([])
-  assert.equal(result.skip, false)
+  assert.ok(runsAll(result))
   assert.match(result.reason, /could not/)
 })
 
-test('the reason names at most three files that are not documentation', () => {
-  const result = pr(['a.js', 'b.js', 'c.js', 'd.js', 'e.js'])
-  assert.equal(result.skip, false)
+test('the reason names at most three files that run the e2e tests', () => {
+  const result = pr(['a.js', 'b.js', 'c.js', 'd.js', 'e.js', 'content/CLI.mdx'])
+  assert.ok(runsAll(result))
   assert.match(result.reason, /a\.js, b\.js, c\.js and 2 more/)
 })
 
@@ -98,17 +128,27 @@ const prEnv = {
   GH_TOKEN: 'token',
 }
 
-test('main writes skip=true and a summary line for a docs-only pull request', async () => {
+test('main writes both skips and a summary line for a docs-only pull request', async () => {
   const fetchJson = async () => [{ filename: 'CONTRIBUTING.md' }]
   const { output, summary } = await runMain({ env: prEnv, fetchJson })
-  assert.match(output, /^skip=true$/m)
+  assert.match(output, /^skip_build=true$/m)
+  assert.match(output, /^skip_e2e=true$/m)
   assert.match(summary, /only documentation changed/)
 })
 
-test('main writes skip=false and says why for a pull request that changes code', async () => {
+test('main skips only the e2e tests of a pull request that changes the site', async () => {
+  const fetchJson = async () => [{ filename: 'content/Loading/TTFB.mdx' }]
+  const { output, summary } = await runMain({ env: prEnv, fetchJson })
+  assert.match(output, /^skip_build=false$/m)
+  assert.match(output, /^skip_e2e=true$/m)
+  assert.match(summary, /only the site changed/)
+})
+
+test('main skips nothing and says why for a pull request that changes code', async () => {
   const fetchJson = async () => [{ filename: 'CONTRIBUTING.md' }, { filename: 'cli/src/bin.js' }]
   const { output, summary } = await runMain({ env: prEnv, fetchJson })
-  assert.match(output, /^skip=false$/m)
+  assert.match(output, /^skip_build=false$/m)
+  assert.match(output, /^skip_e2e=false$/m)
   assert.match(summary, /cli\/src\/bin\.js/)
 })
 
@@ -117,7 +157,8 @@ test('main runs everything when the API call fails', async () => {
     throw new Error('rate limited')
   }
   const { output, summary } = await runMain({ env: prEnv, fetchJson })
-  assert.match(output, /^skip=false$/m)
+  assert.match(output, /^skip_build=false$/m)
+  assert.match(output, /^skip_e2e=false$/m)
   assert.match(summary, /could not/)
 })
 
@@ -128,6 +169,7 @@ test('main runs everything on a push without calling the API', async () => {
     return [{ filename: 'CONTRIBUTING.md' }]
   }
   const { output } = await runMain({ env: { EVENT_NAME: 'push' }, fetchJson })
-  assert.match(output, /^skip=false$/m)
+  assert.match(output, /^skip_build=false$/m)
+  assert.match(output, /^skip_e2e=false$/m)
   assert.equal(calls, 0)
 })

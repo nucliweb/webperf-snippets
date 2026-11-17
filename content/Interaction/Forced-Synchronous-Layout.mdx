@@ -1,4 +1,5 @@
 ---
+description: "Detects forced synchronous layout as it happens: JavaScript that reads the geometry of the page right after changing styles, forcing a layout."
 browserSupport:
   - api.MutationObserver
   - api.Element.getBoundingClientRect
@@ -86,7 +87,7 @@ When an FSL is detected, the console shows:
 | Field | Description |
 |-------|-------------|
 | **Property** | The geometric property accessed and whether it was a read or write |
-| **Element** | `tagName#id.classes` of the element involved |
+| **Element** | A CSS selector that matches only the element involved, to inspect it |
 | **Since last mutation** | Milliseconds between the style/class mutation and the forced layout |
 | **Stack trace** | Full call stack to locate the offending code |
 
