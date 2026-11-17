@@ -77,7 +77,7 @@ test('report gives the audit as JSON in the shape of the CLI, with the overview 
   assert.equal(r.workflow, 'audit')
   assert.equal(r.url, 'https://example.com/')
   assert.equal(r.date, '2026-10-13T10:00:00.000Z')
-  assert.deepEqual(r.overview, { snippets: 4, withErrors: 2, withWarnings: 1, withNothingToFix: 1 })
+  assert.deepEqual(r.overview, { snippets: 4, withErrors: 2, withWarnings: 1, withNothingToFix: 1, notMeasured: 0 })
   assert.deepEqual(
     r.issues.map((i) => [i.severity, i.id, i.message]),
     [
@@ -148,7 +148,7 @@ test('fromReport opens the JSON of the audit of the CLI', () => {
     url: 'https://example.com/',
     date: '2026-11-11T09:00:00.000Z',
     navMs: 1200,
-    overview: { snippets: 2, withErrors: 0, withWarnings: 1, withNothingToFix: 1 },
+    overview: { snippets: 2, withErrors: 0, withWarnings: 1, withNothingToFix: 1, notMeasured: 0 },
     issues: [{ severity: 'warning', id: 'webfonts', path: 'Loading/Webfont-Usage-Analyzer', message: 'A font for nothing' }],
     results: [{ id: 'ttfb', script: 'TTFB-Sub-Parts', status: 'ok', issues: [] }, { id: 'webfonts', ...result }],
     pageErrors: [],

@@ -22,15 +22,22 @@ export function summarizeIssues(result) {
   return summary
 }
 
-// How many results, from their summaries, have errors, have warnings and no error, or have nothing to fix
+// A result that measured nothing: the browser lacks the API it reads, it waits for interactions that did
+// not happen, or the run skipped it. It has no issue only because it did not look.
+const NOT_MEASURED = new Set(['unsupported', 'tracking', 'skipped'])
+
+// How many results, from their summaries, have errors, have warnings and no error, have nothing to fix,
+// or measured nothing
 export function overviewOf(summaries) {
   const withErrors = summaries.filter((s) => s.errors > 0).length
   const withWarnings = summaries.filter((s) => s.errors === 0 && s.warnings > 0).length
-  return { snippets: summaries.length, withErrors, withWarnings, withNothingToFix: summaries.length - withErrors - withWarnings }
+  const notMeasured = summaries.filter((s) => s.errors === 0 && s.warnings === 0 && NOT_MEASURED.has(s.status)).length
+  return { snippets: summaries.length, withErrors, withWarnings, withNothingToFix: summaries.length - withErrors - withWarnings - notMeasured, notMeasured }
 }
 
-export const describeOverview = ({ snippets, withErrors, withWarnings, withNothingToFix }) =>
-  `${snippets} snippet${snippets === 1 ? '' : 's'}: ${withErrors} with errors, ${withWarnings} with warnings, ${withNothingToFix} with nothing to fix`
+// The snippets that measured nothing go last, and only when there are some
+export const describeOverview = ({ snippets, withErrors, withWarnings, withNothingToFix, notMeasured = 0 }) =>
+  `${snippets} snippet${snippets === 1 ? '' : 's'}: ${withErrors} with errors, ${withWarnings} with warnings, ${withNothingToFix} with nothing to fix${notMeasured ? `, ${notMeasured} not measured` : ''}`
 
 // Every issue of a list of results, in their order, each with the id of its result; a result that
 // failed gives an error issue with its message

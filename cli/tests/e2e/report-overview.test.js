@@ -42,7 +42,7 @@ function expectReportOfResults(report) {
   const order = report.issues.map((i) => SEVERITY.indexOf(i.severity));
   expect(order).toEqual([...order].sort((a, b) => a - b));
   expect(report.overview.snippets).toBe(report.results.length);
-  expect(report.overview.withErrors + report.overview.withWarnings + report.overview.withNothingToFix).toBe(report.results.length);
+  expect(report.overview.withErrors + report.overview.withWarnings + report.overview.withNothingToFix + report.overview.notMeasured).toBe(report.results.length);
 }
 
 describe("the overview and the issues in the JSON", () => {
@@ -76,7 +76,7 @@ describe("the overview and the issues in the JSON", () => {
     const report = JSON.parse(stdout);
     expect(report.date, said).toMatch(ISO);
     expectReportOfResults(report);
-    expect(report.overview).toEqual({ snippets: 2, withErrors: 0, withWarnings: 0, withNothingToFix: 2 });
+    expect(report.overview).toEqual({ snippets: 2, withErrors: 0, withWarnings: 0, withNothingToFix: 2, notMeasured: 0 });
     expect(report.issues).toEqual([]);
   }, 60000);
 

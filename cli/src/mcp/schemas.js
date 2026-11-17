@@ -86,8 +86,8 @@ export const BaselineError = LooseObject({ id: z.string(), message: z.string().o
 // What the results found, as in the JSON of the CLI
 export const FoundOut = {
   date: z.string().describe("When the run started, in UTC (ISO 8601)"),
-  overview: LooseObject({ snippets: z.number(), withErrors: z.number(), withWarnings: z.number(), withNothingToFix: z.number() }).describe(
-    "How many snippets have errors, warnings only or nothing to fix"
+  overview: LooseObject({ snippets: z.number(), withErrors: z.number(), withWarnings: z.number(), withNothingToFix: z.number(), notMeasured: z.number() }).describe(
+    "How many snippets have errors, warnings only or nothing to fix, and how many measured nothing (unsupported, tracking without data, skipped)"
   ),
   issues: z
     .array(LooseObject({ severity: z.string(), id: z.string(), message: z.string() }))

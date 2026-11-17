@@ -39,14 +39,27 @@ test('summarizeIssues counts a rating that is not good as a warning when no issu
 
 test('overviewOf counts the snippets with errors, with warnings only and with nothing to fix', () => {
   const summaries = [renderBlocking, compression, contentVisibility, failed].map(summarizeIssues)
-  assert.deepEqual(overviewOf(summaries), { snippets: 4, withErrors: 2, withWarnings: 1, withNothingToFix: 1 })
-  assert.deepEqual(overviewOf([]), { snippets: 0, withErrors: 0, withWarnings: 0, withNothingToFix: 0 })
+  assert.deepEqual(overviewOf(summaries), { snippets: 4, withErrors: 2, withWarnings: 1, withNothingToFix: 1, notMeasured: 0 })
+  assert.deepEqual(overviewOf([]), { snippets: 0, withErrors: 0, withWarnings: 0, withNothingToFix: 0, notMeasured: 0 })
+})
+
+// A snippet that measured nothing has nothing to fix only because it did not look: the browser lacks
+// its API, it waits for interactions that did not happen, or the run skipped it
+test('overviewOf counts apart the snippets that measured nothing', () => {
+  const unsupported = { script: 'LCP', status: 'unsupported', error: 'largest-contentful-paint entries not supported' }
+  const tracking = { script: 'INP', status: 'tracking', message: 'No interactions yet' }
+  const skipped = { id: 'ttfb', status: 'skipped', reason: 'not needed' }
+  const summaries = [renderBlocking, contentVisibility, unsupported, tracking, skipped].map(summarizeIssues)
+  assert.deepEqual(overviewOf(summaries), { snippets: 5, withErrors: 1, withWarnings: 0, withNothingToFix: 1, notMeasured: 3 })
 })
 
 test('describeOverview says the overview in one line', () => {
   assert.equal(describeOverview({ snippets: 22, withErrors: 2, withWarnings: 5, withNothingToFix: 15 }), '22 snippets: 2 with errors, 5 with warnings, 15 with nothing to fix')
   // One snippet, as with --snippet in the CLI
   assert.equal(describeOverview({ snippets: 1, withErrors: 1, withWarnings: 0, withNothingToFix: 0 }), '1 snippet: 1 with errors, 0 with warnings, 0 with nothing to fix')
+  // The snippets that measured nothing, only when there are some
+  assert.equal(describeOverview({ snippets: 3, withErrors: 0, withWarnings: 0, withNothingToFix: 1, notMeasured: 2 }), '3 snippets: 0 with errors, 0 with warnings, 1 with nothing to fix, 2 not measured')
+  assert.equal(describeOverview({ snippets: 3, withErrors: 0, withWarnings: 0, withNothingToFix: 3, notMeasured: 0 }), '3 snippets: 0 with errors, 0 with warnings, 3 with nothing to fix')
 })
 
 test('issuesOf lists every issue of the results, in their order, with the id of its result', () => {
@@ -96,7 +109,7 @@ test('auditReport gives the overview, every issue by severity with the path of i
   assert.equal(report.workflow, 'audit')
   assert.equal(report.url, 'https://example.com/')
   assert.equal(report.date, '2026-11-11T09:00:00.000Z')
-  assert.deepEqual(report.overview, { snippets: 4, withErrors: 2, withWarnings: 1, withNothingToFix: 1 })
+  assert.deepEqual(report.overview, { snippets: 4, withErrors: 2, withWarnings: 1, withNothingToFix: 1, notMeasured: 0 })
   // Errors first, then warnings, then info; within a severity, the order of the audit
   assert.deepEqual(
     report.issues.map((i) => [i.severity, i.id, i.path]),
