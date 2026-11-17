@@ -50,9 +50,9 @@ On prerendered pages, every phase is measured from `activationStart` (the moment
 **Browser support:** The render-blocking phase requires the `renderBlockingStatus` API (Chrome 107+, Edge 107+). Other browsers cannot tell which resources block rendering, so the snippet does not split the time after TTFB: `details.renderBlockingSupported` is `false`, and `renderBlockingLoadMs`, `renderDelayMs` and `blockingResourceCount` are `null`. The FCP value and TTFB are still measured.
 </Callout>
 
-### A page that loaded in a background tab
+### A page hidden before it painted
 
-A page that loads in a background tab paints while nobody sees it, so its FCP is not what a user waited for, and web-vitals does not report it. The snippet returns an error with that reason instead of a time: reload the page with its tab in front and run it again.
+A page that loads in a background tab, or that the user leaves for another tab before it paints, paints while nobody sees it, so its FCP is not what a user waited for, and web-vitals does not report it. The snippet returns an error with that reason instead of a time: reload the page with its tab in front and run it again. A prerendered page is hidden until its activation, and that does not count.
 
 ### Browser support
 

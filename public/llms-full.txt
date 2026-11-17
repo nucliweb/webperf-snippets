@@ -915,33 +915,38 @@ Breaks Largest Contentful Paint into its four phases, TTFB, load delay, load tim
 
   // @shared hiddenBefore
   // Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
-  // switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
-  // it. The visibility-state entries say when; without them, only whether the page is hidden now.
+  // switched to another tab before it painted. A paint nobody saw is not the metric, and web-vitals does
+  // not report it. The first visibility-state entry "hidden" says when, as in web-vitals: a prerendered
+  // page is hidden until its activation, so only an entry from the activation on counts. Without one, the
+  // page was hidden from its start only if it is hidden now.
   function hiddenBefore(time) {
-    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
-      const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
-      return hidden !== undefined && hidden.startTime <= time;
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state") && !document.prerendering) {
+      const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+      const hidden = performance
+        .getEntriesByType("visibility-state")
+        .find((entry) => entry.name === "hidden" && entry.startTime >= activationStart);
+      if (hidden) return hidden.startTime <= time;
     }
     return document.visibilityState === "hidden" && !document.prerendering;
   }
 
+  // Why a snippet gives no value for a metric the page painted while it was hidden
+  function hiddenMessage(metric) {
+    return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
+  }
+
   // The result of a snippet whose metric the page painted while it was hidden
   function hiddenResult(name, metric) {
-    return {
-      script: name,
-      status: "error",
-      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
-    };
+    return { script: name, status: "error", error: hiddenMessage(metric) };
   }
 
   // The warning of the console, once however many times the page paints while it is hidden
   let hiddenWarned = false;
-  function warnHidden(script, metric) {
-    if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+  function warnHidden(metric) {
+    if (!hiddenWarned) console.warn(`⚠️ ${hiddenMessage(metric)}`);
     hiddenWarned = true;
   }
   // @end-shared hiddenBefore
-
 
   if (!PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")) {
     console.warn("⚠️ largest-contentful-paint entries are not supported in this browser.");
@@ -1034,13 +1039,18 @@ Breaks Largest Contentful Paint into its four phases, TTFB, load delay, load tim
     return null;
   };
 
+  // A candidate painted after the page was hidden is not the LCP: the last one before it is
+  let printed = false;
   const observer = new PerformanceObserver((list) => {
-    const lcpEntry = list.getEntries().at(-1);
-    if (!lcpEntry) return;
-    if (hiddenBefore(lcpEntry.startTime)) return warnHidden("LCP-Subparts", "LCP");
+    const lcpEntry = list.getEntries().filter((entry) => !hiddenBefore(entry.startTime)).at(-1);
+    if (!lcpEntry) {
+      if (!printed) warnHidden("LCP");
+      return;
+    }
 
     const navEntry = getNavigationEntry();
     if (!navEntry) return;
+    printed = true;
 
     const {
       resEntry: lcpResEntry,
@@ -1191,16 +1201,17 @@ Breaks Largest Contentful Paint into its four phases, TTFB, load delay, load tim
 
   // Return for agent — collect via buffered observer (getEntriesByType does not
   // expose largest-contentful-paint entries in Chrome without an active observer).
-  const lcpEntry = await new Promise((resolve) => {
+  const lcpEntries = await new Promise((resolve) => {
     const entries = [];
     const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
     obs.observe({ type: "largest-contentful-paint", buffered: true });
-    setTimeout(() => { obs.disconnect(); resolve(entries.at(-1) ?? null); }, 100);
+    setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
   });
-  if (!lcpEntry) {
+  if (lcpEntries.length === 0) {
     return { script: "LCP-Subparts", status: "error", error: "No LCP entries buffered" };
   }
-  if (hiddenBefore(lcpEntry.startTime)) return hiddenResult("LCP-Subparts", "LCP");
+  const lcpEntry = lcpEntries.filter((entry) => !hiddenBefore(entry.startTime)).at(-1);
+  if (!lcpEntry) return hiddenResult("LCP-Subparts", "LCP");
   const navEntrySync = getNavigationEntry();
   if (!navEntrySync) {
     return { script: "LCP-Subparts", status: "error", error: "No navigation entry" };
@@ -1377,40 +1388,44 @@ Tracks every LCP candidate during the load and outlines each one in its own colo
 
   // @shared hiddenBefore
   // Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
-  // switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
-  // it. The visibility-state entries say when; without them, only whether the page is hidden now.
+  // switched to another tab before it painted. A paint nobody saw is not the metric, and web-vitals does
+  // not report it. The first visibility-state entry "hidden" says when, as in web-vitals: a prerendered
+  // page is hidden until its activation, so only an entry from the activation on counts. Without one, the
+  // page was hidden from its start only if it is hidden now.
   function hiddenBefore(time) {
-    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
-      const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
-      return hidden !== undefined && hidden.startTime <= time;
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state") && !document.prerendering) {
+      const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+      const hidden = performance
+        .getEntriesByType("visibility-state")
+        .find((entry) => entry.name === "hidden" && entry.startTime >= activationStart);
+      if (hidden) return hidden.startTime <= time;
     }
     return document.visibilityState === "hidden" && !document.prerendering;
   }
 
+  // Why a snippet gives no value for a metric the page painted while it was hidden
+  function hiddenMessage(metric) {
+    return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
+  }
+
   // The result of a snippet whose metric the page painted while it was hidden
   function hiddenResult(name, metric) {
-    return {
-      script: name,
-      status: "error",
-      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
-    };
+    return { script: name, status: "error", error: hiddenMessage(metric) };
   }
 
   // The warning of the console, once however many times the page paints while it is hidden
   let hiddenWarned = false;
-  function warnHidden(script, metric) {
-    if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+  function warnHidden(metric) {
+    if (!hiddenWarned) console.warn(`⚠️ ${hiddenMessage(metric)}`);
     hiddenWarned = true;
   }
   // @end-shared hiddenBefore
-
 
   const candidates = [];
 
   const logTrail = () => {
     const current = candidates[candidates.length - 1];
     if (!current) return;
-    if (hiddenBefore(current.entry.startTime)) return warnHidden("LCP-Trail", "LCP");
 
     const rating = valueToRating(current.time);
     const { icon, color: ratingColor } = RATING[rating];
@@ -1459,11 +1474,17 @@ Tracks every LCP candidate during the load and outlines each one in its own colo
     console.groupEnd();
   };
 
+  // The candidates painted after the page was hidden are not part of the trail of its LCP
   const observer = new PerformanceObserver((list) => {
+    const shown = list.getEntries().filter((entry) => !hiddenBefore(entry.startTime));
+    if (shown.length === 0) {
+      if (candidates.length === 0) warnHidden("LCP");
+      return;
+    }
     const activationStart = getActivationStart();
     const seen = new Set(candidates.map((c) => candidateKey(c.entry)));
 
-    for (const entry of list.getEntries()) {
+    for (const entry of shown) {
       const key = candidateKey(entry);
       if (seen.has(key)) continue;
       seen.add(key);
@@ -1498,17 +1519,19 @@ Tracks every LCP candidate during the load and outlines each one in its own colo
   // Return for agent (buffered entries)
   // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver,
   // so performance.getEntriesByType() returns [] here. Collect via a buffered observer.
-  const trailEntries = await new Promise((resolve) => {
+  const lcpEntries = await new Promise((resolve) => {
     const entries = [];
     const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
     obs.observe({ type: "largest-contentful-paint", buffered: true });
     setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
   });
-  if (trailEntries.length === 0) {
+  if (lcpEntries.length === 0) {
     return { script: "LCP-Trail", status: "error", error: "No LCP entries yet" };
   }
-  // The last candidate is the LCP: when the page was hidden before it, the trail is of paints nobody saw
-  if (hiddenBefore(trailEntries.at(-1).startTime)) return hiddenResult("LCP-Trail", "LCP");
+  // The trail ends at the last candidate painted before the page was hidden, its LCP; without one, the
+  // page painted every candidate while nobody saw it
+  const trailEntries = lcpEntries.filter((entry) => !hiddenBefore(entry.startTime));
+  if (trailEntries.length === 0) return hiddenResult("LCP-Trail", "LCP");
   const trailActivationStart = getActivationStart();
   const byKey = new Map();
   for (const entry of trailEntries) {
@@ -1582,29 +1605,35 @@ Detects whether the LCP element is a video and audits its poster, the most commo
 
   // @shared hiddenBefore
   // Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
-  // switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
-  // it. The visibility-state entries say when; without them, only whether the page is hidden now.
+  // switched to another tab before it painted. A paint nobody saw is not the metric, and web-vitals does
+  // not report it. The first visibility-state entry "hidden" says when, as in web-vitals: a prerendered
+  // page is hidden until its activation, so only an entry from the activation on counts. Without one, the
+  // page was hidden from its start only if it is hidden now.
   function hiddenBefore(time) {
-    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
-      const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
-      return hidden !== undefined && hidden.startTime <= time;
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state") && !document.prerendering) {
+      const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+      const hidden = performance
+        .getEntriesByType("visibility-state")
+        .find((entry) => entry.name === "hidden" && entry.startTime >= activationStart);
+      if (hidden) return hidden.startTime <= time;
     }
     return document.visibilityState === "hidden" && !document.prerendering;
   }
 
+  // Why a snippet gives no value for a metric the page painted while it was hidden
+  function hiddenMessage(metric) {
+    return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
+  }
+
   // The result of a snippet whose metric the page painted while it was hidden
   function hiddenResult(name, metric) {
-    return {
-      script: name,
-      status: "error",
-      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
-    };
+    return { script: name, status: "error", error: hiddenMessage(metric) };
   }
 
   // The warning of the console, once however many times the page paints while it is hidden
   let hiddenWarned = false;
-  function warnHidden(script, metric) {
-    if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+  function warnHidden(metric) {
+    if (!hiddenWarned) console.warn(`⚠️ ${hiddenMessage(metric)}`);
     hiddenWarned = true;
   }
   // @end-shared hiddenBefore
@@ -1618,9 +1647,10 @@ Detects whether the LCP element is a video and audits its poster, the most commo
     return { script: "LCP-Video-Candidate", status: "error", error: "No LCP entries found" };
   }
 
-  const lcp = lcpEntries[lcpEntries.length - 1];
-  if (hiddenBefore(lcp.startTime)) {
-    warnHidden("LCP-Video-Candidate", "LCP");
+  // The last candidate painted before the page was hidden is the LCP
+  const lcp = lcpEntries.filter((entry) => !hiddenBefore(entry.startTime)).at(-1);
+  if (!lcp) {
+    warnHidden("LCP");
     return hiddenResult("LCP-Video-Candidate", "LCP");
   }
   const element = lcp.element;
@@ -1911,33 +1941,38 @@ Measures Largest Contentful Paint, the Core Web Vital of loading: when the large
   }
   // @shared hiddenBefore
   // Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
-  // switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
-  // it. The visibility-state entries say when; without them, only whether the page is hidden now.
+  // switched to another tab before it painted. A paint nobody saw is not the metric, and web-vitals does
+  // not report it. The first visibility-state entry "hidden" says when, as in web-vitals: a prerendered
+  // page is hidden until its activation, so only an entry from the activation on counts. Without one, the
+  // page was hidden from its start only if it is hidden now.
   function hiddenBefore(time) {
-    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
-      const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
-      return hidden !== undefined && hidden.startTime <= time;
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state") && !document.prerendering) {
+      const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+      const hidden = performance
+        .getEntriesByType("visibility-state")
+        .find((entry) => entry.name === "hidden" && entry.startTime >= activationStart);
+      if (hidden) return hidden.startTime <= time;
     }
     return document.visibilityState === "hidden" && !document.prerendering;
   }
 
+  // Why a snippet gives no value for a metric the page painted while it was hidden
+  function hiddenMessage(metric) {
+    return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
+  }
+
   // The result of a snippet whose metric the page painted while it was hidden
   function hiddenResult(name, metric) {
-    return {
-      script: name,
-      status: "error",
-      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
-    };
+    return { script: name, status: "error", error: hiddenMessage(metric) };
   }
 
   // The warning of the console, once however many times the page paints while it is hidden
   let hiddenWarned = false;
-  function warnHidden(script, metric) {
-    if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+  function warnHidden(metric) {
+    if (!hiddenWarned) console.warn(`⚠️ ${hiddenMessage(metric)}`);
     hiddenWarned = true;
   }
   // @end-shared hiddenBefore
-
 
   const valueToRating = (ms) =>
     ms <= 2500 ? "good" : ms <= 4000 ? "needs-improvement" : "poor";
@@ -1990,7 +2025,6 @@ Measures Largest Contentful Paint, the Core Web Vital of loading: when the large
   let lastPrintedTime = -1;
 
   const printLCP = (entry) => {
-    if (hiddenBefore(entry.startTime)) return warnHidden("LCP", "LCP");
     const activationStart = getActivationStart();
     const lcpTime = Math.max(0, entry.startTime - activationStart);
     if (lcpTime === lastPrintedTime) return;
@@ -2038,10 +2072,11 @@ Measures Largest Contentful Paint, the Core Web Vital of loading: when the large
     console.groupEnd();
   };
 
+  // A candidate painted after the page was hidden is not the LCP: the last one before it is
   const observer = new PerformanceObserver((list) => {
-    const entries = list.getEntries();
-    const lastEntry = entries[entries.length - 1];
+    const lastEntry = list.getEntries().filter((entry) => !hiddenBefore(entry.startTime)).at(-1);
     if (lastEntry) printLCP(lastEntry);
+    else if (lastPrintedTime < 0) warnHidden("LCP");
   });
 
   observer.observe({ type: "largest-contentful-paint", buffered: true });
@@ -2052,16 +2087,17 @@ Measures Largest Contentful Paint, the Core Web Vital of loading: when the large
   // Return for agent — collect via buffered observer (getEntriesByType does not
   // expose largest-contentful-paint entries in Chrome without an active observer).
   // 100ms gives the observer time to process buffered entries on busy pages.
-  const lastLcpEntry = await new Promise((resolve) => {
+  const lcpEntries = await new Promise((resolve) => {
     const entries = [];
     const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
     obs.observe({ type: "largest-contentful-paint", buffered: true });
-    setTimeout(() => { obs.disconnect(); resolve(entries.at(-1) ?? null); }, 100);
+    setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
   });
-  if (!lastLcpEntry) {
+  if (lcpEntries.length === 0) {
     return { script: "LCP", status: "error", error: "No LCP entries buffered" };
   }
-  if (hiddenBefore(lastLcpEntry.startTime)) return hiddenResult("LCP", "LCP");
+  const lastLcpEntry = lcpEntries.filter((entry) => !hiddenBefore(entry.startTime)).at(-1);
+  if (!lastLcpEntry) return hiddenResult("LCP", "LCP");
 
   const lcpActivationStart = getActivationStart();
   const lcpValue = Math.round(Math.max(0, lastLcpEntry.startTime - lcpActivationStart));
@@ -5630,29 +5666,35 @@ Measures First Contentful Paint: when the browser renders the first text, image,
 (() => {
   // @shared hiddenBefore
   // Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
-  // switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
-  // it. The visibility-state entries say when; without them, only whether the page is hidden now.
+  // switched to another tab before it painted. A paint nobody saw is not the metric, and web-vitals does
+  // not report it. The first visibility-state entry "hidden" says when, as in web-vitals: a prerendered
+  // page is hidden until its activation, so only an entry from the activation on counts. Without one, the
+  // page was hidden from its start only if it is hidden now.
   function hiddenBefore(time) {
-    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
-      const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
-      return hidden !== undefined && hidden.startTime <= time;
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state") && !document.prerendering) {
+      const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+      const hidden = performance
+        .getEntriesByType("visibility-state")
+        .find((entry) => entry.name === "hidden" && entry.startTime >= activationStart);
+      if (hidden) return hidden.startTime <= time;
     }
     return document.visibilityState === "hidden" && !document.prerendering;
   }
 
+  // Why a snippet gives no value for a metric the page painted while it was hidden
+  function hiddenMessage(metric) {
+    return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
+  }
+
   // The result of a snippet whose metric the page painted while it was hidden
   function hiddenResult(name, metric) {
-    return {
-      script: name,
-      status: "error",
-      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
-    };
+    return { script: name, status: "error", error: hiddenMessage(metric) };
   }
 
   // The warning of the console, once however many times the page paints while it is hidden
   let hiddenWarned = false;
-  function warnHidden(script, metric) {
-    if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+  function warnHidden(metric) {
+    if (!hiddenWarned) console.warn(`⚠️ ${hiddenMessage(metric)}`);
     hiddenWarned = true;
   }
   // @end-shared hiddenBefore
@@ -5690,7 +5732,7 @@ Measures First Contentful Paint: when the browser renders the first text, image,
   new PerformanceObserver((list) => {
     const fcpEntry = list.getEntriesByName("first-contentful-paint")[0];
     if (!fcpEntry) return;
-    if (hiddenBefore(fcpEntry.startTime)) return warnHidden("FCP", "FCP");
+    if (hiddenBefore(fcpEntry.startTime)) return warnHidden("FCP");
 
     const navEntry = performance.getEntriesByType("navigation")[0];
     // Prerendered pages: measure from activation, not from the start of the prerender

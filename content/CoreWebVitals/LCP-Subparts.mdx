@@ -102,9 +102,9 @@ The snippet adds one User Timing measure per sub-part ("Time to First Byte", "Re
 
 <LcpDecisionTree />
 
-### A page that loaded in a background tab
+### A page hidden before it painted
 
-A page that loads in a background tab paints while nobody sees it, so its LCP is not what a user waited for, and web-vitals does not report it. The snippet returns an error with that reason instead of a time: reload the page with its tab in front and run it again.
+A page that loads in a background tab, or that the user leaves for another tab before it paints, paints while nobody sees it, so its LCP is not what a user waited for, and web-vitals does not report it. The snippet returns an error with that reason instead of a time: reload the page with its tab in front and run it again. A prerendered page is hidden until its activation, and that does not count. A page hidden after it painted keeps its LCP: the last candidate painted before it was hidden, as in web-vitals, and not one painted later.
 
 ### Browser support
 

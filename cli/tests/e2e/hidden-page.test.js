@@ -12,7 +12,9 @@ import { loadSnippet } from "../../src/load-snippet.js";
 // of what a user waited for: web-vitals does not report them (onLCP and onFCP compare the paint with
 // the first visibility-state entry "hidden"). The snippets that give those times say so instead of a
 // number. The full Chromium opens a tab in the background hidden, as a browser does with a link opened
-// in a new tab; the headless shell shows every tab, so these tests launch the full one.
+// in a new tab; the headless shell shows every tab, so these tests launch the full one. Under Playwright
+// that tab turns visible a few milliseconds later: what counts is the first visibility-state entry, and
+// that one is "hidden".
 const HERE = dirname(fileURLToPath(import.meta.url));
 // The files the pages of these tests load, read once: the server answers only these names, so a path in
 // a request never reaches the file system
@@ -50,8 +52,6 @@ afterAll(async () => {
   if (server) await new Promise((resolve) => server.close(resolve));
 });
 
-// Opens a fixture in a new tab in the background, waits for it to load and runs the snippet. The page
-// records what web-vitals reports from its start, with every change, as a RUM script would.
 // Opens a fixture in a tab in the background. The first tabs Chrome opens in the background after it
 // starts can open visible, so a tab that did not start hidden is closed and opened again, a few times
 async function openHidden(url) {
@@ -68,6 +68,19 @@ async function openHidden(url) {
   }
 }
 
+const asExpression = (snippet) => loadSnippet(snippet).trim().replace(/;\s*$/, "");
+
+// The warnings of the console that say the page was hidden, from the time this is called
+function hiddenWarnings(page) {
+  const warnings = [];
+  page.on("console", (message) => {
+    if (message.type() === "warning" && HIDDEN.test(message.text())) warnings.push(message.text());
+  });
+  return warnings;
+}
+
+// Opens a fixture in a new tab in the background, waits for it to load and runs the snippet. The page
+// records what web-vitals reports after the load, with every change, as a RUM script loaded late would.
 async function inBackground(fixtureName, snippet) {
   const { page, hiddenAtStart } = await openHidden(`${base}/${fixtureName}`);
   try {
@@ -76,13 +89,97 @@ async function inBackground(fixtureName, snippet) {
       for (const metric of ["onLCP", "onFCP"]) window.webVitals[metric]((m) => window.__reported.push(m.name), { reportAllChanges: true });
     });
     await page.waitForTimeout(500);
-    const result = await page.evaluate(loadSnippet(snippet).trim().replace(/;\s*$/, ""));
+    const warnings = hiddenWarnings(page);
+    const result = await page.evaluate(asExpression(snippet));
     const reported = await page.evaluate(() => window.__reported);
-    return { result, reported, hiddenAtStart };
+    // The observers of the snippet that keep tracking after it returns
+    await page.waitForTimeout(200);
+    return { result, reported, hiddenAtStart, warnings };
   } finally {
     await page.close();
   }
 }
+
+// The visibility-state entries and the activationStart that a test sets, read by the snippets and by
+// web-vitals as those of the browser. A page Playwright opens cannot be hidden and shown again, and a
+// real prerender needs no CDP session on the page that starts it, so these tests give the entries a
+// browser records in those cases. Until the test sets them, the real ones.
+const VISIBILITY_STUB = () => {
+  const real = performance.getEntriesByType.bind(performance);
+  performance.getEntriesByType = (type) => {
+    if (type === "visibility-state" && window.__visibility) return window.__visibility;
+    if (type === "navigation" && window.__activationStart !== undefined) {
+      const nav = real(type)[0];
+      const get = (target, key) => (key === "activationStart" ? window.__activationStart : typeof target[key] === "function" ? target[key].bind(target) : target[key]);
+      return [new Proxy(nav, { get })];
+    }
+    return real(type);
+  };
+};
+
+// Opens a fixture in a tab in front, lets `setup` change what the page did, and runs the snippet. The
+// page starts web-vitals after the setup, so it reads the same entries as the snippet.
+async function inFront(fixtureName, snippet, setup) {
+  const page = await context.newPage();
+  try {
+    await page.addInitScript(VISIBILITY_STUB);
+    await page.goto(`${base}/${fixtureName}`);
+    await page.waitForTimeout(300);
+    const scenario = await page.evaluate(setup);
+    await page.waitForTimeout(300);
+    await page.evaluate(() => {
+      window.__reported = {};
+      for (const metric of ["onLCP", "onFCP"]) window.webVitals[metric]((m) => (window.__reported[m.name] = m.value), { reportAllChanges: true });
+    });
+    await page.waitForTimeout(300);
+    const visibility = await page.evaluate(() => document.visibilityState);
+    const warnings = hiddenWarnings(page);
+    const result = await page.evaluate(asExpression(snippet));
+    const reported = await page.evaluate(() => window.__reported);
+    const lcpTimes = await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          const times = [];
+          const obs = new PerformanceObserver((list) => times.push(...list.getEntries().map((e) => e.startTime)));
+          obs.observe({ type: "largest-contentful-paint", buffered: true });
+          setTimeout(() => { obs.disconnect(); resolve(times); }, 100);
+        })
+    );
+    return { result, reported, scenario, visibility, lcpTimes, warnings };
+  } finally {
+    await page.close();
+  }
+}
+
+// A prerendered page: hidden from its start until its activation, then shown, with every paint after
+// the activation
+const PRERENDERED = () => {
+  const fcp = performance.getEntriesByName("first-contentful-paint")[0].startTime;
+  window.__activationStart = Math.round(fcp / 2);
+  window.__visibility = [
+    { name: "hidden", entryType: "visibility-state", startTime: 0 },
+    { name: "visible", entryType: "visibility-state", startTime: window.__activationStart },
+  ];
+  return { activationStart: window.__activationStart };
+};
+
+// The user switched to another tab and back after the page painted, and then the page painted a larger
+// element: the candidate after the page was hidden is not the LCP, the one before it is
+const HIDDEN_THEN_LARGER = () => {
+  const hiddenAt = performance.now();
+  window.__visibility = [
+    { name: "visible", entryType: "visibility-state", startTime: 0 },
+    { name: "hidden", entryType: "visibility-state", startTime: hiddenAt },
+    { name: "visible", entryType: "visibility-state", startTime: hiddenAt + 1 },
+  ];
+  const larger = document.createElement("p");
+  larger.style.cssText = "font-size:64px;line-height:1.1;margin:0";
+  larger.textContent = "A paragraph that paints after the page was hidden and shown again, larger than anything before it.";
+  document.body.prepend(larger);
+  return { hiddenAt };
+};
+
+const within1ms = (actual, expected) => expect(Math.abs(actual - expected), `${actual} vs ${expected}`).toBeLessThanOrEqual(1);
 
 describe("a page that loaded in a background tab", () => {
   it.each([
@@ -92,18 +189,72 @@ describe("a page that loaded in a background tab", () => {
     ["CoreWebVitals/LCP-Video-Candidate", "video-poster.html"],
     ["Loading/FCP", "observer-lcp.html"],
   ])("%s gives no time, and says the page was hidden before it painted", async (snippet, page) => {
-    const { result, reported, hiddenAtStart } = await inBackground(page, snippet);
+    const { result, reported, hiddenAtStart, warnings } = await inBackground(page, snippet);
     expect(hiddenAtStart, "the tab opened hidden").toBe("hidden");
     // web-vitals, the reference, reports neither LCP nor FCP for it
     expect(reported).toEqual([]);
     expect(result.status, JSON.stringify(result)).toBe("error");
     expect(result.error).toMatch(HIDDEN);
     expect(result).not.toHaveProperty("value");
+    // The console says it once, however many candidates the page painted
+    expect(warnings).toHaveLength(1);
   }, 30000);
 
   // The image of the LCP is the one the page shows, hidden or not: its entropy does not depend on time
   it("CoreWebVitals/LCP-Image-Entropy still checks the LCP image", async () => {
-    const { result } = await inBackground("observer-lcp.html", "CoreWebVitals/LCP-Image-Entropy");
+    const { result, hiddenAtStart } = await inBackground("observer-lcp.html", "CoreWebVitals/LCP-Image-Entropy");
+    expect(hiddenAtStart, "the tab opened hidden").toBe("hidden");
     expect(result.status, JSON.stringify(result)).toBe("ok");
+  }, 30000);
+});
+
+describe("a prerendered page, hidden until its activation", () => {
+  it.each([
+    ["CoreWebVitals/LCP", "observer-lcp.html"],
+    ["CoreWebVitals/LCP-Subparts", "observer-lcp.html"],
+    ["CoreWebVitals/LCP-Trail", "observer-lcp.html"],
+    ["CoreWebVitals/LCP-Video-Candidate", "video-poster.html"],
+  ])("%s gives the LCP from the activation, as web-vitals does", async (snippet, page) => {
+    const { result, reported, visibility } = await inFront(page, snippet, PRERENDERED);
+    expect(visibility).toBe("visible");
+    expect(result.status, JSON.stringify(result)).toBe("ok");
+    expect(reported.LCP, "web-vitals reports an LCP").toBeGreaterThan(0);
+    within1ms(result.value, reported.LCP);
+  }, 30000);
+
+  it("Loading/FCP gives the FCP from the activation, as web-vitals does", async () => {
+    const { result, reported } = await inFront("observer-lcp.html", "Loading/FCP", PRERENDERED);
+    expect(result.status, JSON.stringify(result)).toBe("ok");
+    expect(reported.FCP, "web-vitals reports an FCP").toBeGreaterThan(0);
+    within1ms(result.value, reported.FCP);
+  }, 30000);
+});
+
+describe("a page hidden and shown again after it painted, that then paints a larger element", () => {
+  it.each([
+    ["CoreWebVitals/LCP", "observer-lcp.html"],
+    ["CoreWebVitals/LCP-Subparts", "observer-lcp.html"],
+    ["CoreWebVitals/LCP-Trail", "observer-lcp.html"],
+    ["CoreWebVitals/LCP-Video-Candidate", "video-poster.html"],
+  ])("%s gives the last candidate painted before the page was hidden, as web-vitals does", async (snippet, page) => {
+    const { result, reported, scenario, lcpTimes, warnings } = await inFront(page, snippet, HIDDEN_THEN_LARGER);
+    expect(lcpTimes.at(-1), "the larger element painted after the page was hidden").toBeGreaterThan(scenario.hiddenAt);
+    expect(result.status, JSON.stringify(result)).toBe("ok");
+    expect(reported.LCP, "web-vitals reports an LCP").toBeLessThan(scenario.hiddenAt);
+    within1ms(result.value, reported.LCP);
+    // The console leaves out the candidate after the page was hidden, without a warning
+    expect(warnings).toEqual([]);
+  }, 30000);
+
+  it("CoreWebVitals/LCP-Trail lists only the candidates painted before the page was hidden", async () => {
+    const { result, scenario, lcpTimes } = await inFront("observer-lcp.html", "CoreWebVitals/LCP-Trail", HIDDEN_THEN_LARGER);
+    expect(result.status, JSON.stringify(result)).toBe("ok");
+    expect(result.details.candidates.length).toBe(lcpTimes.filter((t) => t < scenario.hiddenAt).length);
+  }, 30000);
+
+  it("Loading/FCP still gives the FCP", async () => {
+    const { result, reported } = await inFront("observer-lcp.html", "Loading/FCP", HIDDEN_THEN_LARGER);
+    expect(result.status, JSON.stringify(result)).toBe("ok");
+    within1ms(result.value, reported.FCP);
   }, 30000);
 });

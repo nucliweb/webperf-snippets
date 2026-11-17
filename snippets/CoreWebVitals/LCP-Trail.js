@@ -97,40 +97,44 @@
 
   // @shared hiddenBefore
   // Whether the page was hidden before `time`, a startTime: it loaded in a background tab, or the user
-  // switched away before it painted. A paint nobody saw is not the metric, and web-vitals does not report
-  // it. The visibility-state entries say when; without them, only whether the page is hidden now.
+  // switched to another tab before it painted. A paint nobody saw is not the metric, and web-vitals does
+  // not report it. The first visibility-state entry "hidden" says when, as in web-vitals: a prerendered
+  // page is hidden until its activation, so only an entry from the activation on counts. Without one, the
+  // page was hidden from its start only if it is hidden now.
   function hiddenBefore(time) {
-    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state")) {
-      const hidden = performance.getEntriesByType("visibility-state").find((entry) => entry.name === "hidden");
-      return hidden !== undefined && hidden.startTime <= time;
+    if (PerformanceObserver.supportedEntryTypes?.includes("visibility-state") && !document.prerendering) {
+      const activationStart = performance.getEntriesByType("navigation")[0]?.activationStart || 0;
+      const hidden = performance
+        .getEntriesByType("visibility-state")
+        .find((entry) => entry.name === "hidden" && entry.startTime >= activationStart);
+      if (hidden) return hidden.startTime <= time;
     }
     return document.visibilityState === "hidden" && !document.prerendering;
   }
 
+  // Why a snippet gives no value for a metric the page painted while it was hidden
+  function hiddenMessage(metric) {
+    return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
+  }
+
   // The result of a snippet whose metric the page painted while it was hidden
   function hiddenResult(name, metric) {
-    return {
-      script: name,
-      status: "error",
-      error: `The page was hidden before its ${metric} was painted, as when it loads in a background tab, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`,
-    };
+    return { script: name, status: "error", error: hiddenMessage(metric) };
   }
 
   // The warning of the console, once however many times the page paints while it is hidden
   let hiddenWarned = false;
-  function warnHidden(script, metric) {
-    if (!hiddenWarned) console.warn(`⚠️ ${hiddenResult(script, metric).error}`);
+  function warnHidden(metric) {
+    if (!hiddenWarned) console.warn(`⚠️ ${hiddenMessage(metric)}`);
     hiddenWarned = true;
   }
   // @end-shared hiddenBefore
-
 
   const candidates = [];
 
   const logTrail = () => {
     const current = candidates[candidates.length - 1];
     if (!current) return;
-    if (hiddenBefore(current.entry.startTime)) return warnHidden("LCP-Trail", "LCP");
 
     const rating = valueToRating(current.time);
     const { icon, color: ratingColor } = RATING[rating];
@@ -179,11 +183,17 @@
     console.groupEnd();
   };
 
+  // The candidates painted after the page was hidden are not part of the trail of its LCP
   const observer = new PerformanceObserver((list) => {
+    const shown = list.getEntries().filter((entry) => !hiddenBefore(entry.startTime));
+    if (shown.length === 0) {
+      if (candidates.length === 0) warnHidden("LCP");
+      return;
+    }
     const activationStart = getActivationStart();
     const seen = new Set(candidates.map((c) => candidateKey(c.entry)));
 
-    for (const entry of list.getEntries()) {
+    for (const entry of shown) {
       const key = candidateKey(entry);
       if (seen.has(key)) continue;
       seen.add(key);
@@ -218,17 +228,19 @@
   // Return for agent (buffered entries)
   // Chrome only exposes largest-contentful-paint entries through a PerformanceObserver,
   // so performance.getEntriesByType() returns [] here. Collect via a buffered observer.
-  const trailEntries = await new Promise((resolve) => {
+  const lcpEntries = await new Promise((resolve) => {
     const entries = [];
     const obs = new PerformanceObserver((list) => entries.push(...list.getEntries()));
     obs.observe({ type: "largest-contentful-paint", buffered: true });
     setTimeout(() => { obs.disconnect(); resolve(entries); }, 100);
   });
-  if (trailEntries.length === 0) {
+  if (lcpEntries.length === 0) {
     return { script: "LCP-Trail", status: "error", error: "No LCP entries yet" };
   }
-  // The last candidate is the LCP: when the page was hidden before it, the trail is of paints nobody saw
-  if (hiddenBefore(trailEntries.at(-1).startTime)) return hiddenResult("LCP-Trail", "LCP");
+  // The trail ends at the last candidate painted before the page was hidden, its LCP; without one, the
+  // page painted every candidate while nobody saw it
+  const trailEntries = lcpEntries.filter((entry) => !hiddenBefore(entry.startTime));
+  if (trailEntries.length === 0) return hiddenResult("LCP-Trail", "LCP");
   const trailActivationStart = getActivationStart();
   const byKey = new Map();
   for (const entry of trailEntries) {
