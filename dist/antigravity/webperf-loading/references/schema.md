@@ -920,7 +920,7 @@ With no usage the script returns `count: 0`, no items and an `info` issue.
   "status": "ok",
   "count": 1,
   "details": { "highImpact": 0, "threshold": 0, "minHeight": 100, "minChildren": 5 },
-  "items": [{ "selector": "#comments", "height": "640px", "distanceFromViewport": "1200px", "childElements": 48, "estimatedSavings": "Medium (~9.6ms)" }],
+  "items": [{ "selector": "#comments", "height": 640, "distanceFromViewport": 1200, "childElements": 48, "estimatedSavings": "Medium (~9.6ms)" }],
   "issues": []
 }
 ```

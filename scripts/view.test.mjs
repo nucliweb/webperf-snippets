@@ -488,3 +488,23 @@ test(`no table of any snippet has more than ${MAX_COLUMNS} columns`, () => {
   })
   assert.deepEqual(found, [])
 })
+
+// The sizes and distances of Content-Visibility are numbers of px, as a script reads them, and the view
+// gives them their unit
+test('the sizes and distances of Content-Visibility read in px', () => {
+  const opportunities = {
+    script: 'Content-Visibility',
+    status: 'ok',
+    count: 1,
+    details: { highImpact: 0, threshold: 0, minHeight: 100, minChildren: 5 },
+    items: [{ selector: '#comments', height: 640, distanceFromViewport: 1200, childElements: 48, estimatedSavings: 'Medium (~9.6ms)' }],
+    issues: [],
+  }
+  const cells = Object.fromEntries(describeResult(opportunities).rows[0].cells.map((c) => [c.key, c.text]))
+  assert.equal(cells.height, '640 px')
+  assert.equal(cells.distanceFromViewport, '1,200 px')
+  const used = { script: 'Content-Visibility', status: 'ok', count: 1, items: [{ selector: '#late', contentVisibility: 'auto', containIntrinsicSize: 'auto 500px', width: 984, height: 500, top: 1900, inViewport: false }], issues: [] }
+  const usedCells = Object.fromEntries(describeResult(used).rows[0].cells.map((c) => [c.key, c.text]))
+  // Width and height together are one size
+  assert.deepEqual([usedCells.size, usedCells.top], ['984×500', '1,900 px'])
+})

@@ -94,8 +94,8 @@ The function returns an object in the shape of every snippet result, so a script
 Each item has:
 
 - **selector**: A CSS selector that matches only that element
-- **height**: Current height (use this for `contain-intrinsic-size`)
-- **distanceFromViewport**: How far below the viewport the element is
+- **height**: Current height in px (use this for `contain-intrinsic-size`)
+- **distanceFromViewport**: How far below the viewport the element is, in px
 - **childElements**: Number of descendant elements (more = higher impact)
 - **estimatedSavings**: Rough estimate of render time saved (Low/Medium/High)
 

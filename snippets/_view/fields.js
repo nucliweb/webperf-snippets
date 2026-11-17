@@ -14,6 +14,12 @@ export default {
     // The issues of a row: the issues section of the result lists them already
     issues: { hidden: true },
   },
+  'Content-Visibility': {
+    // Sizes and distances, numbers of px (width and height together are a size, 984×500)
+    height: { format: 'px' },
+    top: { format: 'px' },
+    distanceFromViewport: { format: 'px' },
+  },
   'Find-Above-The-Fold-Lazy-Loaded-Images': {
     // Its top and left in px: the distance from the edge of the viewport says what matters
     position: { hidden: true },
