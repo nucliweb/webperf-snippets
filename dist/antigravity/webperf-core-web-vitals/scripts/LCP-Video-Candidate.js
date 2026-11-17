@@ -37,6 +37,7 @@
     return {
       script: name,
       status: "error",
+      hiddenBeforePaint: true,
       error: hiddenMessage(metric)
     };
   }

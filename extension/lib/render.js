@@ -2,7 +2,7 @@
 // its rating, the issues, the items as a table, the details, and the whole result as JSON. Every
 // value comes from the inspected page, so all of it is escaped.
 
-import { describeResult, formatValue } from './view/index.js'
+import { describeResult, formatValue, hiddenBeforePaint } from './view/index.js'
 import { escape } from './html.js'
 import { EXPAND_URLS, textWithUrls, withLongUrls } from './long-url.js'
 
@@ -196,13 +196,15 @@ export function renderResult(result) {
 
   const view = describeResult(result)
   // "ok" means the snippet ran, not that the page is fine, so it shows nothing; the other states matter.
-  // The message is the one of the view, which speaks to the panel rather than to the console
+  // The message is the one of the view, which speaks to the panel rather than to the console. A page
+  // hidden before it painted measured nothing, as a tracking snippet with nothing recorded
+  const hidden = hiddenBeforePaint(result)
   const status =
     result.status === 'ok'
       ? view.message
         ? `<p class="note">${escape(view.message)}</p>`
         : ''
-      : `<p class="status status-${escape(result.status)}">${escape(STATUS[result.status] ?? result.status ?? '')}${
+      : `<p class="status status-${hidden ? 'tracking' : escape(result.status)}">${hidden ? 'Not measured' : escape(STATUS[result.status] ?? result.status ?? '')}${
           result.error ? `: ${escape(result.error)}` : ''
         }${view.message ? `. ${escape(view.message)}` : ''}</p>`
   // An audit without findings says so; a metric speaks through its value and rating

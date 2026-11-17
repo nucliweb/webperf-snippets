@@ -6,9 +6,15 @@ const SEVERITY = ['error', 'warning', 'info']
 const RATING = { good: 'good', 'needs-improvement': 'needs improvement', poor: 'poor' }
 const NOTHING = 'The snippet returned nothing'
 
+// A page hidden before it painted, as one opened in a background tab, has no LCP or FCP a user saw: the
+// snippet gives its reason instead of a value. Neither the snippet nor the page failed, so it measured
+// nothing, as a browser without the API
+export const hiddenBeforePaint = (result) => result?.status === 'error' && result.hiddenBeforePaint === true
+
 // The issues of a result by severity and the worst of them. A result that failed counts as an error,
 // and a rating that is not good as a warning when no issue says more
 export function summarizeIssues(result) {
+  if (hiddenBeforePaint(result)) return { status: 'hidden', errors: 0, warnings: 0, infos: 0, top: result.error }
   if (!result || typeof result !== 'object' || result.status === 'error') {
     return { status: 'error', errors: 1, warnings: 0, infos: 0, top: result?.error ?? NOTHING }
   }
@@ -23,8 +29,9 @@ export function summarizeIssues(result) {
 }
 
 // A result that measured nothing: the browser lacks the API it reads, it waits for interactions that did
-// not happen, or the run skipped it. It has no issue only because it did not look.
-const NOT_MEASURED = new Set(['unsupported', 'tracking', 'skipped'])
+// not happen, the page was hidden before it painted, or the run skipped it. It has no issue only because
+// it did not look.
+const NOT_MEASURED = new Set(['unsupported', 'tracking', 'hidden', 'skipped'])
 
 // How many results, from their summaries, have errors, have warnings and no error, have nothing to fix,
 // or measured nothing
@@ -43,7 +50,7 @@ export const describeOverview = ({ snippets, withErrors, withWarnings, withNothi
 // failed gives an error issue with its message
 export function issuesOf(results) {
   return results.flatMap((result) => {
-    const failed = !result || result.status === 'error'
+    const failed = !result || (result.status === 'error' && !hiddenBeforePaint(result))
     const list = failed ? [{ severity: 'error', message: result?.error ?? NOTHING }] : Array.isArray(result.issues) ? result.issues : []
     return list.map((i) => ({ ...(i.code ? { code: i.code } : {}), severity: i.severity, id: result?.id, message: i.message, ...(i.target ? { target: i.target } : {}) }))
   })

@@ -1,5 +1,5 @@
 import { fieldDataView, historyView, subPartsView, navigationView } from "../crux.js";
-import { describeResult } from "../view.js";
+import { describeResult, hiddenBeforePaint } from "../view.js";
 import { overviewLine } from "../overview.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { describeThrottling } from "../throttling.js";
@@ -38,9 +38,10 @@ function renderSkippedRow(r) {
   return `| ${r.id} | ⏭ skipped | ${cell(r.reason)} |`;
 }
 
-// A tracking snippet with nothing recorded, such as INP without interactions, measured nothing
+// A tracking snippet with nothing recorded, such as INP without interactions, or a page hidden before it
+// painted measured nothing: the reason it has no value
 function renderNotMeasuredRow(r) {
-  return `| ${r.id} | · not measured | ${cell(r.message ?? "nothing recorded")} |`;
+  return `| ${r.id} | · not measured | ${cell(r.message ?? r.error ?? "nothing recorded")} |`;
 }
 
 // The browser lacks the API the snippet reads, so there is no value to show
@@ -55,6 +56,7 @@ function renderSummaryRow(r) {
 
 function renderRow(r) {
   if (r.status === "skipped") return renderSkippedRow(r);
+  if (hiddenBeforePaint(r)) return renderNotMeasuredRow(r);
   if (r.status === "error") return renderErrorRow(r);
   if (r.status === "tracking") return renderNotMeasuredRow(r);
   if (r.status === "unsupported") return renderUnsupportedRow(r);

@@ -28,9 +28,10 @@
     return `The page was hidden before its ${metric} was painted, as when it loads in a background tab or the user switches to another tab before it paints, so the ${metric} is not what a user saw and web-vitals does not report it. Reload the page with its tab in front and run the snippet again.`;
   }
 
-  // The result of a snippet whose metric the page painted while it was hidden
+  // The result of a snippet whose metric the page painted while it was hidden: hiddenBeforePaint tells the
+  // reports that it measured nothing, and that neither the snippet nor the page failed
   function hiddenResult(name, metric) {
-    return { script: name, status: "error", error: hiddenMessage(metric) };
+    return { script: name, status: "error", hiddenBeforePaint: true, error: hiddenMessage(metric) };
   }
 
   // The warning of the console, once however many times the page paints while it is hidden

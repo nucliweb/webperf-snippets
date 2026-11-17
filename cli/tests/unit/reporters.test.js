@@ -801,6 +801,26 @@ describe("the details of each result in the markdown report", () => {
   });
 });
 
+describe("a result of a page hidden before it painted", () => {
+  const hidden = {
+    url: "https://example.com",
+    navMs: 850,
+    results: [{ id: "LCP", script: "LCP", status: "error", hiddenBeforePaint: true, error: "The page was hidden before its LCP was painted" }],
+  };
+
+  it("shows in the human report as not measured with its reason, and not as an error", () => {
+    const output = reportHuman(hidden);
+    expect(output).toMatch(/LCP\s+.*not measured: The page was hidden before its LCP was painted/);
+    expect(output).not.toContain("✗");
+  });
+
+  it("shows in the markdown report as not measured with its reason, and not as an error", () => {
+    const output = reportMarkdown(hidden);
+    expect(output).toContain("| LCP | · not measured | The page was hidden before its LCP was painted |");
+    expect(output).not.toContain("❌");
+  });
+});
+
 describe("a result of a browser without the API", () => {
   const unsupported = {
     url: "https://example.com",

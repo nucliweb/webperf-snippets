@@ -86,6 +86,12 @@ test('an error or an unsupported result shows its message', () => {
   assert.match(renderResult({ script: 'X', status: 'unsupported', error: 'Not in this browser' }), /class="status status-unsupported".*Not in this browser/s)
 })
 
+test('a page hidden before it painted shows as not measured with its reason, not as an error', () => {
+  const html = renderResult({ script: 'LCP', status: 'error', hiddenBeforePaint: true, error: 'The page was hidden before its LCP was painted' })
+  assert.match(html, /class="status status-tracking">Not measured: The page was hidden before its LCP was painted/)
+  assert.doesNotMatch(html, /status-error/)
+})
+
 test('a tracking result says what to do in the panel, not the message for the console', () => {
   const html = renderResult({ script: 'INP', status: 'tracking', message: 'Interact with the page, then call getINP()', getDataFn: 'getINP' })
   assert.match(html, /class="status status-tracking">Tracking\. Nothing recorded yet\. Use the page, then read the result\.<\/p>/)

@@ -1,5 +1,5 @@
 import { styleText, stripVTControlCharacters } from "node:util";
-import { describeResult } from "../view.js";
+import { describeResult, hiddenBeforePaint } from "../view.js";
 import { overviewLine } from "../overview.js";
 import { isSummaryResult, summaryNumbers } from "./summary-view.js";
 import { fieldDataView, historyView, subPartsView, navigationView } from "../crux.js";
@@ -135,6 +135,11 @@ function renderSummaryResult(r, terminal) {
 function renderResult(r, verbose, terminal) {
   if (r.status === "skipped") {
     return `  ${styleText("dim", "-")} ${pad(r.id, 16)} ${styleText("dim", `skipped: ${r.reason}`)}`;
+  }
+
+  // A page hidden before it painted has no value a user saw, and the snippet says why
+  if (hiddenBeforePaint(r)) {
+    return `  ${styleText("dim", "·")} ${pad(r.id, 16)} ${styleText("dim", `not measured: ${r.error}`)}`;
   }
 
   if (r.status === "error") {

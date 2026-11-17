@@ -1,10 +1,13 @@
+import { hiddenBeforePaint } from "./view.js";
+
 // The results that make the command exit with 1: a snippet that failed, and an issue of the severities
 // that count in a step the workflow runs itself. A follow-up (a result with a reason) only informs: its
-// issues show in the report and leave the exit code to the budgets and to the steps.
+// issues show in the report and leave the exit code to the budgets and to the steps. A page hidden before
+// it painted measured nothing: the snippet did not fail.
 function failing(results, severities) {
   const issues = [];
   for (const r of results) {
-    if (r.status === "error") issues.push({ id: r.id, message: r.error });
+    if (r.status === "error" && !hiddenBeforePaint(r)) issues.push({ id: r.id, message: r.error });
     if (r.reason || !Array.isArray(r.issues)) continue;
     for (const issue of r.issues) {
       if (severities.includes(issue.severity)) {

@@ -194,6 +194,8 @@ describe("a page that loaded in a background tab", () => {
     // web-vitals, the reference, reports neither LCP nor FCP for it
     expect(reported).toEqual([]);
     expect(result.status, JSON.stringify(result)).toBe("error");
+    // A field the reports read, so the result counts as not measured rather than as a failure
+    expect(result.hiddenBeforePaint).toBe(true);
     expect(result.error).toMatch(HIDDEN);
     expect(result).not.toHaveProperty("value");
     // The console says it once, however many candidates the page painted
