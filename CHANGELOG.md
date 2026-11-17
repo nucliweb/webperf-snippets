@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.7.0] — 2026-11-18
+
+Every category of snippets has its page, the sitemap says when each page changed, and LCP and FCP follow web-vitals for a page that was hidden before it painted: a page opened in a background tab gives no time and counts as not measured, and a prerendered page is measured from its activation. `analyzeContentVisibilityOpportunities()` returns the shape of every snippet result, so a script that reads `totalElements` or `opportunities` reads `count` and `items` instead. The site and the panel of the extension work with a keyboard and a screen reader where they did not. The extension reaches 0.6.4 with these snippets, and the CLI 1.18.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)), which ships them, lists what it runs with `--list` and shows its progress on a terminal.
+
 ### Added
 - The MCP server page says that a client built with the MCP SDK starts the server without most variables of the shell, and that a `PLAYWRIGHT_BROWSERS_PATH` of your own goes in the `env` of the server configuration.
 - Each category of snippets has a page, `/CoreWebVitals`, `/Loading`, `/Interaction`, `/Media` and `/Resources`, with every page of the category in the order of the sidebar, each with its description. The breadcrumb links the category, in the page and in its `BreadcrumbList`, which left it out because its URL was a 404, and the category pages are in the sitemap and in the Markdown version of the site.
@@ -415,7 +419,14 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.2...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.3...v2.7.0
+[2.6.3]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.2...v2.6.3
+[2.6.2]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.1...v2.6.2
+[2.6.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.0...v2.6.1
+[2.6.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.5.1...v2.6.0
+[2.5.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.5.0...v2.5.1
+[2.5.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.2...v2.5.0
 [2.4.2]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/nucliweb/webperf-snippets/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.3.0...v2.4.0

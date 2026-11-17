@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+## [1.18.0] — 2026-11-18
+
+The CLI says what it does: `--list` prints every workflow and snippet without opening a browser, a line on the terminal shows the stage and the time of the run, and an option that does not exist names the one it may have meant. The overview counts apart the snippets that measured nothing, in `notMeasured`. It ships the snippets of the collection 2.7.0, in which an LCP or FCP of a page hidden before it painted is not measured and does not make the CLI exit with `1`.
+
 ### Added
 - The `overview` of `--json` and of the MCP tools carries `notMeasured`: the snippets that measured nothing, because the browser does not support them, they track interactions and recorded none, or the run skipped them. They counted as snippets with nothing to fix. The overview line of the human and markdown reports adds them when there are some. The exit code does not change.
 - On a terminal, the CLI shows what the run is doing while it measures, on one line that it rewrites: the stage (Chromium opens, the page loads, the snippets run) and the time the run has taken, and with `--runs` or `--matrix` which run it is and about how long is left, from the runs that ended. The line goes away before the report. It only shows when stderr is a terminal, so a pipe, a file and the log of a CI job get what they got: nothing for one run, and a line for each run of several.
@@ -22,6 +26,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 - The CLI loads Playwright when it opens the browser, not when it starts: `--help`, `--version` and a usage error answer about five times sooner, and work where Playwright is not installed. A measurement without Playwright says how to install it, in one line, where it ended in the stack of a module that was not found. The MCP server starts without loading it too, and its tools give the same message.
 
 ### Fixed
+- LCP, LCP-Subparts, LCP-Trail, LCP-Video-Candidate and FCP, the snippets of the collection 2.7.0, give no time for a page hidden before it painted, as web-vitals does, with `hiddenBeforePaint: true` in the result. The overview counts it in `notMeasured`, the human and markdown reports show it as not measured with its reason, and it does not make the CLI exit with `1`; a budget of its metric still fails as not measured. A page that Playwright opens is in front, so a run of the CLI measures as before.
+- Forced-Synchronous-Layout and INP, of the collection 2.7.0, name each element with a selector that matches only it. LCP-Video-Candidate reads the format of a poster from the transformation an image CDN is asked for, before the extension of the file. Content-Visibility gives `height` and `distanceFromViewport` as numbers of px, and leaves out the content the browser already skips.
 - In the table of a matrix with a median that carries its coefficient of variation, each heading stays over its column: the cells got wider and the headings did not.
 
 ---
@@ -410,7 +416,9 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.16.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.18.0...HEAD
+[1.18.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.17.0...cli-v1.18.0
+[1.17.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.16.0...cli-v1.17.0
 [1.16.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.15.0...cli-v1.16.0
 [1.15.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.14.1...cli-v1.15.0
 [1.14.1]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.14.0...cli-v1.14.1
