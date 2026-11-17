@@ -195,9 +195,13 @@ describe("CSS-Complexity", () => {
     ":lang(en)", ":dir(rtl)", ":host(.x)", "::slotted(.a)", "::part(label)", "&:hover", ".x\\:hover\\:bg-red:hover",
     '.nav > ul li:not(.a) a[href^="http"]', ":root", ":where(.a, .b, .c)", ".a:not(.b, .c)", "button:focus-visible",
     'html body div#main.content > ul.list li.item:first-child a.link[target="_blank"]::after',
-    // Nested pseudo-classes: css-analyzer adds the selectors they hold once more
+    // Nested pseudo-classes: each selector counts once, at its depth (css-analyzer 9.9.6 and later)
     ":where(select:is(.a))", ":is(:is(.a))", ":not(:not(.a))", ":where(select:is([multiple], [size])) optgroup option",
     ":host(:is(.a))", ":where(:host(.a))", ":not(:where(:is(.a)))", "li:nth-child(2n of :is(.a))", ":where(:not(.a, .b))",
+    // A pseudo whose argument is a selector adds 1 and that selector; one whose argument is words adds 1 per
+    // word and per comma
+    ":host(.a.b)", "::slotted(span.a)", ":host-context(.dark)", "::part(a b c)", ":dir(ltr) .a", ":state(checked)",
+    "::highlight(my-name)", "li:nth-child(odd)", ":nth-last-child(2 of .a, .b)", ":-webkit-any(.a, .b)",
   ])("gives %s the complexity css-analyzer gives it", async (selector) => {
     const page = await browser.newPage();
     try {

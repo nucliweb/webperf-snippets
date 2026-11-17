@@ -70,7 +70,7 @@ The thresholds come from [The CSS Selection 2026](https://www.projectwallace.com
 
 ### Selector complexity
 
-The complexity of a selector counts its parts, as [css-analyzer](https://github.com/projectwallace/css-analyzer) does: each type, class, id, attribute, pseudo-class, pseudo-element, combinator, `*` and `&` counts 1, and a vendor prefix or an attribute value 1 more. `:is()`, `:where()`, `:not()` and `:has()` add the selectors they hold, so `.nav > ul li:not(.active) a[href^="http"]` is 11.
+The complexity of a selector counts its parts, as [css-analyzer](https://github.com/projectwallace/css-analyzer) does: each type, class, id, attribute, pseudo-class, pseudo-element, combinator, `*` and `&` counts 1, and a vendor prefix or an attribute value 1 more. `:is()`, `:where()`, `:not()` and `:has()` add the selectors they hold, each one once, so `.nav > ul li:not(.active) a[href^="http"]` is 11 and `:is(:is(.a))` is 3. `:host()` and `::slotted()` add 1 and their selector, and a pseudo whose argument is words, such as `:dir(rtl)` or `::part(label)`, 1 for each word.
 
 Complexity says how hard a selector is to read and to maintain, not how long the browser takes to match it. To measure that cost, record a trace with **Enable CSS selector stats** in the Performance panel and open the [CSS selector costs](https://developer.chrome.com/docs/performance/insights/slow-css-selector) insight.
 

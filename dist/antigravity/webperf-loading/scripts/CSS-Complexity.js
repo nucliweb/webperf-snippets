@@ -59,16 +59,14 @@
     return found;
   }
   const SELECTOR_FUNCTIONS = new Set([ "is", "where", "not", "has", "matches", "-webkit-any", "-moz-any" ]);
+  const SELECTOR_ARGUMENT = new Set([ "host", "host-context", "slotted", "cue", "current", "past", "future" ]);
+  const NTH = new Set([ "nth-child", "nth-last-child", "nth-of-type", "nth-last-of-type" ]);
   const total = values => values.reduce((a, b) => a + b, 0);
-  const selectorsIn = text => splitTopLevel(text, ",").flatMap(selector => {
-    const {complexity: complexity, nested: nested} = analyzeSelector(selector);
-    return [ complexity, ...nested ];
-  });
-  const complexityOf = selectorText => analyzeSelector(selectorText).complexity;
-  function analyzeSelector(selectorText) {
+  const listComplexity = text => total(splitTopLevel(text, ",").map(complexityOf));
+  const words = text => (text.match(/"[^"]*"|'[^']*'|,|[^\s,]+/g) ?? []).length;
+  function complexityOf(selectorText) {
     const s = selectorText.trim();
     let complexity = 0;
-    const nested = [];
     let i = 0;
     let afterCombinator = false;
     const readIdent = () => {
@@ -122,26 +120,14 @@
         if (s[i] === "(") {
           const arg = readGroup("(", ")").trim();
           const of = name === "nth-child" || name === "nth-last-child" ? arg.match(/\sof\s([\s\S]+)$/i) : null;
-          if (SELECTOR_FUNCTIONS.has(name) || of) {
-            const found = selectorsIn(of ? of[1] : arg);
-            complexity += total(found);
-            nested.push(...found);
-          } else if (name === "nth-child" || name === "nth-last-child" || name === "nth-of-type" || name === "nth-last-of-type" || name === "lang") complexity += arg ? 1 : 0; else {
-            const found = selectorsIn(arg);
-            const own = splitTopLevel(arg, ",").map(complexityOf);
-            complexity += 1 + total(own);
-            nested.push(...found);
-          }
+          if (SELECTOR_FUNCTIONS.has(name) || of) complexity += listComplexity(of ? of[1] : arg); else if (NTH.has(name)) complexity += arg ? 1 : 0; else if (SELECTOR_ARGUMENT.has(name)) complexity += 1 + listComplexity(arg); else complexity += words(arg);
         }
       } else if (/[\w-\\]/.test(c) || s.charCodeAt(i) > 127) {
         readIdent();
         complexity++;
       } else i++;
     }
-    return {
-      complexity: complexity,
-      nested: nested
-    };
+    return complexity;
   }
   function modeOf(values) {
     const frequencies = new Map;
