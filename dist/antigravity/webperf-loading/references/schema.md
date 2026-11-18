@@ -1322,6 +1322,8 @@ An issue about one thing among several, one issue per thing, also names it in `t
 | `third-party-blocking` | error | Blocking scripts from a third party |
 | `large-blocking` | warning | Blocking scripts larger than 50 KB |
 | `could-defer` | info | Blocking scripts other than the last three of `<body>`, which could try `defer` |
+| `third-party-module-high-priority` | warning | A third-party module script fetched at high priority, by itself or by its `modulepreload`, one issue per script, with its URL in `target` |
+| `non-blocking-high-priority` | warning | `fetchpriority="high"` on a third-party `async` or `defer` script, one issue per script, with its URL in `target` |
 | `unknown-size` | info | Scripts whose size is hidden by a missing `Timing-Allow-Origin`, so the total is a lower bound |
 
 ### CSS-Complexity
