@@ -209,7 +209,7 @@ test('a distribution reads as a line of its parts, with the numbers in bold', ()
   assert.match(html, /<dt>By strategy<\/dt><dd>async <b>82<\/b> · defer <b>3<\/b><\/dd>/)
 })
 
-test('the phases of a metric are a bar on the scale of its thresholds, and a row each', () => {
+test('the phases of a metric fill a bar in their proportion, over a strip of its thresholds with a mark at the value, and a row each', () => {
   const html = renderResult({
     script: 'TTFB-Sub-Parts',
     status: 'ok',
@@ -220,13 +220,40 @@ test('the phases of a metric are a bar on the scale of its thresholds, and a row
     details: { subParts: { redirectWait: { value: 32, unit: 'ms' }, dnsLookup: { value: 0, unit: 'ms' }, serverResponse: { value: 1292, unit: 'ms' } } },
   })
   assert.match(html, /<div class="phases"><p class="phases-label">Subparts<\/p>/)
-  // A segment for each phase that took time, in the colour of its place
+  // A segment for each phase that took time, in the colour of its place, the whole bar for the value
   assert.equal([...html.matchAll(/<span class="phase phase-\d"/g)].length, 2)
-  assert.match(html, /<span class="zone zone-good" style="width:40%"><\/span>/)
+  assert.match(html, /<span class="phase phase-0" style="left:0%;width:2.4%"/)
+  assert.match(html, /<span class="phase phase-2" style="left:2.4%;width:97.6%"/)
+  // The thresholds apart, the poor one at 90% of the width, with a mark where the value falls
+  assert.match(html, /<div class="phase-scale" aria-hidden="true"><span class="zone zone-good" style="width:40%"><\/span><span class="zone zone-ni" style="width:50%"><\/span><span class="zone zone-poor"><\/span><span class="phase-mark" style="left:66.2%"><\/span><\/div>/)
+  assert.match(html, /<div class="phase-ticks" aria-hidden="true"><span style="left:40%">800 ms<\/span><span style="left:90%">1,800 ms<\/span><\/div>/)
   assert.match(html, /<li class="phase-row"><span class="swatch phase-0"><\/span><span class="phase-name">Redirect<\/span><span class="phase-value">32 ms<\/span><span class="phase-percent">2%<\/span><\/li>/)
   assert.match(html, /<li class="phase-row slowest"><span class="swatch phase-2"><\/span><span class="phase-name">Request<\/span>/)
   // Phases are not one more field of the list
   assert.doesNotMatch(html, /<dt>Subparts<\/dt>/)
+})
+
+// A good LCP is a few percent of the scale of its thresholds: on that scale its phases were too thin to
+// read, and one of 2 ms did not show
+test('the phases of a fast metric still fill the bar', () => {
+  const html = renderResult({
+    script: 'LCP-Subparts',
+    status: 'ok',
+    metric: 'LCP',
+    value: 168,
+    unit: 'ms',
+    thresholds: { good: 2500, needsImprovement: 4000 },
+    details: { subParts: { ttfb: { value: 13 }, resourceLoadDelay: { value: 98 }, resourceLoadTime: { value: 2 }, elementRenderDelay: { value: 55 } } },
+  })
+  assert.match(html, /<span class="phase phase-1" style="left:7.7%;width:58.3%"/)
+  assert.match(html, /<span class="phase phase-3" style="left:67.3%;width:32.7%"/)
+  assert.match(html, /<span class="phase-mark" style="left:3.8%"><\/span>/)
+})
+
+test('phases without thresholds have no strip', () => {
+  const html = renderResult({ script: 'X', status: 'ok', details: { phases: { inputDelay: { value: 7 }, processing: { value: 21 } } } })
+  assert.match(html, /<span class="phase phase-0" style="left:0%;width:25%"/)
+  assert.doesNotMatch(html, /phase-scale|phase-ticks/)
 })
 
 test('a list of objects in the details is a folded table', () => {
