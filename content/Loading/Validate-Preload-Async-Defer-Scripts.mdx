@@ -135,9 +135,9 @@ The snippet provides specific guidance on:
 ### Anti-pattern (hurts performance)
 
 ```html
-<!-- Preloading Google Analytics (async) - BAD -->
-<link rel="preload" href="https://www.google-analytics.com/analytics.js" as="script" />
-<script async src="https://www.google-analytics.com/analytics.js"></script>
+<!-- Preloading an async analytics script - BAD -->
+<link rel="preload" href="https://analytics.example.net/analytics.js" as="script" />
+<script async src="https://analytics.example.net/analytics.js"></script>
 
 <!-- Result: Analytics competes with critical resources like fonts/CSS -->
 ```
@@ -146,7 +146,7 @@ The snippet provides specific guidance on:
 
 ```html
 <!-- No preload - async is enough -->
-<script async src="https://www.google-analytics.com/analytics.js"></script>
+<script async src="https://analytics.example.net/analytics.js"></script>
 
 <!-- Save preload for truly critical resources -->
 <link rel="preload" href="/critical-font.woff2" as="font" type="font/woff2" crossorigin />

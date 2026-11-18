@@ -175,6 +175,8 @@ Use this decision tree to automatically run follow-up snippets based on results:
   2. **First-And-Third-Party-Script-Info.js** (identify third-party culprits)
 - **If third-party scripts detected** → Run **First-And-Third-Party-Script-Timings.js**
 - **If large inline scripts** → Run **Inline-Script-Info-and-Size.js**
+- **If `third-party-module-high-priority` or `non-blocking-high-priority`** → Recommend the fix of the issue (`fetchpriority="low"` on the module or its `modulepreload`, or no `fetchpriority="high"` on the `async` or `defer` script), and run **LCP-Subparts.js**: a long resource load delay of the LCP image says the competition for the network matters
+- **If a script takes its priority from a preload** → Run **Validate-Preload-Async-Defer-Scripts.js**
 
 ### After Resource-Hints-Validation.js
 

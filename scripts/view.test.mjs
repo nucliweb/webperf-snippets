@@ -508,3 +508,25 @@ test('the sizes and distances of Content-Visibility read in px', () => {
   // Width and height together are one size
   assert.deepEqual([usedCells.size, usedCells.top], ['984×500', '1,900 px'])
 })
+
+test('the priority of a script and its fetchpriority attribute read apart in Script-Loading', () => {
+  const scripts = {
+    script: 'Script-Loading',
+    status: 'ok',
+    count: 2,
+    details: { priorityModel: 'chromium', byPriority: { high: 1, medium: 0, low: 1 } },
+    items: [
+      { url: 'https://cdn.example.net/tag.js', shortName: 'tag.js', strategy: 'async', location: 'head', party: 'third', priority: 'low', fetchpriority: 'low', sizeBytes: 0, sizeKnown: false, durationMs: 4 },
+      { url: 'https://example.com/main.mjs', shortName: 'main.mjs', strategy: 'module', location: 'head', party: 'first', priority: 'high', fetchpriority: null, sizeBytes: 307, sizeKnown: true, durationMs: 4 },
+    ],
+    issues: [],
+  }
+  const view = describeResult(scripts)
+  const labels = Object.fromEntries(view.columns.map((c) => [c.key, c.label]))
+  assert.equal(labels.priority, 'Priority')
+  assert.equal(labels.fetchpriority, 'Priority hint')
+  const cells = view.rows.map((row) => Object.fromEntries(row.cells.map((c) => [c.key, c.text])))
+  // The attribute reads as it is written in the HTML, so a row never shows "low low"
+  assert.deepEqual([cells[0].priority, cells[0].fetchpriority], ['low', 'fetchpriority="low"'])
+  assert.deepEqual([cells[1].priority, cells[1].fetchpriority], ['high', ''])
+})
