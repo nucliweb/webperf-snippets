@@ -18,7 +18,13 @@
       "firstParty": 82,
       "thirdParty": 0
     },
-    "thirdPartyBlockingCount": 0
+    "thirdPartyBlockingCount": 0,
+    "priorityModel": "chromium",
+    "byPriority": {
+      "high": 0,
+      "medium": 0,
+      "low": 82
+    }
   },
   "items": [
     {
@@ -27,9 +33,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 4
+      "durationMs": 3
     },
     {
       "url": "http://127.0.0.1:8000/s1.js",
@@ -37,9 +45,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 4
+      "durationMs": 5
     },
     {
       "url": "http://127.0.0.1:8000/s2.js",
@@ -47,9 +57,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 9
+      "durationMs": 5
     },
     {
       "url": "http://127.0.0.1:8000/s3.js",
@@ -57,9 +69,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 9
+      "durationMs": 7
     },
     {
       "url": "http://127.0.0.1:8000/s4.js",
@@ -67,9 +81,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 11
+      "durationMs": 8
     },
     {
       "url": "http://127.0.0.1:8000/s5.js",
@@ -77,9 +93,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 11
+      "durationMs": 8
     },
     {
       "url": "http://127.0.0.1:8000/s6.js",
@@ -87,9 +105,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 12
+      "durationMs": 9
     },
     {
       "url": "http://127.0.0.1:8000/s7.js",
@@ -97,9 +117,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "url": "http://127.0.0.1:8000/s8.js",
@@ -107,9 +129,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "url": "http://127.0.0.1:8000/s9.js",
@@ -117,9 +141,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 12
+      "durationMs": 7
     },
     {
       "url": "http://127.0.0.1:8000/s10.js",
@@ -127,9 +153,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 14
+      "durationMs": 7
     },
     {
       "url": "http://127.0.0.1:8000/s11.js",
@@ -137,9 +165,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 15
+      "durationMs": 8
     },
     {
       "url": "http://127.0.0.1:8000/s12.js",
@@ -147,9 +177,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 16
+      "durationMs": 8
     },
     {
       "url": "http://127.0.0.1:8000/s13.js",
@@ -157,9 +189,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 16
+      "durationMs": 8
     },
     {
       "url": "http://127.0.0.1:8000/s14.js",
@@ -167,9 +201,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 17
+      "durationMs": 8
     },
     {
       "url": "http://127.0.0.1:8000/s15.js",
@@ -177,9 +213,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 17
+      "durationMs": 8
     },
     {
       "url": "http://127.0.0.1:8000/s16.js",
@@ -187,9 +225,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 20
+      "durationMs": 9
     },
     {
       "url": "http://127.0.0.1:8000/s17.js",
@@ -197,9 +237,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 20
+      "durationMs": 9
     },
     {
       "url": "http://127.0.0.1:8000/s18.js",
@@ -207,9 +249,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 22
+      "durationMs": 9
     },
     {
       "url": "http://127.0.0.1:8000/s19.js",
@@ -217,9 +261,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 22
+      "durationMs": 10
     },
     {
       "url": "http://127.0.0.1:8000/s20.js",
@@ -227,9 +273,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 22
+      "durationMs": 10
     },
     {
       "url": "http://127.0.0.1:8000/s21.js",
@@ -237,9 +285,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 22
+      "durationMs": 10
     },
     {
       "url": "http://127.0.0.1:8000/s22.js",
@@ -247,9 +297,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 24
+      "durationMs": 9
     },
     {
       "url": "http://127.0.0.1:8000/s23.js",
@@ -257,9 +309,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 24
+      "durationMs": 9
     },
     {
       "url": "http://127.0.0.1:8000/s24.js",
@@ -267,9 +321,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 25
+      "durationMs": 12
     },
     {
       "url": "http://127.0.0.1:8000/s25.js",
@@ -277,9 +333,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 26
+      "durationMs": 11
     },
     {
       "url": "http://127.0.0.1:8000/s26.js",
@@ -287,9 +345,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 26
+      "durationMs": 11
     },
     {
       "url": "http://127.0.0.1:8000/s27.js",
@@ -297,9 +357,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 26
+      "durationMs": 11
     },
     {
       "url": "http://127.0.0.1:8000/s28.js",
@@ -307,9 +369,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 29
+      "durationMs": 12
     },
     {
       "url": "http://127.0.0.1:8000/s29.js",
@@ -317,9 +381,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 29
+      "durationMs": 12
     },
     {
       "url": "http://127.0.0.1:8000/s30.js",
@@ -327,9 +393,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 30
+      "durationMs": 13
     },
     {
       "url": "http://127.0.0.1:8000/s31.js",
@@ -337,9 +405,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 30
+      "durationMs": 13
     },
     {
       "url": "http://127.0.0.1:8000/s32.js",
@@ -347,9 +417,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 30
+      "durationMs": 13
     },
     {
       "url": "http://127.0.0.1:8000/s33.js",
@@ -357,9 +429,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 30
+      "durationMs": 14
     },
     {
       "url": "http://127.0.0.1:8000/s34.js",
@@ -367,9 +441,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 31
+      "durationMs": 14
     },
     {
       "url": "http://127.0.0.1:8000/s35.js",
@@ -377,9 +453,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 31
+      "durationMs": 14
     },
     {
       "url": "http://127.0.0.1:8000/s36.js",
@@ -387,9 +465,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 31
+      "durationMs": 13
     },
     {
       "url": "http://127.0.0.1:8000/s37.js",
@@ -397,9 +477,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 30
+      "durationMs": 13
     },
     {
       "url": "http://127.0.0.1:8000/s38.js",
@@ -407,9 +489,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 32
+      "durationMs": 13
     },
     {
       "url": "http://127.0.0.1:8000/s39.js",
@@ -417,9 +501,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 33
+      "durationMs": 14
     },
     {
       "url": "http://127.0.0.1:8000/s40.js",
@@ -427,9 +513,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 32
+      "durationMs": 15
     },
     {
       "url": "http://127.0.0.1:8000/s41.js",
@@ -437,9 +525,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 32
+      "durationMs": 15
     },
     {
       "url": "http://127.0.0.1:8000/s42.js",
@@ -447,9 +537,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 32
+      "durationMs": 15
     },
     {
       "url": "http://127.0.0.1:8000/s43.js",
@@ -457,9 +549,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 32
+      "durationMs": 15
     },
     {
       "url": "http://127.0.0.1:8000/s44.js",
@@ -467,9 +561,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 33
+      "durationMs": 15
     },
     {
       "url": "http://127.0.0.1:8000/s45.js",
@@ -477,9 +573,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 33
+      "durationMs": 15
     },
     {
       "url": "http://127.0.0.1:8000/s46.js",
@@ -487,9 +585,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 33
+      "durationMs": 16
     },
     {
       "url": "http://127.0.0.1:8000/s47.js",
@@ -497,9 +597,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 34
+      "durationMs": 16
     },
     {
       "url": "http://127.0.0.1:8000/s48.js",
@@ -507,9 +609,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 35
+      "durationMs": 16
     },
     {
       "url": "http://127.0.0.1:8000/s49.js",
@@ -517,9 +621,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 35
+      "durationMs": 16
     }
   ],
   "issues": [
