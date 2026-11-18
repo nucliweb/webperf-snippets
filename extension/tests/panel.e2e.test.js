@@ -331,11 +331,25 @@ test('the keyboard button lists the shortcuts, and ? is left to DevTools', async
   for (const action of ['Search snippets', 'Move through the list', 'Open the snippet', 'Run the snippet', 'Clear the search']) {
     assert.ok(text.includes(action), `no "${action}"`)
   }
+  // In DevTools, Escape outside a text field opens the drawer of the console, so the help does not offer
+  // it to close a dialog, although a page opened outside DevTools still closes it with Escape
+  assert.ok(!text.includes('close this dialog'), 'the help offers Escape to close the dialog')
   await panel.keyboard.press('Escape')
   assert.equal(await dialog.isVisible(), false)
   await panel.click('#open-shortcuts')
   await panel.click('#shortcuts .close')
   assert.equal(await dialog.isVisible(), false)
+})
+
+test('a click outside a dialog closes it, and a click inside does not', async () => {
+  for (const [open, id] of [['#open-shortcuts', '#shortcuts'], ['#open-settings', '#settings']]) {
+    const dialog = panel.locator(id)
+    await panel.click(open)
+    await dialog.locator('h2').click()
+    assert.ok(await dialog.isVisible(), `${id} closed with a click inside`)
+    await panel.mouse.click(4, 4)
+    assert.equal(await dialog.isVisible(), false, `${id} stayed open after a click outside`)
+  }
 })
 
 test('the settings choose the theme and the side of the list, and the panel remembers them', async () => {
