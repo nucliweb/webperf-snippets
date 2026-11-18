@@ -56,9 +56,8 @@
     const value = (el.getAttribute("fetchpriority") || "").toLowerCase();
     return value === "high" || value === "low" ? value : null;
   };
-  function estimatePriority(script, {isModule: isModule, isAsync: isAsync, isDefer: isDefer, isNoModule: isNoModule, inHead: inHead}) {
+  function estimatePriority(script, {isModule: isModule, isAsync: isAsync, isDefer: isDefer, isNoModule: isNoModule, inHead: inHead, preload: preload}) {
     if (isNoModule) return null;
-    const preload = preloadedScripts.get(`${isModule ? "module" : "classic"} ${script.src}`);
     if (preload) return fetchPriorityOf(preload) === "low" ? "low" : "high";
     const hint = fetchPriorityOf(script);
     if (isModule) return hint === "low" ? "low" : "high";
@@ -82,6 +81,7 @@
     if (isNoModule) strategy = "nomodule"; else if (isModule && isAsync) strategy = "async module"; else if (isModule) strategy = "module"; else if (isAsync) strategy = "async"; else if (isDefer) strategy = "defer";
     const isBlocking = strategy === "blocking";
     const firstParty = isFirstPartyUrl(src);
+    const preload = preloadedScripts.get(`${isModule ? "module" : "classic"} ${src}`) ?? null;
     return {
       src: src,
       shortSrc: src.split("/").pop()?.split("?")[0] || src,
@@ -98,8 +98,10 @@
         isAsync: isAsync,
         isDefer: isDefer,
         isNoModule: isNoModule,
-        inHead: inHead
+        inHead: inHead,
+        preload: preload
       }),
+      preloaded: preload !== null,
       size: timing.size || 0,
       sizeKnown: !!timing.sizeKnown || isNoModule && !resourceTiming.has(src),
       duration: timing.duration || 0,
@@ -178,6 +180,26 @@
     severity: "info",
     message: `${blocking.length - couldDefer.length} blocking script(s) could potentially use defer`,
     fix: "Test with defer attribute to improve parsing performance"
+  });
+  scripts.filter(s => !s.firstParty && s.isModule && s.priority === "high").forEach(s => {
+    issues.push({
+      code: "third-party-module-high-priority",
+      severity: "warning",
+      message: s.preloaded ? `${s.shortSrc}: third-party module script preloaded at high priority; add fetchpriority="low" to its <link rel="modulepreload">, unless the page needs it to render` : `${s.shortSrc}: third-party module script fetched at high priority, like a blocking script; add fetchpriority="low" unless the page needs it to render`,
+      target: s.src,
+      scripts: [ s ],
+      fix: s.preloaded ? 'Add fetchpriority="low" to the <link rel="modulepreload">, which sets the priority of the module' : 'Add fetchpriority="low" to the <script type="module">'
+    });
+  });
+  scripts.filter(s => !s.firstParty && !s.isModule && (s.isAsync || s.isDefer) && s.fetchpriority === "high").forEach(s => {
+    issues.push({
+      code: "non-blocking-high-priority",
+      severity: "warning",
+      message: `${s.shortSrc}: fetchpriority="high" raises a third-party ${s.isAsync ? "async" : "defer"} script to high priority; remove it so the script loads at low`,
+      target: s.src,
+      scripts: [ s ],
+      fix: 'Remove fetchpriority="high"'
+    });
   });
   if (issues.length > 0) {
     issues.forEach(issue => {
@@ -259,7 +281,10 @@
     issues: [ ...issues.map(i => ({
       code: i.code,
       severity: i.severity,
-      message: i.message
+      message: i.message,
+      ...i.target ? {
+        target: i.target
+      } : {}
     })), ...scripts.some(s => !s.sizeKnown) ? [ {
       code: "unknown-size",
       severity: "info",

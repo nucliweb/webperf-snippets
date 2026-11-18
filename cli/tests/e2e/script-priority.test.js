@@ -57,6 +57,26 @@ const PAGE = `<!DOCTYPE html>
 </body>
 </html>`;
 
+// The page is on 127.0.0.1; the same server under the host name localhost is a third party.
+const ISSUES_PAGE = (third) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Script priority issues</title>
+  <link rel="modulepreload" href="${third}/js/vendor-modulepreloaded.js">
+  <script type="module" src="${third}/js/vendor-module.js"></script>
+  <script type="module" src="${third}/js/vendor-module-low.js" fetchpriority="low"></script>
+  <script type="module" src="${third}/js/vendor-modulepreloaded.js" fetchpriority="low"></script>
+  <script type="module" src="/js/own-module.js"></script>
+  <script async src="${third}/js/vendor-async-high.js" fetchpriority="high"></script>
+  <script defer src="${third}/js/vendor-defer-high.js" fetchpriority="high"></script>
+  <script async src="${third}/js/vendor-async-low.js" fetchpriority="low"></script>
+  <script async src="${third}/js/vendor-async.js"></script>
+  <script async src="/js/own-async-high.js" fetchpriority="high"></script>
+</head>
+<body><h1>Script priority issues</h1></body>
+</html>`;
+
 beforeAll(async () => {
   browser = await launch();
   server = await new Promise((res) => {
@@ -64,6 +84,10 @@ beforeAll(async () => {
       if (req.url === "/") {
         res.writeHead(200, { "Content-Type": "text/html" });
         return res.end(PAGE);
+      }
+      if (req.url === "/issues") {
+        res.writeHead(200, { "Content-Type": "text/html" });
+        return res.end(ISSUES_PAGE(`http://localhost:${s.address().port}`));
       }
       if (req.url === "/hero.png") {
         res.writeHead(200, { "Content-Type": "image/png" });
@@ -143,5 +167,51 @@ describe("Script-Loading priority", () => {
     expect(result.details.priorityModel).toBe("chromium");
     expect(result.details.byPriority).toEqual({ high: count("high"), medium: count("medium"), low: count("low") });
     expect(result.details.byPriority.high).toBeGreaterThan(0);
+  }, 30000);
+});
+
+describe("Script-Loading priority issues", () => {
+  async function issuesOf() {
+    const page = await browser.newPage();
+    try {
+      await page.goto(`${pageUrl}issues`, { waitUntil: "load" });
+      await page.waitForTimeout(400);
+      return (await page.evaluate(source)).issues;
+    } finally {
+      await page.close();
+    }
+  }
+  const targetsOf = (issues, code) => issues.filter((i) => i.code === code).map((i) => nameOf(i.target)).sort();
+
+  it("flags a third-party module script fetched at high priority, one issue per script", async () => {
+    const issues = await issuesOf();
+    expect(targetsOf(issues, "third-party-module-high-priority")).toEqual(["vendor-module", "vendor-modulepreloaded"]);
+    for (const issue of issues.filter((i) => i.code === "third-party-module-high-priority")) {
+      expect(issue.severity).toBe("warning");
+      expect(issue.message).toContain('fetchpriority="low"');
+    }
+  }, 30000);
+
+  it("tells to lower the modulepreload of a preloaded module, which sets its priority", async () => {
+    const issues = await issuesOf();
+    const preloaded = issues.find((i) => i.code === "third-party-module-high-priority" && nameOf(i.target) === "vendor-modulepreloaded");
+    expect(preloaded.message).toContain("modulepreload");
+  }, 30000);
+
+  it('flags fetchpriority="high" on a third-party async or defer script', async () => {
+    const issues = await issuesOf();
+    expect(targetsOf(issues, "non-blocking-high-priority")).toEqual(["vendor-async-high", "vendor-defer-high"]);
+    for (const issue of issues.filter((i) => i.code === "non-blocking-high-priority")) {
+      expect(issue.severity).toBe("warning");
+    }
+  }, 30000);
+
+  it('says nothing of first-party scripts, nor of a fetchpriority="low" that changes nothing', async () => {
+    const issues = await issuesOf();
+    const named = issues.filter((i) => i.target).map((i) => nameOf(i.target));
+    expect(named).not.toContain("own-module");
+    expect(named).not.toContain("own-async-high");
+    expect(named).not.toContain("vendor-async-low");
+    expect(named).not.toContain("vendor-module-low");
   }, 30000);
 });
