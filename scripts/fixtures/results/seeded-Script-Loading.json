@@ -18,7 +18,13 @@
       "firstParty": 3,
       "thirdParty": 0
     },
-    "thirdPartyBlockingCount": 0
+    "thirdPartyBlockingCount": 0,
+    "priorityModel": "chromium",
+    "byPriority": {
+      "high": 2,
+      "medium": 0,
+      "low": 1
+    }
   },
   "items": [
     {
@@ -27,9 +33,11 @@
       "strategy": "blocking",
       "location": "head",
       "party": "first",
+      "priority": "high",
+      "fetchpriority": null,
       "sizeBytes": 0,
       "sizeKnown": false,
-      "durationMs": 5
+      "durationMs": 3
     },
     {
       "url": "http://127.0.0.1:8000/async.js",
@@ -37,9 +45,11 @@
       "strategy": "async",
       "location": "head",
       "party": "first",
+      "priority": "low",
+      "fetchpriority": null,
       "sizeBytes": 320,
       "sizeKnown": true,
-      "durationMs": 6
+      "durationMs": 4
     },
     {
       "url": "http://127.0.0.1:8000/app.js",
@@ -47,6 +57,8 @@
       "strategy": "defer",
       "location": "head",
       "party": "first",
+      "priority": "high",
+      "fetchpriority": null,
       "sizeBytes": 0,
       "sizeKnown": false,
       "durationMs": 0

@@ -46,6 +46,28 @@
       startTime: r.startTime
     });
   });
+  const preloadedScripts = new Map;
+  document.querySelectorAll('link[rel~="preload"][as="script"], link[rel~="modulepreload"]').forEach(link => {
+    const kind = link.relList.contains("modulepreload") ? "module" : "classic";
+    if (link.href) preloadedScripts.set(`${kind} ${link.href}`, link);
+  });
+  const firstBodyImage = document.body?.querySelector("img") ?? null;
+  const fetchPriorityOf = el => {
+    const value = (el.getAttribute("fetchpriority") || "").toLowerCase();
+    return value === "high" || value === "low" ? value : null;
+  };
+  function estimatePriority(script, {isModule: isModule, isAsync: isAsync, isDefer: isDefer, isNoModule: isNoModule, inHead: inHead}) {
+    if (isNoModule) return null;
+    const preload = preloadedScripts.get(`${isModule ? "module" : "classic"} ${script.src}`);
+    if (preload) return fetchPriorityOf(preload) === "low" ? "low" : "high";
+    const hint = fetchPriorityOf(script);
+    if (isModule) return hint === "low" ? "low" : "high";
+    if (isAsync || isDefer) return hint === "high" ? "high" : "low";
+    if (inHead) return "high";
+    if (hint) return hint;
+    const late = firstBodyImage && firstBodyImage.compareDocumentPosition(script) & Node.DOCUMENT_POSITION_FOLLOWING;
+    return late ? "medium" : "high";
+  }
   const externalScripts = Array.from(document.querySelectorAll("script[src]"));
   Array.from(document.querySelectorAll("script:not([src])")).filter(s => s.innerHTML.trim().length > 0);
   const scripts = externalScripts.map(script => {
@@ -70,6 +92,14 @@
       isModule: isModule,
       isAsync: isAsync,
       isDefer: isDefer,
+      fetchpriority: fetchPriorityOf(script),
+      priority: estimatePriority(script, {
+        isModule: isModule,
+        isAsync: isAsync,
+        isDefer: isDefer,
+        isNoModule: isNoModule,
+        inHead: inHead
+      }),
       size: timing.size || 0,
       sizeKnown: !!timing.sizeKnown || isNoModule && !resourceTiming.has(src),
       duration: timing.duration || 0,
@@ -107,6 +137,7 @@
       Strategy: s.isBlocking ? `🔴 ${s.strategy}` : s.strategy,
       Location: s.inHead ? "head" : "body",
       Party: s.firstParty ? "1st" : "3rd",
+      Priority: s.priority ?? "-",
       Size: formatBytes(s.size),
       Duration: formatMs(s.duration)
     }));
@@ -205,7 +236,13 @@
         firstParty: firstPartyScripts.length,
         thirdParty: thirdPartyScripts.length
       },
-      thirdPartyBlockingCount: thirdPartyBlocking.length
+      thirdPartyBlockingCount: thirdPartyBlocking.length,
+      priorityModel: "chromium",
+      byPriority: {
+        high: scripts.filter(s => s.priority === "high").length,
+        medium: scripts.filter(s => s.priority === "medium").length,
+        low: scripts.filter(s => s.priority === "low").length
+      }
     },
     items: rankedScripts.slice(0, MAX_ITEMS).map(s => ({
       url: s.src,
@@ -213,6 +250,8 @@
       strategy: s.strategy,
       location: s.inHead ? "head" : "body",
       party: s.firstParty ? "first" : "third",
+      priority: s.priority,
+      fetchpriority: s.fetchpriority,
       sizeBytes: s.size,
       sizeKnown: s.sizeKnown,
       durationMs: Math.round(s.duration)

@@ -11352,6 +11352,38 @@ Lists every script with its loading strategy, such as async, defer or blocking, 
     }
   });
 
+  // Resource Timing does not expose the network priority, so it is estimated from the DOM with
+  // the rules of Chromium, checked against the priority it gives each request (CDP) in the e2e
+  // tests. Other browsers prioritize scripts in other ways.
+  const preloadedScripts = new Map();
+  document.querySelectorAll('link[rel~="preload"][as="script"], link[rel~="modulepreload"]').forEach((link) => {
+    const kind = link.relList.contains("modulepreload") ? "module" : "classic";
+    if (link.href) preloadedScripts.set(`${kind} ${link.href}`, link);
+  });
+  const firstBodyImage = document.body?.querySelector("img") ?? null;
+  const fetchPriorityOf = (el) => {
+    const value = (el.getAttribute("fetchpriority") || "").toLowerCase();
+    return value === "high" || value === "low" ? value : null;
+  };
+
+  // "high", "medium" or "low"; null for a script the browser never fetches
+  function estimatePriority(script, { isModule, isAsync, isDefer, isNoModule, inHead }) {
+    if (isNoModule) return null;
+    // A preloaded script gets the priority of its preload, which fetched it first
+    const preload = preloadedScripts.get(`${isModule ? "module" : "classic"} ${script.src}`);
+    if (preload) return fetchPriorityOf(preload) === "low" ? "low" : "high";
+    const hint = fetchPriorityOf(script);
+    if (isModule) return hint === "low" ? "low" : "high";
+    // async and defer, and scripts inserted by other scripts, which are async
+    if (isAsync || isDefer) return hint === "high" ? "high" : "low";
+    // A blocking script in <head> blocks rendering: fetchpriority="low" does not lower it
+    if (inHead) return "high";
+    if (hint) return hint;
+    // A blocking script after the first image of the body is a late one
+    const late = firstBodyImage && firstBodyImage.compareDocumentPosition(script) & Node.DOCUMENT_POSITION_FOLLOWING;
+    return late ? "medium" : "high";
+  }
+
   // Analyze all external scripts
   const externalScripts = Array.from(document.querySelectorAll("script[src]"));
 
@@ -11397,6 +11429,8 @@ Lists every script with its loading strategy, such as async, defer or blocking, 
       isModule,
       isAsync,
       isDefer,
+      fetchpriority: fetchPriorityOf(script),
+      priority: estimatePriority(script, { isModule, isAsync, isDefer, isNoModule, inHead }),
       size: timing.size || 0,
       // A nomodule script is never fetched, so its size is known: nothing was downloaded
       sizeKnown: !!timing.sizeKnown || (isNoModule && !resourceTiming.has(src)),
@@ -11469,6 +11503,7 @@ Lists every script with its loading strategy, such as async, defer or blocking, 
         Strategy: s.isBlocking ? `🔴 ${s.strategy}` : s.strategy,
         Location: s.inHead ? "head" : "body",
         Party: s.firstParty ? "1st" : "3rd",
+        Priority: s.priority ?? "-",
         Size: formatBytes(s.size),
         Duration: formatMs(s.duration),
       }));
@@ -11650,6 +11685,12 @@ Lists every script with its loading strategy, such as async, defer or blocking, 
         thirdParty: thirdPartyScripts.length,
       },
       thirdPartyBlockingCount: thirdPartyBlocking.length,
+      priorityModel: "chromium",
+      byPriority: {
+        high: scripts.filter((s) => s.priority === "high").length,
+        medium: scripts.filter((s) => s.priority === "medium").length,
+        low: scripts.filter((s) => s.priority === "low").length,
+      },
     },
     items: rankedScripts.slice(0, MAX_ITEMS).map((s) => ({
       url: s.src,
@@ -11657,6 +11698,8 @@ Lists every script with its loading strategy, such as async, defer or blocking, 
       strategy: s.strategy,
       location: s.inHead ? "head" : "body",
       party: s.firstParty ? "first" : "third",
+      priority: s.priority,
+      fetchpriority: s.fetchpriority,
       sizeBytes: s.size,
       sizeKnown: s.sizeKnown,
       durationMs: Math.round(s.duration),
