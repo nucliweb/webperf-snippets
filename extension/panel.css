@@ -166,17 +166,22 @@ th { position: sticky; top: 0; font-weight: 600; color: var(--muted); background
 .phrase + .phrase { padding-top: 4px; }
 .phrase:last-child { padding-bottom: 8px; }
 .phrase strong { font-variant-numeric: tabular-nums; }
-/* The phases of a metric: a bar over the zones of its thresholds, and a row per phase */
+/* The phases of a metric: a bar of its phases, a strip of the zones of its thresholds with a mark at the
+   value, and a row per phase */
 .phases { padding: 8px 12px; }
 .phases-label { margin: 0 0 6px; color: var(--muted); }
-.phase-bar { position: relative; display: flex; height: 20px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+.phase-bar { position: relative; height: 20px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+.phase-scale { position: relative; display: flex; height: 6px; margin-top: 6px; border-radius: 3px; }
+.phase-scale .zone-good { border-radius: 3px 0 0 3px; }
+.phase-scale .zone-poor { border-radius: 0 3px 3px 0; }
+.phase-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--fg); border-radius: 1px; }
 .zone { height: 100%; }
 .zone-good { background: var(--good-bg); }
 .zone-ni { background: var(--ni-bg); }
 .zone-poor { flex: 1; background: var(--poor-bg); }
 .phase { position: absolute; top: 3px; bottom: 3px; min-width: 2px; border-radius: 2px; }
 .phase-ticks { position: relative; height: 16px; font-size: 10px; color: var(--muted); }
-.phase-ticks span { position: absolute; transform: translateX(-50%); }
+.phase-ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
 .phase-list { display: grid; grid-template-columns: max-content max-content max-content max-content; gap: 2px 12px; margin: 4px 0 0; padding: 0; list-style: none; }
 .phase-row { display: contents; }
 .phase-row > span { align-self: center; }

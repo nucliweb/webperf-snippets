@@ -26,26 +26,27 @@ const inspect = (selector) =>
 
 const percentOf = (value, max) => `${Math.round((value / max) * 1000) / 10}%`
 
-// The phases of a metric: a bar with a segment per phase over the zones of its thresholds, and a row
-// per phase with its colour, name, value and share, the slowest one marked
+// The phases of a metric: a bar with a segment per phase, the whole bar for the value, so the share of
+// each one reads whatever the value; under it, a strip of the zones of its thresholds with a mark where
+// the value falls; and a row per phase with its colour, name, value and share, the slowest one marked.
+// On the scale of the thresholds, the phases of a good LCP took a few percent of the width.
 function phasesOf(f) {
   const { scale, parts } = f
   const sum = parts.reduce((total, p) => total + p.value, 0)
-  // The poor threshold at 90% of the width, as in the documentation: 0 to 2000 ms for TTFB
-  const max = Math.max(scale.total, sum, scale.poor ? scale.poor / 0.9 : 0) || 1
-  const zones = scale.good
-    ? `<span class="zone zone-good" style="width:${percentOf(scale.good, max)}"></span><span class="zone zone-ni" style="width:${percentOf(scale.poor - scale.good, max)}"></span><span class="zone zone-poor"></span>`
-    : ''
+  const whole = Math.max(scale.total, sum) || 1
   let start = 0
   const segments = parts
     .map((p, i) => {
-      const segment = p.value > 0 ? `<span class="phase phase-${i % PHASE_COLORS}" style="left:${percentOf(start, max)};width:${percentOf(p.value, max)}" title="${escape(p.label)} ${escape(p.text)}"></span>` : ''
+      const segment = p.value > 0 ? `<span class="phase phase-${i % PHASE_COLORS}" style="left:${percentOf(start, whole)};width:${percentOf(p.value, whole)}" title="${escape(p.label)} ${escape(p.text)}"></span>` : ''
       start += p.value
       return segment
     })
     .join('')
-  const ticks = scale.good
-    ? `<div class="phase-ticks"><span style="left:${percentOf(scale.good, max)}">${escape(formatValue(scale.good, 'ms'))}</span><span style="left:${percentOf(scale.poor, max)}">${escape(formatValue(scale.poor, 'ms'))}</span></div>`
+  // The poor threshold at 90% of the width, as in the documentation: 0 to 2000 ms for TTFB. The value
+  // and the thresholds are in the text of the result, so the strip is hidden from a screen reader
+  const max = Math.max(scale.total, scale.poor ? scale.poor / 0.9 : 0) || 1
+  const strip = scale.good
+    ? `<div class="phase-scale" aria-hidden="true"><span class="zone zone-good" style="width:${percentOf(scale.good, max)}"></span><span class="zone zone-ni" style="width:${percentOf(scale.poor - scale.good, max)}"></span><span class="zone zone-poor"></span><span class="phase-mark" style="left:${percentOf(scale.total, max)}"></span></div><div class="phase-ticks" aria-hidden="true"><span style="left:${percentOf(scale.good, max)}">${escape(formatValue(scale.good, 'ms'))}</span><span style="left:${percentOf(scale.poor, max)}">${escape(formatValue(scale.poor, 'ms'))}</span></div>`
     : ''
   const rows = parts
     .map(
@@ -53,7 +54,7 @@ function phasesOf(f) {
         `<li class="phase-row${p.slowest ? ' slowest' : ''}${p.overTarget ? ' over' : ''}"><span class="swatch phase-${i % PHASE_COLORS}"></span><span class="phase-name">${escape(p.label)}</span><span class="phase-value">${escape(p.text)}</span><span class="phase-percent">${escape(formatValue(p.percent, 'percent'))}</span></li>`
     )
     .join('')
-  return `<div class="phases"><p class="phases-label">${escape(f.label)}</p><div class="phase-bar" role="img" aria-label="${escape(f.text)}">${zones}${segments}</div>${ticks}<ul class="phase-list">${rows}</ul></div>`
+  return `<div class="phases"><p class="phases-label">${escape(f.label)}</p><div class="phase-bar" role="img" aria-label="${escape(f.text)}">${segments}</div>${strip}<ul class="phase-list">${rows}</ul></div>`
 }
 
 const nestedTable = (f) => `<details class="nested"><summary>${escape(f.text)}</summary>${tableOf(f)}</details>`
