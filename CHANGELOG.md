@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - In the panel of the extension, the bar of the phases of a metric, such as the subparts of LCP or TTFB, takes its whole width for the value, so the share of each phase reads whatever the value. It was drawn on the scale of the thresholds, where a good LCP of 168 ms took 4% of the width and a phase of 2 ms did not show. The thresholds go in a thin strip under it, with a mark where the value falls, and their labels stay on one line in a narrow panel.
+- The keyboard shortcuts and the settings of the panel of the extension close with a click outside them in Chrome 134 or later, as well as with their Close button. Their help offered Escape to close them, but in DevTools Escape outside a text field opens the drawer of the console; Escape clears the search, where it reaches the panel.
 
 ## [2.7.0] — 2026-11-18
 

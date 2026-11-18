@@ -24,18 +24,18 @@
     </main>
     <button type="button" id="to-top" hidden title="Back to the top"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M8 13V3.5M3.5 8 8 3.5 12.5 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Top</button>
   </div>
-  <dialog id="shortcuts" aria-labelledby="shortcuts-title">
+  <dialog id="shortcuts" aria-labelledby="shortcuts-title" closedby="any">
     <h2 id="shortcuts-title">Keyboard shortcuts</h2>
     <dl class="keys">
       <dt><kbd>/</kbd></dt><dd>Search snippets</dd>
       <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Move through the list</dd>
       <dt><kbd>Enter</kbd></dt><dd>Open the snippet</dd>
       <dt><kbd class="mod">Ctrl</kbd> <kbd>Enter</kbd></dt><dd>Run the snippet</dd>
-      <dt><kbd>Esc</kbd></dt><dd>Clear the search, or close this dialog</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Clear the search</dd>
     </dl>
     <button type="button" class="close">Close</button>
   </dialog>
-  <dialog id="settings" aria-labelledby="settings-title">
+  <dialog id="settings" aria-labelledby="settings-title" closedby="any">
     <h2 id="settings-title">Settings</h2>
     <fieldset>
       <legend>Theme</legend>
