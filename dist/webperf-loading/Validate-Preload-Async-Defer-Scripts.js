@@ -65,11 +65,37 @@
       const fetchPriority = matchingScript.getAttribute("fetchpriority");
       let naturalPriority = "Medium/High";
       if (isAsync) naturalPriority = "Lowest/Low"; else if (isDefer) naturalPriority = "Lowest/Low"; else if (inHead) naturalPriority = "Medium/High";
-      if (isAsync || isDefer) {
+      const credentialsOf = el => !el.hasAttribute("crossorigin") ? null : el.getAttribute("crossorigin").toLowerCase() === "use-credentials" ? "include" : "same-origin";
+      if (isModule) {
+        const attributes = [ "type='module'", ...isAsync ? [ "async" ] : [] ].join(" + ");
+        if (credentialsOf(preload) === (credentialsOf(matchingScript) ?? "same-origin")) validPreloads.push({
+          type: "module",
+          preload: preload,
+          script: matchingScript,
+          url: preloadHref,
+          shortUrl: shortUrl,
+          location: scriptLocation,
+          attributes: attributes,
+          naturalPriority: "High",
+          note: "The module uses the preload, since their crossorigin match; rel='modulepreload' is the link made for modules"
+        }); else issues.push({
+          code: "module-preload",
+          type: "module-preload",
+          severity: "warning",
+          preload: preload,
+          script: matchingScript,
+          url: preloadHref,
+          shortUrl: shortUrl,
+          attributes: attributes,
+          location: scriptLocation,
+          message: "ES module preloaded with rel='preload' whose crossorigin does not match the module's, so the module does not use the preload and fetches the file again",
+          explanation: "A module script is fetched in CORS mode. A rel='preload' as='script' without the same crossorigin is fetched in another mode, so the browser cannot use it for the module and downloads the file twice.",
+          fix: "Change <link rel='preload' as='script'> to <link rel='modulepreload'>, which fetches the file as a module"
+        });
+      } else if (isAsync || isDefer) {
         const attributes = [];
         if (isAsync) attributes.push("async");
         if (isDefer) attributes.push("defer");
-        if (isModule) attributes.push("type='module'");
         const hasMitigation = fetchPriority === "low";
         if (hasMitigation) validPreloads.push({
           type: "mitigated",
@@ -98,22 +124,7 @@
           explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. Preloading escalates them to Medium/High, causing bandwidth competition with critical resources.`,
           fix: `Remove the preload, OR add fetchpriority="low" to the <script> tag to keep early discovery without priority escalation`
         });
-      } else if (isModule) issues.push({
-        code: "module-preload",
-        type: "module-preload",
-        severity: "warning",
-        preload: preload,
-        script: matchingScript,
-        url: preloadHref,
-        shortUrl: shortUrl,
-        attributes: "type='module'",
-        location: scriptLocation,
-        naturalPriority: "Lowest/Low (module default)",
-        preloadPriority: "Medium/High",
-        message: "ES module is using rel='preload' instead of rel='modulepreload'",
-        explanation: "ES modules behave like defer scripts by default (low priority). Using rel='preload' as='script' escalates priority unnecessarily. For modules, use rel='modulepreload' instead.",
-        fix: "Change <link rel='preload' as='script'> to <link rel='modulepreload'> for proper module preloading"
-      }); else {
+      } else {
         const needsReview = !inHead;
         validPreloads.push({
           preload: preload,
@@ -156,7 +167,7 @@
         Location: v.location,
         Priority: v.naturalPriority,
         Status: v.needsReview ? "⚠️ Review needed" : "✅ Valid",
-        Note: v.reviewNote
+        Note: v.reviewNote || v.note
       }));
       if (blockingScripts.some(v => v.needsReview)) {
       }
@@ -176,7 +187,7 @@
   const itemsByUrl = new Map;
   validPreloads.forEach(v => itemsByUrl.set(v.url, {
     url: v.shortUrl,
-    type: v.type === "dynamic" ? "dynamic" : v.type === "mitigated" ? "mitigated" : "blocking",
+    type: [ "dynamic", "mitigated", "module" ].includes(v.type) ? v.type : "blocking",
     strategy: v.attributes || "blocking-script",
     location: v.location || "unknown",
     reviewNote: v.reviewNote || v.note || ""
