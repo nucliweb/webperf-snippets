@@ -3,6 +3,8 @@ description: "Lists every script with its loading strategy, such as async, defer
 browserSupport:
   - api.PerformanceResourceTiming.transferSize
   - api.Document.scripts
+browserSupportReported:
+  - html.elements.script.fetchpriority
 ---
 
 import snippet from '../../snippets/Loading/Script-Loading.js?raw'
@@ -65,7 +67,7 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 - 🔴 **Blocking**: Stops HTML parsing (bad for performance)
 - **Async**: Downloads in parallel, executes when ready
 - **Defer**: Downloads in parallel, executes after parsing
-- **Module**: ES module (deferred by default)
+- **Module**: ES module, which runs after parsing like `defer` but downloads at high priority
 - **nomodule**: Fallback for browsers without ES modules, such as the polyfills script that frameworks inject. Browsers that support modules never download or run it, so it is not counted as blocking
 
 ### Details table
@@ -76,6 +78,7 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 | Strategy | Loading strategy with indicator |
 | Location | head or body |
 | Party | 1st (your domain) or 3rd (external) |
+| Priority | Network priority Chrome gives the script: high, medium or low (`priority` in the returned items, with the `fetchpriority` attribute beside it) |
 | Size | Transfer size; unknown for cross-origin scripts without `Timing-Allow-Origin` (`sizeKnown: false` in the returned items) |
 | Duration | Time to load |
 
@@ -86,6 +89,36 @@ Render-blocking scripts in `<head>` without `async` or `defer` pause HTML parsin
 | Blocking scripts in `<head>` | Error | Delays all content below |
 | Third-party blocking scripts | Error | External dependency blocking your page |
 | Large blocking scripts (> 50 KB) | Warning | Significant parsing delay |
+| Third-party module at high priority | Warning | Competes for the network with CSS, fonts and the LCP image without blocking anything |
+| `fetchpriority="high"` on a third-party `async` or `defer` script | Warning | Raises a script that loads at low priority to high |
+
+### Network priority
+
+A script that does not block parsing can still download at high priority and compete for the network with the CSS, the fonts and the LCP image. Resource Timing does not expose the priority, so the snippet estimates the one Chrome gives each script from its attributes and its place in the document (`details.priorityModel: "chromium"`). Firefox and Safari prioritize scripts in other ways.
+
+| Script | Without `fetchpriority` | `fetchpriority="low"` | `fetchpriority="high"` |
+|--------|-------------------------|-----------------------|------------------------|
+| Blocking, in `<head>` | High | High (no effect) | High |
+| Blocking, in `<body>` before any image | High | Low | High |
+| Blocking, in `<body>` after an image | Medium | Low | High |
+| `async` or `defer` | Low | Low (no effect) | High |
+| Inserted by another script | Low | Low (no effect) | High |
+| `type="module"`, `async` or not | High | Low | High |
+| Preloaded with `rel="preload"` or `rel="modulepreload"` | The priority of the preload | | |
+
+A third-party module is the case to look for: it does not block parsing, so it looks fine by its strategy, yet it downloads at high priority. `fetchpriority="low"` lowers it. On an `async` or `defer` script, `fetchpriority="low"` changes nothing in Chrome, since it already loads at low priority, and the snippet does not flag it.
+
+```html
+<!-- ❌ A third-party widget that downloads at high priority -->
+<script type="module" src="https://widgets.example.net/chat.mjs"></script>
+
+<!-- ✅ The same widget at low priority -->
+<script type="module" src="https://widgets.example.net/chat.mjs" fetchpriority="low"></script>
+```
+
+<Callout type="info">
+  An end-to-end test of the CLI checks every row of this table against the priority Chrome gives each request, read with the Chrome DevTools Protocol, so the estimate follows Chrome when it changes.
+</Callout>
 
 ### Script loading decision tree
 

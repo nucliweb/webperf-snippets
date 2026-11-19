@@ -507,7 +507,7 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
 
 #### Script-Loading
 
-`items` holds the 50 scripts to look at first: render-blocking, then third-party, then the largest. `count` and `details` cover every script. `corsLimitedAnalysis` is `true` when `details.sizeUnknownCount` is above zero, so `details.totalSizeBytes` is a lower bound. A classic script with `nomodule` has the strategy `nomodule` and is never blocking: a browser that supports modules does not fetch it, so its size is known (0 bytes).
+`items` holds the 50 scripts to look at first: render-blocking, then third-party, then the largest. `count` and `details` cover every script. `corsLimitedAnalysis` is `true` when `details.sizeUnknownCount` is above zero, so `details.totalSizeBytes` is a lower bound. A classic script with `nomodule` has the strategy `nomodule` and is never blocking: a browser that supports modules does not fetch it, so its size is known (0 bytes). `priority` is the network priority Chrome gives the script, `high`, `medium` or `low`, estimated from the DOM since Resource Timing does not expose it (`details.priorityModel: "chromium"`), and `null` for a script the browser never fetches; `fetchpriority` is its attribute, `high`, `low` or `null`. A module script is `high` although it does not block parsing.
 
 ```json
 {
@@ -520,7 +520,9 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
     "sizeUnknownCount": 0,
     "byStrategy": { "blocking": 2, "async": 4, "defer": 1, "module": 1, "nomodule": 0 },
     "byParty": { "firstParty": 5, "thirdParty": 3 },
-    "thirdPartyBlockingCount": 1
+    "thirdPartyBlockingCount": 1,
+    "priorityModel": "chromium",
+    "byPriority": { "high": 3, "medium": 0, "low": 5 }
   },
   "items": [
     {
@@ -529,6 +531,8 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
       "strategy": "blocking",
       "location": "head",
       "party": "first",
+      "priority": "high",
+      "fetchpriority": null,
       "sizeBytes": 85000,
       "sizeKnown": true,
       "durationMs": 120
@@ -536,7 +540,8 @@ When the rating is not good, `issues` holds one entry that names the TTFB and th
   ],
   "issues": [
     { "code": "blocking-in-head", "severity": "error", "message": "2 blocking script(s) in <head>" },
-    { "code": "third-party-blocking", "severity": "error", "message": "1 third-party blocking script(s)" }
+    { "code": "third-party-blocking", "severity": "error", "message": "1 third-party blocking script(s)" },
+    { "code": "third-party-module-high-priority", "severity": "warning", "message": "chat.mjs: third-party module script fetched at high priority, like a blocking script; add fetchpriority=\"low\" unless the page needs it to render", "target": "https://widgets.example.net/chat.mjs" }
   ]
 }
 ```

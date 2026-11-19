@@ -29,6 +29,11 @@ export default {
       serverResponse: { label: 'Request' },
     },
   },
+  'Script-Loading': {
+    fields: {
+      fetchpriority: { label: 'Priority hint' },
+    },
+  },
   'Find-render-blocking-resources': {
     title: 'Render-blocking resources',
     fields: {

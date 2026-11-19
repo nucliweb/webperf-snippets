@@ -31,6 +31,10 @@ export default {
   INP: {
     phases: { format: 'phases' },
   },
+  'Script-Loading': {
+    // The attribute as it is written, so that it does not read as the priority beside it
+    fetchpriority: { format: 'attribute' },
+  },
   'Find-render-blocking-resources': {
     shortName: { order: 1 },
     type: { order: 2 },

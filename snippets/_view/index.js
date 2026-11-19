@@ -256,6 +256,9 @@ function describeValue(key, value, d, { inTable = false, result } = {}) {
       return { ...base, text: inTable ? (value ? '✓' : '') : d.ui(value ? 'yes' : 'no') }
     case 'url':
       return { ...base, text: shortUrl(value), href: value }
+    // The value of an HTML attribute, as it is written in the markup: fetchpriority="low"
+    case 'attribute':
+      return { ...base, text: `${key}="${value}"` }
     default:
       return { ...base, text: formatValue(value, format, d.locale) }
   }
