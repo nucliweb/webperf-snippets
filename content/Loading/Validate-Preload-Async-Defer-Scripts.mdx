@@ -85,7 +85,7 @@ With preload on async script:
 ### Summary section
 
 - Total count of preloaded scripts
-- Valid preloads (blocking scripts that may benefit)
+- Valid preloads (scripts that may benefit)
 - Issues detected
 
 ### Issue types
@@ -93,7 +93,7 @@ With preload on async script:
 | Type                      | Severity | Description                                                           |
 | ------------------------- | -------- | --------------------------------------------------------------------- |
 | **Preload + async/defer** | Error    | Anti-pattern: script already loads non-blocking without fetchpriority |
-| **Module preload**        | Warning  | ES module using rel="preload" instead of rel="modulepreload"          |
+| **Module preload**        | Warning  | ES module preloaded with rel="preload" it cannot use, so it downloads twice |
 | **Orphan preload**        | Warning  | Preloaded script not found or loaded                                  |
 
 ### Valid preload types
@@ -103,6 +103,7 @@ With preload on async script:
 | **Blocking scripts**  | Scripts without async/defer that may benefit from preload                      |
 | **Mitigated pattern** | Preload + async/defer with fetchpriority="low" (early discovery, low priority) |
 | **Dynamic scripts**   | Scripts loaded via import(), code-splitting, or injection                      |
+| **Modules**           | ES modules whose rel="preload" has the same crossorigin, so they use it        |
 
 <Callout type="default">
 **Note:** Dynamic scripts (loaded via `import()` or code-splitting) don't appear in the DOM but are visible in the Performance API. The snippet detects these by checking resource timing entries and classifies them separately from truly orphaned preloads.
@@ -114,7 +115,7 @@ With preload on async script:
 | ---------------- | ----------------------------------------------------------------- |
 | Script           | Filename of the preloaded script                                  |
 | Location         | Where the script is placed (head or body)                         |
-| Attributes       | async, defer, or type='module' attributes found                   |
+| Attributes       | async or defer attributes found                                   |
 | Natural Priority | The script's network priority without preload                     |
 | Preload Priority | The elevated priority caused by preload                           |
 | fetchPriority    | Value of fetchpriority attribute (shows if mitigation is missing) |
@@ -219,11 +220,12 @@ For scripts that:
 
 ### ES modules: Use `modulepreload`, not `preload`
 
-ES modules (`type="module"`) behave like `defer` scripts by default, loading at low priority. If you need to preload them, use the **`rel="modulepreload"`** attribute instead of `rel="preload"`:
+ES modules (`type="module"`) run after parsing, like `defer` scripts, but Chrome fetches them at high priority, `async` or not. A module is fetched in CORS mode, and a `rel="preload" as="script"` without the same `crossorigin` is not: the browser cannot use the preload for the module, fetches the file again, and logs "A preload for … is found, but is not used because the request credentials mode does not match". If you need to preload a module, use **`rel="modulepreload"`**:
 
 ### Incorrect (detected as anti-pattern)
 
 ```html
+<!-- The module downloads the file a second time -->
 <link rel="preload" href="/app.js" as="script" />
 <script type="module" src="/app.js"></script>
 ```
@@ -237,9 +239,9 @@ ES modules (`type="module"`) behave like `defer` scripts by default, loading at 
 
 ### Key differences
 
-- `rel="modulepreload"` understands module imports and preloads dependencies
-- `rel="preload" as="script"` treats it as a regular script (wrong priority escalation)
-- Module scripts already defer by default, so avoid unnecessary preloading
+- `rel="modulepreload"` fetches the file as a module, so the module script uses it, and the browser may also fetch its imports
+- `rel="preload" as="script"` fetches it as a classic script, which the module uses only when both have the same `crossorigin`
+- Module scripts already load at high priority, so a preload does not raise it; it only helps a module the browser discovers late
 
 **Learn more:** [MDN: `<link rel="modulepreload">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel/modulepreload)
 

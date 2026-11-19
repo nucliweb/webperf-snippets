@@ -1492,8 +1492,8 @@ Each issue names the preloaded script in `target`.
 | Code | Severity | When |
 |------|----------|------|
 | `orphan-preload` | warning | A preloaded script that the page neither has nor loaded |
-| `async-defer-preload` | error | A script with `async` or `defer` that is also preloaded, which raises its priority |
-| `module-preload` | warning | An ES module preloaded with `rel="preload"` instead of `rel="modulepreload"` |
+| `async-defer-preload` | error | A classic script with `async` or `defer` that is also preloaded, which raises its priority |
+| `module-preload` | warning | An ES module preloaded with `rel="preload"` whose `crossorigin` does not match the module's, so the module does not use the preload and fetches the file again |
 
 ### Back-Forward-Cache
 
