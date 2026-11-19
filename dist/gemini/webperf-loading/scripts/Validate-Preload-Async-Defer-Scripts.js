@@ -62,7 +62,7 @@
       const isModule = matchingScript.type === "module";
       const inHead = matchingScript.closest("head") !== null;
       const scriptLocation = inHead ? "head" : "body";
-      const fetchPriority = matchingScript.getAttribute("fetchpriority");
+      const preloadPriority = (preload.getAttribute("fetchpriority") || "").toLowerCase();
       let naturalPriority = "Medium/High";
       if (isAsync) naturalPriority = "Lowest/Low"; else if (isDefer) naturalPriority = "Lowest/Low"; else if (inHead) naturalPriority = "Medium/High";
       const credentialsOf = el => !el.hasAttribute("crossorigin") ? null : el.getAttribute("crossorigin").toLowerCase() === "use-credentials" ? "include" : "same-origin";
@@ -96,7 +96,7 @@
         const attributes = [];
         if (isAsync) attributes.push("async");
         if (isDefer) attributes.push("defer");
-        const hasMitigation = fetchPriority === "low";
+        const hasMitigation = preloadPriority === "low";
         if (hasMitigation) validPreloads.push({
           type: "mitigated",
           preload: preload,
@@ -104,7 +104,7 @@
           url: preloadHref,
           shortUrl: shortUrl,
           location: scriptLocation,
-          attributes: attributes.join(" + ") + " + fetchpriority='low'",
+          attributes: attributes.join(" + ") + ", preload with fetchpriority='low'",
           naturalPriority: naturalPriority,
           note: "Early discovery with low priority - acceptable pattern"
         }); else issues.push({
@@ -118,11 +118,11 @@
           attributes: attributes.join(" + "),
           location: scriptLocation,
           naturalPriority: naturalPriority,
-          preloadPriority: "Medium/High",
-          fetchPriority: fetchPriority || "not set",
+          preloadPriority: "High",
+          fetchPriority: preloadPriority || "not set",
           message: `Script has ${attributes.join("/")} but is also preloaded`,
-          explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. Preloading escalates them to Medium/High, causing bandwidth competition with critical resources.`,
-          fix: `Remove the preload, OR add fetchpriority="low" to the <script> tag to keep early discovery without priority escalation`
+          explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. The preload fetches them at High priority, causing bandwidth competition with critical resources; fetchpriority on the <script> does not change it.`,
+          fix: `Remove the preload, OR add fetchpriority="low" to the <link rel="preload">, which sets the priority, to keep early discovery without priority escalation`
         });
       } else {
         const needsReview = !inHead;
@@ -147,7 +147,7 @@
       Location: issue.location,
       Attributes: issue.attributes,
       "Natural Priority": issue.naturalPriority,
-      "Preload Priority": "⚠️ Medium/High",
+      "Preload Priority": "⚠️ High",
       Issue: "❌ Priority escalation"
     }));
     if (errorTable.length > 0) void 0;

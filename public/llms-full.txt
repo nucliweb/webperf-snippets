@@ -13234,7 +13234,9 @@ Detects preloaded scripts that also use async or defer, an anti-pattern that rai
       const isModule = matchingScript.type === "module";
       const inHead = matchingScript.closest("head") !== null;
       const scriptLocation = inHead ? "head" : "body";
-      const fetchPriority = matchingScript.getAttribute("fetchpriority");
+      // The preload fetches the script first, so its fetchpriority sets the priority: the one of
+      // the <script> changes nothing
+      const preloadPriority = (preload.getAttribute("fetchpriority") || "").toLowerCase();
 
       // Determine natural priority
       let naturalPriority = "Medium/High";
@@ -13294,11 +13296,10 @@ Detects preloaded scripts that also use async or defer, an anti-pattern that rai
         if (isAsync) attributes.push("async");
         if (isDefer) attributes.push("defer");
 
-        // Check if fetchpriority="low" is used to mitigate the issue
-        const hasMitigation = fetchPriority === "low";
+        // A preload with fetchpriority="low" keeps the early discovery without raising the priority
+        const hasMitigation = preloadPriority === "low";
 
         if (hasMitigation) {
-          // Valid: preload with async/defer but fetchpriority="low" mitigates the issue
           validPreloads.push({
             type: "mitigated",
             preload,
@@ -13306,7 +13307,7 @@ Detects preloaded scripts that also use async or defer, an anti-pattern that rai
             url: preloadHref,
             shortUrl,
             location: scriptLocation,
-            attributes: attributes.join(" + ") + " + fetchpriority='low'",
+            attributes: attributes.join(" + ") + ", preload with fetchpriority='low'",
             naturalPriority,
             note: "Early discovery with low priority - acceptable pattern",
           });
@@ -13322,11 +13323,11 @@ Detects preloaded scripts that also use async or defer, an anti-pattern that rai
             attributes: attributes.join(" + "),
             location: scriptLocation,
             naturalPriority,
-            preloadPriority: "Medium/High",
-            fetchPriority: fetchPriority || "not set",
+            preloadPriority: "High",
+            fetchPriority: preloadPriority || "not set",
             message: `Script has ${attributes.join("/")} but is also preloaded`,
-            explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. Preloading escalates them to Medium/High, causing bandwidth competition with critical resources.`,
-            fix: `Remove the preload, OR add fetchpriority="low" to the <script> tag to keep early discovery without priority escalation`,
+            explanation: `${attributes.join("/")} scripts load at ${naturalPriority} priority. The preload fetches them at High priority, causing bandwidth competition with critical resources; fetchpriority on the <script> does not change it.`,
+            fix: `Remove the preload, OR add fetchpriority="low" to the <link rel="preload">, which sets the priority, to keep early discovery without priority escalation`,
           });
         }
       } else {
@@ -13377,7 +13378,7 @@ Detects preloaded scripts that also use async or defer, an anti-pattern that rai
         Location: issue.location,
         Attributes: issue.attributes,
         "Natural Priority": issue.naturalPriority,
-        "Preload Priority": "⚠️ Medium/High",
+        "Preload Priority": "⚠️ High",
         Issue: "❌ Priority escalation",
       }));
 
@@ -13531,7 +13532,7 @@ Detects preloaded scripts that also use async or defer, an anti-pattern that rai
       "color: #22c55e; font-weight: bold; font-size: 14px;",
     );
     console.log(
-      '%cAll script preloads are either on blocking scripts or properly mitigated with fetchpriority="low".',
+      '%cAll script preloads are either on blocking scripts or mitigated with fetchpriority="low" on the preload.',
       "color: #22c55e;",
     );
   } else {
