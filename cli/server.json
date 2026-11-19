@@ -9,13 +9,13 @@
     "source": "github",
     "subfolder": "cli"
   },
-  "version": "1.18.0",
+  "version": "1.19.0",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "webperf-snippets",
-      "version": "1.18.0",
+      "version": "1.19.0",
       "transport": {
         "type": "stdio"
       },
