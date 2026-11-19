@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.8.0] — 2026-11-19
+
+Script-Loading says which scripts compete for the network: it gives the priority Chrome gives each script, with its `fetchpriority` attribute, and warns of the third-party scripts that do not block the parser but download at high priority, such as a module script. Validate-Preload-Async-Defer-Scripts follows what Chrome does with a preload: a module preloaded without the same `crossorigin` downloads twice, and only `fetchpriority="low"` on the preload, not on the script, keeps a preloaded script at low priority. End-to-end tests check both against the priority Chrome gives each request. The extension reaches 0.7.0 with these snippets, a bar of the phases of a metric drawn to the width of its value and dialogs that close with a click outside them, and the CLI 1.19.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)) ships them.
+
 ### Added
 - Script-Loading gives the network priority of each script, `high`, `medium` or `low`, in `priority`, with its `fetchpriority` attribute, and counts them in `details.byPriority`; the console table has a Priority column. Resource Timing does not expose the priority, so it is the one Chromium gives, estimated from the DOM (`details.priorityModel: "chromium"`): a module script, which does not block the parser, is fetched at `high` like a blocking script in `<head>`; `async` and `defer` at `low`, where `fetchpriority="low"` changes nothing; a preloaded script at the priority of its preload. A script the browser never fetches, such as a `nomodule` one, has `null`. An end-to-end test compares the estimate of every case with the priority Chromium gives each request, read with CDP.
 - Script-Loading warns of the third-party scripts that do not block the parser but compete for the network at high priority, one issue per script with its URL in `target`: `third-party-module-high-priority` for a module script, which is fetched at high priority unless it, or its `modulepreload`, has `fetchpriority="low"`; `non-blocking-high-priority` for an `async` or `defer` script with `fetchpriority="high"`, which raises it from low. First-party scripts get no issue, since a first-party module is often the application itself.
@@ -430,7 +434,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.7.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.8.0...HEAD
+[2.8.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.3...v2.7.0
 [2.6.3]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.2...v2.6.3
 [2.6.2]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.1...v2.6.2

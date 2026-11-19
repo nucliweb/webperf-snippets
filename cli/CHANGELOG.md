@@ -8,6 +8,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+## [1.19.0] — 2026-11-19
+
+It ships the snippets of the collection 2.8.0: Script-Loading gives the network priority of each script and warns of the third-party scripts that download at high priority without blocking the parser, and Validate-Preload-Async-Defer-Scripts follows what Chrome does with a preload. The human report shows the `fetchpriority` attribute of a script as it is written.
+
+### Added
+- Script-Loading, of the collection 2.8.0, gives each script its network priority in `priority`, with its `fetchpriority` attribute, and counts them in `details.byPriority`. It warns with `third-party-module-high-priority` of a third-party module script fetched at high priority, and with `non-blocking-high-priority` of `fetchpriority="high"` on a third-party `async` or `defer` script, one warning per script with its URL in `target`. A page with them has warnings it did not have, which `--fail-on warning` and `--baseline` see as new; the exit code with the default `--fail-on` does not change.
+- The human report shows the `fetchpriority` attribute of a script as it is written, `fetchpriority="low"`, beside its priority, where a row read `low  low`.
+
+### Fixed
+- Validate-Preload-Async-Defer-Scripts, of the collection 2.8.0, takes a preloaded `async` or `defer` script as mitigated only when the preload has `fetchpriority="low"`: on the `<script>` only, Chrome still downloads it at high priority. A page with `fetchpriority="low"` on the `<script>` only gets the error `async-defer-preload`, so a run of the snippet exits with `1` where it exited with `0`. `module-preload` is given only when the `crossorigin` of the preload does not match the module's, the case where the module downloads the file twice, and an `async` module with a preload gets it instead of `async-defer-preload`, a warning instead of an error.
+
 ## [1.18.0] — 2026-11-18
 
 The CLI says what it does: `--list` prints every workflow and snippet without opening a browser, a line on the terminal shows the stage and the time of the run, and an option that does not exist names the one it may have meant. The overview counts apart the snippets that measured nothing, in `notMeasured`. It ships the snippets of the collection 2.7.0, in which an LCP or FCP of a page hidden before it painted is not measured and does not make the CLI exit with `1`.
@@ -416,7 +427,8 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.18.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.19.0...HEAD
+[1.19.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.18.0...cli-v1.19.0
 [1.18.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.17.0...cli-v1.18.0
 [1.17.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.16.0...cli-v1.17.0
 [1.16.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.15.0...cli-v1.16.0
