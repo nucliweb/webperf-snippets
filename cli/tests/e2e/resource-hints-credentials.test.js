@@ -76,7 +76,7 @@ beforeAll(async () => {
   otherBase = `http://127.0.0.1:${other.address().port}`;
   page = await listen((req, res) => {
     const name = req.url.slice(1).split("?")[0];
-    if (!CASES[name]) return res.writeHead(404), res.end();
+    if (!Object.hasOwn(CASES, name)) return res.writeHead(404), res.end();
     res.writeHead(200, { "Content-Type": "text/html" });
     res.end(pageOf(CASES[name]));
   });
