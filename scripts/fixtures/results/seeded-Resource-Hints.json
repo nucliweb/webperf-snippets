@@ -34,7 +34,8 @@
       "fetchpriority": "auto",
       "use": null,
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -45,7 +46,8 @@
       "fetchpriority": "auto",
       "use": "used",
       "firstUseUrl": "http://127.0.0.1:8001/third.js",
-      "firstUseMs": 3
+      "firstUseMs": 2,
+      "firstUseConnection": "unknown"
     }
   ],
   "issues": []
