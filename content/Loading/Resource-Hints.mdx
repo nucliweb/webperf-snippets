@@ -69,6 +69,29 @@ A preconnect opens a connection for one kind of request. Without `crossorigin`, 
 
 Resource Timing does not say which kind each request was, so the snippet reads it from the element that made it: the `crossorigin` attribute, `type="module"`, a font in a stylesheet. A request made with `fetch()` or `XMLHttpRequest` can be either, so a preconnect whose origin only gets requests like those is not judged: its `use` is `unknown`.
 
+### When a preconnect does not save the connection
+
+A preconnect only pays off if the request it is for finds the connection still open. Chromium closes an unused preconnected connection after about 60 seconds, and a server or CDN can close one that carries no request much sooner. When that happens, the request opens a connection of its own: the preconnect spent a DNS lookup, a TCP and a TLS handshake early in the load, when the network is busiest, and saved nothing.
+
+Take a page that shows ads and declares both preconnects to its ad server, because the tag script and the ad requests use different credentials modes:
+
+```html
+<link rel="preconnect" href="https://ads.example">
+<link rel="preconnect" href="https://ads.example" crossorigin>
+<script async src="https://ads.example/tag.js" crossorigin="anonymous"></script>
+```
+
+- The tag script has `crossorigin`, so it uses the second connection at the start of the load. That preconnect is used.
+- The first request with credentials is the ad request, which the tag makes once the user accepts consent and the ad slot is ready: 12 seconds after the start on a slow phone. The connection of the first preconnect has been open for 12 seconds without a request, and the server has closed it. The ad request opens a new connection.
+
+So the first preconnect costs a connection early and gives nothing back. Remove it, or add it when the page knows it is about to make the ad request.
+
+The snippet shows this from Resource Timing. For each preconnect, `firstUseConnection` says what the first request of its credentials mode found: `reused` when it used an open connection, `new` when it opened its own, `cache` when it came from the HTTP cache, and `unknown` when the response has no `Timing-Allow-Origin` header, without which the browser hides the connection phases of a cross-origin request. A `new` connection gets a `preconnect-not-reused` warning.
+
+<Callout type="info">
+In the example, the ad request is a `fetch()` with credentials. The snippet cannot tell the credentials mode of a `fetch()`, so the `use` of that preconnect is `unknown` and the snippet says nothing about its connection. Check it in the Network panel of DevTools: right-click the header of the table, add the Connection ID column, and compare the ID of the ad request with the IDs of the earlier requests to the same origin. A new ID on the first request with credentials means it opened its own connection.
+</Callout>
+
 ### Why preconnect helps
 
 `preconnect` pays off when a resource lives on a third-party origin: it moves the connection setup (DNS, TCP, TLS) off the critical path, so the request can start as soon as the resource is discovered. Step through the scenarios to compare connection reuse across HTTP versions and see what `preconnect` saves:
@@ -121,6 +144,7 @@ For **preconnect/dns-prefetch**:
 | Requests with credentials and only a `crossorigin` preconnect | Warning | Images and classic scripts open a connection of their own |
 | Unused preload | Warning | Wasted bandwidth |
 | Preconnect no request of its mode used | Warning | Wasted connection |
+| First request opened a new connection | Warning | The preconnected connection was closed before it |
 | Too many preloads (> 6) | Warning | Bandwidth competition |
 | Hint declared twice | Info | Nothing, but one of them can go |
 | `Link` header not readable | Info | Hints sent only in the header are not in the report |

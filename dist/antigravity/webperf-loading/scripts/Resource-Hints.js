@@ -274,6 +274,11 @@
       return "unknown";
     }
   }
+  const connectionOf = r => {
+    if (r.requestStart === 0) return "unknown";
+    if (r.transferSize === 0 && r.decodedBodySize > 0) return "cache";
+    return r.connectEnd > r.connectStart ? "new" : "reused";
+  };
   const requestsByOrigin = new Map;
   const requestsByCredentials = {
     include: 0,
@@ -289,7 +294,8 @@
     requestsByOrigin.get(origin).push({
       url: r.name,
       startTime: r.startTime,
-      mode: mode
+      mode: mode,
+      connection: connectionOf(r)
     });
   });
   requestsByOrigin.forEach(requests => requests.sort((a, b) => a.startTime - b.startTime));
@@ -331,6 +337,16 @@
         issue: `Requests ${MODE_WORDS[mode]} to ${origin} cannot use a preconnect ${mode === "anonymous" ? "without" : "with"} crossorigin`,
         severity: "warning",
         fix: hint.use === "unused" ? change : `Add a second preconnect: ${add}`
+      });
+    });
+    hints.forEach(h => {
+      if (h.firstUse?.connection !== "new" || firstByKey.get(hintKey(h)) !== h) return;
+      issues.push({
+        hint: h,
+        code: "preconnect-not-reused",
+        issue: `The first request ${MODE_WORDS[modeOfHint(h)].split(" (")[0]} to ${origin} started at ${Math.round(h.firstUse.startTime)} ms and opened a new connection, so the preconnected one was not used`,
+        severity: "warning",
+        fix: "A server or CDN can close a connection that carries no request, and Chrome closes an unused one after about 60 s: preconnect only to origins the page requests early, or remove the hint"
       });
     });
     hints.forEach(h => {
@@ -446,6 +462,12 @@
             unknown: "? fetch/XHR"
           }[h.use];
           row["First use"] = h.firstUse ? `${Math.round(h.firstUse.startTime)} ms` : "-";
+          row.Connection = h.firstUse ? {
+            reused: "✅ reused",
+            new: "⚠️ new",
+            cache: "cache",
+            unknown: "? no TAO"
+          }[h.firstUse.connection] : "-";
         }
       }
       return row;
@@ -520,7 +542,8 @@
       fetchpriority: h.fetchpriority,
       use: h.use ?? null,
       firstUseUrl: h.firstUse?.url ?? null,
-      firstUseMs: h.firstUse ? Math.round(h.firstUse.startTime) : null
+      firstUseMs: h.firstUse ? Math.round(h.firstUse.startTime) : null,
+      firstUseConnection: h.firstUse?.connection ?? null
     })),
     issues: issues.map(i => ({
       code: i.code,

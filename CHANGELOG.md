@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Resource-Hints says whether each preconnect saved a connection. `firstUseConnection` is what the first request of its credentials mode found: `reused`, `new`, `cache`, or `unknown` when the response has no `Timing-Allow-Origin`. A `new` connection gets `preconnect-not-reused` (warning): the preconnected one was closed before the request, by a server or CDN that closes a connection without requests, or by Chromium after about 60 s. The page explains it with an ad server that is preconnected early and requested late. An end-to-end test compares it with what CDP reports, with a server that keeps the preconnected connection and one that closes it.
 - Resource-Hints reads the hints of the `Link` response header of the document, with a `HEAD` request to the page, besides those of the HTML: a page that sends its hints only in the header, or as `103 Early Hints` built from it, no longer reports none and lists its preconnected origins as missing. Each item says where it was declared in `source` (`dom` or `header`); `details.headerHints` counts those of the header, and `details.earlyHints` says whether the server sent a `103 Early Hints` response. A hint declared twice gets `duplicate-hint` (info), and `header-hints-unavailable` (info) says when the header could not be read. The snippet is async.
 
 ### Fixed

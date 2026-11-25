@@ -34,7 +34,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -45,7 +46,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -56,7 +58,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -67,7 +70,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -78,7 +82,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -89,7 +94,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -100,7 +106,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -111,7 +118,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -122,7 +130,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -133,7 +142,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -144,7 +154,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -155,7 +166,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -166,7 +178,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -177,7 +190,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -188,7 +202,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -199,7 +214,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -210,7 +226,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -221,7 +238,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -232,7 +250,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -243,7 +262,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -254,7 +274,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -265,7 +286,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -276,7 +298,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -287,7 +310,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -298,7 +322,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -309,7 +334,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -320,7 +346,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -331,7 +358,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -342,7 +370,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -353,7 +382,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -364,7 +394,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -375,7 +406,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -386,7 +418,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -397,7 +430,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -408,7 +442,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -419,7 +454,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -430,7 +466,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -441,7 +478,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -452,7 +490,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -463,7 +502,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -474,7 +514,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -485,7 +526,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -496,7 +538,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -507,7 +550,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -518,7 +562,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -529,7 +574,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -540,7 +586,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -551,7 +598,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -562,7 +610,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     },
     {
       "rel": "preconnect",
@@ -573,7 +622,8 @@
       "fetchpriority": "auto",
       "use": "unused",
       "firstUseUrl": null,
-      "firstUseMs": null
+      "firstUseMs": null,
+      "firstUseConnection": null
     }
   ],
   "issues": [
