@@ -59,7 +59,8 @@ beforeAll(async () => {
   page = await new Promise((res) => {
     const s = createServer((req, response) => {
       const name = req.url.slice(1);
-      if (!CASES[name]) return response.writeHead(404), response.end();
+      // Only the cases of this file, not a name the object inherits (constructor, toString)
+      if (!Object.hasOwn(CASES, name)) return response.writeHead(404), response.end();
       const { origin, path } = CASES[name]();
       response.writeHead(200, { "Content-Type": "text/html" });
       response.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>c</title><link rel="preconnect" href="${origin}"></head>
