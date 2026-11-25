@@ -6,6 +6,11 @@
   "details": {
     "sizeUnknownCount": 0,
     "ignoredHints": 0,
+    "requestsByCredentials": {
+      "include": 2,
+      "anonymous": 0,
+      "unknown": 0
+    },
     "headerHints": 0,
     "earlyHints": false,
     "byType": {
@@ -21,28 +26,27 @@
   },
   "items": [
     {
-      "rel": "preconnect",
-      "href": "http://127.0.0.1:8001/",
-      "source": "dom",
-      "as": "",
-      "crossorigin": "",
-      "fetchpriority": "auto"
-    },
-    {
       "rel": "preload",
       "href": "http://127.0.0.1:8000/app.js",
       "source": "dom",
       "as": "script",
       "crossorigin": "",
-      "fetchpriority": "auto"
+      "fetchpriority": "auto",
+      "use": null,
+      "firstUseUrl": null,
+      "firstUseMs": null
+    },
+    {
+      "rel": "preconnect",
+      "href": "http://127.0.0.1:8001/",
+      "source": "dom",
+      "as": "",
+      "crossorigin": "",
+      "fetchpriority": "auto",
+      "use": "used",
+      "firstUseUrl": "http://127.0.0.1:8001/third.js",
+      "firstUseMs": 3
     }
   ],
-  "issues": [
-    {
-      "code": "preconnect-no-crossorigin",
-      "severity": "warning",
-      "message": "preconnect: Preconnect may need crossorigin for CORS resources. Fix: Consider adding crossorigin=\"anonymous\"",
-      "target": "http://127.0.0.1:8001/"
-    }
-  ]
+  "issues": []
 }

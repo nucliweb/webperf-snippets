@@ -747,6 +747,8 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 The hints come from the HTML and from the `Link` header of the document, which the snippet reads with a `HEAD` request to the page (the script is async). `source` is `dom` or `header`. `details.headerHints` counts the hints of the header, `null` when the request failed. `details.earlyHints` is `true` when the server sent a `103 Early Hints` response (`firstInterimResponseStart` of the navigation), `null` in a browser that does not report it.
 
+A preconnect opens a connection for one credentials mode: without `crossorigin`, for requests that send credentials (images, stylesheets, classic scripts); with `crossorigin`, for those that do not (fonts, module scripts, scripts with `crossorigin`). Resource Timing does not report the mode, so the snippet reads it from the element that made each request, and counts the requests to other origins by mode in `details.requestsByCredentials` (`include`, `anonymous`, `unknown`). A `fetch()` or an `XMLHttpRequest` is `unknown`: it may or may not send credentials. Each preconnect item has `use`: `used` by the first request of its mode to its origin, whose URL and start are `firstUseUrl` and `firstUseMs`; `unused`; or `unknown` when it has no request of its mode but its origin had a request of unknown mode. `use`, `firstUseUrl` and `firstUseMs` are `null` for other hints.
+
 ```json
 {
   "script": "Resource-Hints",
@@ -754,6 +756,7 @@ The hints come from the HTML and from the `Link` header of the document, which t
   "details": {
     "headerHints": 1,
     "earlyHints": true,
+    "requestsByCredentials": { "include": 4, "anonymous": 2, "unknown": 1 },
     "byType": { "preload": 2, "preconnect": 1 },
     "missingPreconnectsCount": 1,
     "missingPreconnects": [
@@ -1583,9 +1586,10 @@ Each issue about one hint names its URL in `target`.
 |------|----------|------|
 | `preload-missing-as` | error | A preload without `as` |
 | `font-preload-no-crossorigin` | error | A font preload without `crossorigin`, which fetches the font twice |
-| `preconnect-no-crossorigin` | warning | A preconnect without `crossorigin` to an origin that serves CORS resources |
+| `preconnect-no-crossorigin` | warning | Requests without credentials (fonts, module scripts, scripts with `crossorigin`) go to an origin whose preconnects have no `crossorigin`; one issue per origin |
+| `preconnect-crossorigin-only` | warning | Requests with credentials (images, stylesheets, scripts without `crossorigin`) go to an origin whose only preconnects have `crossorigin`; one issue per origin |
 | `unused-preload` | warning | A preload that the page did not use during the load |
-| `unused-preconnect` | warning | A preconnect to an origin the page loaded nothing from |
+| `unused-preconnect` | warning | A preconnect that no request of its credentials mode used, or a dns-prefetch to a host the page loaded nothing from |
 | `too-many-preloads` | warning | More than 6 preloads |
 | `duplicate-hint` | info | A hint declared twice, in the HTML and the `Link` header or twice in one of them; `target` is the second |
 | `header-hints-unavailable` | info | The `HEAD` request that reads the `Link` header failed, so the report covers only the hints of the HTML |
