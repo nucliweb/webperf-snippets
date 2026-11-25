@@ -95,6 +95,10 @@
   }
   // @end-shared formatBytes
 
+  // How many preconnects a page should have: each one is a connection that competes for the network
+  // at the start of the load, so a handful for the earliest third-party origins is the usual advice
+  const PRECONNECT_BUDGET = 4;
+
   // Resource hint definitions
   const hintTypes = [
     {
@@ -465,10 +469,13 @@
       const url = new URL(r.name);
       if (url.hostname !== location.hostname) {
         if (!thirdPartyOrigins.has(url.origin)) {
-          thirdPartyOrigins.set(url.origin, { count: 0, size: null, types: new Set() });
+          thirdPartyOrigins.set(url.origin, { count: 0, size: null, types: new Set(), firstStart: Infinity, modes: new Set() });
         }
         const data = thirdPartyOrigins.get(url.origin);
         data.count++;
+        data.firstStart = Math.min(data.firstStart, r.startTime);
+        const mode = credentialsMode(r);
+        if (mode !== "unknown") data.modes.add(mode);
         // The size stays null while no resource of the origin has a known one
         if (r.transferSize === 0 && r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.duration > 0) sizeUnknownCount++;
         else data.size = (data.size ?? 0) + (r.transferSize || 0);
@@ -488,12 +495,52 @@
     })
   );
 
-  const missingPreconnects = [];
+  // A preconnect helps an origin the page needs to render: one whose first request starts before
+  // the LCP (the FCP when there is no LCP; every origin when there is neither). The earliest ones get
+  // the preconnects left in the budget, and the rest of the early ones a dns-prefetch.
+  const lcpEntry = PerformanceObserver.supportedEntryTypes?.includes("largest-contentful-paint")
+    ? await new Promise((resolve) => {
+        const entries = [];
+        const observer = new PerformanceObserver((list) => entries.push(...list.getEntries()));
+        observer.observe({ type: "largest-contentful-paint", buffered: true });
+        setTimeout(() => {
+          observer.disconnect();
+          resolve(entries.at(-1) ?? null);
+        }, 100);
+      })
+    : null;
+  const fcpEntry = performance.getEntriesByType("paint").find((e) => e.name === "first-contentful-paint");
+  const cutoff = lcpEntry
+    ? { metric: "lcp", ms: Math.round(lcpEntry.startTime) }
+    : fcpEntry
+      ? { metric: "fcp", ms: Math.round(fcpEntry.startTime) }
+      : { metric: null, ms: null };
+
+  // The budget counts connections: one per origin and credentials mode, as the browser opens them
+  const preconnectBudget = {
+    max: PRECONNECT_BUDGET,
+    used: new Set(allHints.filter((h) => h.rel === "preconnect").map((h) => `${originOf(h.href)} ${modeOfHint(h)}`)).size,
+  };
+  const earlyOrigins = [];
   thirdPartyOrigins.forEach((data, origin) => {
-    if (!preconnectedOrigins.has(origin) && data.count >= 2) {
-      missingPreconnects.push({ origin, ...data });
-    }
+    if (preconnectedOrigins.has(origin)) return;
+    if (cutoff.ms !== null && data.firstStart >= cutoff.ms) return;
+    earlyOrigins.push({ origin, ...data });
   });
+  earlyOrigins.sort((a, b) => a.firstStart - b.firstStart);
+  // The crossorigin of each preconnect an origin needs, one per credentials mode of its requests. An
+  // origin whose requests do not say it (fetch, XMLHttpRequest) gets crossorigin, as a fetch() sends
+  // no credentials to another origin by default.
+  earlyOrigins.forEach((o) => {
+    o.crossorigin = o.modes.size ? [...o.modes].map((m) => (m === "anonymous" ? "anonymous" : "")).sort() : ["anonymous"];
+  });
+  // The earliest origins while their preconnects fit in the budget; the next ones get a dns-prefetch
+  let left = Math.max(0, preconnectBudget.max - preconnectBudget.used);
+  const fitting = earlyOrigins.findIndex((o) => (left -= o.crossorigin.length) < 0);
+  const missingPreconnects = fitting === -1 ? earlyOrigins : earlyOrigins.slice(0, fitting);
+  const dnsPrefetchCandidates = earlyOrigins.slice(missingPreconnects.length);
+  const preconnectTags = (o) =>
+    o.crossorigin.map((c) => `<link rel="preconnect" href="${o.origin}"${c ? " crossorigin" : ""}>`);
 
   // Display results
   console.group("%c🔗 Resource Hints Analysis", "font-weight: bold; font-size: 14px;");
@@ -637,28 +684,37 @@
 
     console.log("");
     console.log("%cThird-party origins without preconnect:", "font-weight: bold;");
-    console.log("These origins load multiple resources and could benefit from preconnect:");
+    console.log(
+      cutoff.metric
+        ? `Their first request starts before the ${cutoff.metric.toUpperCase()} (${cutoff.ms} ms), earliest first, within a budget of ${preconnectBudget.max} preconnects (${preconnectBudget.used} used):`
+        : `Earliest first, within a budget of ${preconnectBudget.max} preconnects (${preconnectBudget.used} used):`
+    );
     console.log("");
 
-    const recTable = missingPreconnects
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-      .map((o) => ({
-        Origin: o.origin,
-        Resources: o.count,
-        Size: formatBytes(o.size),
-        Types: Array.from(o.types).join(", "),
-      }));
-    console.table(recTable);
+    console.table(missingPreconnects.map((o) => ({
+      Origin: o.origin,
+      "First request": `${Math.round(o.firstStart)} ms`,
+      Resources: o.count,
+      Size: formatBytes(o.size),
+      Types: Array.from(o.types).join(", "),
+    })));
 
     console.log("");
-    console.log("%cAdd preconnect for critical origins:", "font-weight: bold;");
-    missingPreconnects.slice(0, 3).forEach((o) => {
-      console.log(
-        `%c<link rel="preconnect" href="${o.origin}" crossorigin>`,
-        "font-family: monospace; color: #22c55e;"
-      );
+    console.log("%cAdd preconnect for these origins:", "font-weight: bold;");
+    missingPreconnects.flatMap(preconnectTags).forEach((tag) => {
+      console.log(`%c${tag}`, "font-family: monospace; color: #22c55e;");
     });
+    if (missingPreconnects.some((o) => o.modes.size === 0)) {
+      console.log("Requests made with fetch() or XMLHttpRequest do not say whether they send credentials: crossorigin fits their default, which sends none. Drop it if they send credentials.");
+    }
+
+    if (dnsPrefetchCandidates.length > 0) {
+      console.log("");
+      console.log("%cOver the budget, a dns-prefetch is enough:", "font-weight: bold;");
+      dnsPrefetchCandidates.slice(0, 5).forEach((o) => {
+        console.log(`%c<link rel="dns-prefetch" href="${o.origin}">`, "font-family: monospace; color: #22c55e;");
+      });
+    }
 
     console.groupEnd();
   }
@@ -721,13 +777,24 @@
       // Whether the server sent a 103 Early Hints response; null where the browser does not say
       earlyHints: typeof navigationEntry?.firstInterimResponseStart === "number" ? navigationEntry.firstInterimResponseStart > 0 : null,
       byType: Object.fromEntries(hintTypes.map(t => [t.rel, allHints.filter(h => h.rel === t.rel).length])),
-      missingPreconnectsCount: missingPreconnects.length,
-      missingPreconnects: missingPreconnects.slice(0, 20).map((o) => ({
+      // The third-party origins without a hint whose first request starts before the cutoff
+      missingPreconnectsCount: earlyOrigins.length,
+      missingPreconnectsCutoff: cutoff,
+      preconnectBudget,
+      missingPreconnects: missingPreconnects.map((o) => ({
         origin: o.origin,
+        firstRequestStartMs: Math.round(o.firstStart),
         requestCount: o.count,
         sizeBytes: o.size,
         resourceTypes: Array.from(o.types),
+        credentialsModes: [...o.modes].sort(),
         recommendedHint: "preconnect",
+        crossorigin: o.crossorigin,
+      })),
+      dnsPrefetchCandidates: dnsPrefetchCandidates.slice(0, 20).map((o) => ({
+        origin: o.origin,
+        firstRequestStartMs: Math.round(o.firstStart),
+        requestCount: o.count,
       })),
     },
     items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.href, source: h.source, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority, use: h.use ?? null, firstUseUrl: h.firstUse?.url ?? null, firstUseMs: h.firstUse ? Math.round(h.firstUse.startTime) : null, firstUseConnection: h.firstUse?.connection ?? null })),

@@ -743,7 +743,7 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 #### Resource-Hints
 
-`items` holds at most 50 hints, those with an error or a warning first, and `count` is the total. `details.sizeUnknownCount` counts the third-party resources whose size is hidden by a missing `Timing-Allow-Origin` header; `corsLimitedAnalysis` is `true` when it is above zero, and the `sizeBytes` of `missingPreconnects` is then a lower bound. `details.missingPreconnects` lists the third-party origins without a preconnect (at most 20); `sizeBytes` is `null` when no resource of the origin has a known size. `details.missingPreconnectsCount` is the total. `href` is the full URL of the hint. Hints whose URL is not `http` or `https`, such as those a browser extension injects, are left out of `count` and `items`; `details.ignoredHints` counts them.
+`items` holds at most 50 hints, those with an error or a warning first, and `count` is the total. `details.sizeUnknownCount` counts the third-party resources whose size is hidden by a missing `Timing-Allow-Origin` header; `corsLimitedAnalysis` is `true` when it is above zero, and the `sizeBytes` of `missingPreconnects` is then a lower bound. `details.missingPreconnects` lists the third-party origins without a hint that need one: those whose first request starts before the LCP (`details.missingPreconnectsCutoff`, `{ metric, ms }`, the FCP when there is no LCP, and `{ metric: null, ms: null }`, every origin, when there is neither), earliest first, while their preconnects fit in the budget (`details.preconnectBudget`, `{ max: 4, used }`). The budget counts connections, one per origin and credentials mode, so `used` counts the preconnects of the page by origin and `crossorigin`, and an origin that needs both modes takes two. Each one has `firstRequestStartMs`, `credentialsModes`, the modes of its requests (`include`, `anonymous`, or none when they are `fetch()` or `XMLHttpRequest`), and `crossorigin`, the value of each preconnect to add (`""` for none, `"anonymous"`); an origin whose requests do not say their mode gets `["anonymous"]`, the default of `fetch()`. `sizeBytes` is `null` when no resource of the origin has a known size. The early origins over the budget are in `details.dnsPrefetchCandidates` (at most 20), and `details.missingPreconnectsCount` counts all the early ones. `href` is the full URL of the hint. Hints whose URL is not `http` or `https`, such as those a browser extension injects, are left out of `count` and `items`; `details.ignoredHints` counts them.
 
 The hints come from the HTML and from the `Link` header of the document, which the snippet reads with a `HEAD` request to the page (the script is async). `source` is `dom` or `header`. `details.headerHints` counts the hints of the header, `null` when the request failed. `details.earlyHints` is `true` when the server sent a `103 Early Hints` response (`firstInterimResponseStart` of the navigation), `null` in a browser that does not report it.
 
@@ -758,9 +758,14 @@ A preconnect opens a connection for one credentials mode: without `crossorigin`,
     "earlyHints": true,
     "requestsByCredentials": { "include": 4, "anonymous": 2, "unknown": 1 },
     "byType": { "preload": 2, "preconnect": 1 },
-    "missingPreconnectsCount": 1,
+    "missingPreconnectsCount": 2,
+    "missingPreconnectsCutoff": { "metric": "lcp", "ms": 1840 },
+    "preconnectBudget": { "max": 4, "used": 3 },
     "missingPreconnects": [
-      { "origin": "https://cdn.example", "requestCount": 6, "sizeBytes": 84000, "resourceTypes": ["script", "img"], "recommendedHint": "preconnect" }
+      { "origin": "https://cdn.example", "firstRequestStartMs": 420, "requestCount": 6, "sizeBytes": 84000, "resourceTypes": ["script", "img"], "credentialsModes": ["include"], "recommendedHint": "preconnect", "crossorigin": [""] }
+    ],
+    "dnsPrefetchCandidates": [
+      { "origin": "https://consent.example", "firstRequestStartMs": 910, "requestCount": 2 }
     ]
   }
 }

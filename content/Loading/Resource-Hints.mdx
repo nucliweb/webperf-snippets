@@ -158,8 +158,13 @@ For **preconnect/dns-prefetch**:
 | `Link` header not readable | Info | Hints sent only in the header are not in the report |
 
 ### Optimization opportunities
-- Third-party origins loading multiple resources without preconnect
-- Suggested `<link>` tags to add
+
+Each preconnect opens a connection that competes for the network at the start of the load, so the snippet suggests only a few, for the origins the page needs to render:
+
+- Third-party origins without a hint whose first request starts before the LCP (the FCP when the page has no LCP), earliest first.
+- The `<link>` tags each origin needs: with `crossorigin` for requests without credentials (fonts, module scripts), without it for requests with credentials (images, classic scripts), or both. An origin that only gets `fetch()` requests gets `crossorigin`, the default of `fetch()`.
+- As many as fit in a budget of 4 preconnects, counting those the page already has. An origin that needs both kinds takes two.
+- A `dns-prefetch` for the early origins over the budget. Origins first requested after the LCP get no suggestion: a connection opened at the start of the load would wait unused for them.
 
 ### Priority guidelines
 
