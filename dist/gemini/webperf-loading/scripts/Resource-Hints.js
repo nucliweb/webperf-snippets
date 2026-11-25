@@ -1,6 +1,70 @@
-(() => {
+(async () => {
   function isOwnRequest(entry) {
     return entry.name.endsWith("#webperf-snippets");
+  }
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  function parseLinkHeader(value) {
+    const parts = [];
+    let current = "";
+    let inUrl = false;
+    let inQuote = false;
+    for (const ch of value || "") {
+      if (ch === "<" && !inQuote) inUrl = true; else if (ch === ">" && !inQuote) inUrl = false; else if (ch === '"' && !inUrl) inQuote = !inQuote;
+      if (ch === "," && !inUrl && !inQuote) {
+        parts.push(current);
+        current = "";
+      } else current += ch;
+    }
+    parts.push(current);
+    const hints = [];
+    for (const part of parts) {
+      const match = part.match(/^\s*<([^>]*)>([\s\S]*)$/);
+      if (!match) continue;
+      const params = {};
+      for (const param of match[2].split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/)) {
+        const [rawKey, ...rest] = param.split("=");
+        const key = rawKey.trim().toLowerCase();
+        if (key && !(key in params)) params[key] = rest.join("=").trim().replace(/^"([\s\S]*)"$/, "$1");
+      }
+      let href;
+      try {
+        href = new URL(match[1].trim(), location.href).href;
+      } catch {
+        continue;
+      }
+      const crossorigin = !("crossorigin" in params) ? "" : params.crossorigin.toLowerCase() === "use-credentials" ? "use-credentials" : "anonymous";
+      for (const rel of (params.rel || "").toLowerCase().split(/\s+/).filter(Boolean)) hints.push({
+        rel: rel,
+        href: href,
+        as: params.as || "",
+        crossorigin: crossorigin,
+        fetchpriority: params.fetchpriority || "",
+        type: params.type || "",
+        media: params.media || ""
+      });
+    }
+    return hints;
+  }
+  async function readHeaderHints() {
+    try {
+      const response = await fetch(ownRequestUrl(location.href), {
+        method: "HEAD",
+        credentials: "include"
+      });
+      if (!response.ok) return null;
+      return parseLinkHeader(response.headers.get("link"));
+    } catch {
+      return null;
+    }
   }
   function formatBytes(bytes) {
     if (bytes === null || bytes === void 0 || Number.isNaN(bytes)) return "-";
@@ -40,64 +104,108 @@
     description: "Pre-render page",
     requiresAs: false
   } ];
-  const allHints = [];
-  const issues = [];
-  let ignoredHints = 0;
+  const headerHints = await readHeaderHints();
+  const declaredHints = (headerHints || []).filter(h => hintTypes.some(t => t.rel === h.rel)).map(h => ({
+    ...h,
+    element: null,
+    source: "header"
+  }));
   hintTypes.forEach(type => {
-    const links = document.querySelectorAll(`link[rel="${type.rel}"]`);
-    links.forEach(link => {
-      const href = link.href || link.getAttribute("href") || "";
-      let protocol = "";
-      try {
-        protocol = new URL(href, location.href).protocol;
-      } catch {}
-      if (protocol !== "http:" && protocol !== "https:") {
-        ignoredHints++;
-        return;
-      }
-      let hostname = "";
-      try {
-        hostname = new URL(href, location.origin).hostname;
-      } catch {}
-      const hint = {
+    document.querySelectorAll(`link[rel="${type.rel}"]`).forEach(link => {
+      declaredHints.push({
         rel: type.rel,
-        icon: type.icon,
-        href: href,
-        shortHref: href.length > 50 ? "..." + href.slice(-47) : href,
-        hostname: hostname,
+        href: link.href || link.getAttribute("href") || "",
         as: link.getAttribute("as") || "",
         crossorigin: link.crossOrigin || link.getAttribute("crossorigin") || "",
         fetchpriority: link.fetchPriority || link.getAttribute("fetchpriority") || "",
         type: link.type || "",
         media: link.media || "",
-        element: link
-      };
-      allHints.push(hint);
-      if (type.requiresAs && !hint.as) issues.push({
-        hint: hint,
-        code: "preload-missing-as",
-        issue: "Missing 'as' attribute (required for preload)",
-        severity: "error",
-        fix: `Add as="script|style|font|image|fetch"`
+        element: link,
+        source: "dom"
       });
-      if (hint.as === "font" && !hint.crossorigin) issues.push({
-        hint: hint,
-        code: "font-preload-no-crossorigin",
-        issue: "Font preload without crossorigin (causes double fetch)",
-        severity: "error",
-        fix: 'Add crossorigin="anonymous"'
-      });
-      if (type.rel === "preconnect" && !hint.crossorigin) {
-        const corsResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.name.includes(hostname) && (r.initiatorType === "script" || r.initiatorType === "css" || r.initiatorType === "font"));
-        if (corsResources.length > 0) issues.push({
-          hint: hint,
-          code: "preconnect-no-crossorigin",
-          issue: "Preconnect may need crossorigin for CORS resources",
-          severity: "warning",
-          fix: 'Consider adding crossorigin="anonymous"'
-        });
-      }
     });
+  });
+  const hintKey = h => {
+    let origin = h.href;
+    try {
+      origin = new URL(h.href).origin;
+    } catch {}
+    if (h.rel === "dns-prefetch") return `${h.rel} ${origin}`;
+    if (h.rel === "preconnect") return `${h.rel} ${origin} ${h.crossorigin}`;
+    return `${h.rel} ${h.href} ${h.as} ${h.crossorigin}`;
+  };
+  const sourceLabel = {
+    dom: "the HTML",
+    header: "the Link header"
+  };
+  const allHints = [];
+  const issues = [];
+  const firstByKey = new Map;
+  let ignoredHints = 0;
+  if (headerHints === null) issues.push({
+    hint: {
+      rel: "Link header",
+      href: ""
+    },
+    code: "header-hints-unavailable",
+    issue: "Could not read the Link header of the document (the HEAD request failed)",
+    severity: "info",
+    fix: "Hints sent only in the Link header or as 103 Early Hints are not in this report"
+  });
+  declaredHints.forEach(declared => {
+    const type = hintTypes.find(t => t.rel === declared.rel);
+    const href = declared.href;
+    let protocol = "";
+    try {
+      protocol = new URL(href, location.href).protocol;
+    } catch {}
+    if (protocol !== "http:" && protocol !== "https:") {
+      ignoredHints++;
+      return;
+    }
+    let hostname = "";
+    try {
+      hostname = new URL(href, location.origin).hostname;
+    } catch {}
+    const hint = {
+      ...declared,
+      icon: type.icon,
+      shortHref: href.length > 50 ? "..." + href.slice(-47) : href,
+      hostname: hostname
+    };
+    allHints.push(hint);
+    const first = firstByKey.get(hintKey(hint));
+    if (first) issues.push({
+      hint: hint,
+      code: "duplicate-hint",
+      issue: first.source === hint.source ? `Declared twice in ${sourceLabel[hint.source]}` : "Declared both in the Link header and in the HTML",
+      severity: "info",
+      fix: "Keep one of them"
+    }); else firstByKey.set(hintKey(hint), hint);
+    if (type.requiresAs && !hint.as) issues.push({
+      hint: hint,
+      code: "preload-missing-as",
+      issue: "Missing 'as' attribute (required for preload)",
+      severity: "error",
+      fix: `Add as="script|style|font|image|fetch"`
+    });
+    if (hint.as === "font" && !hint.crossorigin) issues.push({
+      hint: hint,
+      code: "font-preload-no-crossorigin",
+      issue: "Font preload without crossorigin (causes double fetch)",
+      severity: "error",
+      fix: 'Add crossorigin="anonymous"'
+    });
+    if (type.rel === "preconnect" && !hint.crossorigin) {
+      const corsResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.name.includes(hostname) && (r.initiatorType === "script" || r.initiatorType === "css" || r.initiatorType === "font"));
+      if (corsResources.length > 0) issues.push({
+        hint: hint,
+        code: "preconnect-no-crossorigin",
+        issue: "Preconnect may need crossorigin for CORS resources",
+        severity: "warning",
+        fix: 'Consider adding crossorigin="anonymous"'
+      });
+    }
   });
   const preloads = allHints.filter(h => h.rel === "preload");
   const loadedResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
@@ -186,7 +294,8 @@
     if (hints.length === 0) return;
     hints.map(h => {
       const row = {
-        Resource: h.shortHref
+        Resource: h.shortHref,
+        Source: h.source === "header" ? "Link header" : "HTML"
       };
       if (type.rel === "preload" || type.rel === "modulepreload") {
         row.As = h.as || "⚠️ missing";
@@ -214,6 +323,7 @@
   });
   const errors = issues.filter(i => i.severity === "error");
   const warnings = issues.filter(i => i.severity === "warning");
+  const infos = issues.filter(i => i.severity === "info");
   if (issues.length > 0) {
     if (errors.length > 0) {
       errors.forEach(issue => {
@@ -221,6 +331,11 @@
     }
     if (warnings.length > 0) {
       warnings.forEach(issue => {
+        if (issue.hint.href) void 0;
+      });
+    }
+    if (infos.length > 0) {
+      infos.forEach(issue => {
         if (issue.hint.href) void 0;
       });
     }
@@ -236,6 +351,7 @@
     missingPreconnects.slice(0, 3).forEach(o => {
     });
   }
+  const navigationEntry = performance.getEntriesByType("navigation")[0];
   const MAX_ITEMS = 50;
   const hintRank = h => issues.some(i => i.hint === h && i.severity === "error") ? 0 : issues.some(i => i.hint === h) ? 1 : 2;
   const rankedHints = allHints.map((h, index) => ({
@@ -250,6 +366,8 @@
     details: {
       sizeUnknownCount: sizeUnknownCount,
       ignoredHints: ignoredHints,
+      headerHints: headerHints === null ? null : allHints.filter(h => h.source === "header").length,
+      earlyHints: typeof navigationEntry?.firstInterimResponseStart === "number" ? navigationEntry.firstInterimResponseStart > 0 : null,
       byType: Object.fromEntries(hintTypes.map(t => [ t.rel, allHints.filter(h => h.rel === t.rel).length ])),
       missingPreconnectsCount: missingPreconnects.length,
       missingPreconnects: missingPreconnects.slice(0, 20).map(o => ({
@@ -263,6 +381,7 @@
     items: rankedHints.slice(0, MAX_ITEMS).map(h => ({
       rel: h.rel,
       href: h.href,
+      source: h.source,
       as: h.as,
       crossorigin: h.crossorigin,
       fetchpriority: h.fetchpriority
@@ -271,7 +390,7 @@
       code: i.code,
       severity: i.severity,
       message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}`,
-      ...i.hint.element ? {
+      ...i.hint.source ? {
         target: i.hint.href
       } : {}
     }))

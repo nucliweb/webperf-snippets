@@ -50,6 +50,14 @@ preload/modulepreload → preconnect → dns-prefetch → prefetch → prerender
 **Tip:** Preload is for resources needed in the current page. Prefetch is for resources needed in future navigations. Don't confuse them!
 </Callout>
 
+### Hints in the Link header
+
+A server can send the same hints in the `Link` response header of the document instead of the HTML, for example `Link: <https://cdn.example>; rel=preconnect`. The browser acts on them before it parses the HTML, and a server or CDN can also send them as a `103 Early Hints` response, while the page is still being generated.
+
+A page cannot read the headers of its own navigation, so the snippet asks for the document again with a `HEAD` request and reads its `Link` header. Each hint says where it was declared (`source`: `dom` or `header`), and a hint declared in both places, or twice in one, is reported once as a duplicate. When the `HEAD` request fails (some servers answer it with `405`), the report covers only the hints of the HTML and says so.
+
+`details.earlyHints` says whether the server sent a `103 Early Hints` response. The browser does not expose which hints that response carried; when it is built from the `Link` header of the document, as a CDN usually does, they are the hints with `source: "header"`.
+
 ### Why preconnect helps
 
 `preconnect` pays off when a resource lives on a third-party origin: it moves the connection setup (DNS, TCP, TLS) off the critical path, so the request can start as soon as the resource is discovered. Step through the scenarios to compare connection reuse across HTTP versions and see what `preconnect` saves:
@@ -77,6 +85,7 @@ For **preload/modulepreload**:
 | Column | Description |
 |--------|-------------|
 | Resource | URL (truncated if long) |
+| Source | HTML or Link header |
 | As | Resource type (script, style, font, image) |
 | Crossorigin | CORS setting |
 | Priority | fetchpriority if set |
@@ -85,6 +94,8 @@ For **preload/modulepreload**:
 For **preconnect/dns-prefetch**:
 | Column | Description |
 |--------|-------------|
+| Resource | URL (truncated if long) |
+| Source | HTML or Link header |
 | Origin | Domain being connected to |
 | Crossorigin | CORS setting |
 | Resources Loaded | Count of resources from this origin |
@@ -99,6 +110,8 @@ For **preconnect/dns-prefetch**:
 | Unused preload | Warning | Wasted bandwidth |
 | Preconnect without resources | Warning | Wasted connection |
 | Too many preloads (> 6) | Warning | Bandwidth competition |
+| Hint declared twice | Info | Nothing, but one of them can go |
+| `Link` header not readable | Info | Hints sent only in the header are not in the report |
 
 ### Optimization opportunities
 - Third-party origins loading multiple resources without preconnect

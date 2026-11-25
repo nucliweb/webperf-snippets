@@ -6,6 +6,8 @@
   "details": {
     "sizeUnknownCount": 0,
     "ignoredHints": 0,
+    "headerHints": 0,
+    "earlyHints": false,
     "byType": {
       "preload": 0,
       "modulepreload": 0,
@@ -21,6 +23,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.2:90/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -28,6 +31,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.3:91/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -35,6 +39,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.4:92/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -42,6 +47,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.5:93/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -49,6 +55,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.6:94/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -56,6 +63,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.7:95/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -63,6 +71,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.8:96/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -70,6 +79,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.9:97/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -77,6 +87,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.10:98/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -84,6 +95,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.11:99/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -91,6 +103,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.12:910/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -98,6 +111,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.13:911/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -105,6 +119,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.14:912/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -112,6 +127,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.15:913/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -119,6 +135,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.16:914/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -126,6 +143,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.17:915/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -133,6 +151,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.18:916/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -140,6 +159,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.19:917/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -147,6 +167,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.20:918/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -154,6 +175,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.21:919/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -161,6 +183,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.22:920/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -168,6 +191,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.23:921/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -175,6 +199,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.24:922/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -182,6 +207,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.25:923/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -189,6 +215,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.26:924/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -196,6 +223,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.27:925/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -203,6 +231,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.28:926/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -210,6 +239,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.29:927/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -217,6 +247,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.30:928/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -224,6 +255,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.31:929/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -231,6 +263,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.32:930/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -238,6 +271,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.33:931/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -245,6 +279,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.34:932/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -252,6 +287,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.35:933/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -259,6 +295,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.36:934/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -266,6 +303,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.37:935/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -273,6 +311,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.38:936/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -280,6 +319,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.39:937/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -287,6 +327,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.40:938/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -294,6 +335,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.41:939/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -301,6 +343,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.42:940/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -308,6 +351,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.43:941/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -315,6 +359,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.44:942/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -322,6 +367,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.45:943/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -329,6 +375,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.46:944/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -336,6 +383,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.47:945/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -343,6 +391,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.48:946/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -350,6 +399,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.49:947/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -357,6 +407,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.50:948/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -364,6 +415,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.51:949/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"

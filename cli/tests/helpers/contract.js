@@ -110,6 +110,27 @@ const SW_REGISTER_PAGE = `<!DOCTYPE html><html><head><title>sw</title></head><bo
 const SW_APP_PAGE = (other) => `<!DOCTYPE html><html><head><title>app</title></head><body><h1>app</h1>
 <script src="/cached.js"></script><script src="/net.js"></script><script src="${other}/x.js"></script></body></html>`;
 
+// Pages whose hints come in the Link header of the response, for Resource-Hints. `head: 405`
+// answers a HEAD request with 405, as some servers do.
+const HEADER_HINT_PAGES = (other) => ({
+  // Every hint in the header and none in the HTML
+  "/hints-header": {
+    link: `<${other}>; rel=preconnect, <${other}>; rel=preconnect; crossorigin, </app.js>; rel="preload"; as=script`,
+    html: page("", `<script src="/app.js"></script><script src="${other}/h0.js"></script>`),
+  },
+  // The same preconnect in the header and in the HTML
+  "/hints-header-dup": {
+    link: `<${other}>; rel=preconnect`,
+    html: page(`<link rel="preconnect" href="${other}">`, `<script src="${other}/h0.js"></script>`),
+  },
+  // A hint in the header, which the snippet cannot read when HEAD fails, and one in the HTML
+  "/hints-header-405": {
+    link: `<${other}>; rel=preconnect`,
+    head: 405,
+    html: page('<link rel="preload" href="/app.js" as="script">', '<script src="/app.js"></script>'),
+  },
+});
+
 // Small pages, one per behaviour that the Loading tests check.
 const page = (head, body) =>
   `<!DOCTYPE html><html><head><meta charset="utf-8"><title>t</title>${head}</head><body>${body}</body></html>`;
@@ -423,6 +444,15 @@ export async function startContractServers() {
       return setTimeout(() => send("text/html", "<!DOCTYPE html><html><head><title>s</title></head><body><h1>Slow TTFB</h1></body></html>"), ms);
     }
     if (path === "/seeded") return send("text/html", SEEDED_PAGE(otherUrl));
+    const withHeader = HEADER_HINT_PAGES(otherUrl)[path];
+    if (withHeader) {
+      if (req.method === "HEAD" && withHeader.head) {
+        res.writeHead(withHeader.head);
+        return res.end();
+      }
+      res.writeHead(200, { "Content-Type": "text/html", Link: withHeader.link });
+      return res.end(withHeader.html);
+    }
     const small = SMALL_PAGES(otherUrl)[path];
     if (small) return send("text/html", small);
     if (path === "/mq.css") return send("text/css", "@media (min-width: 900px){.desk{color:red;margin:1px}.wide{padding:2px}}");
