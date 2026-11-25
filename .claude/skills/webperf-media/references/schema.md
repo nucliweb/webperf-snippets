@@ -743,7 +743,7 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 #### Resource-Hints
 
-`items` holds at most 50 hints, those with an error or a warning first, and `count` is the total. `details.sizeUnknownCount` counts the third-party resources whose size is hidden by a missing `Timing-Allow-Origin` header; `corsLimitedAnalysis` is `true` when it is above zero, and the `sizeBytes` of `missingPreconnects` is then a lower bound. `details.missingPreconnects` lists the third-party origins without a preconnect (at most 20). `details.missingPreconnectsCount` is the total.
+`items` holds at most 50 hints, those with an error or a warning first, and `count` is the total. `details.sizeUnknownCount` counts the third-party resources whose size is hidden by a missing `Timing-Allow-Origin` header; `corsLimitedAnalysis` is `true` when it is above zero, and the `sizeBytes` of `missingPreconnects` is then a lower bound. `details.missingPreconnects` lists the third-party origins without a preconnect (at most 20); `sizeBytes` is `null` when no resource of the origin has a known size. `details.missingPreconnectsCount` is the total. `href` is the full URL of the hint. Hints whose URL is not `http` or `https`, such as those a browser extension injects, are left out of `count` and `items`; `details.ignoredHints` counts them.
 
 ```json
 {

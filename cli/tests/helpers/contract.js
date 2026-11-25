@@ -150,6 +150,13 @@ const SMALL_PAGES = (other) => ({
     `<link rel="preload" href="/hidden.css" as="style"><link rel="preconnect" href="${other}"><link rel="dns-prefetch" href="${other.replace("127.0.0.1", "localhost")}">`,
     "<h1>unused</h1>"
   ),
+  // A preload with a URL longer than the console column, and a hint a browser extension injects
+  // (not http or https), which is not the page's
+  "/hints-hygiene": page(
+    '<link rel="preload" href="/build/fonts/a-file-name-long-enough-to-be-cut-in-the-console.woff2" as="font" type="font/woff2" crossorigin>' +
+      '<link rel="modulepreload" href="chrome-extension://abcdefghijklmnop/content.js">',
+    "<h1>hygiene</h1>"
+  ),
   // A preload for a viewport this page does not have is conditional, not unused
   "/hints-conditional": page('<link rel="preload" href="/wide.css" as="style" media="(min-width: 5000px)">', "<h1>conditional</h1>"),
   // A large block of content that moves down by 500 px 300 ms after the load: a layout shift above 0.25

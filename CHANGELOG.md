@@ -8,6 +8,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Resource-Hints counted the hints a browser extension injects, such as a `modulepreload` of a `chrome-extension://` URL, as the page's. Hints whose URL is not `http` or `https` are left out of `count` and `items`, and `details.ignoredHints` counts them.
+- Resource-Hints cut the `href` of each item to its last 50 characters, so two runs could not be compared hint by hint. `items` keeps the full URL; only the console table cuts it.
+- The `sizeBytes` of `missingPreconnects` in Resource-Hints was `0` for an origin that sends no `Timing-Allow-Origin` header, which reads as an empty response. It is `null` when no resource of the origin has a known size.
+
 ## [2.8.0] — 2026-11-19
 
 Script-Loading says which scripts compete for the network: it gives the priority Chrome gives each script, with its `fetchpriority` attribute, and warns of the third-party scripts that do not block the parser but download at high priority, such as a module script. Validate-Preload-Async-Defer-Scripts follows what Chrome does with a preload: a module preloaded without the same `crossorigin` downloads twice, and only `fetchpriority="low"` on the preload, not on the script, keeps a preloaded script at low priority. End-to-end tests check both against the priority Chrome gives each request. The extension reaches 0.7.0 with these snippets, a bar of the phases of a metric drawn to the width of its value and dialogs that close with a click outside them, and the CLI 1.19.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)) ships them.
