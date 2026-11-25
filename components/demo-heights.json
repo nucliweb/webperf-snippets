@@ -39,6 +39,10 @@
     "mobile": 1069,
     "desktop": 653
   },
+  "preconnect-connections.html": {
+    "mobile": 1303,
+    "desktop": 931
+  },
   "raf-pipeline.html": {
     "mobile": 537,
     "desktop": 417

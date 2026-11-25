@@ -92,6 +92,14 @@ The snippet shows this from Resource Timing. For each preconnect, `firstUseConne
 In the example, the ad request is a `fetch()` with credentials. The snippet cannot tell the credentials mode of a `fetch()`, so the `use` of that preconnect is `unknown` and the snippet says nothing about its connection. Check it in the Network panel of DevTools: right-click the header of the table, add the Connection ID column, and compare the ID of the ad request with the IDs of the earlier requests to the same origin. A new ID on the first request with credentials means it opened its own connection.
 </Callout>
 
+Replay each scenario to see which connection every request takes, and what the Network panel and the snippet show:
+
+<Demo
+  src="/demos/preconnect-connections.html"
+  title="Timeline of the connections to an ad server after two preconnects, and the connection each request uses"
+  caption="Switch between scenarios to compare a preconnect used early, one the server closes before its request, one without crossorigin, and one added when the request is coming."
+/>
+
 ### Why preconnect helps
 
 `preconnect` pays off when a resource lives on a third-party origin: it moves the connection setup (DNS, TCP, TLS) off the critical path, so the request can start as soon as the resource is discovered. Step through the scenarios to compare connection reuse across HTTP versions and see what `preconnect` saves:
