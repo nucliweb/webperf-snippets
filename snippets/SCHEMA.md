@@ -107,7 +107,7 @@ Scripts that read DOM or `performance.getEntriesByType()` directly. Return JSON 
 })();
 ```
 
-**Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Resource-Hints, Resource-Hints-Validation, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, Compression-Audit, Third-Party-Impact-by-Domain, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
+**Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Resource-Hints-Validation, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, Compression-Audit, Third-Party-Impact-by-Domain, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
 
 ### Pattern 2: Buffered observer
 
@@ -190,7 +190,7 @@ Keep the existing `async () => {}` wrapper. Add a `return` statement with struct
 
 A script wrapped in `void (async () => {...})()` discards its return value. Never use `void` on the IIFE.
 
-**Scripts using this pattern:** Image-Element-Audit (fetches content-type headers), Video-Element-Audit, SVG-Embedded-Bitmap-Analysis, Service-Worker-Analysis, and every script that collects observer-only entry types (Pattern 2).
+**Scripts using this pattern:** Image-Element-Audit (fetches content-type headers), Video-Element-Audit, SVG-Embedded-Bitmap-Analysis, Service-Worker-Analysis, Resource-Hints (reads the Link header of the document), and every script that collects observer-only entry types (Pattern 2).
 
 ---
 
@@ -745,11 +745,15 @@ Async. Returns one item per registration. `cacheHitRate` is computed over the re
 
 `items` holds at most 50 hints, those with an error or a warning first, and `count` is the total. `details.sizeUnknownCount` counts the third-party resources whose size is hidden by a missing `Timing-Allow-Origin` header; `corsLimitedAnalysis` is `true` when it is above zero, and the `sizeBytes` of `missingPreconnects` is then a lower bound. `details.missingPreconnects` lists the third-party origins without a preconnect (at most 20); `sizeBytes` is `null` when no resource of the origin has a known size. `details.missingPreconnectsCount` is the total. `href` is the full URL of the hint. Hints whose URL is not `http` or `https`, such as those a browser extension injects, are left out of `count` and `items`; `details.ignoredHints` counts them.
 
+The hints come from the HTML and from the `Link` header of the document, which the snippet reads with a `HEAD` request to the page (the script is async). `source` is `dom` or `header`. `details.headerHints` counts the hints of the header, `null` when the request failed. `details.earlyHints` is `true` when the server sent a `103 Early Hints` response (`firstInterimResponseStart` of the navigation), `null` in a browser that does not report it.
+
 ```json
 {
   "script": "Resource-Hints",
   "status": "ok",
   "details": {
+    "headerHints": 1,
+    "earlyHints": true,
     "byType": { "preload": 2, "preconnect": 1 },
     "missingPreconnectsCount": 1,
     "missingPreconnects": [
@@ -1583,6 +1587,8 @@ Each issue about one hint names its URL in `target`.
 | `unused-preload` | warning | A preload that the page did not use during the load |
 | `unused-preconnect` | warning | A preconnect to an origin the page loaded nothing from |
 | `too-many-preloads` | warning | More than 6 preloads |
+| `duplicate-hint` | info | A hint declared twice, in the HTML and the `Link` header or twice in one of them; `target` is the second |
+| `header-hints-unavailable` | info | The `HEAD` request that reads the `Link` header failed, so the report covers only the hints of the HTML |
 
 ### Resource-Hints-Validation
 

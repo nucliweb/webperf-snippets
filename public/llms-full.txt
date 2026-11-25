@@ -10377,7 +10377,7 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
 // Resource Hints Analysis
 // https://webperf-snippets.net
 
-(() => {
+(async () => {
   // @shared isOwnRequest
   // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
   // did not make it, so no snippet counts it.
@@ -10385,6 +10385,81 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
     return entry.name.endsWith("#webperf-snippets");
   }
   // @end-shared isOwnRequest
+
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
+  // The hints of a Link header: `<url>; rel=preconnect; crossorigin, </font.woff2>; rel="preload"; as=font`.
+  // A comma or a semicolon inside <...> or quotes does not split, a rel with several tokens gives one
+  // hint per token, and URLs resolve against the page. crossorigin is read as the crossOrigin property
+  // of a <link> reads it: "" when missing, "use-credentials", or "anonymous" for any other value.
+  function parseLinkHeader(value) {
+    const parts = [];
+    let current = "";
+    let inUrl = false;
+    let inQuote = false;
+    for (const ch of value || "") {
+      if (ch === "<" && !inQuote) inUrl = true;
+      else if (ch === ">" && !inQuote) inUrl = false;
+      else if (ch === '"' && !inUrl) inQuote = !inQuote;
+      if (ch === "," && !inUrl && !inQuote) {
+        parts.push(current);
+        current = "";
+      } else current += ch;
+    }
+    parts.push(current);
+
+    const hints = [];
+    for (const part of parts) {
+      const match = part.match(/^\s*<([^>]*)>([\s\S]*)$/);
+      if (!match) continue;
+      const params = {};
+      for (const param of match[2].split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/)) {
+        const [rawKey, ...rest] = param.split("=");
+        const key = rawKey.trim().toLowerCase();
+        if (key && !(key in params)) params[key] = rest.join("=").trim().replace(/^"([\s\S]*)"$/, "$1");
+      }
+      let href;
+      try {
+        href = new URL(match[1].trim(), location.href).href;
+      } catch {
+        continue;
+      }
+      const crossorigin = !("crossorigin" in params)
+        ? ""
+        : params.crossorigin.toLowerCase() === "use-credentials" ? "use-credentials" : "anonymous";
+      for (const rel of (params.rel || "").toLowerCase().split(/\s+/).filter(Boolean)) {
+        hints.push({ rel, href, as: params.as || "", crossorigin, fetchpriority: params.fetchpriority || "", type: params.type || "", media: params.media || "" });
+      }
+    }
+    return hints;
+  }
+
+  // The hints of the Link header of the document. The page cannot read the headers of its own
+  // navigation, so it asks for them again with a HEAD request; null when that request fails.
+  async function readHeaderHints() {
+    try {
+      const response = await fetch(ownRequestUrl(location.href), { method: "HEAD", credentials: "include" });
+      if (!response.ok) return null;
+      return parseLinkHeader(response.headers.get("link"));
+    } catch {
+      return null;
+    }
+  }
 
   // @shared formatBytes
   function formatBytes(bytes) {
@@ -10436,89 +10511,139 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
     },
   ];
 
-  // Get all link elements with resource hints
-  const allHints = [];
-  const issues = [];
-  // Hints with a URL that is not http or https, such as those a browser extension injects
-  // (chrome-extension://), are not the page's
-  let ignoredHints = 0;
-
+  // The hints of the Link header come first, as the browser gets them before the HTML
+  const headerHints = await readHeaderHints();
+  const declaredHints = (headerHints || [])
+    .filter((h) => hintTypes.some((t) => t.rel === h.rel))
+    .map((h) => ({ ...h, element: null, source: "header" }));
   hintTypes.forEach((type) => {
-    const links = document.querySelectorAll(`link[rel="${type.rel}"]`);
-    links.forEach((link) => {
-      const href = link.href || link.getAttribute("href") || "";
-      let protocol = "";
-      try {
-        protocol = new URL(href, location.href).protocol;
-      } catch {}
-      if (protocol !== "http:" && protocol !== "https:") {
-        ignoredHints++;
-        return;
-      }
-      let hostname = "";
-      try {
-        hostname = new URL(href, location.origin).hostname;
-      } catch {}
-
-      const hint = {
+    document.querySelectorAll(`link[rel="${type.rel}"]`).forEach((link) => {
+      declaredHints.push({
         rel: type.rel,
-        icon: type.icon,
-        href,
-        shortHref: href.length > 50 ? "..." + href.slice(-47) : href,
-        hostname,
+        href: link.href || link.getAttribute("href") || "",
         as: link.getAttribute("as") || "",
         crossorigin: link.crossOrigin || link.getAttribute("crossorigin") || "",
         fetchpriority: link.fetchPriority || link.getAttribute("fetchpriority") || "",
         type: link.type || "",
         media: link.media || "",
         element: link,
-      };
-
-      allHints.push(hint);
-
-      // Check for issues
-      if (type.requiresAs && !hint.as) {
-        issues.push({
-          hint,
-          code: "preload-missing-as",
-          issue: "Missing 'as' attribute (required for preload)",
-          severity: "error",
-          fix: `Add as="script|style|font|image|fetch"`,
-        });
-      }
-
-      if (hint.as === "font" && !hint.crossorigin) {
-        issues.push({
-          hint,
-          code: "font-preload-no-crossorigin",
-          issue: "Font preload without crossorigin (causes double fetch)",
-          severity: "error",
-          fix: 'Add crossorigin="anonymous"',
-        });
-      }
-
-      if (type.rel === "preconnect" && !hint.crossorigin) {
-        // Check if we load CORS resources from this origin
-        const corsResources = performance
-          .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
-          .filter(
-            (r) =>
-              r.name.includes(hostname) &&
-              (r.initiatorType === "script" ||
-                r.initiatorType === "css" ||
-                r.initiatorType === "font")
-          );
-        if (corsResources.length > 0) {
-          issues.push({
-            hint,
-            code: "preconnect-no-crossorigin",
-            issue: "Preconnect may need crossorigin for CORS resources",
-            severity: "warning",
-            fix: 'Consider adding crossorigin="anonymous"',
-          });
-        }
-      }
+        source: "dom",
+      });
     });
+  });
+
+  // Two hints are the same when the browser would do the same work for both: the same connection
+  // for a preconnect (origin and crossorigin), the same lookup for a dns-prefetch, the same fetch otherwise
+  const hintKey = (h) => {
+    let origin = h.href;
+    try {
+      origin = new URL(h.href).origin;
+    } catch {}
+    if (h.rel === "dns-prefetch") return `${h.rel} ${origin}`;
+    if (h.rel === "preconnect") return `${h.rel} ${origin} ${h.crossorigin}`;
+    return `${h.rel} ${h.href} ${h.as} ${h.crossorigin}`;
+  };
+  const sourceLabel = { dom: "the HTML", header: "the Link header" };
+
+  const allHints = [];
+  const issues = [];
+  const firstByKey = new Map();
+  // Hints with a URL that is not http or https, such as those a browser extension injects
+  // (chrome-extension://), are not the page's
+  let ignoredHints = 0;
+
+  if (headerHints === null) {
+    issues.push({
+      hint: { rel: "Link header", href: "" },
+      code: "header-hints-unavailable",
+      issue: "Could not read the Link header of the document (the HEAD request failed)",
+      severity: "info",
+      fix: "Hints sent only in the Link header or as 103 Early Hints are not in this report",
+    });
+  }
+
+  declaredHints.forEach((declared) => {
+    const type = hintTypes.find((t) => t.rel === declared.rel);
+    const href = declared.href;
+    let protocol = "";
+    try {
+      protocol = new URL(href, location.href).protocol;
+    } catch {}
+    if (protocol !== "http:" && protocol !== "https:") {
+      ignoredHints++;
+      return;
+    }
+    let hostname = "";
+    try {
+      hostname = new URL(href, location.origin).hostname;
+    } catch {}
+
+    const hint = {
+      ...declared,
+      icon: type.icon,
+      shortHref: href.length > 50 ? "..." + href.slice(-47) : href,
+      hostname,
+    };
+
+    allHints.push(hint);
+
+    const first = firstByKey.get(hintKey(hint));
+    if (first) {
+      issues.push({
+        hint,
+        code: "duplicate-hint",
+        issue: first.source === hint.source
+          ? `Declared twice in ${sourceLabel[hint.source]}`
+          : "Declared both in the Link header and in the HTML",
+        severity: "info",
+        fix: "Keep one of them",
+      });
+    } else {
+      firstByKey.set(hintKey(hint), hint);
+    }
+
+    // Check for issues
+    if (type.requiresAs && !hint.as) {
+      issues.push({
+        hint,
+        code: "preload-missing-as",
+        issue: "Missing 'as' attribute (required for preload)",
+        severity: "error",
+        fix: `Add as="script|style|font|image|fetch"`,
+      });
+    }
+
+    if (hint.as === "font" && !hint.crossorigin) {
+      issues.push({
+        hint,
+        code: "font-preload-no-crossorigin",
+        issue: "Font preload without crossorigin (causes double fetch)",
+        severity: "error",
+        fix: 'Add crossorigin="anonymous"',
+      });
+    }
+
+    if (type.rel === "preconnect" && !hint.crossorigin) {
+      // Check if we load CORS resources from this origin
+      const corsResources = performance
+        .getEntriesByType("resource").filter((e) => !isOwnRequest(e))
+        .filter(
+          (r) =>
+            r.name.includes(hostname) &&
+            (r.initiatorType === "script" ||
+              r.initiatorType === "css" ||
+              r.initiatorType === "font")
+        );
+      if (corsResources.length > 0) {
+        issues.push({
+          hint,
+          code: "preconnect-no-crossorigin",
+          issue: "Preconnect may need crossorigin for CORS resources",
+          severity: "warning",
+          fix: 'Consider adding crossorigin="anonymous"',
+        });
+      }
+    }
   });
 
   // Check for unused preloads
@@ -10644,6 +10769,7 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
     const tableData = hints.map((h) => {
       const row = {
         Resource: h.shortHref,
+        Source: h.source === "header" ? "Link header" : "HTML",
       };
 
       if (type.rel === "preload" || type.rel === "modulepreload") {
@@ -10679,7 +10805,7 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
     // Elements for inspection
     console.log("%c🔎 Elements:", "font-weight: bold;");
     hints.forEach((h, i) => {
-      console.log(`${i + 1}.`, h.element);
+      console.log(`${i + 1}.`, h.element ?? `${h.href} (Link header)`);
     });
 
     console.groupEnd();
@@ -10688,11 +10814,12 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
   // Issues
   const errors = issues.filter((i) => i.severity === "error");
   const warnings = issues.filter((i) => i.severity === "warning");
+  const infos = issues.filter((i) => i.severity === "info");
 
   if (issues.length > 0) {
     console.log("");
     console.group(
-      `%c⚠️ Issues Found (${errors.length} errors, ${warnings.length} warnings)`,
+      `%c⚠️ Issues Found (${errors.length} errors, ${warnings.length} warnings, ${infos.length} info)`,
       "color: #ef4444; font-weight: bold;"
     );
 
@@ -10710,6 +10837,18 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
       console.log("");
       console.log("%c🟡 Warnings:", "font-weight: bold; color: #f59e0b;");
       warnings.forEach((issue) => {
+        console.log(`   ${issue.hint.rel}: ${issue.issue}`);
+        if (issue.hint.href) {
+          console.log(`      Resource: ${issue.hint.href}`);
+        }
+        console.log(`      Fix: ${issue.fix}`);
+      });
+    }
+
+    if (infos.length > 0) {
+      console.log("");
+      console.log("%cℹ️ Info:", "font-weight: bold; color: #3b82f6;");
+      infos.forEach((issue) => {
         console.log(`   ${issue.hint.rel}: ${issue.issue}`);
         if (issue.hint.href) {
           console.log(`      Resource: ${issue.hint.href}`);
@@ -10793,6 +10932,8 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
 
   console.groupEnd();
 
+  const navigationEntry = performance.getEntriesByType("navigation")[0];
+
   // The list keeps 50 hints: those with an error or a warning first, then in document order; count and details cover all of them
   const MAX_ITEMS = 50;
   const hintRank = (h) => (issues.some((i) => i.hint === h && i.severity === "error") ? 0 : issues.some((i) => i.hint === h) ? 1 : 2);
@@ -10808,6 +10949,10 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
     details: {
       sizeUnknownCount,
       ignoredHints,
+      // null when the Link header could not be read
+      headerHints: headerHints === null ? null : allHints.filter((h) => h.source === "header").length,
+      // Whether the server sent a 103 Early Hints response; null where the browser does not say
+      earlyHints: typeof navigationEntry?.firstInterimResponseStart === "number" ? navigationEntry.firstInterimResponseStart > 0 : null,
       byType: Object.fromEntries(hintTypes.map(t => [t.rel, allHints.filter(h => h.rel === t.rel).length])),
       missingPreconnectsCount: missingPreconnects.length,
       missingPreconnects: missingPreconnects.slice(0, 20).map((o) => ({
@@ -10818,8 +10963,8 @@ Lists the resource hints of the page, such as preload, prefetch, preconnect and 
         recommendedHint: "preconnect",
       })),
     },
-    items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.href, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
-    issues: issues.map(i => ({ code: i.code, severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}`, ...(i.hint.element ? { target: i.hint.href } : {}) })),
+    items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.href, source: h.source, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
+    issues: issues.map(i => ({ code: i.code, severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}`, ...(i.hint.source ? { target: i.hint.href } : {}) })),
   };
 })();
 ```

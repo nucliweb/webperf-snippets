@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- Resource-Hints reads the hints of the `Link` response header of the document, with a `HEAD` request to the page, besides those of the HTML: a page that sends its hints only in the header, or as `103 Early Hints` built from it, no longer reports none and lists its preconnected origins as missing. Each item says where it was declared in `source` (`dom` or `header`); `details.headerHints` counts those of the header, and `details.earlyHints` says whether the server sent a `103 Early Hints` response. A hint declared twice gets `duplicate-hint` (info), and `header-hints-unavailable` (info) says when the header could not be read. The snippet is async.
+
 ### Fixed
 - Resource-Hints counted the hints a browser extension injects, such as a `modulepreload` of a `chrome-extension://` URL, as the page's. Hints whose URL is not `http` or `https` are left out of `count` and `items`, and `details.ignoredHints` counts them.
 - Resource-Hints cut the `href` of each item to its last 50 characters, so two runs could not be compared hint by hint. `items` keeps the full URL; only the console table cuts it.

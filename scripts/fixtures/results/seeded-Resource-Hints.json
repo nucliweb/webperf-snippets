@@ -6,6 +6,8 @@
   "details": {
     "sizeUnknownCount": 0,
     "ignoredHints": 0,
+    "headerHints": 0,
+    "earlyHints": false,
     "byType": {
       "preload": 1,
       "modulepreload": 0,
@@ -21,6 +23,7 @@
     {
       "rel": "preconnect",
       "href": "http://127.0.0.1:8001/",
+      "source": "dom",
       "as": "",
       "crossorigin": "",
       "fetchpriority": "auto"
@@ -28,6 +31,7 @@
     {
       "rel": "preload",
       "href": "http://127.0.0.1:8000/app.js",
+      "source": "dom",
       "as": "script",
       "crossorigin": "",
       "fetchpriority": "auto"

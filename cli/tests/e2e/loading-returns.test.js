@@ -275,6 +275,44 @@ describe("Resource-Hints", () => {
   }, 30000);
 });
 
+describe("Resource-Hints, hints in the Link header", () => {
+  it("reads the hints of the Link header and tells them from those of the HTML", async () => {
+    const r = await runOn("/hints-header", "Loading/Resource-Hints");
+    expect(r.count).toBe(3);
+    expect(r.details.headerHints).toBe(3);
+    expect(r.details.byType.preconnect).toBe(2);
+    expect(r.details.byType.preload).toBe(1);
+    expect(r.items.every((i) => i.source === "header")).toBe(true);
+    const preconnects = r.items.filter((i) => i.rel === "preconnect");
+    expect(preconnects.map((i) => i.crossorigin).sort()).toEqual(["", "anonymous"]);
+    expect(preconnects.every((i) => i.href === `${servers.otherBase}/`)).toBe(true);
+    expect(r.items.find((i) => i.rel === "preload")).toEqual(expect.objectContaining({ href: `${servers.base}/app.js`, as: "script" }));
+    // The preload is used, and the origin has its preconnect: nothing to report
+    expect(r.issues.map((i) => i.code)).not.toContain("unused-preload");
+    expect(r.details.missingPreconnects.map((o) => o.origin)).not.toContain(servers.otherBase);
+    // The fixture server speaks HTTP/1.1 and sends no 103
+    expect(r.details.earlyHints).toBe(false);
+  }, 30000);
+
+  it("reports a hint declared both in the HTML and in the Link header", async () => {
+    const r = await runOn("/hints-header-dup", "Loading/Resource-Hints");
+    expect(r.count).toBe(2);
+    expect(r.items.map((i) => i.source).sort()).toEqual(["dom", "header"]);
+    const dup = r.issues.filter((i) => i.code === "duplicate-hint");
+    expect(dup).toHaveLength(1);
+    expect(dup[0]).toEqual(expect.objectContaining({ severity: "info", target: `${servers.otherBase}/` }));
+  }, 30000);
+
+  it("goes on with the hints of the HTML when it cannot read the Link header", async () => {
+    const r = await runOn("/hints-header-405", "Loading/Resource-Hints");
+    expect(r.status).toBe("ok");
+    expect(r.count).toBe(1);
+    expect(r.items[0]).toEqual(expect.objectContaining({ rel: "preload", source: "dom" }));
+    expect(r.details.headerHints).toBeNull();
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: "header-hints-unavailable", severity: "info" }));
+  }, 30000);
+});
+
 describe("FCP", () => {
   it("returns the render-blocking resources and the phases", async () => {
     const r = await runOn("/seeded", "Loading/FCP");
