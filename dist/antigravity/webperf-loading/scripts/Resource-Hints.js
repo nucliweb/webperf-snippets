@@ -42,10 +42,19 @@
   } ];
   const allHints = [];
   const issues = [];
+  let ignoredHints = 0;
   hintTypes.forEach(type => {
     const links = document.querySelectorAll(`link[rel="${type.rel}"]`);
     links.forEach(link => {
       const href = link.href || link.getAttribute("href") || "";
+      let protocol = "";
+      try {
+        protocol = new URL(href, location.href).protocol;
+      } catch {}
+      if (protocol !== "http:" && protocol !== "https:") {
+        ignoredHints++;
+        return;
+      }
       let hostname = "";
       try {
         hostname = new URL(href, location.origin).hostname;
@@ -137,13 +146,12 @@
       if (url.hostname !== location.hostname) {
         if (!thirdPartyOrigins.has(url.origin)) thirdPartyOrigins.set(url.origin, {
           count: 0,
-          size: 0,
+          size: null,
           types: new Set
         });
         const data = thirdPartyOrigins.get(url.origin);
         data.count++;
-        data.size += r.transferSize || 0;
-        if (r.transferSize === 0 && r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.duration > 0) sizeUnknownCount++;
+        if (r.transferSize === 0 && r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.duration > 0) sizeUnknownCount++; else data.size = (data.size ?? 0) + (r.transferSize || 0);
         data.types.add(r.initiatorType);
       }
     } catch {}
@@ -241,6 +249,7 @@
     corsLimitedAnalysis: sizeUnknownCount > 0,
     details: {
       sizeUnknownCount: sizeUnknownCount,
+      ignoredHints: ignoredHints,
       byType: Object.fromEntries(hintTypes.map(t => [ t.rel, allHints.filter(h => h.rel === t.rel).length ])),
       missingPreconnectsCount: missingPreconnects.length,
       missingPreconnects: missingPreconnects.slice(0, 20).map(o => ({
@@ -253,7 +262,7 @@
     },
     items: rankedHints.slice(0, MAX_ITEMS).map(h => ({
       rel: h.rel,
-      href: h.shortHref,
+      href: h.href,
       as: h.as,
       crossorigin: h.crossorigin,
       fetchpriority: h.fetchpriority

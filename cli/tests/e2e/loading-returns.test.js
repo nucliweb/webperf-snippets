@@ -240,6 +240,21 @@ describe("Resource-Hints", () => {
     expect(list[0].origin).toBe(servers.otherBase.replace("127.0.0.1", "localhost"));
     expect(list[0].requestCount).toBe(3);
     expect(Array.isArray(list[0].resourceTypes)).toBe(true);
+    // The other server sends no Timing-Allow-Origin: the size is unknown, not zero
+    expect(list[0].sizeBytes).toBeNull();
+  }, 30000);
+
+  it("keeps the full URL of each hint, so two runs can be compared", async () => {
+    const r = await runOn("/hints-hygiene", "Loading/Resource-Hints");
+    expect(r.items.map((i) => i.href)).toEqual([`${servers.base}/build/fonts/a-file-name-long-enough-to-be-cut-in-the-console.woff2`]);
+  }, 30000);
+
+  it("leaves out hints that are not http or https, such as those a browser extension injects, and counts them", async () => {
+    const r = await runOn("/hints-hygiene", "Loading/Resource-Hints");
+    expect(r.count).toBe(1);
+    expect(r.items.some((i) => !/^https?:/.test(i.href))).toBe(false);
+    expect(r.details.byType.modulepreload).toBe(0);
+    expect(r.details.ignoredHints).toBe(1);
   }, 30000);
 
   it("caps the list at 20 origins and keeps the total", async () => {
@@ -255,6 +270,8 @@ describe("Resource-Hints", () => {
     const r = await runOn("/empty", "Loading/Resource-Hints", { init: stub });
     expect(r.details.missingPreconnectsCount).toBe(30);
     expect(r.details.missingPreconnects.length).toBe(20);
+    // With Timing-Allow-Origin the size is known: two requests of 100 bytes
+    expect(r.details.missingPreconnects[0].sizeBytes).toBe(200);
   }, 30000);
 });
 

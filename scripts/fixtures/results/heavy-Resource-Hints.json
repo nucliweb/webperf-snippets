@@ -5,6 +5,7 @@
   "corsLimitedAnalysis": false,
   "details": {
     "sizeUnknownCount": 0,
+    "ignoredHints": 0,
     "byType": {
       "preload": 0,
       "modulepreload": 0,

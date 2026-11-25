@@ -63,11 +63,22 @@
   // Get all link elements with resource hints
   const allHints = [];
   const issues = [];
+  // Hints with a URL that is not http or https, such as those a browser extension injects
+  // (chrome-extension://), are not the page's
+  let ignoredHints = 0;
 
   hintTypes.forEach((type) => {
     const links = document.querySelectorAll(`link[rel="${type.rel}"]`);
     links.forEach((link) => {
       const href = link.href || link.getAttribute("href") || "";
+      let protocol = "";
+      try {
+        protocol = new URL(href, location.href).protocol;
+      } catch {}
+      if (protocol !== "http:" && protocol !== "https:") {
+        ignoredHints++;
+        return;
+      }
       let hostname = "";
       try {
         hostname = new URL(href, location.origin).hostname;
@@ -194,12 +205,13 @@
       const url = new URL(r.name);
       if (url.hostname !== location.hostname) {
         if (!thirdPartyOrigins.has(url.origin)) {
-          thirdPartyOrigins.set(url.origin, { count: 0, size: 0, types: new Set() });
+          thirdPartyOrigins.set(url.origin, { count: 0, size: null, types: new Set() });
         }
         const data = thirdPartyOrigins.get(url.origin);
         data.count++;
-        data.size += r.transferSize || 0;
+        // The size stays null while no resource of the origin has a known one
         if (r.transferSize === 0 && r.encodedBodySize === 0 && r.decodedBodySize === 0 && r.duration > 0) sizeUnknownCount++;
+        else data.size = (data.size ?? 0) + (r.transferSize || 0);
         data.types.add(r.initiatorType);
       }
     } catch {}
@@ -419,6 +431,7 @@
     corsLimitedAnalysis: sizeUnknownCount > 0,
     details: {
       sizeUnknownCount,
+      ignoredHints,
       byType: Object.fromEntries(hintTypes.map(t => [t.rel, allHints.filter(h => h.rel === t.rel).length])),
       missingPreconnectsCount: missingPreconnects.length,
       missingPreconnects: missingPreconnects.slice(0, 20).map((o) => ({
@@ -429,7 +442,7 @@
         recommendedHint: "preconnect",
       })),
     },
-    items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.shortHref, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
+    items: rankedHints.slice(0, MAX_ITEMS).map(h => ({ rel: h.rel, href: h.href, as: h.as, crossorigin: h.crossorigin, fetchpriority: h.fetchpriority })),
     issues: issues.map(i => ({ code: i.code, severity: i.severity, message: `${i.hint.rel}: ${i.issue}. Fix: ${i.fix}`, ...(i.hint.element ? { target: i.hint.href } : {}) })),
   };
 })();
