@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Which connection each request uses after a preconnect</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --tab-active-bg: #1c2a3f;
+  --accent: #58a6ff;
+  --c-good: #3fb950;
+  --c-mid: #e3b341;
+  --c-poor: #f85149;
+  --p-handshake: #f0883e;
+  --p-open: #39c5cf;
+  --p-request: #d2a8ff;
+  --p-closed: #f85149;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --surface2: #eaeef2;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #656d76;
+  --tab-active-bg: #dbeafe;
+  --accent: #0969da;
+  --c-good: #1a7f37;
+  --c-mid: #9a6700;
+  --c-poor: #cf222e;
+  --p-handshake: #bc4c00;
+  --p-open: #1b7c83;
+  --p-request: #8250df;
+  --p-closed: #cf222e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+button { font: inherit; color: inherit; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* Scenario tabs */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.tab:hover { color: var(--text); border-color: var(--accent); }
+.tab[aria-pressed="true"] { color: var(--text); background: var(--tab-active-bg); border-color: var(--accent); }
+
+/* Legend strip */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+.legend-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+.lg {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  border: 1px solid var(--lg);
+  color: var(--lg);
+  background: color-mix(in srgb, var(--lg) 12%, transparent);
+}
+
+/* Frame with a title bar */
+.frame { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.frame-label {
+  padding: 5px 12px;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.frame-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+/* The HTML of the scenario */
+.markup {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+/* Connection lanes */
+.lanes { position: relative; display: flex; flex-direction: column; gap: 8px; }
+.lane-name { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.lane-name strong { color: var(--text); font-weight: 600; }
+.track {
+  position: relative;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.seg { position: absolute; top: 3px; bottom: 3px; border-radius: 2px; }
+.seg.handshake { background: var(--p-handshake); }
+.seg.open { top: 9px; bottom: 9px; background: var(--p-open); opacity: .55; }
+.seg.request { background: var(--p-request); top: 2px; bottom: 2px; }
+.seg.closed { width: 3px; background: var(--p-closed); top: 0; bottom: 0; border-radius: 0; }
+.veil {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: var(--surface);
+  pointer-events: none;
+}
+.cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--text);
+  left: 0;
+  pointer-events: none;
+}
+.axis { position: relative; height: 14px; font-size: 10px; color: var(--muted); }
+.axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.axis span:first-child { transform: none; }
+.axis span:last-child { transform: translateX(-100%); }
+
+/* Network panel table */
+.net { width: 100%; border-collapse: collapse; font-size: 12px; }
+.net th, .net td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.net th { color: var(--muted); font-weight: 600; font-size: 11px; }
+.net td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.net tr:last-child td { border-bottom: 0; }
+.net .pending { color: var(--muted); }
+.report { color: var(--muted); font-size: 12px; line-height: 1.55; }
+.report strong { color: var(--text); }
+
+/* Controls */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.btn-next { background: #1f6feb; color: #fff; }
+.btn-next:hover { background: #388bfd; }
+.clock { color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; }
+.tab:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Explanation box, accent follows the outcome */
+.expl {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+  min-height: 58px;
+  transition: border-color .3s;
+}
+.expl.t-ok { border-left-color: var(--c-good); }
+.expl.t-warn { border-left-color: var(--c-mid); }
+.expl.t-block { border-left-color: var(--c-poor); }
+.expl strong { color: var(--text); }
+
+.note { color: var(--muted); font-size: 12px; padding: 0 2px; }
+
+/* Icons (see "Icons" in README.md): a mask draws the shape, the color is the status tone */
+:root { --ic-good: #3fb950; --ic-mid: #e3b341; --ic-poor: #f85149; }
+[data-theme="light"] { --ic-good: #1a7f37; --ic-mid: #9a6700; --ic-poor: #cf222e; }
+.ic {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline-end: .3em;
+  vertical-align: -.2em;
+  background: currentColor;
+  -webkit-mask: var(--ic-shape) center / contain no-repeat;
+  mask: var(--ic-shape) center / contain no-repeat;
+}
+.ic-end { margin-inline: .3em 0; }
+.ic-ok { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m8 12.5 3 3 5-6'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-bad { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m9 9 6 6M15 9l-6 6'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+.ic-warn { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9.5v4.2M12 17h.01'/%3E%3C/svg%3E"); color: var(--ic-mid); }
+.ic-check { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E"); color: var(--ic-good); }
+.ic-x { --ic-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E"); color: var(--ic-poor); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="legend" id="legend"><span class="legend-label">Connection</span></div>
+
+<div class="tabs" id="tabs" role="group" aria-label="Scenario"></div>
+
+<div class="frame">
+  <div class="frame-label">Page HTML</div>
+  <div class="frame-body"><code class="markup" id="markup"></code></div>
+</div>
+
+<div class="frame">
+  <div class="frame-label">Connections to ads.example, 0 to 15 s</div>
+  <div class="frame-body">
+    <div class="lanes" id="lanes" aria-hidden="true"></div>
+    <div class="axis" id="axis" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn btn-next" id="play" type="button">Replay</button>
+  <span class="clock" id="clock" aria-hidden="true">0.0 s</span>
+</div>
+
+<div class="expl" id="story" aria-live="polite"></div>
+
+<div class="frame">
+  <div class="frame-label">Network panel, with the Connection ID column</div>
+  <div class="frame-body">
+    <table class="net">
+      <thead><tr><th>Request</th><th>Start</th><th>Connection ID</th></tr></thead>
+      <tbody id="requests"></tbody>
+    </table>
+    <p class="report" id="report"></p>
+  </div>
+</div>
+
+<p class="note">The times are an example: a slow phone, a handshake of 350 ms, and a server that closes a connection after 5 s without a request. Chromium itself keeps an unused preconnected connection for about 60 s.</p>
+
+<script>
+const MAX_S = 15;
+const HANDSHAKE_S = 0.35;
+const REQUEST_S = 0.3;
+
+const PRECONNECT = '&lt;link rel="preconnect" href="https://ads.example"&gt;';
+const PRECONNECT_CO = '&lt;link rel="preconnect" href="https://ads.example" crossorigin&gt;';
+const TAG = '&lt;script async src="https://ads.example/tag.js" crossorigin="anonymous"&gt;&lt;/script&gt;';
+
+// A connection opens at `opened` (its handshake follows) and stays open until `closed`. `by` says what
+// opened it. Each request goes on one connection; `wait` is true when it waited for a handshake.
+const SCENARIOS = [
+  {
+    id: "early", label: "Ad request early", icon: "ic-ok",
+    markup: [PRECONNECT, PRECONNECT_CO, TAG],
+    connections: [
+      { by: "preconnect", opened: 0.2, closed: null },
+      { by: "preconnect crossorigin", opened: 0.2, closed: null },
+    ],
+    requests: [
+      { name: "tag.js (crossorigin)", start: 0.8, conn: 2 },
+      { name: "ad request (fetch, credentials)", start: 2, conn: 1 },
+    ],
+    tone: "t-ok",
+    story: "<strong>Both preconnects are used.</strong> The tag script has crossorigin, so it takes connection 2 at 0.8 s. The ad request sends credentials, so it takes connection 1 at 2 s. Neither request waits for a handshake.",
+    report: "Resource-Hints: the crossorigin preconnect is <strong>used</strong> by tag.js, on a <strong>reused</strong> connection. The ad request is a fetch(), whose credentials mode the snippet cannot tell, so the other preconnect is <strong>unknown</strong>: the Connection ID column shows it reused connection 1.",
+  },
+  {
+    id: "late", label: "Ad request at 12 s", icon: "ic-bad",
+    markup: [PRECONNECT, PRECONNECT_CO, TAG],
+    connections: [
+      { by: "preconnect", opened: 0.2, closed: 5.55 },
+      { by: "preconnect crossorigin", opened: 0.2, closed: null },
+      { by: "the ad request", opened: 12, closed: null },
+    ],
+    requests: [
+      { name: "tag.js (crossorigin)", start: 0.8, conn: 2 },
+      { name: "ad request (fetch, credentials)", start: 12, conn: 3, wait: true },
+    ],
+    tone: "t-block",
+    story: "<strong>The first preconnect saves nothing.</strong> The tag script uses connection 2 at 0.8 s. Connection 1 carries no request, and the server closes it at 5.5 s. When the ad request comes at 12 s, it opens connection 3 and waits 350 ms for its handshake. The preconnect spent a handshake at the start of the load, when the network is busiest, for no request.",
+    report: "Resource-Hints: the crossorigin preconnect is <strong>used</strong>, on a <strong>reused</strong> connection. The other one only gets the ad request, a fetch(), so it is <strong>unknown</strong>. The Network panel tells: the ad request has Connection ID 3, which no earlier request had. Had it been an image, with credentials, the snippet would report <strong>preconnect-not-reused</strong>.",
+  },
+  {
+    id: "no-crossorigin", label: "Without crossorigin", icon: "ic-bad",
+    markup: [PRECONNECT, TAG],
+    connections: [
+      { by: "preconnect", opened: 0.2, closed: 5.55 },
+      { by: "tag.js", opened: 0.8, closed: null },
+      { by: "the ad request", opened: 12, closed: null },
+    ],
+    requests: [
+      { name: "tag.js (crossorigin)", start: 0.8, conn: 2, wait: true },
+      { name: "ad request (fetch, credentials)", start: 12, conn: 3, wait: true },
+    ],
+    tone: "t-block",
+    story: "<strong>No request uses the preconnect.</strong> The tag script has crossorigin and sends no credentials, so it cannot use a connection opened without crossorigin: it opens connection 2 and waits for its handshake. Connection 1 is closed by the server at 5.5 s, before the ad request comes.",
+    report: "Resource-Hints: <strong>preconnect-no-crossorigin</strong>. tag.js goes to ads.example without credentials, and no preconnect to it has crossorigin.",
+  },
+  {
+    id: "on-demand", label: "Preconnect when the slot is ready", icon: "ic-ok",
+    markup: [PRECONNECT_CO, TAG, "// When consent is given and the ad slot is ready:", "const hint = document.createElement(\"link\");", "hint.rel = \"preconnect\"; hint.href = \"https://ads.example\";", "document.head.append(hint);"],
+    connections: [
+      { by: "preconnect crossorigin", opened: 0.2, closed: null },
+      { by: "preconnect from the script", opened: 11.4, closed: null },
+    ],
+    requests: [
+      { name: "tag.js (crossorigin)", start: 0.8, conn: 1 },
+      { name: "ad request (fetch, credentials)", start: 12, conn: 2 },
+    ],
+    tone: "t-ok",
+    story: "<strong>Each preconnect is used.</strong> The HTML keeps only the crossorigin preconnect, which the tag script uses at 0.8 s. The page adds the other one when it knows the ad request is coming, 600 ms before it: the handshake is done when the request starts.",
+    report: "Resource-Hints: the crossorigin preconnect is <strong>used</strong>, on a <strong>reused</strong> connection. The ad request reused connection 2, as the Connection ID column shows.",
+  },
+];
+
+const LEGEND = [
+  { name: "Handshake (DNS, TCP, TLS)", color: "--p-handshake" },
+  { name: "Open, no request", color: "--p-open" },
+  { name: "Request", color: "--p-request" },
+  { name: "Closed", color: "--p-closed" },
+];
+
+const $ = (id) => document.getElementById(id);
+const tabsEl = $("tabs"), lanesEl = $("lanes"), storyEl = $("story"), reportEl = $("report");
+const requestsEl = $("requests"), markupEl = $("markup"), clockEl = $("clock"), legendEl = $("legend");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const pct = (s) => (Math.min(s, MAX_S) / MAX_S) * 100;
+const seconds = (s) => `${s.toFixed(1)} s`;
+
+let current = SCENARIOS[0];
+let raf = 0;
+
+/* One-time DOM */
+LEGEND.forEach((l) => {
+  const pill = document.createElement("span");
+  pill.className = "lg";
+  pill.style.setProperty("--lg", `var(${l.color})`);
+  pill.textContent = l.name;
+  legendEl.appendChild(pill);
+});
+
+SCENARIOS.forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.dataset.id = s.id;
+  b.innerHTML = `<span class="ic ${s.icon}" aria-hidden="true"></span>${s.label}`;
+  b.addEventListener("click", () => selectScenario(s));
+  tabsEl.appendChild(b);
+});
+
+$("axis").innerHTML = [0, 5, 10, 15].map((s) => `<span style="left:${pct(s)}%">${s} s</span>`).join("");
+
+/* Rendering */
+function seg(cls, from, to) {
+  const width = cls === "closed" ? "" : `width:${pct(to) - pct(from)}%;`;
+  return `<div class="seg ${cls}" style="left:${pct(from)}%;${width}"></div>`;
+}
+
+function layout() {
+  markupEl.innerHTML = current.markup.join("\n");
+  lanesEl.innerHTML = current.connections.map((c, i) => {
+    const id = i + 1;
+    const ready = c.opened + HANDSHAKE_S;
+    const end = c.closed ?? MAX_S;
+    const own = current.requests.filter((r) => r.conn === id);
+    // A connection a request opened carries it right after its handshake
+    const parts = [seg("handshake", c.opened, ready), seg("open", ready, end)];
+    own.forEach((r) => {
+      const start = r.wait ? r.start + HANDSHAKE_S : r.start;
+      parts.push(seg("request", start, start + REQUEST_S));
+    });
+    if (c.closed) parts.push(seg("closed", c.closed));
+    return `<div><div class="lane-name"><strong>Connection ${id}</strong>, opened by ${c.by}</div>` +
+      `<div class="track">${parts.join("")}<div class="veil"></div></div></div>`;
+  }).join("") + '<div class="cursor" id="cursor"></div>';
+
+  requestsEl.innerHTML = current.requests.map((r) =>
+    `<tr data-start="${r.start}"><td>${r.name}</td><td class="num">${seconds(r.start)}</td>` +
+    `<td class="num" data-conn>${r.conn}${r.wait ? ' <span class="ic ic-bad ic-end" role="img" aria-label="New connection, waited for a handshake"></span>' : ' <span class="ic ic-check ic-end" role="img" aria-label="Connection already open"></span>'}</td></tr>`
+  ).join("");
+  reportEl.innerHTML = current.report;
+}
+
+function setProgress(s) {
+  clockEl.textContent = seconds(s);
+  lanesEl.querySelectorAll(".veil").forEach((v) => { v.style.left = pct(s) + "%"; });
+  const cursor = $("cursor");
+  // The cursor spans the tracks only, below the name of the first lane
+  const first = lanesEl.querySelector(".track");
+  cursor.style.top = first ? first.offsetTop + "px" : "0";
+  cursor.style.left = `calc(${pct(s)}% - 1px)`;
+  requestsEl.querySelectorAll("tr").forEach((tr) => {
+    tr.classList.toggle("pending", s < Number(tr.dataset.start));
+  });
+}
+
+function play() {
+  cancelAnimationFrame(raf);
+  if (reduceMotion.matches) return setProgress(MAX_S);
+  const duration = 6000;
+  let t0 = null;
+  setProgress(0);
+  raf = requestAnimationFrame(function tick(now) {
+    if (t0 === null) t0 = now;
+    const k = Math.min(1, (now - t0) / duration);
+    setProgress(MAX_S * k);
+    if (k < 1) raf = requestAnimationFrame(tick);
+  });
+}
+
+function selectScenario(s) {
+  current = s;
+  tabsEl.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === s.id)));
+  storyEl.className = "expl " + s.tone;
+  storyEl.innerHTML = s.story;
+  layout();
+  play();
+}
+
+$("play").addEventListener("click", play);
+selectScenario(SCENARIOS[1]);
+
+/* Theme */
+function applyTheme() {
+  // The site stores "light", "dark" or "system"; anything but light or dark follows the OS
+  let stored = null;
+  try { stored = localStorage.getItem("theme"); } catch {}
+  const os = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", stored === "light" || stored === "dark" ? stored : os);
+}
+applyTheme();
+addEventListener("storage", (e) => { if (e.key === "theme") applyTheme(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+
+/* Height */
+function notifyHeight() { window.parent.postMessage({ demoHeight: document.body.offsetHeight }, "*"); }
+new ResizeObserver(notifyHeight).observe(document.body);
+</script>
+</body>
+</html>
