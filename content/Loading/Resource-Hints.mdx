@@ -58,6 +58,17 @@ A page cannot read the headers of its own navigation, so the snippet asks for th
 
 `details.earlyHints` says whether the server sent a `103 Early Hints` response. The browser does not expose which hints that response carried; when it is built from the `Link` header of the document, as a CDN usually does, they are the hints with `source: "header"`.
 
+### One connection per credentials mode
+
+A preconnect opens a connection for one kind of request. Without `crossorigin`, it serves requests that send credentials such as cookies: images, stylesheets and classic scripts. With `crossorigin`, it serves requests that do not: fonts, module scripts, scripts with `crossorigin` and, by default, `fetch()`. A request of the other kind opens a connection of its own, so an origin that serves both kinds needs both preconnects:
+
+```html
+<link rel="preconnect" href="https://cdn.example">
+<link rel="preconnect" href="https://cdn.example" crossorigin>
+```
+
+Resource Timing does not say which kind each request was, so the snippet reads it from the element that made it: the `crossorigin` attribute, `type="module"`, a font in a stylesheet. A request made with `fetch()` or `XMLHttpRequest` can be either, so a preconnect whose origin only gets requests like those is not judged: its `use` is `unknown`.
+
 ### Why preconnect helps
 
 `preconnect` pays off when a resource lives on a third-party origin: it moves the connection setup (DNS, TCP, TLS) off the critical path, so the request can start as soon as the resource is discovered. Step through the scenarios to compare connection reuse across HTTP versions and see what `preconnect` saves:
@@ -106,9 +117,10 @@ For **preconnect/dns-prefetch**:
 |-------|----------|--------|
 | Preload missing `as` | Error | Browser can't prioritize correctly |
 | Font preload without `crossorigin` | Error | Resource fetched twice |
-| Preconnect without `crossorigin` for CORS | Warning | Connection may not be reused |
+| Requests without credentials and no `crossorigin` preconnect | Warning | Fonts and modules open a connection of their own |
+| Requests with credentials and only a `crossorigin` preconnect | Warning | Images and classic scripts open a connection of their own |
 | Unused preload | Warning | Wasted bandwidth |
-| Preconnect without resources | Warning | Wasted connection |
+| Preconnect no request of its mode used | Warning | Wasted connection |
 | Too many preloads (> 6) | Warning | Bandwidth competition |
 | Hint declared twice | Info | Nothing, but one of them can go |
 | `Link` header not readable | Info | Hints sent only in the header are not in the report |

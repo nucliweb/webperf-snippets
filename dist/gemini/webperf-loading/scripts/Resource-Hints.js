@@ -196,16 +196,6 @@
       severity: "error",
       fix: 'Add crossorigin="anonymous"'
     });
-    if (type.rel === "preconnect" && !hint.crossorigin) {
-      const corsResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e)).filter(r => r.name.includes(hostname) && (r.initiatorType === "script" || r.initiatorType === "css" || r.initiatorType === "font"));
-      if (corsResources.length > 0) issues.push({
-        hint: hint,
-        code: "preconnect-no-crossorigin",
-        issue: "Preconnect may need crossorigin for CORS resources",
-        severity: "warning",
-        fix: 'Consider adding crossorigin="anonymous"'
-      });
-    }
   });
   const preloads = allHints.filter(h => h.rel === "preload");
   const loadedResources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
@@ -220,7 +210,141 @@
     });
   });
   const preconnects = allHints.filter(h => h.rel === "preconnect" || h.rel === "dns-prefetch");
-  preconnects.forEach(pc => {
+  const originOf = url => {
+    try {
+      return new URL(url, location.href).origin;
+    } catch {
+      return "";
+    }
+  };
+  const withoutHash = url => {
+    try {
+      const parsed = new URL(url, location.href);
+      parsed.hash = "";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  };
+  const modeOfCrossorigin = crossorigin => crossorigin && crossorigin !== "use-credentials" ? "anonymous" : "include";
+  const elementsByUrl = (selector, urlOf) => {
+    const map = new Map;
+    document.querySelectorAll(selector).forEach(el => {
+      const url = urlOf(el);
+      if (url && !map.has(withoutHash(url))) map.set(withoutHash(url), el);
+    });
+    return map;
+  };
+  const scriptsByUrl = elementsByUrl("script[src]", el => el.src);
+  const linksByUrl = elementsByUrl("link[href]", el => el.href);
+  const imagesByUrl = elementsByUrl("img", el => el.currentSrc || el.src);
+  const headerHintsByUrl = new Map(allHints.filter(h => h.source === "header").map(h => [ withoutHash(h.href), h ]));
+  const FONT_FILE = /\.(woff2?|ttf|otf|eot)(\?|#|$)/i;
+  function credentialsMode(entry) {
+    const url = withoutHash(entry.name);
+    switch (entry.initiatorType) {
+     case "script":
+      {
+        const script = scriptsByUrl.get(url);
+        if (!script) return "unknown";
+        if (script.type === "module") return script.crossOrigin === "use-credentials" ? "include" : "anonymous";
+        return modeOfCrossorigin(script.crossOrigin);
+      }
+
+     case "link":
+     case "early-hints":
+      {
+        const link = linksByUrl.get(url) || headerHintsByUrl.get(url);
+        if (!link) return "unknown";
+        const crossorigin = link.crossOrigin ?? link.crossorigin;
+        if (link.rel === "modulepreload") return crossorigin === "use-credentials" ? "include" : "anonymous";
+        return modeOfCrossorigin(crossorigin);
+      }
+
+     case "img":
+      {
+        const img = imagesByUrl.get(url);
+        return modeOfCrossorigin(img ? img.crossOrigin : "");
+      }
+
+     case "css":
+      return FONT_FILE.test(url) ? "anonymous" : "include";
+
+     default:
+      return "unknown";
+    }
+  }
+  const requestsByOrigin = new Map;
+  const requestsByCredentials = {
+    include: 0,
+    anonymous: 0,
+    unknown: 0
+  };
+  loadedResources.forEach(r => {
+    const origin = originOf(r.name);
+    if (!origin) return;
+    const mode = credentialsMode(r);
+    if (origin !== location.origin) requestsByCredentials[mode]++;
+    if (!requestsByOrigin.has(origin)) requestsByOrigin.set(origin, []);
+    requestsByOrigin.get(origin).push({
+      url: r.name,
+      startTime: r.startTime,
+      mode: mode
+    });
+  });
+  requestsByOrigin.forEach(requests => requests.sort((a, b) => a.startTime - b.startTime));
+  const modeOfHint = h => modeOfCrossorigin(h.crossorigin);
+  const preconnectsByOrigin = new Map;
+  allHints.filter(h => h.rel === "preconnect").forEach(h => {
+    const origin = originOf(h.href);
+    const requests = requestsByOrigin.get(origin) || [];
+    const first = requests.find(r => r.mode === modeOfHint(h));
+    h.use = first ? "used" : requests.some(r => r.mode === "unknown") ? "unknown" : "unused";
+    h.firstUse = first || null;
+    if (!preconnectsByOrigin.has(origin)) preconnectsByOrigin.set(origin, []);
+    preconnectsByOrigin.get(origin).push(h);
+  });
+  const MODE_WORDS = {
+    anonymous: "without credentials (fonts, module scripts, scripts with crossorigin)",
+    include: "with credentials (images, stylesheets, scripts without crossorigin)"
+  };
+  preconnectsByOrigin.forEach((hints, origin) => {
+    const requests = requestsByOrigin.get(origin) || [];
+    const explained = new Set;
+    [ {
+      mode: "anonymous",
+      code: "preconnect-no-crossorigin",
+      add: `<link rel="preconnect" href="${origin}" crossorigin>`,
+      change: "Add crossorigin to this preconnect"
+    }, {
+      mode: "include",
+      code: "preconnect-crossorigin-only",
+      add: `<link rel="preconnect" href="${origin}">`,
+      change: "Remove crossorigin from this preconnect"
+    } ].forEach(({mode: mode, code: code, add: add, change: change}) => {
+      if (!requests.some(r => r.mode === mode) || hints.some(h => modeOfHint(h) === mode)) return;
+      const hint = hints.find(h => h.use === "unused") || hints[0];
+      hints.filter(h => h.use === "unused").forEach(h => explained.add(h));
+      issues.push({
+        hint: hint,
+        code: code,
+        issue: `Requests ${MODE_WORDS[mode]} to ${origin} cannot use a preconnect ${mode === "anonymous" ? "without" : "with"} crossorigin`,
+        severity: "warning",
+        fix: hint.use === "unused" ? change : `Add a second preconnect: ${add}`
+      });
+    });
+    hints.forEach(h => {
+      if (h.use !== "unused" || explained.has(h) || firstByKey.get(hintKey(h)) !== h) return;
+      issues.push({
+        hint: h,
+        code: "unused-preconnect",
+        issue: requests.length === 0 ? `No resources loaded from ${origin}` : `No request ${modeOfHint(h) === "anonymous" ? "without" : "with"} credentials to ${origin}; its requests use another connection`,
+        severity: "warning",
+        fix: "Remove unused preconnect or verify it's needed for future resources"
+      });
+    });
+  });
+  allHints.filter(h => h.rel === "dns-prefetch").forEach(pc => {
     const hasResources = loadedResources.some(r => {
       try {
         return new URL(r.name).hostname === pc.hostname;
@@ -228,7 +352,7 @@
         return false;
       }
     });
-    if (!hasResources && pc.hostname) issues.push({
+    if (!hasResources && pc.hostname && firstByKey.get(hintKey(pc)) === pc) issues.push({
       hint: pc,
       code: "unused-preconnect",
       issue: `No resources loaded from ${pc.hostname}`,
@@ -315,6 +439,14 @@
           }
         });
         row["Resources Loaded"] = originResources.length;
+        if (type.rel === "preconnect") {
+          row.Used = {
+            used: "✅",
+            unused: "⚠️ No",
+            unknown: "? fetch/XHR"
+          }[h.use];
+          row["First use"] = h.firstUse ? `${Math.round(h.firstUse.startTime)} ms` : "-";
+        }
       }
       return row;
     });
@@ -366,6 +498,7 @@
     details: {
       sizeUnknownCount: sizeUnknownCount,
       ignoredHints: ignoredHints,
+      requestsByCredentials: requestsByCredentials,
       headerHints: headerHints === null ? null : allHints.filter(h => h.source === "header").length,
       earlyHints: typeof navigationEntry?.firstInterimResponseStart === "number" ? navigationEntry.firstInterimResponseStart > 0 : null,
       byType: Object.fromEntries(hintTypes.map(t => [ t.rel, allHints.filter(h => h.rel === t.rel).length ])),
@@ -384,7 +517,10 @@
       source: h.source,
       as: h.as,
       crossorigin: h.crossorigin,
-      fetchpriority: h.fetchpriority
+      fetchpriority: h.fetchpriority,
+      use: h.use ?? null,
+      firstUseUrl: h.firstUse?.url ?? null,
+      firstUseMs: h.firstUse ? Math.round(h.firstUse.startTime) : null
     })),
     issues: issues.map(i => ({
       code: i.code,
