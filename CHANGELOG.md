@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Resource-Hints suggests fewer preconnects, and the ones that help. `missingPreconnects` listed every third-party origin with two requests or more, whenever they were made, and always with `crossorigin`. It now keeps the origins whose first request starts before the LCP (`details.missingPreconnectsCutoff`), earliest first, while their preconnects fit in a budget of 4 connections (`details.preconnectBudget`), one per origin and credentials mode, with `firstRequestStartMs`, `credentialsModes` and `crossorigin`, the value of each preconnect to add. The early origins over the budget are in `details.dnsPrefetchCandidates`, and the snippet is async for the LCP.
+
 ### Added
 - The page of Resource-Hints has a demo of the connections to an ad server after two preconnects: which connection each request takes, a preconnect the server closes before its request, one without `crossorigin`, and one added when the request is coming, with the Connection ID column of the Network panel and what the snippet reports in each case.
 - Resource-Hints says whether each preconnect saved a connection. `firstUseConnection` is what the first request of its credentials mode found: `reused`, `new`, `cache`, or `unknown` when the response has no `Timing-Allow-Origin`. A `new` connection gets `preconnect-not-reused` (warning): the preconnected one was closed before the request, by a server or CDN that closes a connection without requests, or by Chromium after about 60 s. The page explains it with an ad server that is preconnected early and requested late. An end-to-end test compares it with what CDP reports, with a server that keeps the preconnected connection and one that closes it.

@@ -236,7 +236,7 @@ describe("Resource-Hints", () => {
     const list = r.details.missingPreconnects;
     expect(list.length).toBeGreaterThan(0);
     expect(list.length).toBeLessThanOrEqual(20);
-    expect(keysOf(list[0])).toBe("origin,recommendedHint,requestCount,resourceTypes,sizeBytes");
+    expect(keysOf(list[0])).toBe("credentialsModes,crossorigin,firstRequestStartMs,origin,recommendedHint,requestCount,resourceTypes,sizeBytes");
     expect(list[0].origin).toBe(servers.otherBase.replace("127.0.0.1", "localhost"));
     expect(list[0].requestCount).toBe(3);
     expect(Array.isArray(list[0].resourceTypes)).toBe(true);
@@ -257,7 +257,7 @@ describe("Resource-Hints", () => {
     expect(r.details.ignoredHints).toBe(1);
   }, 30000);
 
-  it("caps the list at 20 origins and keeps the total", async () => {
+  it("caps the lists and keeps the total", async () => {
     const stub = () => {
       const real = performance.getEntriesByType.bind(performance);
       const fake = Array.from({ length: 30 }, (_, i) => Array.from({ length: 2 }, (_, j) => ({
@@ -269,9 +269,68 @@ describe("Resource-Hints", () => {
     };
     const r = await runOn("/empty", "Loading/Resource-Hints", { init: stub });
     expect(r.details.missingPreconnectsCount).toBe(30);
-    expect(r.details.missingPreconnects.length).toBe(20);
+    // Four fit in the preconnect budget, and the next 20 are for dns-prefetch
+    expect(r.details.missingPreconnects.length).toBe(4);
+    expect(r.details.dnsPrefetchCandidates.length).toBe(20);
     // With Timing-Allow-Origin the size is known: two requests of 100 bytes
     expect(r.details.missingPreconnects[0].sizeBytes).toBe(200);
+  }, 30000);
+});
+
+describe("Resource-Hints, origins that need a preconnect", () => {
+  // Third-party requests made up in the page, one origin each: six that start before any paint (1 to
+  // 6 ms, in reverse order) and one long after the load. Their kinds give the credentials mode.
+  const stub = () => {
+    const real = performance.getEntriesByType.bind(performance);
+    const entry = (name, initiatorType, startTime) => ({
+      name, entryType: "resource", initiatorType, startTime,
+      transferSize: 100, encodedBodySize: 100, decodedBodySize: 100, duration: 10,
+      responseEnd: startTime + 10, responseStart: startTime + 5, requestStart: startTime + 2, workerStart: 0,
+    });
+    const fake = [
+      entry("https://e6.example/a.js", "script", 6),
+      entry("https://e5.example/a.png", "img", 5),
+      entry("https://e4.example/a.js", "script", 4),
+      entry("https://e3.example/data.json", "fetch", 3),
+      entry("https://e2.example/f.woff2", "css", 2),
+      entry("https://e2.example/bg.png", "css", 2.5),
+      entry("https://e1.example/f.woff2", "css", 1),
+      entry("https://late.example/a.png", "img", 99999),
+    ];
+    performance.getEntriesByType = (t) => (t === "resource" ? fake : real(t));
+  };
+  const origins = (list) => list.map((o) => o.origin);
+
+  it("keeps the origins requested before the LCP, the earliest first, within the preconnect budget", async () => {
+    const r = await runOn("/lcp-text", "Loading/Resource-Hints", { init: stub });
+    expect(r.details.missingPreconnectsCutoff.metric).toBe("lcp");
+    expect(r.details.missingPreconnectsCutoff.ms).toBeGreaterThan(6);
+    expect(r.details.preconnectBudget).toEqual({ max: 4, used: 0 });
+    // e2 needs two preconnects, one per credentials mode: e1, e2 and e3 take the four
+    expect(origins(r.details.missingPreconnects)).toEqual(["https://e1.example", "https://e2.example", "https://e3.example"]);
+    expect(r.details.missingPreconnects.map((o) => o.firstRequestStartMs)).toEqual([1, 2, 3]);
+    // The rest of the early origins are for dns-prefetch; the late one for nothing
+    expect(origins(r.details.dnsPrefetchCandidates)).toEqual(["https://e4.example", "https://e5.example", "https://e6.example"]);
+    expect(r.details.missingPreconnectsCount).toBe(6);
+  }, 30000);
+
+  it("says which preconnect each origin needs from the credentials mode of its requests", async () => {
+    const r = await runOn("/lcp-text", "Loading/Resource-Hints", { init: stub });
+    const modes = Object.fromEntries(r.details.missingPreconnects.map((o) => [o.origin, o.credentialsModes]));
+    // A font of a stylesheet goes without credentials, an image of a stylesheet with them, and a fetch() does not say
+    expect(modes["https://e1.example"]).toEqual(["anonymous"]);
+    expect(modes["https://e2.example"]).toEqual(["anonymous", "include"]);
+    expect(modes["https://e3.example"]).toEqual([]);
+    // The hints to add: both for e2, and crossorigin for a fetch(), which sends no credentials by default
+    const hints = Object.fromEntries(r.details.missingPreconnects.map((o) => [o.origin, o.crossorigin]));
+    expect(hints).toEqual({ "https://e1.example": ["anonymous"], "https://e2.example": ["", "anonymous"], "https://e3.example": ["anonymous"] });
+  }, 30000);
+
+  it("counts the preconnects the page has against the budget", async () => {
+    const r = await runOn("/hints-unused", "Loading/Resource-Hints", { init: stub });
+    expect(r.details.preconnectBudget).toEqual({ max: 4, used: 1 });
+    expect(origins(r.details.missingPreconnects)).toEqual(["https://e1.example", "https://e2.example"]);
+    expect(origins(r.details.dnsPrefetchCandidates)).toEqual(["https://e3.example", "https://e4.example", "https://e5.example", "https://e6.example"]);
   }, 30000);
 });
 

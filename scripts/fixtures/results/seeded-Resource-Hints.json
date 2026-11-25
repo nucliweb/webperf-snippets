@@ -22,7 +22,16 @@
       "prerender": 0
     },
     "missingPreconnectsCount": 0,
-    "missingPreconnects": []
+    "missingPreconnectsCutoff": {
+      "metric": "lcp",
+      "ms": 20
+    },
+    "preconnectBudget": {
+      "max": 4,
+      "used": 1
+    },
+    "missingPreconnects": [],
+    "dnsPrefetchCandidates": []
   },
   "items": [
     {
@@ -46,7 +55,7 @@
       "fetchpriority": "auto",
       "use": "used",
       "firstUseUrl": "http://127.0.0.1:8001/third.js",
-      "firstUseMs": 2,
+      "firstUseMs": 3,
       "firstUseConnection": "unknown"
     }
   ],

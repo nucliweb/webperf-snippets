@@ -22,7 +22,16 @@
       "prerender": 0
     },
     "missingPreconnectsCount": 0,
-    "missingPreconnects": []
+    "missingPreconnectsCutoff": {
+      "metric": "lcp",
+      "ms": 40
+    },
+    "preconnectBudget": {
+      "max": 4,
+      "used": 60
+    },
+    "missingPreconnects": [],
+    "dnsPrefetchCandidates": []
   },
   "items": [
     {
