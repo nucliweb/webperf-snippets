@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+### Changed
+- A run measures the page with its preconnects, as a visitor's browser does. Chromium ignores `<link rel="preconnect">` in a private profile, the one the CLI measured in, so every page loaded as if it had none. Each run opens Chromium with a new, empty persistent profile of its own, removed when the run ends, and `--storage-state` is applied to it. A page with preconnects can measure faster than in earlier versions; `conditions.browser.profile` is `persistent`, and `--baseline` warns when the baseline was measured in a private profile. The headless shell ignores preconnects in any profile. `run_snippet` and `run_workflow` of the MCP server measure the same way; the pages it opens with `open_page` still use a private profile.
+
 ## [1.19.0] — 2026-11-19
 
 It ships the snippets of the collection 2.8.0: Script-Loading gives the network priority of each script and warns of the third-party scripts that download at high priority without blocking the parser, and Validate-Preload-Async-Defer-Scripts follows what Chrome does with a preload. The human report shows the `fetchpriority` attribute of a script as it is written.

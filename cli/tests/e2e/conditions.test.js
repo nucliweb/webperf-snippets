@@ -52,7 +52,7 @@ const cli = (...args) =>
 // per command
 // The browser the CLI launched: the full Chromium in its headless mode, or the headless shell when it is
 // the only one installed (chromium-binary.test.js checks the binary itself)
-const browser = { build: existsSync(chromium.executablePath()) ? "chromium" : "chromium-headless-shell", mode: "headless", version: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/) };
+const browser = { build: existsSync(chromium.executablePath()) ? "chromium" : "chromium-headless-shell", mode: "headless", version: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/), profile: "persistent" };
 
 const machine = { cpu: cpus()[0].model, cores: cpus().length, arch: arch(), memoryGB: Math.round(totalmem() / 2 ** 30), benchmarkIndex: expect.any(Number) };
 

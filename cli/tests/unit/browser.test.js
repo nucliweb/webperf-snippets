@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { chromiumLaunchOptions, launchChromium, launchedBrowser, MissingBrowserError } from "../../src/browser.js";
+import { existsSync } from "node:fs";
+import { chromiumLaunchOptions, launchChromium, launchPersistentChromium, launchedBrowser, MissingBrowserError } from "../../src/browser.js";
 
 // What `npx playwright install` leaves on the machine, as the launch sees it: whether the full
 // Chromium is there. The headless shell is what Playwright launches without a channel.
@@ -85,6 +86,57 @@ describe("launchChromium", () => {
   });
 });
 
+// A measurement runs in a persistent profile of its own: Chromium ignores <link rel="preconnect"> in a
+// private one, the profile of browser.newContext()
+describe("launchPersistentChromium", () => {
+  const launchWith = (installedCheck, { fail } = {}) => {
+    const calls = [];
+    const stored = [];
+    let closed = false;
+    const launchPersistent = async (dir, options) => {
+      calls.push({ dir, existed: existsSync(dir), options });
+      if (fail) throw fail;
+      return {
+        setStorageState: async (state) => stored.push(state),
+        close: async () => {
+          closed = true;
+        },
+      };
+    };
+    const run = (options, contextOptions) => launchPersistentChromium(options, contextOptions, { launchPersistent, hasFullChromium: installedCheck });
+    return { calls, stored, run, wasClosed: () => closed };
+  };
+
+  it("launches in a new profile directory, with the options it chose and those of the context", async () => {
+    const { calls, run } = launchWith(installed.both);
+    await run({ headless: true }, { viewport: { width: 412, height: 823 } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].existed).toBe(true);
+    expect(calls[0].options).toEqual({ channel: "chromium", headless: true, viewport: { width: 412, height: 823 } });
+  });
+
+  it("sets the storage state on the context, which a persistent launch does not take as an option", async () => {
+    const { calls, stored, run } = launchWith(installed.both);
+    await run({ headless: true }, { viewport: { width: 1, height: 1 }, storageState: "/tmp/state.json" });
+    expect(calls[0].options).not.toHaveProperty("storageState");
+    expect(stored).toEqual(["/tmp/state.json"]);
+  });
+
+  it("removes the profile when it closes", async () => {
+    const { calls, run, wasClosed } = launchWith(installed.both);
+    const launched = await run({ headless: true }, {});
+    await launched.close();
+    expect(wasClosed()).toBe(true);
+    expect(existsSync(calls[0].dir)).toBe(false);
+  });
+
+  it("removes the profile and throws MissingBrowserError when Chromium is not installed", async () => {
+    const { calls, run } = launchWith(installed.none, { fail: new Error("browserType.launchPersistentContext: Executable doesn't exist at /nowhere/chrome") });
+    await expect(run({ headless: true }, {})).rejects.toBeInstanceOf(MissingBrowserError);
+    expect(existsSync(calls[0].dir)).toBe(false);
+  });
+});
+
 // What the conditions of a measurement record of its browser, for a later comparison to tell
 describe("launchedBrowser", () => {
   it.each([
@@ -96,5 +148,11 @@ describe("launchedBrowser", () => {
     [{ channel: "chrome", headless: true }, { build: "chrome", mode: "headless" }],
   ])("launched with %j is %j", (options, expected) => {
     expect(launchedBrowser(options, { version: () => "153.0.8010.12" })).toEqual({ ...expected, version: "153.0.8010.12" });
+  });
+
+  it("records the profile it ran in", () => {
+    expect(launchedBrowser({ channel: "chromium" }, { version: () => "153.0.8010.12" }, "persistent")).toEqual({
+      build: "chromium", mode: "headless", version: "153.0.8010.12", profile: "persistent",
+    });
   });
 });

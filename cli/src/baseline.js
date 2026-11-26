@@ -227,6 +227,16 @@ function browserWarning(base, current) {
   return was === is ? null : `the baseline was measured with ${was}, and this run with ${is}; timings can differ for that alone`;
 }
 
+// Chromium ignores preconnect hints in a private profile, the one of browser.newContext(), where CLIs
+// that do not record their profile measured. A run in a persistent profile can load a page faster than
+// a baseline measured in a private one for that alone.
+function profileWarning(base, current) {
+  if (!base || !current?.browser) return null;
+  const [was, is] = [base.browser?.profile ?? "private", current.browser.profile ?? "private"];
+  if (was === is) return null;
+  return `the baseline was measured in a ${was} browser profile, and this run in a ${is} one; Chromium ignores preconnect hints in a private profile, so timings can differ for that alone`;
+}
+
 const valueCount = (payload, metric) => measured(payload, metric).values?.length ?? 1;
 
 // Why five runs can leave four values, when a run failed; a run that missed a metric alone does not count
@@ -276,6 +286,8 @@ function warningsOf(base, current, metrics) {
   if (machine) warnings.push(machine);
   const browser = browserWarning(b, c);
   if (browser) warnings.push(browser);
+  const profile = profileWarning(b, c);
+  if (profile) warnings.push(profile);
   if (b && c && b.cliVersion !== c.cliVersion) {
     warnings.push(`the baseline was measured with CLI ${b.cliVersion}, and this run with ${c.cliVersion}; the snippets may have changed`);
   }
