@@ -1,7 +1,7 @@
 // Resource Hints Validation
 // https://webperf-snippets.net
 
-(() => {
+(async () => {
   // @shared isOwnRequest
   // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
   // did not make it, so no snippet counts it.
@@ -9,6 +9,86 @@
     return entry.name.endsWith("#webperf-snippets");
   }
   // @end-shared isOwnRequest
+
+  // @shared ownRequestUrl
+  // The URL a snippet requests when it reads a file of the page itself (fetch, a HEAD request,
+  // new Image()). The fragment never reaches the server or the HTTP cache key, so the file still
+  // comes from the cache, but it stays in the name of the Resource Timing entry of the request,
+  // which is how isOwnRequest leaves these requests out of what the page loaded.
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  // @end-shared ownRequestUrl
+
+  // @shared parseLinkHeader
+  // The hints of a Link header: `<url>; rel=preconnect; crossorigin, </font.woff2>; rel="preload"; as=font`.
+  // A comma or a semicolon inside <...> or quotes does not split, a rel with several tokens gives one
+  // hint per token, and URLs resolve against the page. crossorigin is read as the crossOrigin property
+  // of a <link> reads it: "" when missing, "use-credentials", or "anonymous" for any other value.
+  function parseLinkHeader(value) {
+    const parts = [];
+    let current = "";
+    let inUrl = false;
+    let inQuote = false;
+    for (const ch of value || "") {
+      if (ch === "<" && !inQuote) inUrl = true;
+      else if (ch === ">" && !inQuote) inUrl = false;
+      else if (ch === '"' && !inUrl) inQuote = !inQuote;
+      if (ch === "," && !inUrl && !inQuote) {
+        parts.push(current);
+        current = "";
+      } else current += ch;
+    }
+    parts.push(current);
+
+    const hints = [];
+    for (const part of parts) {
+      const match = part.match(/^\s*<([^>]*)>([\s\S]*)$/);
+      if (!match) continue;
+      const params = {};
+      for (const param of match[2].split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/)) {
+        const [rawKey, ...rest] = param.split("=");
+        const key = rawKey.trim().toLowerCase();
+        if (key && !(key in params)) params[key] = rest.join("=").trim().replace(/^"([\s\S]*)"$/, "$1");
+      }
+      let href;
+      try {
+        href = new URL(match[1].trim(), location.href).href;
+      } catch {
+        continue;
+      }
+      const crossorigin = !("crossorigin" in params)
+        ? ""
+        : params.crossorigin.toLowerCase() === "use-credentials" ? "use-credentials" : "anonymous";
+      for (const rel of (params.rel || "").toLowerCase().split(/\s+/).filter(Boolean)) {
+        hints.push({ rel, href, as: params.as || "", crossorigin, fetchpriority: params.fetchpriority || "", type: params.type || "", media: params.media || "" });
+      }
+    }
+    return hints;
+  }
+  // @end-shared parseLinkHeader
+
+  // @shared readHeaderHints
+  // The hints of the Link header of the document. The page cannot read the headers of its own
+  // navigation, so it asks for them again with a HEAD request; null when that request fails.
+  async function readHeaderHints() {
+    try {
+      const response = await fetch(ownRequestUrl(location.href), { method: "HEAD", credentials: "include" });
+      if (!response.ok) return null;
+      return parseLinkHeader(response.headers.get("link"));
+    } catch {
+      return null;
+    }
+  }
+  // @end-shared readHeaderHints
+
 
   console.group("%c🔍 Resource Hints Validation", "font-weight: bold; font-size: 14px;");
 
@@ -20,10 +100,22 @@
     console.log("");
   }
 
-  // Get all resource hints from DOM
-  const preloadLinks = Array.from(document.querySelectorAll('link[rel="preload"]'));
-  const preconnectLinks = Array.from(document.querySelectorAll('link[rel="preconnect"]'));
-  const dnsPrefetchLinks = Array.from(document.querySelectorAll('link[rel="dns-prefetch"]'));
+  // The resource hints of the Link header and of the DOM. A hint of the header is read through the
+  // same interface as a <link>: its href and its attributes.
+  const headerHints = await readHeaderHints();
+  const headerLink = (h) => ({
+    href: h.href,
+    source: "header",
+    getAttribute: (name) => ({ as: h.as, media: h.media, crossorigin: h.crossorigin }[name] || null),
+  });
+  const hintsOf = (rel) => [
+    ...(headerHints || []).filter((h) => h.rel === rel).map(headerLink),
+    ...document.querySelectorAll(`link[rel="${rel}"]`),
+  ];
+  const sourceOf = (l) => (l.source === "header" ? "header" : "dom");
+  const preloadLinks = hintsOf("preload");
+  const preconnectLinks = hintsOf("preconnect");
+  const dnsPrefetchLinks = hintsOf("dns-prefetch");
 
   // Get all loaded resources from Performance API
   const resources = performance.getEntriesByType("resource").filter((e) => !isOwnRequest(e));
@@ -486,13 +578,13 @@
   const unusedHintItems = [
     ...preloadLinks
       .filter((l) => !usedResourceUrls.has(urlWithoutHash(l.href)) && !isConditionalPreload(l))
-      .map((l) => ({ domain: getDomain(l.href), href: l.href, requestCount: 0, action: "remove-unused-preload", recommendedHint: null })),
+      .map((l) => ({ domain: getDomain(l.href), href: l.href, source: sourceOf(l), requestCount: 0, action: "remove-unused-preload", recommendedHint: null })),
     ...preconnectLinks
       .filter(isUnusedConnection)
-      .map((l) => ({ domain: getDomain(l.href), href: l.href, requestCount: 0, action: "remove-unused-preconnect", recommendedHint: null })),
+      .map((l) => ({ domain: getDomain(l.href), href: l.href, source: sourceOf(l), requestCount: 0, action: "remove-unused-preconnect", recommendedHint: null })),
     ...dnsPrefetchLinks
       .filter(isUnusedConnection)
-      .map((l) => ({ domain: getDomain(l.href), href: l.href, requestCount: 0, action: "remove-unused-dns-prefetch", recommendedHint: null })),
+      .map((l) => ({ domain: getDomain(l.href), href: l.href, source: sourceOf(l), requestCount: 0, action: "remove-unused-dns-prefetch", recommendedHint: null })),
   ];
   const totalIssues = unusedHintItems.length;
 
@@ -518,6 +610,8 @@
       unusedHints: totalIssues,
       missingPreconnects: missingHints.length,
       redundantHints: redundantDomains.length,
+      // The hints of the Link header, null when it could not be read
+      headerHints: headerHints === null ? null : preloadLinks.concat(preconnectLinks, dnsPrefetchLinks).filter((l) => l.source === "header").length,
     },
     // The hints to remove (unused), the origins that need a hint and those with a redundant dns-prefetch (at most 50)
     items: [
@@ -525,6 +619,7 @@
       ...missingHints.map(([domain, count]) => ({
         domain,
         href: null,
+        source: null,
         requestCount: count,
         action: count >= 5 ? "add-preconnect" : "add-dns-prefetch",
         recommendedHint: count >= 5 ? "preconnect" : "dns-prefetch",
@@ -532,12 +627,14 @@
       ...redundantDomains.map((domain) => ({
         domain,
         href: null,
+        source: null,
         requestCount: domainRequestCounts[domain] || 0,
         action: "remove-dns-prefetch",
         recommendedHint: "preconnect",
       })),
     ].slice(0, 50),
     issues: [
+      ...(headerHints === null ? [{ code: "header-hints-unavailable", severity: "info", message: "Could not read the Link header of the document (the HEAD request failed): hints sent only in the Link header or as 103 Early Hints are not validated" }] : []),
       ...(totalIssues > 0 ? [{ code: "unused-hints", severity: "warning", message: `${totalIssues} unused hint(s) waste bandwidth` }] : []),
       ...(missingHints.length > 0 ? [{ code: "missing-connection-hints", severity: "info", message: `${missingHints.length} domain(s) could benefit from connection hints` }] : []),
       ...(redundantDomains.length > 0 ? [{ code: "redundant-hints", severity: "warning", message: `${redundantDomains.length} domain(s) have both preconnect and dns-prefetch (redundant)` }] : []),

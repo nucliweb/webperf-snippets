@@ -1,12 +1,88 @@
-(() => {
+(async () => {
   function isOwnRequest(entry) {
     return entry.name.endsWith("#webperf-snippets");
   }
+  function ownRequestUrl(url) {
+    try {
+      const parsed = new URL(url, location.href);
+      if (!/^https?:$/.test(parsed.protocol)) return url;
+      parsed.hash = "webperf-snippets";
+      return parsed.href;
+    } catch {
+      return url;
+    }
+  }
+  function parseLinkHeader(value) {
+    const parts = [];
+    let current = "";
+    let inUrl = false;
+    let inQuote = false;
+    for (const ch of value || "") {
+      if (ch === "<" && !inQuote) inUrl = true; else if (ch === ">" && !inQuote) inUrl = false; else if (ch === '"' && !inUrl) inQuote = !inQuote;
+      if (ch === "," && !inUrl && !inQuote) {
+        parts.push(current);
+        current = "";
+      } else current += ch;
+    }
+    parts.push(current);
+    const hints = [];
+    for (const part of parts) {
+      const match = part.match(/^\s*<([^>]*)>([\s\S]*)$/);
+      if (!match) continue;
+      const params = {};
+      for (const param of match[2].split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/)) {
+        const [rawKey, ...rest] = param.split("=");
+        const key = rawKey.trim().toLowerCase();
+        if (key && !(key in params)) params[key] = rest.join("=").trim().replace(/^"([\s\S]*)"$/, "$1");
+      }
+      let href;
+      try {
+        href = new URL(match[1].trim(), location.href).href;
+      } catch {
+        continue;
+      }
+      const crossorigin = !("crossorigin" in params) ? "" : params.crossorigin.toLowerCase() === "use-credentials" ? "use-credentials" : "anonymous";
+      for (const rel of (params.rel || "").toLowerCase().split(/\s+/).filter(Boolean)) hints.push({
+        rel: rel,
+        href: href,
+        as: params.as || "",
+        crossorigin: crossorigin,
+        fetchpriority: params.fetchpriority || "",
+        type: params.type || "",
+        media: params.media || ""
+      });
+    }
+    return hints;
+  }
+  async function readHeaderHints() {
+    try {
+      const response = await fetch(ownRequestUrl(location.href), {
+        method: "HEAD",
+        credentials: "include"
+      });
+      if (!response.ok) return null;
+      return parseLinkHeader(response.headers.get("link"));
+    } catch {
+      return null;
+    }
+  }
   if (document.readyState !== "complete") {
   }
-  const preloadLinks = Array.from(document.querySelectorAll('link[rel="preload"]'));
-  const preconnectLinks = Array.from(document.querySelectorAll('link[rel="preconnect"]'));
-  const dnsPrefetchLinks = Array.from(document.querySelectorAll('link[rel="dns-prefetch"]'));
+  const headerHints = await readHeaderHints();
+  const headerLink = h => ({
+    href: h.href,
+    source: "header",
+    getAttribute: name => ({
+      as: h.as,
+      media: h.media,
+      crossorigin: h.crossorigin
+    }[name] || null)
+  });
+  const hintsOf = rel => [ ...(headerHints || []).filter(h => h.rel === rel).map(headerLink), ...document.querySelectorAll(`link[rel="${rel}"]`) ];
+  const sourceOf = l => l.source === "header" ? "header" : "dom";
+  const preloadLinks = hintsOf("preload");
+  const preconnectLinks = hintsOf("preconnect");
+  const dnsPrefetchLinks = hintsOf("dns-prefetch");
   const resources = performance.getEntriesByType("resource").filter(e => !isOwnRequest(e));
   const getDomain = url => {
     try {
@@ -207,18 +283,21 @@
   const unusedHintItems = [ ...preloadLinks.filter(l => !usedResourceUrls.has(urlWithoutHash(l.href)) && !isConditionalPreload(l)).map(l => ({
     domain: getDomain(l.href),
     href: l.href,
+    source: sourceOf(l),
     requestCount: 0,
     action: "remove-unused-preload",
     recommendedHint: null
   })), ...preconnectLinks.filter(isUnusedConnection).map(l => ({
     domain: getDomain(l.href),
     href: l.href,
+    source: sourceOf(l),
     requestCount: 0,
     action: "remove-unused-preconnect",
     recommendedHint: null
   })), ...dnsPrefetchLinks.filter(isUnusedConnection).map(l => ({
     domain: getDomain(l.href),
     href: l.href,
+    source: sourceOf(l),
     requestCount: 0,
     action: "remove-unused-dns-prefetch",
     recommendedHint: null
@@ -237,22 +316,29 @@
       totalResourcesLoaded: resources.length,
       unusedHints: totalIssues,
       missingPreconnects: missingHints.length,
-      redundantHints: redundantDomains.length
+      redundantHints: redundantDomains.length,
+      headerHints: headerHints === null ? null : preloadLinks.concat(preconnectLinks, dnsPrefetchLinks).filter(l => l.source === "header").length
     },
     items: [ ...unusedHintItems, ...missingHints.map(([domain, count]) => ({
       domain: domain,
       href: null,
+      source: null,
       requestCount: count,
       action: count >= 5 ? "add-preconnect" : "add-dns-prefetch",
       recommendedHint: count >= 5 ? "preconnect" : "dns-prefetch"
     })), ...redundantDomains.map(domain => ({
       domain: domain,
       href: null,
+      source: null,
       requestCount: domainRequestCounts[domain] || 0,
       action: "remove-dns-prefetch",
       recommendedHint: "preconnect"
     })) ].slice(0, 50),
-    issues: [ ...totalIssues > 0 ? [ {
+    issues: [ ...headerHints === null ? [ {
+      code: "header-hints-unavailable",
+      severity: "info",
+      message: "Could not read the Link header of the document (the HEAD request failed): hints sent only in the Link header or as 103 Early Hints are not validated"
+    } ] : [], ...totalIssues > 0 ? [ {
       code: "unused-hints",
       severity: "warning",
       message: `${totalIssues} unused hint(s) waste bandwidth`

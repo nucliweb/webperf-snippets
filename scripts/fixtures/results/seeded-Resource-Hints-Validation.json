@@ -9,7 +9,8 @@
     "totalResourcesLoaded": 10,
     "unusedHints": 0,
     "missingPreconnects": 0,
-    "redundantHints": 0
+    "redundantHints": 0,
+    "headerHints": 0
   },
   "items": [],
   "issues": []

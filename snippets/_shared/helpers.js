@@ -77,6 +77,68 @@ function ownRequestUrl(url) {
 }
 // @end-shared ownRequestUrl
 
+// @shared parseLinkHeader
+// The hints of a Link header: `<url>; rel=preconnect; crossorigin, </font.woff2>; rel="preload"; as=font`.
+// A comma or a semicolon inside <...> or quotes does not split, a rel with several tokens gives one
+// hint per token, and URLs resolve against the page. crossorigin is read as the crossOrigin property
+// of a <link> reads it: "" when missing, "use-credentials", or "anonymous" for any other value.
+function parseLinkHeader(value) {
+  const parts = [];
+  let current = "";
+  let inUrl = false;
+  let inQuote = false;
+  for (const ch of value || "") {
+    if (ch === "<" && !inQuote) inUrl = true;
+    else if (ch === ">" && !inQuote) inUrl = false;
+    else if (ch === '"' && !inUrl) inQuote = !inQuote;
+    if (ch === "," && !inUrl && !inQuote) {
+      parts.push(current);
+      current = "";
+    } else current += ch;
+  }
+  parts.push(current);
+
+  const hints = [];
+  for (const part of parts) {
+    const match = part.match(/^\s*<([^>]*)>([\s\S]*)$/);
+    if (!match) continue;
+    const params = {};
+    for (const param of match[2].split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/)) {
+      const [rawKey, ...rest] = param.split("=");
+      const key = rawKey.trim().toLowerCase();
+      if (key && !(key in params)) params[key] = rest.join("=").trim().replace(/^"([\s\S]*)"$/, "$1");
+    }
+    let href;
+    try {
+      href = new URL(match[1].trim(), location.href).href;
+    } catch {
+      continue;
+    }
+    const crossorigin = !("crossorigin" in params)
+      ? ""
+      : params.crossorigin.toLowerCase() === "use-credentials" ? "use-credentials" : "anonymous";
+    for (const rel of (params.rel || "").toLowerCase().split(/\s+/).filter(Boolean)) {
+      hints.push({ rel, href, as: params.as || "", crossorigin, fetchpriority: params.fetchpriority || "", type: params.type || "", media: params.media || "" });
+    }
+  }
+  return hints;
+}
+// @end-shared parseLinkHeader
+
+// @shared readHeaderHints
+// The hints of the Link header of the document. The page cannot read the headers of its own
+// navigation, so it asks for them again with a HEAD request; null when that request fails.
+async function readHeaderHints() {
+  try {
+    const response = await fetch(ownRequestUrl(location.href), { method: "HEAD", credentials: "include" });
+    if (!response.ok) return null;
+    return parseLinkHeader(response.headers.get("link"));
+  } catch {
+    return null;
+  }
+}
+// @end-shared readHeaderHints
+
 // @shared isOwnRequest
 // True for the Resource Timing entry of a request a snippet made with ownRequestUrl: the page
 // did not make it, so no snippet counts it.
