@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- The Privacy section of the [extension page](https://webperf-snippets.net/extension) says that, with Allow in Incognito, private windows share the storage of the extension with the normal ones, so an audit run in a private window is saved with the others and stays after the window closes.
+
 ## [2.9.0] — 2026-11-26
 
 Resource-Hints judges each preconnect as Chromium uses it: by the credentials mode of the requests it serves, with whether the first of them reused the preconnected connection, and it reads the hints of the `Link` response header besides those of the HTML. It suggests only the preconnects that help, for the origins requested before the LCP and within a budget of 4 connections. Resource-Hints-Validation reads the `Link` header too. End-to-end tests compare both with the connections Chromium reuses, read with CDP. The extension reaches 0.8.0 with these snippets, and the CLI 1.20.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)) ships them and measures in a persistent profile, where Chromium applies the preconnects of the page.
