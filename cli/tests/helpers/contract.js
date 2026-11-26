@@ -123,6 +123,11 @@ const HEADER_HINT_PAGES = (other) => ({
     link: `<${other}>; rel=preconnect`,
     html: page(`<link rel="preconnect" href="${other}">`, `<script src="${other}/h0.js"></script>`),
   },
+  // A preconnect in the header to an origin the page requests nothing from
+  "/hints-header-unused": {
+    link: `<${other}>; rel=preconnect`,
+    html: page("", "<h1>unused</h1>"),
+  },
   // A hint in the header, which the snippet cannot read when HEAD fails, and one in the HTML
   "/hints-header-405": {
     link: `<${other}>; rel=preconnect`,

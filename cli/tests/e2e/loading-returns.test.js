@@ -212,6 +212,33 @@ describe("Resource-Hints-Validation, unused hints", () => {
   }, 60000);
 });
 
+describe("Resource-Hints-Validation, hints in the Link header", () => {
+  it("validates the hints of the Link header with those of the HTML", async () => {
+    const r = await runOn("/hints-header", "Loading/Resource-Hints-Validation");
+    expect(r.details.headerHints).toBe(3);
+    expect(r.details.preconnectCount).toBe(2);
+    expect(r.details.preloadCount).toBe(1);
+    // The preload is used, and the origin of the script has its preconnects in the header
+    expect(r.items.some((i) => i.action === "remove-unused-preload")).toBe(false);
+    expect(r.items.some((i) => i.action.startsWith("add-") && i.domain === servers.otherBase)).toBe(false);
+  }, 30000);
+
+  it("says where an unused hint was declared", async () => {
+    const r = await runOn("/hints-header-unused", "Loading/Resource-Hints-Validation");
+    const unused = r.items.find((i) => i.action === "remove-unused-preconnect");
+    expect(unused).toEqual(expect.objectContaining({ domain: servers.otherBase, source: "header" }));
+    expect(new Set(r.items.map(keysOf)).size).toBe(1);
+  }, 30000);
+
+  it("goes on with the hints of the HTML when it cannot read the Link header", async () => {
+    const r = await runOn("/hints-header-405", "Loading/Resource-Hints-Validation");
+    expect(r.status).toBe("ok");
+    expect(r.details.headerHints).toBeNull();
+    expect(r.details.preloadCount).toBe(1);
+    expect(r.issues).toContainEqual(expect.objectContaining({ code: "header-hints-unavailable", severity: "info" }));
+  }, 30000);
+});
+
 describe("TTFB-Resources, a page without measurable resources", () => {
   it("returns an empty result, not an error, so a static page does not fail a workflow", async () => {
     const r = await runOn("/empty", "Loading/TTFB-Resources");

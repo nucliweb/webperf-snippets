@@ -53,6 +53,8 @@ Resource hints tell the browser to perform actions that can improve loading perf
 
 The snippet includes a check that compares DOM elements (like `<img>` tags) against Performance API data to detect these cases and warn you when domains have resources in the DOM but aren't captured by the Performance API.
 
+The hints of the `Link` response header count too. A page cannot read the headers of its own navigation, so the snippet asks for the document again with a `HEAD` request and validates those hints with the ones of the HTML; an unused hint says where it was declared. When the server does not answer the `HEAD` request, the report says so and covers only the HTML. [Resource hints](/Loading/Resource-Hints#hints-in-the-link-header) explains these hints and `103 Early Hints`.
+
 ### Snippet
 
 <Snippet code={snippet} />

@@ -9,6 +9,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Changed
+- Resource-Hints-Validation validates the hints of the `Link` response header of the document with those of the HTML, read with the same parser as Resource-Hints, shared with `// @shared parseLinkHeader` and `readHeaderHints`. An unused hint says where it was declared in `source` (`dom` or `header`), `details.headerHints` counts those of the header, and `header-hints-unavailable` (info) says when the header could not be read. The snippet is async.
 - Resource-Hints suggests fewer preconnects, and the ones that help. `missingPreconnects` listed every third-party origin with two requests or more, whenever they were made, and always with `crossorigin`. It now keeps the origins whose first request starts before the LCP (`details.missingPreconnectsCutoff`), earliest first, while their preconnects fit in a budget of 4 connections (`details.preconnectBudget`), one per origin and credentials mode, with `firstRequestStartMs`, `credentialsModes` and `crossorigin`, the value of each preconnect to add. The early origins over the budget are in `details.dnsPrefetchCandidates`, and the snippet is async for the LCP.
 
 ### Added

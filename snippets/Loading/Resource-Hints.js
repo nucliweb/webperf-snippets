@@ -27,6 +27,7 @@
   }
   // @end-shared ownRequestUrl
 
+  // @shared parseLinkHeader
   // The hints of a Link header: `<url>; rel=preconnect; crossorigin, </font.woff2>; rel="preload"; as=font`.
   // A comma or a semicolon inside <...> or quotes does not split, a rel with several tokens gives one
   // hint per token, and URLs resolve against the page. crossorigin is read as the crossOrigin property
@@ -72,7 +73,9 @@
     }
     return hints;
   }
+  // @end-shared parseLinkHeader
 
+  // @shared readHeaderHints
   // The hints of the Link header of the document. The page cannot read the headers of its own
   // navigation, so it asks for them again with a HEAD request; null when that request fails.
   async function readHeaderHints() {
@@ -84,6 +87,7 @@
       return null;
     }
   }
+  // @end-shared readHeaderHints
 
   // @shared formatBytes
   function formatBytes(bytes) {

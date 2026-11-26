@@ -107,7 +107,7 @@ Scripts that read DOM or `performance.getEntriesByType()` directly. Return JSON 
 })();
 ```
 
-**Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Resource-Hints-Validation, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, Compression-Audit, Third-Party-Impact-by-Domain, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
+**Scripts using this pattern:** TTFB, TTFB-Sub-Parts, FCP, Find-render-blocking-resources, Script-Loading, LCP-Video-Candidate, Priority-Hints-Audit, Validate-Preload-Async-Defer-Scripts, Fonts-Preloaded, Service-Worker-Analysis, Back-Forward-Cache, Content-Visibility, Critical-CSS-Detection, Inline-CSS-Info-and-Size, Inline-Script-Info-and-Size, First-And-Third-Party-Script-Info, First-And-Third-Party-Script-Timings, Compression-Audit, Third-Party-Impact-by-Domain, JS-Execution-Time-Breakdown, CSS-Media-Queries-Analysis, Client-Side-Redirect-Detection, SSR-Hydration-Data-Analysis, Network-Bandwidth-Connection-Quality, Find-Above-The-Fold-Lazy-Loaded-Images, Find-Images-With-Lazy-and-Fetchpriority, Find-non-Lazy-Loaded-Images-outside-of-the-viewport, SVG-Embedded-Bitmap-Analysis, Prefetch-Resource-Validation, TTFB-Resources.
 
 ### Pattern 2: Buffered observer
 
@@ -190,7 +190,7 @@ Keep the existing `async () => {}` wrapper. Add a `return` statement with struct
 
 A script wrapped in `void (async () => {...})()` discards its return value. Never use `void` on the IIFE.
 
-**Scripts using this pattern:** Image-Element-Audit (fetches content-type headers), Video-Element-Audit, SVG-Embedded-Bitmap-Analysis, Service-Worker-Analysis, Resource-Hints (reads the Link header of the document), and every script that collects observer-only entry types (Pattern 2).
+**Scripts using this pattern:** Image-Element-Audit (fetches content-type headers), Video-Element-Audit, SVG-Embedded-Bitmap-Analysis, Service-Worker-Analysis, Resource-Hints and Resource-Hints-Validation (read the Link header of the document), and every script that collects observer-only entry types (Pattern 2).
 
 ---
 
@@ -773,7 +773,7 @@ A preconnect opens a connection for one credentials mode: without `crossorigin`,
 
 #### Resource-Hints-Validation
 
-`items` lists the hints to remove because nothing uses them (`remove-unused-preload`, `remove-unused-preconnect`, `remove-unused-dns-prefetch`, with the `href` of the hint), the origins that need a hint and the origins that have both `preconnect` and `dns-prefetch` (at most 50). `href` is `null` for the last two kinds.
+`items` lists the hints to remove because nothing uses them (`remove-unused-preload`, `remove-unused-preconnect`, `remove-unused-dns-prefetch`, with the `href` of the hint), the origins that need a hint and the origins that have both `preconnect` and `dns-prefetch` (at most 50). `href` is `null` for the last two kinds. The hints come from the HTML and from the `Link` header of the document, read with a `HEAD` request to the page (the script is async); `source` says where an unused hint was declared (`dom` or `header`), and is `null` for the origins. `details.headerHints` counts the hints of the header, `null` when the request failed.
 
 ```json
 {
@@ -1604,6 +1604,7 @@ Each issue about one hint names its URL in `target`.
 
 | Code | Severity | When |
 |------|----------|------|
+| `header-hints-unavailable` | info | The `HEAD` request that reads the `Link` header failed, so only the hints of the HTML are validated |
 | `unused-hints` | warning | Hints the page did not use |
 | `missing-connection-hints` | info | Domains that could use a connection hint |
 | `redundant-hints` | warning | Domains with both `preconnect` and `dns-prefetch` |
