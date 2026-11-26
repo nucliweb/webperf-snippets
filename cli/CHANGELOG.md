@@ -8,8 +8,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The CL
 
 ## [Unreleased]
 
+## [1.20.0] — 2026-11-26
+
+It measures each page with its preconnects, in a persistent profile of its own, and ships the snippets of the collection 2.9.0: Resource-Hints judges each preconnect by the credentials mode of its requests and by whether its connection was reused, reads the hints of the `Link` header and suggests only the preconnects that help, and Resource-Hints-Validation reads the `Link` header too.
+
 ### Changed
 - A run measures the page with its preconnects, as a visitor's browser does. Chromium ignores `<link rel="preconnect">` in a private profile, the one the CLI measured in, so every page loaded as if it had none. Each run opens Chromium with a new, empty persistent profile of its own, removed when the run ends, and `--storage-state` is applied to it. A page with preconnects can measure faster than in earlier versions; `conditions.browser.profile` is `persistent`, and `--baseline` warns when the baseline was measured in a private profile. The headless shell ignores preconnects in any profile. `run_snippet` and `run_workflow` of the MCP server measure the same way; the pages it opens with `open_page` still use a private profile.
+
+### Added
+- Resource-Hints, of the collection 2.9.0, reads the hints of the `Link` response header of the document besides those of the HTML, and says whether each preconnect saved a connection: `preconnect-not-reused` (warning) when the first request of its credentials mode opened a new connection, and `preconnect-crossorigin-only` (warning) when requests with credentials have only a `crossorigin` preconnect. A hint declared twice gets `duplicate-hint` (info), and `header-hints-unavailable` (info) says when the header could not be read; Resource-Hints-Validation reads the header too. A page with them has warnings it did not have, which `--fail-on warning` and `--baseline` see as new; the exit code with the default `--fail-on` does not change.
+
+### Fixed
+- Resource-Hints, of the collection 2.9.0, matches each preconnect with the requests of its credentials mode: a preconnect counted as used when only requests of the other mode went to its origin, and `preconnect-no-crossorigin` warned of a preconnect whose `crossorigin` twin was there. It is one warning per origin, so a page can have fewer warnings than before. `missingPreconnects` keeps the origins requested before the LCP, within a budget of 4 connections, where it listed every third-party origin with two requests or more.
 
 ## [1.19.0] — 2026-11-19
 
@@ -430,7 +440,8 @@ A budget never passes unchecked, which changes the exit code of a run whose budg
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.19.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.20.0...HEAD
+[1.20.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.19.0...cli-v1.20.0
 [1.19.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.18.0...cli-v1.19.0
 [1.18.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.17.0...cli-v1.18.0
 [1.17.0]: https://github.com/nucliweb/webperf-snippets/compare/cli-v1.16.0...cli-v1.17.0
