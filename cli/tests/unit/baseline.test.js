@@ -363,6 +363,16 @@ describe("the warnings of a comparison", () => {
     expect(warningsOf(on(full), on(full))).toEqual([]);
   });
 
+  // A CLI that does not record the profile measured in a private one, where Chromium ignores preconnect hints
+  it("say when the baseline was measured in another browser profile", () => {
+    const full = { build: "chromium", mode: "headless", version: "153.0.8010.12" };
+    const on = (browser) => page({ conditions: { ...CONDITIONS, browser }, runs: runsOf({ LCP: [1, 2, 3, 4, 5] }) });
+    const warning = "the baseline was measured in a private browser profile, and this run in a persistent one; Chromium ignores preconnect hints in a private profile, so timings can differ for that alone";
+    expect(warningsOf(on(full), on({ ...full, profile: "persistent" }))).toEqual([warning]);
+    expect(warningsOf(on({ ...full, profile: "persistent" }), on({ ...full, profile: "persistent" }))).toEqual([]);
+    expect(warningsOf(on(full), on(full))).toEqual([]);
+  });
+
   // A CLI that does not record its browser launched the headless shell, with Playwright 1.49 or later
   it("say when the baseline does not name its browser and this run used another than the headless shell", () => {
     const full = { build: "chromium", mode: "headless", version: "153.0.8010.12" };

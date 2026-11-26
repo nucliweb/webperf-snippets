@@ -1,4 +1,4 @@
-import { chromiumLaunchOptions, launchChromium, launchedBrowser } from "./browser.js";
+import { chromiumLaunchOptions, launchPersistentChromium, launchedBrowser } from "./browser.js";
 import { loadSnippet } from "./load-snippet.js";
 import { runInteractions, loadInteractionSteps, isInputStep, settle } from "./interactions.js";
 import { isTrackingSnippet } from "./tracking.js";
@@ -104,9 +104,8 @@ export async function collectTrackingData(page, result, hasInput) {
 
 // An aborted signal closes Chromium, which fails whatever the run is waiting for, a page that stopped
 // answering included: Playwright has no timeout for an evaluation. Returns what stops listening.
-function closeOnAbort(browser, signal) {
+function closeOnAbort(close, signal) {
   if (!signal) return () => {};
-  const close = () => browser.close().catch(() => {});
   if (signal.aborted) close();
   signal.addEventListener("abort", close, { once: true });
   return () => signal.removeEventListener("abort", close);
@@ -133,13 +132,15 @@ async function withLoadedPage(
   evaluate
 ) {
   await onProgress(1, "Opening Chromium");
+  // A persistent profile of its own, where Chromium applies the preconnects of the page (it ignores
+  // them in the private profile of browser.newContext())
   const launchOptions = chromiumLaunchOptions({ headless });
-  const browser = await launchChromium(launchOptions);
-  const launched = launchedBrowser(launchOptions, browser);
-  const stopListening = closeOnAbort(browser, signal);
+  const { context, close } = await launchPersistentChromium(launchOptions, { viewport, storageState });
+  const launched = launchedBrowser(launchOptions, context.browser(), "persistent");
+  const stopListening = closeOnAbort(close, signal);
   try {
-    const context = await browser.newContext({ viewport, storageState });
-    const page = await context.newPage();
+    // A persistent context opens with a page; the run uses it rather than a second one
+    const page = context.pages()[0] ?? (await context.newPage());
     const pageErrors = [];
     page.on("pageerror", (err) => pageErrors.push(err.message));
     const navMs = await loadPage(context, page, { url, waitMs, navTimeout, headers, cpu, network });
@@ -149,7 +150,7 @@ async function withLoadedPage(
     return { url, navMs, results, pageErrors, throttling: throttlingOf({ cpu, network }), browser: launched };
   } finally {
     stopListening();
-    await browser.close();
+    await close();
   }
 }
 

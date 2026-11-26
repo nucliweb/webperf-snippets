@@ -83,7 +83,7 @@ describe.skipIf(!INSTALLED)("the Chromium that is launched", () => {
       const { results, conditions } = JSON.parse(stdout);
       expect(results[0].status).toBe("ok");
       expect(results[0].value).toBeGreaterThan(0);
-      expect(conditions.browser).toEqual({ build, mode: "headless", version: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/) });
+      expect(conditions.browser).toEqual({ build, mode: "headless", version: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/), profile: "persistent" });
     }, 30000);
 
     it("the MCP server measures LCP with run_snippet, and names that browser in the conditions of the run", async () => {
@@ -96,7 +96,7 @@ describe.skipIf(!INSTALLED)("the Chromium that is launched", () => {
       expect(lcp.status).toBe("ok");
       expect(lcp.value).toBeGreaterThan(0);
       const resource = await client.readResource({ uri: `webperf://runs/${result.structuredContent.runId}` });
-      expect(JSON.parse(resource.contents[0].text).conditions.browser).toEqual({ build, mode: "headless", version: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/) });
+      expect(JSON.parse(resource.contents[0].text).conditions.browser).toEqual({ build, mode: "headless", version: expect.stringMatching(/^\d+\.\d+\.\d+\.\d+$/), profile: "persistent" });
     }, 30000);
   });
 });

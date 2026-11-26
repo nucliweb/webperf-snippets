@@ -1,5 +1,7 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Playwright is loaded when a browser is needed, not with this module: it takes most of the start of
 // the CLI, and --help, --version and a usage error need no browser. It is a peer dependency, so it may
@@ -54,12 +56,13 @@ export function chromiumLaunchOptions(options = {}, { hasFullChromium = fullChro
 // The browser a launch with these options ran, for the conditions of a measurement: its build (the full
 // Chromium, "chromium", or the headless shell, "chromium-headless-shell"), its mode and its version. A
 // later run compared with it can then say when the browser changed, which can move the timings.
-export function launchedBrowser(options = {}, browser) {
+export function launchedBrowser(options = {}, browser, profile) {
   const headed = options.headless === false;
   return {
     build: options.channel ?? (headed ? "chromium" : "chromium-headless-shell"),
     mode: headed ? "headed" : "headless",
     version: browser.version(),
+    ...(profile ? { profile } : {}),
   };
 }
 
@@ -70,4 +73,35 @@ export async function launchChromium(options, { launch = (o) => chromium().launc
     if (isMissingPlaywright(err)) throw new MissingBrowserError(MISSING_PLAYWRIGHT);
     throw isMissingBrowser(err) ? new MissingBrowserError() : err;
   }
+}
+
+// A measurement in a persistent profile of its own. Chromium ignores <link rel="preconnect"> in a
+// private profile, which is what browser.newContext() opens, so a page measured there loads as if it
+// had no preconnects. Each launch gets a new, empty profile directory, removed when it closes, so no
+// cache, cookie or connection passes from one measurement to the next. Playwright takes no storage
+// state for a persistent launch: it is set on the context. Returns the context and its close().
+export async function launchPersistentChromium(
+  options,
+  { storageState, ...contextOptions } = {},
+  { launchPersistent = (dir, o) => chromium().launchPersistentContext(dir, o), hasFullChromium } = {}
+) {
+  const dir = mkdtempSync(join(tmpdir(), "webperf-snippets-"));
+  const removeProfile = () => rmSync(dir, { recursive: true, force: true });
+  let context;
+  try {
+    context = await launchPersistent(dir, { ...chromiumLaunchOptions(options, { hasFullChromium }), ...contextOptions });
+    if (storageState) await context.setStorageState(storageState);
+  } catch (err) {
+    await context?.close().catch(() => {});
+    removeProfile();
+    if (isMissingPlaywright(err)) throw new MissingBrowserError(MISSING_PLAYWRIGHT);
+    throw isMissingBrowser(err) ? new MissingBrowserError() : err;
+  }
+  return {
+    context,
+    close: async () => {
+      await context.close().catch(() => {});
+      removeProfile();
+    },
+  };
 }
