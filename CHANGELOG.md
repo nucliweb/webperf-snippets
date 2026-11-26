@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.9.0] — 2026-11-26
+
+Resource-Hints judges each preconnect as Chromium uses it: by the credentials mode of the requests it serves, with whether the first of them reused the preconnected connection, and it reads the hints of the `Link` response header besides those of the HTML. It suggests only the preconnects that help, for the origins requested before the LCP and within a budget of 4 connections. Resource-Hints-Validation reads the `Link` header too. End-to-end tests compare both with the connections Chromium reuses, read with CDP. The extension reaches 0.8.0 with these snippets, and the CLI 1.20.0 (see [`cli/CHANGELOG.md`](cli/CHANGELOG.md)) ships them and measures in a persistent profile, where Chromium applies the preconnects of the page.
+
 ### Changed
 - Resource-Hints-Validation validates the hints of the `Link` response header of the document with those of the HTML, read with the same parser as Resource-Hints, shared with `// @shared parseLinkHeader` and `readHeaderHints`. An unused hint says where it was declared in `source` (`dom` or `header`), `details.headerHints` counts those of the header, and `header-hints-unavailable` (info) says when the header could not be read. The snippet is async.
 - Resource-Hints suggests fewer preconnects, and the ones that help. `missingPreconnects` listed every third-party origin with two requests or more, whenever they were made, and always with `crossorigin`. It now keeps the origins whose first request starts before the LCP (`details.missingPreconnectsCutoff`), earliest first, while their preconnects fit in a budget of 4 connections (`details.preconnectBudget`), one per origin and credentials mode, with `firstRequestStartMs`, `credentialsModes` and `crossorigin`, the value of each preconnect to add. The early origins over the budget are in `details.dnsPrefetchCandidates`, and the snippet is async for the LCP.
@@ -449,7 +453,8 @@ A major version: several snippets return different fields or values (listed unde
 
 ---
 
-[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.8.0...HEAD
+[Unreleased]: https://github.com/nucliweb/webperf-snippets/compare/v2.9.0...HEAD
+[2.9.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.3...v2.7.0
 [2.6.3]: https://github.com/nucliweb/webperf-snippets/compare/v2.6.2...v2.6.3
