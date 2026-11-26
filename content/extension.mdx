@@ -72,6 +72,8 @@ The [CLI](/CLI) measures in a Chromium without extensions. An agent that measure
 
 The extension asks for no permission beyond storage, and runs a snippet only when you press Run or start an audit. It sends nothing anywhere: the results stay in the panel, the last audits in the local storage of the browser, and the settings, the theme and the side of the list, in the storage that Chrome syncs with your account.
 
+With **Allow in Incognito** turned on, private windows share that storage with the normal ones: an audit run in a private window is saved with the others, its page among them, and stays after the window closes. Delete it from the list of audits, or measure in a Chrome profile of its own to keep those audits apart.
+
 ## Limitations
 
 - It is a beta: expect rough edges.
