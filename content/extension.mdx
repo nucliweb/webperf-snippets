@@ -29,8 +29,8 @@ A Chrome DevTools panel that runs the snippets on the inspected page and shows t
   />
 </picture>
 
-<Callout type="warning">
-  **Beta.** The extension installs from a zip, not from the Chrome Web Store. Whether it goes to the store depends on the interest and the feedback on this beta.
+<Callout type="info">
+  **Beta.** The extension is in the [Chrome Web Store](https://chromewebstore.google.com/detail/webperf-snippets/lnoemoojedpphjfjpohipfmmgpjojagk), and Chrome keeps it up to date. Your [feedback](#feedback) decides what comes next.
 </Callout>
 
 <ExtensionDownload />
@@ -46,16 +46,28 @@ A Chrome DevTools panel that runs the snippets on the inspected page and shows t
 - Copies two prompts for an AI agent. Prompt to measure runs the snippet with the CLI, with the inspected page in its command. Prompt to fix, on a result or an audit with errors or warnings, is for an agent that works in the repository of the site: it carries the issues with their code and the resource they name, the details and the rows they point to, and asks the agent to check the fix with the CLI before and after the change, with the inspected page in its commands, or the URL of a local or staging server when that page is in production.
 - Works on pages whose Content Security Policy blocks code pasted into the console, since it runs the snippets through the DevTools API.
 
-## Install the beta
+## Install
 
 The extension needs Chrome 120 or later.
+
+1. Open [WebPerf Snippets in the Chrome Web Store](https://chromewebstore.google.com/detail/webperf-snippets/lnoemoojedpphjfjpohipfmmgpjojagk) and choose **Add to Chrome**.
+2. Open DevTools on any page and go to the **WebPerf Snippets** panel. If it is not in sight, it is in the `»` menu of the panels.
+
+Chrome updates it by itself. A new version reaches the store a few days after its release, once the store has reviewed it.
+
+### Load it unpacked
+
+The zip of each release loads without the store, the day it is released:
 
 1. Download the zip and unzip it. Keep the folder: Chrome loads the extension from it.
 2. Open `chrome://extensions` and turn on **Developer mode**, at the top right.
 3. Choose **Load unpacked** and select the unzipped folder, the one with `manifest.json`.
-4. Open DevTools on any page and go to the **WebPerf Snippets** panel. If it is not in sight, it is in the `»` menu of the panels.
 
-To update it, download the new zip, remove the extension in `chrome://extensions` and load the new folder.
+An unpacked extension does not update: download the new zip, remove the extension in `chrome://extensions` and load the new folder.
+
+### From the zip to the store
+
+For Chrome, the extension from the store and the one loaded from a folder are two extensions, and neither sees what the other saved: the audits of the panel and its settings stay with the unpacked one. Before you remove it, choose **Download** next to each audit you want to keep, in the list of audits on the home of the panel. Remove the unpacked extension in `chrome://extensions`, or DevTools shows two WebPerf Snippets panels.
 
 ## Measure without other extensions
 

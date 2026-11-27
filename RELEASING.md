@@ -6,7 +6,7 @@ The repository publishes three parts, each with its own version and its own tag:
 | --- | --- | --- | --- | --- |
 | Collection and skills | `package.json` | `v*` | `release.yml` | GitHub release (Latest), with the zips of the skills |
 | CLI and its MCP server | `cli/package.json` and `cli/server.json` | `cli-v*` | `publish-cli.yml` | npm and the MCP Registry |
-| DevTools extension | `extension/manifest.json` | `extension-v*` | `release-extension.yml` | GitHub prerelease with the zip |
+| DevTools extension | `extension/manifest.json` | `extension-v*` | `release-extension.yml` | GitHub prerelease with the zip, and the Chrome Web Store by hand |
 
 A release publishes only the parts that changed. The CLI and the extension ship the snippets, so a change to a snippet releases all three; a change to the CLI alone releases only the CLI, and a change to the extension alone only the extension. Fixes bump the patch version and new features the minor one.
 
@@ -71,6 +71,8 @@ git push origin v<version> extension-v<version> cli-v<version>
 
 Each tag starts its workflow. `publish-cli.yml` runs in the `npm-publish` environment, which waits for a maintainer to approve it in GitHub Actions (Review deployments) before it runs the tests and publishes.
 
+The extension reaches the Chrome Web Store by hand. Once its release is published, download `webperf-snippets-extension-<version>.zip` from it and, in the [Developer Dashboard](https://chrome.google.com/webstore/devconsole), open WebPerf Snippets, go to Package, choose Upload new package and submit it for review. The store takes a version higher than the one it has, and the listing and privacy texts carry over; update them when a permission or what the extension does changes. The review usually takes a few days and can take a few weeks; the users of the store get the version when it passes.
+
 The CLI is published with npm trusted publishing: npm exchanges the OIDC token of the workflow for a short-lived one and adds the provenance of the package, so no npm token is stored in the repository. The MCP Registry takes the same OIDC token (`mcp-publisher login github-oidc`), and the workflow retries the publish for a few minutes, until npm lists the new version, since the registry checks the `mcpName` of the package on npm.
 
 ## 6. Check what was published
@@ -83,7 +85,7 @@ npx -y webperf-snippets@<version> --version
 curl -s "https://registry.modelcontextprotocol.io/v0/servers/io.github.nucliweb%2Fwebperf-snippets/versions/latest"
 ```
 
-The registry answers with the new version and `isLatest: true`. The download button of the extension page takes its version from `extension/manifest.json`, so it links to the new zip once Vercel deploys `main`.
+The registry answers with the new version and `isLatest: true`. The zip link of the extension page takes its version from `extension/manifest.json`, so it links to the new zip once Vercel deploys `main`. The Status page of the item in the Developer Dashboard says when the store has published the new version.
 
 ## When a publication fails halfway
 
