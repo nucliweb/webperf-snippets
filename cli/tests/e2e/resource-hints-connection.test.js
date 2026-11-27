@@ -15,6 +15,11 @@ import { loadSnippet } from "../../src/load-snippet.js";
 //
 // Like resource-hints-credentials.test.js, each case runs in a persistent context of the full Chromium,
 // the only kind of profile where Chromium preconnects.
+//
+// Resource Timing gives times to 0.1 ms without cross-origin isolation, and a new connection to
+// 127.0.0.1 can open faster than that on Linux: connectEnd then equals connectStart, as on a connection
+// that was open, and no snippet can tell them apart. CDP gives the connect to the microsecond, so the
+// case of a new connection is observed again while CDP says its connect was shorter than that.
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PNG = readFileSync(resolve(HERE, "../fixtures/hero.png"));
@@ -84,17 +89,34 @@ async function observe(name) {
     const cdp = await context.newCDPSession(tab);
     await cdp.send("Network.enable");
     let reused = null;
+    let connectMs = null;
     cdp.on("Network.responseReceived", ({ response }) => {
-      if (response.url.includes("/a.png")) reused = response.timing?.connectStart === -1;
+      if (!response.url.includes("/a.png")) return;
+      reused = response.timing?.connectStart === -1;
+      if (!reused) connectMs = response.timing.connectEnd - response.timing.connectStart;
     });
     await tab.goto(`${base(page)}/${name}`, { waitUntil: "load" });
     await tab.waitForTimeout(2000);
     const result = await tab.evaluate(source);
-    return { result, reused, preconnect: result.items.find((i) => i.rel === "preconnect") };
+    return { result, reused, connectMs, preconnect: result.items.find((i) => i.rel === "preconnect") };
   } finally {
     await context.close();
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+// The resolution of Resource Timing, under which a new connection reads as one that was open
+const RESOURCE_TIMING_RESOLUTION_MS = 0.1;
+
+// A new connection whose connect Resource Timing can see, in up to five observations
+async function observeMeasurableNewConnection(name) {
+  const connects = [];
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const observed = await observe(name);
+    if (observed.reused !== false || observed.connectMs >= RESOURCE_TIMING_RESOLUTION_MS) return observed;
+    connects.push(observed.connectMs);
+  }
+  throw new Error(`every new connection opened in less than ${RESOURCE_TIMING_RESOLUTION_MS} ms, which Resource Timing cannot see: ${connects.map((ms) => ms.toFixed(3)).join(", ")} ms`);
 }
 
 describe("Resource-Hints, whether a preconnect saved a connection", () => {
@@ -106,12 +128,12 @@ describe("Resource-Hints, whether a preconnect saved a connection", () => {
   }, 60000);
 
   it("says the first request opened a new connection when the server closed the preconnected one, as CDP does", async () => {
-    const { reused, preconnect, result } = await observe("closed");
+    const { reused, preconnect, result } = await observeMeasurableNewConnection("closed");
     expect(reused).toBe(false);
     expect(preconnect).toEqual(expect.objectContaining({ use: "used", firstUseConnection: "new" }));
     const issue = result.issues.find((i) => i.code === "preconnect-not-reused");
     expect(issue).toEqual(expect.objectContaining({ severity: "warning", target: `${base(closing)}/` }));
-  }, 60000);
+  }, 120000);
 
   it("does not say it when the response hides its connection timing", async () => {
     const { reused, preconnect, result } = await observe("no-timing");
