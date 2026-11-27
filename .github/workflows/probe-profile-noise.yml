@@ -1,0 +1,50 @@
+name: Probe profile noise
+
+# Probe, not part of the repository: runs only on its own branch, which is never merged
+on:
+  push:
+    branches:
+      - probe/profile-noise
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe (runner ${{ matrix.runner }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [1, 2]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Playwright and Chromium
+        working-directory: probe
+        run: |
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund playwright@1.65.1
+          npx playwright install --with-deps chromium
+
+      # One worker alone, then three at once, as the three test files a shard of CI runs at a time
+      - name: Measure
+        working-directory: probe
+        run: |
+          node profile-noise.mjs 10 alone > alone.jsonl
+          for w in 1 2 3; do node profile-noise.mjs 10 "w$w" >> three.jsonl & done
+          wait
+          node summary.mjs alone.jsonl three.jsonl | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: probe-runner-${{ matrix.runner }}
+          path: probe/*.jsonl
