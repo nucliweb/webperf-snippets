@@ -142,7 +142,7 @@ Every snippet also runs by hand in the DevTools console, with the same code the 
 
 ### DevTools extension (beta)
 
-A DevTools panel runs the snippets on the inspected page without pasting them, shows their results, and audits the page with the checks of the CLI. It installs from a zip while it is in beta.
+A DevTools panel runs the snippets on the inspected page without pasting them, shows their results, and audits the page with the checks of the CLI. It installs from the [Chrome Web Store](https://chromewebstore.google.com/detail/webperf-snippets/lnoemoojedpphjfjpohipfmmgpjojagk).
 
 → [DevTools extension](https://webperf-snippets.net/extension)
 

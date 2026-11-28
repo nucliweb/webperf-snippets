@@ -1,6 +1,7 @@
 name: Release extension
 
-# A tag extension-vX.Y.Z publishes the zip of the DevTools extension, the file the beta page links to.
+# A tag extension-vX.Y.Z publishes the zip of the DevTools extension, the one the extension page offers to load
+# unpacked and the one to upload to the Chrome Web Store (RELEASING.md).
 # The version of the tag must be the one of extension/manifest.json.
 
 on:
@@ -50,7 +51,9 @@ jobs:
           files: webperf-snippets-extension-*.zip
           fail_on_unmatched_files: true
           body: |
-            Beta of the WebPerf Snippets DevTools extension, to load unpacked in Chrome.
+            Beta of the WebPerf Snippets DevTools extension. Install it from the Chrome Web Store, which keeps it up to date: https://chromewebstore.google.com/detail/webperf-snippets/lnoemoojedpphjfjpohipfmmgpjojagk. This version reaches the store once the store has reviewed it.
+
+            To load this zip unpacked instead:
 
             1. Download `webperf-snippets-extension-*.zip` below and unzip it.
             2. In `chrome://extensions`, turn on Developer mode, choose Load unpacked and select the unzipped folder.

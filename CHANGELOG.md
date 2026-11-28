@@ -8,6 +8,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- The DevTools extension is in the [Chrome Web Store](https://chromewebstore.google.com/detail/webperf-snippets/lnoemoojedpphjfjpohipfmmgpjojagk), and Chrome keeps it up to date. The [extension page](https://webperf-snippets.net/extension) installs it from the store, keeps the zip of each release to load unpacked, and says how to move from the zip to the store: the two are different extensions for Chrome, so the audits and settings of the unpacked one stay with it.
+
 ### Changed
 - The Privacy section of the [extension page](https://webperf-snippets.net/extension) says that, with Allow in Incognito, private windows share the storage of the extension with the normal ones, so an audit run in a private window is saved with the others and stays after the window closes.
 
